@@ -1,0 +1,17 @@
+[project]
+name = "scars-server"
+version = "0.1.0"
+description = "Project SCARS Central Server"
+readme = "README.md"
+authors = [{ name = "Chris1320", email = "chris1320is@protonmail.com" }]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.6",
+]
+
+[project.scripts]
+scars-server = "scars_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
