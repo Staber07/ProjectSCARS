@@ -12,6 +12,9 @@ jobs:
     uv-example:
         name: python
         runs-on: ubuntu-latest
+        env:
+            working-directory: scars_server
+            uv-lock: "scars_server/uv.lock"
         strategy:
             matrix:
                 python-version:
@@ -26,15 +29,15 @@ jobs:
               with:
                   version: "0.5.7"
                   enable-cache: true
-                  cache-dependency-glob: "scars_server/uv.lock"
+                  cache-dependency-glob: ${{ env.uv-lock }}
 
             - name: Set up Python ${{ matrix.python-version }}
               run: uv python install ${{ matrix.python-version }}
 
             - name: Install project
               run: uv sync --all-extras
+              working-directory: ${{ env.working-directory }}
 
             - name: Run tests
-              run: |
-                  cd scars_server/src
-                  uv run pytest
+              run: uv run pytest
+              working-directory: ${{ env.working-directory }}
