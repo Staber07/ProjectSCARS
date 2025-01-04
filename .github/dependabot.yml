@@ -10,5 +10,6 @@ updates:
       schedule:
           interval: "weekly"
       labels:
-          - "kind > dependencies"
           - "tag > bot"
+          - "kind > dependencies"
+          - "scope > backend"
