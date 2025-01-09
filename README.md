@@ -30,7 +30,7 @@ Install Python and uv.
 
 ```powershell
 winget install astral-sh.uv  # Install uv via winget
-uv python install            # Install python via uv
+uv python install 3.12       # Install python via uv
 ```
 
 ##### 2. Replicate Environment Setup
@@ -53,5 +53,23 @@ Follow the steps below to set up your development environment on Linux systems.
 
 #### Central Server (`scars_server`)
 
-> [!CAUTION]
-> Work in Progress
+The central server uses [Python](https://python.org/) and the FastAPI framework. This project uses [uv](https://astral.sh/uv) to manage the project.
+
+##### 1. Install Required Packages
+
+Install Python and uv.
+
+```bash
+sudo apt update && sudo apt install curl
+curl -LsSf https://astral.sh/uv/install.sh | sh  # Install uv
+uv python install 3.12                           # Install python via uv
+```
+
+##### 2. Replicate Environment Setup
+
+Go to `scars_server/src` and run the following:
+
+```powershell
+uv sync
+uv run fastapi dev scars_server
+```
