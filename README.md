@@ -35,7 +35,7 @@ winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
 nvm use 23.6.1
 
-firebase init  # Use existing project; Firestore, Functions, Storage, and Emulators
+firebase init  # Use existing project
 
 # Confirm successful installation of packages
 python --version  # Python 3.13.1
@@ -43,7 +43,7 @@ node --version    # v23.6.1
 npm --version     # 10.9.2
 ```
 
-> [!INFO]
+> [!NOTE]
 > The commands below assumes that your Linux distribution is using `apt` as your package manager.
 
 ```bash
