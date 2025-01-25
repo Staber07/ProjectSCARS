@@ -34,7 +34,7 @@ uv python install 3.13.1
 winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
 
-firebase setup:emulators:firestore
+firebase init emulators  # Use existing project
 
 # Confirm successful installation of packages
 python --version  # Python 3.13.1
