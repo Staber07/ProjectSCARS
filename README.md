@@ -33,8 +33,9 @@ winget install astral-sh.uv
 uv python install 3.13.1
 winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
+nvm use 23.6.1
 
-firebase init  # Use existing project
+firebase init  # Use existing project; Firestore, Functions, Storage, and Emulators
 
 # Confirm successful installation of packages
 python --version  # Python 3.13.1
