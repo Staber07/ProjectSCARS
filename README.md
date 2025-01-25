@@ -34,6 +34,8 @@ uv python install 3.13.1
 winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
 
+firebase setup:emulators:firestore
+
 # Confirm successful installation of packages
 python --version  # Python 3.13.1
 node --version    # v23.6.1
@@ -101,6 +103,7 @@ npm install
 #### 4. Test The Environment
 
 ```powershell
+firebase emulators:start
 pytest
 fastapi dev scars_server
 ```
