@@ -1,0 +1,7 @@
+[project]
+name = "intransit"
+version = "0.1.0"
+description = "Project SCARS Central Server"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["firebase-functions~=0.1.0"]
