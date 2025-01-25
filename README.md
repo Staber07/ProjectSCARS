@@ -33,8 +33,9 @@ winget install astral-sh.uv
 uv python install 3.13.1
 winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
+nvm use 23.6.1
 
-firebase init emulators  # Use existing project
+firebase init  # Use existing project
 
 # Confirm successful installation of packages
 python --version  # Python 3.13.1
@@ -42,7 +43,7 @@ node --version    # v23.6.1
 npm --version     # 10.9.2
 ```
 
-> [!INFO]
+> [!NOTE]
 > The commands below assumes that your Linux distribution is using `apt` as your package manager.
 
 ```bash
@@ -88,7 +89,7 @@ To make sure that every collaborator has the same environment, execute the follo
 > [!CAUTION]
 > Some of the commands below are **destructive**. Make sure to commit your changes or they will be gone!
 
-In the central server, run the following:
+In the project root, run the following:
 
 ```powershell
 uv sync
@@ -112,4 +113,4 @@ fastapi dev scars_server
 node run dev
 ```
 
-Make sure they are both accessible locally.
+Make sure all services are both accessible locally.
