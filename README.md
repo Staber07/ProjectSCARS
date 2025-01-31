@@ -21,7 +21,7 @@ Follow the steps below to set up your development environment on Windows or Linu
 
 #### 1. Install Package Managers and Related Software
 
-The central server uses [Python](https://python.org/) and the FastAPI framework, and uses [uv](https://astral.sh/uv) to manage the project. [nvm-windows](https://github.com/coreybutler/nvm-windows) is recommended to be used to install and manage Node. [Firebase CLI](https://firebase.google.com/docs/cli/) is uesd to manage the Firebase project. To install Firebase, follow their [install documentation](https://firebase.google.com/docs/cli/).
+The central server uses [Python](https://python.org/) and the FastAPI framework, and uses [uv](https://astral.sh/uv) to manage the project. [nvm-windows](https://github.com/coreybutler/nvm-windows) is recommended to be used to install and manage Node. [Firebase CLI](https://firebase.google.com/docs/cli/) is uesd to manage the Firebase project.
 
 > [!CAUTION]
 > Make sure to remove previous installations of Python and NodeJS before proceeding. If you are certain that there are no traces left of the previous installation (i.e., leftover configuration files), you can perform the following commands:
@@ -35,6 +35,7 @@ winget install CoreyButler.NVMforWindows
 nvm install 23.6.1
 nvm use 23.6.1
 
+npm install -g firebase-tools
 firebase init  # Use existing project
 
 # Confirm successful installation of packages
@@ -47,11 +48,22 @@ npm --version     # 10.9.2
 > The commands below assumes that your Linux distribution is using `apt` as your package manager.
 
 ```bash
+git clean -dfx
+git restore .
 sudo apt update && sudo apt install curl
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv python install 3.12.8
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
 nvm install 23.6.1
+nvm use 23.6.1
+
+npm install -g firebase-tools
+firebase init  # Use existing project
+
+# Confirm successful installation of packages
+python --version  # Python 3.13.1
+node --version    # v23.6.1
+npm --version     # 10.9.2
 ```
 
 You should add nvm's init script to your `.profile` to make sure that the node path is always loaded.
