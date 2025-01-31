@@ -1,0 +1,4 @@
+.emphasis {
+    color: var(--primary);
+    font-style: italic;
+}
