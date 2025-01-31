@@ -1,14 +1,19 @@
+@import "./global_fonts.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    /* temporary colorscheme */
-    --background: #f5efe7;
-    --foreground: #0a0a0a;
-    --primary: #213555;
-    --secondary: #3e5879;
-    --tertiary: #d8c4b6;
+    /*
+    temporary colorscheme:
+    https://coolors.co/171a21-2a3e4c-5f9ca5-aad3e2-daeaf1
+    */
+    --background: #daeaf1;
+    --foreground: #171a21;
+    --primary: #2a3e4c;
+    --secondary: #5f9ca5;
+    --tertiary: #aad3e2;
 }
 
 /* Disable dark mode for now */
@@ -24,5 +29,5 @@
 body {
     color: var(--foreground);
     background: var(--background);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: "Manrope", "Inter", Arial, Helvetica, sans-serif;
 }
