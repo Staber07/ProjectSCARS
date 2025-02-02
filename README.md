@@ -2,6 +2,9 @@
 
 inTransit is a School Canteen Automated Reporting System.
 
+![Frontend Tests](https://github.com/Chris1320/inTransit/actions/workflows/frontend.yml/badge.svg)
+![Super Linter](https://github.com/Chris1320/inTransit/actions/workflows/super-linter.yml/badge.svg)
+
 ## Development
 
 **Stack**:
