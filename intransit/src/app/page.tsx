@@ -1,22 +1,38 @@
 "use client";
 
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { loginFormSchema, LoginForm } from "@/components/login-form";
+import { Card, CardTitle } from "@/components/ui/card";
 
+import { firebaseAuth } from "@/lib/firebase/auth";
 import { Program } from "@/lib/info";
 
 export default function Home() {
     const [passwordHiddenState, setPasswordHiddenState] = useState(true);
+    const router = useRouter();
 
     /**
      * Attempt authentication with the provided form values.
      * @param values The form values.
      */
     function submitUserLogin(values: z.infer<typeof loginFormSchema>) {
-        toast(`User \`${values.username}\` is logging in with password \`${values.password}\``); // TODO: Remove this line
+        signInWithEmailAndPassword(firebaseAuth, values.username, values.password)
+            .then((userCredential) => {
+                const user = userCredential.user;
+                toast(`Successfully logged in as ${user.email}`);
+                router.push("/dashboard");
+            })
+            .catch((error) => {
+                const errorCode = error.code;
+                const errorMessage = error.message;
+
+                toast(`Error: ${errorCode} - ${errorMessage}`);
+            });
     }
 
     /**
@@ -36,11 +52,14 @@ export default function Home() {
                 </h1>
                 <h2 className="text-2xl text-center sm:text-left">{Program.description}</h2>
                 <div className="self-center pr-4">
-                    <LoginForm
-                        submitUserLogin={submitUserLogin}
-                        togglePasswordVisibility={togglePasswordVisibility}
-                        passwordHiddenState={passwordHiddenState}
-                    />
+                    <Card className="p-16 space-y-6">
+                        <CardTitle className="text-2xl font-bold">Login</CardTitle>
+                        <LoginForm
+                            submitUserLogin={submitUserLogin}
+                            togglePasswordVisibility={togglePasswordVisibility}
+                            passwordHiddenState={passwordHiddenState}
+                        />
+                    </Card>
                 </div>
             </main>
         </div>
