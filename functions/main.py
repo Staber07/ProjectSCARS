@@ -92,6 +92,12 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
         "Access-Control-Allow-Headers": ["Content-Type"],
     }
 
+    if req.method == "OPTIONS":
+        return https_fn.Response(
+            status=204,
+            headers=user_register_headers,
+        )
+
     try:
         req_json = req.get_json()
         db = firestore.client()
