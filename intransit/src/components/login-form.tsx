@@ -40,27 +40,28 @@ export function LoginForm({
         <div className={cn("w-full max-w-sm", className)}>
             <Form {...form}>
                 <form onSubmit={form.handleSubmit(submitUserLogin)} className="space-y-5">
-                    <FormField
-                        control={form.control}
-                        name="username"
-                        render={({ field }) => (
-                            <FormItem>
-                                {/* <FormLabel>Username</FormLabel> */}
-                                <FormControl>
-                                    <Input
-                                        id="form-login-username"
-                                        type="text"
-                                        placeholder="Username"
-                                        required
-                                        {...field}
-                                    />
-                                </FormControl>
-                                {/* <FormDescription></FormDescription> */}
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    {/* TODO: Adjust alignment */}
+                    <div className="flex justify-between space-x-2">
+                        <FormField
+                            control={form.control}
+                            name="username"
+                            render={({ field }) => (
+                                <FormItem>
+                                    {/* <FormLabel>Username</FormLabel> */}
+                                    <FormControl>
+                                        <Input
+                                            id="form-login-username"
+                                            type="text"
+                                            placeholder="Username"
+                                            required
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    {/* <FormDescription></FormDescription> */}
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     <div className="flex justify-between space-x-2">
                         <FormField
                             control={form.control}
@@ -81,7 +82,7 @@ export function LoginForm({
                                 </FormItem>
                             )}
                         />
-                        <Button onClick={togglePasswordVisibility}>
+                        <Button type="button" onClick={togglePasswordVisibility}>
                             {passwordHiddenState ? <Eye /> : <EyeClosed />}
                         </Button>
                     </div>
