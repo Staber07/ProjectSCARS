@@ -1,31 +1,49 @@
 "use client";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { redirect, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
 
 import { loginFormSchema, LoginForm } from "@/components/login-form";
 import { Card, CardTitle } from "@/components/ui/card";
 
-import { firebaseAuth } from "@/lib/firebase/auth";
+import { auth, contactFunction } from "@/lib/firebase";
 import { Program } from "@/lib/info";
 
 export default function Home() {
     const [passwordHiddenState, setPasswordHiddenState] = useState(true);
     const router = useRouter();
 
+    // TODO: Should this be in a useEffect? Find a way to perform this logic in all pages
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const result = await contactFunction("first_run", { method: "GET" });
+                if (result) {
+                    console.log("First run detected. Redirecting to setup page.");
+                    router.push("/setup");
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        };
+
+        fetchData();
+    }, [router]);
+
     /**
      * Attempt authentication with the provided form values.
      * @param values The form values.
      */
     function submitUserLogin(values: z.infer<typeof loginFormSchema>) {
-        signInWithEmailAndPassword(firebaseAuth, values.username, values.password)
+        signInWithEmailAndPassword(auth, values.username, values.password)
             .then((userCredential) => {
                 const user = userCredential.user;
                 toast(`Successfully logged in as ${user.email}`);
                 router.push("/dashboard");
+                console.log(user);
             })
             .catch((error) => {
                 const errorCode = error.code;
@@ -52,7 +70,7 @@ export default function Home() {
                 </h1>
                 <h2 className="text-2xl text-center sm:text-left">{Program.description}</h2>
                 <div className="self-center pr-4">
-                    <Card className="p-16 space-y-6">
+                    <Card className="p-16 space-y-5">
                         <CardTitle className="text-2xl font-bold">Login</CardTitle>
                         <LoginForm
                             submitUserLogin={submitUserLogin}
