@@ -1,8 +1,10 @@
 from firebase_admin import auth
-from models import User
+from models import User, UserLevel
 
 
-def convert_user_firebase_to_dataclass(firebase_auth: auth.UserRecord) -> User:
+def convert_user_firebase_to_dataclass(
+    firebase_auth: auth.UserRecord, user_level: UserLevel
+) -> User:
     """Convert a Firebase Auth user to a User dataclass.
 
     Args:
@@ -16,6 +18,7 @@ def convert_user_firebase_to_dataclass(firebase_auth: auth.UserRecord) -> User:
         uid=firebase_auth.uid,
         display_name=firebase_auth.display_name,
         email=firebase_auth.email,
+        user_level=user_level,
         email_verified=firebase_auth.email_verified,
         phone_number=firebase_auth.phone_number,
         photo_url=firebase_auth.photo_url,

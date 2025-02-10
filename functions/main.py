@@ -11,7 +11,8 @@ from firebase_functions import https_fn
 from firebase_admin import initialize_app, credentials, auth, firestore
 
 import utils
-from models import User
+from models import User, UserLevel
+from rules import rules
 
 
 # Initialize Firebase Admin SDK
@@ -22,6 +23,10 @@ cred = credentials.Certificate(
     )
 )
 initialize_app(cred)
+
+
+def _first_run() -> bool:
+    return len(auth.list_users(max_results=1).users) == 0
 
 
 @https_fn.on_request()
@@ -43,12 +48,7 @@ def first_run(_: https_fn.Request) -> https_fn.Response:
     """
 
     # Check number of accounts in Firebase Authentication
-    users: auth.ListUsersPage = auth.list_users(max_results=1)
-    return (
-        https_fn.Response("true")
-        if len(users.users) == 0
-        else https_fn.Response("false")
-    )
+    return https_fn.Response("true") if _first_run() else https_fn.Response("false")
 
 
 @https_fn.on_request()
@@ -56,20 +56,56 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
     """Register a new user.
 
     Args:
+        creator_uid (str): The UID of the user creating the new user. Can be null if first run.
         display_name (str): The user's display name.
         email (str): The user's email.
+        password (str): The user's password.
+        user_level (int): The user's privilege level. Can be null if first run.
 
     Returns:
         User (dict): The newly created user.
     """
 
     try:
-        print("Registering user...")
         req_json = req.get_json()
+        db = firestore.client()
 
+        # Only check for creator user level if not first run
+        if not _first_run():
+            # Check if creator_uid is non-null
+            if req_json.get("creator_uid") is None:
+                return https_fn.Response("Unauthorized", status=401)
+
+            # Check if creator_uid exists in Firestore
+            creator_user = (
+                db.collection("users").document(req_json.get("creator_uid")).get()
+            )
+            if not creator_user.exists:
+                return https_fn.Response("Unauthorized", status=401)
+
+            # Check if creator user level is SUPERINTENDENT or ADMINISTRATOR
+            if (
+                UserLevel(creator_user.to_dict().get("user_level"))
+                not in rules["user_create"]
+            ):
+                return https_fn.Response("Unauthorized", status=401)
+
+            print("User is authorized to create a new user. Creating...")
+
+        else:
+            print("First run detected. Creating a new superintendent user.")
+
+        user_level = (
+            UserLevel.SUPERINTENDENT  # If first run, create a superintendent
+            if _first_run()
+            else UserLevel(req_json.get("user_level"))
+        )
+
+        # Create user dataclass
         user = User(
             display_name=req_json.get("display_name"),
             email=req_json.get("email"),
+            user_level=user_level,
         )
 
         # Create user in Firebase Authentication
@@ -80,11 +116,13 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
         )
         print(f"User {created_user.uid} created in Firebase Authentication")
 
-        # Create user information in Firestore
         try:
-            db = firestore.client()
+            # Create user information in Firestore
             db.collection("users").document(created_user.uid).set(
-                {"last_login": datetime.datetime.now().isoformat()}
+                {
+                    "user_level": user_level.value,
+                    "last_login": datetime.datetime.now().isoformat(),
+                }
             )
             print(f"User {created_user.uid} created in Firestore")
 
@@ -101,7 +139,14 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
 
     print(f"User {created_user.uid} registered successfully")
     return https_fn.Response(
-        str(asdict(utils.convert_user_firebase_to_dataclass(created_user))), status=201
+        str(
+            asdict(
+                utils.convert_user_firebase_to_dataclass(
+                    created_user, user_level=user_level
+                )
+            )
+        ),
+        status=201,
     )
 
 
