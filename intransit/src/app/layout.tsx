@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LuCircleAlert } from "react-icons/lu";
 import { Program } from "@/lib/info";
 
 import "./globals.css";
+import { Button } from "@/components/ui/button";
+import { checkServerStatus } from "@/lib/utils";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -29,7 +33,19 @@ export default function RootLayout({
         <html lang="en">
             <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
                 {children}
-                <Toaster />
+                <Toaster richColors />
+                {process.env.NODE_ENV === "development" && (
+                    <div className="fixed top-0 right-0 p-4">
+                        <Alert variant="destructive">
+                            <LuCircleAlert className="h-4 w-4" />
+                            <AlertTitle>Heads up!</AlertTitle>
+                            <AlertDescription>
+                                This is a development build and the local environment is used. Set{" "}
+                                <code>NODE_ENV=production</code> to use in production.
+                            </AlertDescription>
+                        </Alert>
+                    </div>
+                )}
             </body>
         </html>
     );
