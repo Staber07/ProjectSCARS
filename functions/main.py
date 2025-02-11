@@ -156,9 +156,8 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
             print(f"User {created_user.uid} created in Firebase Authentication")
 
         except FirebaseError as e:
-            print(f"Error creating user in Firebase Authentication: {str(e)}")
             return https_fn.Response(
-                str(e),
+                "Error creating user. Please try again later.",
                 status=400,
                 headers=user_register_headers,
             )
