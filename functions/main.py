@@ -26,7 +26,8 @@ initialize_app(cred)
 
 
 def _first_run() -> bool:
-    # Get the total number of enabled users in Firebase Authentication
+    """Get the total number of enabled users in Firebase Authentication"""
+
     # return len(auth.list_users(max_results=1).users) == 0
     n = 0
     for user in auth.list_users().iterate_all():
@@ -37,11 +38,8 @@ def _first_run() -> bool:
 
 @https_fn.on_request()
 def healthcheck(_: https_fn.Request) -> https_fn.Response:
-    """Used to check if the server is available.
+    """Used to check if the server is available. Always returns `OK`."""
 
-    Returns:
-        https_fn.Response: Always returns "OK".
-    """
     return https_fn.Response(
         "OK",
         headers={
@@ -92,6 +90,7 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
         "Access-Control-Allow-Headers": ["Content-Type"],
     }
 
+    # Handle CORS preflight request
     if req.method == "OPTIONS":
         return https_fn.Response(
             status=204,
@@ -104,7 +103,7 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
 
         # Only check for creator user level if not first run
         if not _first_run():
-            # Check if creator_uid is non-null
+            # Do not allow null creator_uid
             if req_json.get("creator_uid") is None:
                 return https_fn.Response(
                     "Unauthorized", status=401, headers=user_register_headers
@@ -119,10 +118,10 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
                     "Unauthorized", status=401, headers=user_register_headers
                 )
 
-            # Check if creator user level is SUPERINTENDENT or ADMINISTRATOR
-            if (
-                UserLevel(creator_user.to_dict().get("user_level"))
-                not in rules["user_create"]
+            # Check if creator user has sufficient privileges to create a new user
+            if utils.check_user_privilege(
+                UserLevel(creator_user.to_dict().get("user_level")),
+                rules["user_create"],
             ):
                 return https_fn.Response(
                     "Unauthorized", status=401, headers=user_register_headers
@@ -147,12 +146,21 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
         )
 
         # Create user in Firebase Authentication
-        created_user: auth.UserRecord = auth.create_user(
-            display_name=user.display_name,
-            email=user.email,
-            password=req_json.get("password"),
-        )
-        print(f"User {created_user.uid} created in Firebase Authentication")
+        try:
+            created_user: auth.UserRecord = auth.create_user(
+                display_name=user.display_name,
+                email=user.email,
+                password=req_json.get("password"),
+            )
+            print(f"User {created_user.uid} created in Firebase Authentication")
+
+        except Exception as e:
+            print(f"Error creating user in Firebase Authentication: {str(e)}")
+            return https_fn.Response(
+                str(e),
+                status=400,
+                headers=user_register_headers,
+            )
 
         try:
             # Create user information in Firestore
@@ -166,7 +174,7 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
 
         except Exception as e:
             print(f"Error creating user in Firestore: {str(e)}")
-            # Revert Firebase Authentication user creation
+            # Revert Firebase Authentication user creation on failure
             auth.delete_user(created_user.uid)
             print(f"User {created_user.uid} deleted from Firebase Authentication")
             raise e  # Re-raise the exception
@@ -198,7 +206,7 @@ def user_get(req: https_fn.Request) -> https_fn.Response:
     """Get a user by email.
 
     Args:
-        req (https_fn.Request): The Request object.
+        uid (str): The UID of the user to get.
 
     Returns:
         https_fn.Response: The Response object.
@@ -208,12 +216,20 @@ def user_get(req: https_fn.Request) -> https_fn.Response:
         req_json = req.get_json()
 
         user = auth.get_user(req_json.get("uid"))
+        user_level = (
+            firestore.client()
+            .collection("users")
+            .document(user.uid)
+            .get()
+            .to_dict()
+            .get("user_level")
+        )
 
     except Exception as e:
         return https_fn.Response(f"Unknown error occured: {str(e)}", status=400)
 
     return https_fn.Response(
-        user.to_dict(),
+        utils.convert_user_firebase_to_dataclass(user, user_level=user_level),
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": ["GET"],

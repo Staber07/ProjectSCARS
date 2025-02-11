@@ -24,3 +24,19 @@ def convert_user_firebase_to_dataclass(
         photo_url=firebase_auth.photo_url,
         disabled=firebase_auth.disabled,
     )
+
+
+def check_user_privilege(
+    user_level: UserLevel, required_levels: list[UserLevel]
+) -> bool:
+    """Check if the user has the required privilege level.
+
+    Args:
+        user_level (UserLevel): The user's privilege level.
+        required_levels (list[UserLevel]): The required privilege levels.
+
+    Returns:
+        bool: True if the user has the required privilege level.
+    """
+
+    return user_level in required_levels

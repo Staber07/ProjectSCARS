@@ -1,4 +1,10 @@
 {
-    "indexes": [],
+    "indexes": [
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [{ "fieldPath": "user_level" }, { "fieldPath": "last_login", "order": "DESCENDING" }]
+        }
+    ],
     "fieldOverrides": []
 }
