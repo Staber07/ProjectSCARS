@@ -7,5 +7,6 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export async function checkServerStatus() {
-    return (await contactFunction("healthcheck", { method: "GET" })) === "OK";
+    const response = await contactFunction("healthcheck", { method: "GET" });
+    return (await response.text()) === "OK";
 }

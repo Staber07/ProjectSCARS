@@ -11,6 +11,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 
 import { auth, contactFunction } from "@/lib/firebase";
 import { Program } from "@/lib/info";
+import { checkServerStatus } from "@/lib/utils";
 
 export default function Home() {
     const [passwordHiddenState, setPasswordHiddenState] = useState(true);
@@ -20,6 +21,11 @@ export default function Home() {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                if (!(await checkServerStatus())) {
+                    toast.error("The server is currently offline. Please try again later.");
+                    return;
+                }
+
                 const result = await contactFunction("first_run", { method: "GET" });
                 if ((await result.json()) === true) {
                     console.log("First run detected. Redirecting to setup page.");
