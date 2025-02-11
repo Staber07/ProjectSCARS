@@ -34,7 +34,7 @@ export default function Page() {
      * Attempt authentication with the provided form values.
      * @param values The form values.
      */
-    function submitUserSignUp(values: z.infer<typeof SignUpFormSchema>) {
+    async function submitUserSignUp(values: z.infer<typeof SignUpFormSchema>) {
         if (values.password !== values.passwordConfirm) {
             toast.error("Passwords do not match");
             return;
@@ -48,27 +48,20 @@ export default function Page() {
                 password: values.password,
                 user_level: null,
             };
-            console.log(JSON.stringify(data));
-            contactFunction("user_register", {
+            const response = await contactFunction("user_register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(data),
-            })
-                .then((response) => {
-                    console.log(response);
-                    if (response.ok) {
-                        toast.success("Successfully registered");
-                        // router.push("/");
-                    } else {
-                        toast.error(`Error registering user: ${response.statusText}`);
-                    }
-                })
-                .catch((error) => {
-                    console.error(error);
-                    toast.error(`Error registering user: ${error}`);
-                });
+            });
+
+            if (response.ok) {
+                toast.success("Successfully registered");
+                router.push("/");
+            } else {
+                toast.error(`Error registering user: ${await response.text()}`);
+            }
         } catch (error) {
             console.error(error);
         }

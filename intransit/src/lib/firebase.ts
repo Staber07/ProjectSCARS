@@ -36,9 +36,7 @@ if (process.env.NODE_ENV === "development") {
  * @param data The data.
  */
 async function contactFunction(endpoint: string, data?: object): Promise<Response> {
-    const response = await fetch(new URL(endpoint, functions_endpoint), data);
-    const result = await response;
-    return result;
+    return await fetch(new URL(endpoint, functions_endpoint), data);
 }
 
 export { app, auth, contactFunction };

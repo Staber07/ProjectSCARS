@@ -6,8 +6,6 @@ import { LuCircleAlert } from "react-icons/lu";
 import { Program } from "@/lib/info";
 
 import "./globals.css";
-import { Button } from "@/components/ui/button";
-import { checkServerStatus } from "@/lib/utils";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",

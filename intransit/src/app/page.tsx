@@ -21,12 +21,13 @@ export default function Home() {
         const fetchData = async () => {
             try {
                 const result = await contactFunction("first_run", { method: "GET" });
-                if (result) {
+                if ((await result.json()) === true) {
                     console.log("First run detected. Redirecting to setup page.");
                     router.push("/setup");
                 }
             } catch (error) {
                 console.error(error);
+                toast.error("There was an error contacting the server. Please try again later.");
             }
         };
 
