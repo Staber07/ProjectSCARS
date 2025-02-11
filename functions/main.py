@@ -251,9 +251,9 @@ def user_disable(req: https_fn.Request) -> https_fn.Response:
 
         auth.update_user(req_json.get("uid"), disabled=True)
 
-    except Exception as e:
+    except FirebaseError:
         return https_fn.Response(
-            f"Unknown error occured: {str(e)}",
+            "Unable to disable user. Please try again later.",
             status=400,
             headers={
                 "Access-Control-Allow-Origin": "*",
