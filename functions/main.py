@@ -183,7 +183,7 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
     except ValueError as e:
         print(str(e))
         return https_fn.Response(
-            str(e),
+            "There was a problem creating the user. Please try again later.",
             status=400,
             headers=user_register_headers,
         )
