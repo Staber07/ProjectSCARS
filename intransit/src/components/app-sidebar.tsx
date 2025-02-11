@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Program } from "@/lib/info";
 
-export function DashboardSidebar() {
+export function AppSidebar() {
     const sidebar_items = [
         {
             category: "",
