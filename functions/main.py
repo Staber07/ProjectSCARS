@@ -213,21 +213,17 @@ def user_get(req: https_fn.Request) -> https_fn.Response:
         https_fn.Response: The Response object.
     """
 
-    try:
-        req_json = req.get_json()
+    req_json = req.get_json()
 
-        user = auth.get_user(req_json.get("uid"))
-        user_level = (
-            firestore.client()
-            .collection("users")
-            .document(user.uid)
-            .get()
-            .to_dict()
-            .get("user_level")
-        )
-
-    except Exception as e:
-        return https_fn.Response(f"Unknown error occured: {str(e)}", status=400)
+    user = auth.get_user(req_json.get("uid"))
+    user_level = (
+        firestore.client()
+        .collection("users")
+        .document(user.uid)
+        .get()
+        .to_dict()
+        .get("user_level")
+    )
 
     return https_fn.Response(
         utils.convert_user_firebase_to_dataclass(user, user_level=user_level),
