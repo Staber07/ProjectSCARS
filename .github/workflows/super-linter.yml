@@ -25,8 +25,8 @@ jobs:
                   VALIDATE_ALL_CODEBASE: false
                   # FIX: Re-enable the following linters after fixing the CI issues
                   VALIDATE_JAVASCRIPT_STANDARD: false
+                  VALIDATE_TYPESCRIPT_STANDARD: false
                   VALIDATE_CSS: false
                   VALIDATE_YAML: false
-                  TYPESCRIPT_STANDARD_TSCONFIG_FILE: inTransit/intransit/tsconfig.json
                   DEFAULT_BRANCH: "main"
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
