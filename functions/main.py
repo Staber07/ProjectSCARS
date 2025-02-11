@@ -9,6 +9,7 @@ from dataclasses import asdict
 
 from firebase_functions import https_fn
 from firebase_admin import initialize_app, credentials, auth, firestore
+from firebase_admin.exceptions import FirebaseError
 
 import utils
 from models import User, UserLevel
@@ -154,7 +155,7 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
             )
             print(f"User {created_user.uid} created in Firebase Authentication")
 
-        except Exception as e:
+        except FirebaseError as e:
             print(f"Error creating user in Firebase Authentication: {str(e)}")
             return https_fn.Response(
                 str(e),
@@ -179,10 +180,10 @@ def user_register(req: https_fn.Request) -> https_fn.Response:
             print(f"User {created_user.uid} deleted from Firebase Authentication")
             raise e  # Re-raise the exception
 
-    except Exception as e:
-        print(f"Unknown error occured: {str(e)}")
+    except ValueError as e:
+        print(str(e))
         return https_fn.Response(
-            f"Unknown error occured: {str(e)}",
+            str(e),
             status=400,
             headers=user_register_headers,
         )
