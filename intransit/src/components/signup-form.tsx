@@ -3,7 +3,7 @@ import { Eye, EyeClosed } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { FormDescription, FormLabel, FormItem, FormField, FormControl, FormMessage } from "@/components/ui/form";
+import { FormLabel, FormItem, FormField, FormControl, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";

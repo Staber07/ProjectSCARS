@@ -1,7 +1,7 @@
 "use client";
 
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { redirect, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
