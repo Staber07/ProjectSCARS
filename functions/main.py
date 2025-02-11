@@ -3,6 +3,7 @@
 # Deploy with `firebase deploy`
 
 import os
+import json
 import datetime
 import pathlib
 from dataclasses import asdict
@@ -226,6 +227,55 @@ def user_get(req: https_fn.Request) -> https_fn.Response:
 
     return https_fn.Response(
         utils.convert_user_firebase_to_dataclass(user, user_level=user_level),
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": ["GET"],
+            "Access-Control-Allow-Headers": ["Content-Type"],
+        },
+    )
+
+
+@https_fn.on_request()
+def get_all_users(req: https_fn.Request) -> https_fn.Response:
+    """Get all users.
+
+    Returns:
+        https_fn.Response: The Response object.
+    """
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": ["GET"],
+        "Access-Control-Allow-Headers": ["Content-Type"],
+    }
+
+    # Handle CORS preflight request
+    if req.method == "OPTIONS":
+        return https_fn.Response(
+            status=204,
+            headers=headers,
+        )
+
+    users = auth.list_users().iterate_all()
+    users_data = []
+
+    for user in users:
+        user_level = (
+            firestore.client()
+            .collection("users")
+            .document(user.uid)
+            .get()
+            .to_dict()
+            .get("user_level")
+        )
+
+        users_data.append(
+            utils.user_to_dict(
+                utils.convert_user_firebase_to_dataclass(user, user_level=user_level)
+            )
+        )
+
+    return https_fn.Response(
+        json.dumps(users_data),
         headers={
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Methods": ["GET"],

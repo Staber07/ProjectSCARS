@@ -40,3 +40,25 @@ def check_user_privilege(
     """
 
     return user_level in required_levels
+
+
+def user_to_dict(user: User) -> dict:
+    """Convert a User dataclass to a dictionary.
+
+    Args:
+        user (User): The User dataclass.
+
+    Returns:
+        dict: The dictionary.
+    """
+
+    return {
+        "uid": user.uid,
+        "display_name": user.display_name,
+        "email": user.email,
+        "user_level": UserLevel(user.user_level).name.title(),
+        "email_verified": user.email_verified,
+        "phone_number": user.phone_number,
+        "photo_url": user.photo_url,
+        "disabled": user.disabled,
+    }
