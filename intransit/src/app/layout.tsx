@@ -34,7 +34,7 @@ export default function RootLayout({
                 <Toaster richColors />
                 {process.env.NODE_ENV === "development" && (
                     <div className="fixed top-0 right-0 p-4">
-                        <Alert variant="destructive" className="backdrop-blur-lg">
+                        <Alert variant="destructive" className="bg-slate-50">
                             <LuCircleAlert className="h-4 w-4" />
                             <AlertTitle>Heads up!</AlertTitle>
                             <AlertDescription>
