@@ -5,7 +5,7 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { contactFunction } from "@/lib/firebase";
-import { Delete, Edit, Trash } from "lucide-react";
+import { CirclePlus, Edit, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function UsersPage() {
@@ -26,7 +26,17 @@ export default function UsersPage() {
 
     return (
         <div className="content-center">
-            <h1>Users</h1>
+            <div>
+                <h1 className="text-3xl font-bold">Users</h1>
+                <div className="flex justify-between items-center mt-4">
+                    <div className="flex space-x-4">
+                        <Button variant="outline">
+                            <CirclePlus /> Add User
+                        </Button>
+                        <input type="text" placeholder="Search Users" className="input" />
+                    </div>
+                </div>
+            </div>
             <Table>
                 <TableCaption>Users</TableCaption>
                 <TableHeader>
