@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Settings, UsersIcon, School, ChartArea } from "lucide-react";
+import { Home, Settings, UsersIcon, School, ChartArea, LogOut } from "lucide-react";
 
 import {
     Sidebar,
@@ -57,6 +57,11 @@ export function AppSidebar() {
                     title: "Settings",
                     url: "/account/settings",
                     icon: Settings,
+                },
+                {
+                    title: "Logout",
+                    url: "/logout",
+                    icon: LogOut,
                 },
             ],
         },
