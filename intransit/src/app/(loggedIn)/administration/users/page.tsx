@@ -33,37 +33,39 @@ export default function UsersPage() {
                         <Button variant="outline">
                             <CirclePlus /> Add User
                         </Button>
-                        <input type="text" placeholder="Search Users" className="input" />
+                        <input type="text" placeholder="Search Users" className="input pl-2 " />
                     </div>
                 </div>
             </div>
-            <Table>
+            <Table className="table-hover">
                 <TableCaption>Users</TableCaption>
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[100px]"></TableHead>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Employee I.D.</TableHead>
+                        <TableHead>First Name</TableHead>
+                        <TableHead>Middle Name</TableHead>
+                        <TableHead>Last Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>User Level</TableHead>
+                        <TableHead>Department</TableHead> {/* New column */}
                         <TableHead>Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {users.map((user) => (
                         <TableRow key={user.uid}>
-                            <TableCell>
-                                <Checkbox />
-                            </TableCell>
-                            <TableCell className="font-medium">{user.display_name}</TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.user_level}</TableCell>
+                            <TableCell><Checkbox /></TableCell>
+                            <TableCell className="font-medium">user.employee_id</TableCell>
+                            <TableCell className="font-medium">user.first_name</TableCell>
+                            <TableCell className="font-medium">user.middle_name</TableCell>
+                            <TableCell className="font-medium">user.last_name</TableCell>
+                            <TableCell>user.email</TableCell>
+                            <TableCell>user.user_level</TableCell>
+                            <TableCell>user.department</TableCell> {/* New cell */}
                             <TableCell className="text-right1">
-                                <Button variant="icon">
-                                    <Edit />
-                                </Button>
-                                <Button variant="icon">
-                                    <Trash />
-                                </Button>
+                                <Button variant="icon"><Edit /></Button>
+                                <Button variant="icon"><Trash /></Button>
                             </TableCell>
                         </TableRow>
                     ))}
