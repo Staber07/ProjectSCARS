@@ -39,6 +39,7 @@ export default function UsersPage() {
             </div>
             <Table className="table-hover">
                 <TableCaption>Users</TableCaption>
+                
                 <TableHeader>
                     <TableRow>
                         <TableHead className="w-[100px]"></TableHead>
