@@ -7,6 +7,7 @@ the Philippines.
 ![Central Server Tests](https://github.com/Chris1320/inTransit/actions/workflows/central-server-tests.yml/badge.svg)
 ![Local Server Tests](https://github.com/Chris1320/inTransit/actions/workflows/local-server-tests.yml/badge.svg)
 ![Web Client Tests](https://github.com/Chris1320/inTransit/actions/workflows/web-client-tests.yml/badge.svg)
+![Linter Results](https://github.com/Chris1320/inTransit/actions/workflows/lint.yml/badge.svg)
 
 ## Development
 
