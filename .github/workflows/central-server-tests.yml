@@ -1,7 +1,14 @@
 ---
 name: Tests - Central Server
 
-on: ["push", "pull_request", "workflow_dispatch"]
+on:
+  push:
+    paths:
+      - "CentralServer/**"
+  pull_request:
+    paths:
+      - "CentralServer/**"
+  workflow_dispatch:
 
 jobs:
   test:

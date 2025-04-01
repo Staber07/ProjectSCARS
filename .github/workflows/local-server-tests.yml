@@ -1,7 +1,14 @@
 ---
 name: Tests - Local Server
 
-on: ["push", "pull_request", "workflow_dispatch"]
+on:
+  push:
+    paths:
+      - "LocalServer/**"
+  pull_request:
+    paths:
+      - "LocalServer/**"
+  workflow_dispatch:
 
 jobs:
   test:

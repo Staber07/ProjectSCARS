@@ -1,7 +1,14 @@
 ---
 name: Tests - Web Client
 
-on: ["push", "pull_request", "workflow_dispatch"]
+on:
+  push:
+    paths:
+      - "WebClient/**"
+  pull_request:
+    paths:
+      - "WebClient/**"
+  workflow_dispatch:
 
 jobs:
   build:
