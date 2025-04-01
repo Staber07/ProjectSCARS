@@ -1,0 +1,10 @@
+[project]
+name = "centralserver"
+version = "0.1.0"
+description = "The central server for the project"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["fastapi>=0.115.12", "sqlalchemy>=2.0.40"]
+
+[dependency-groups]
+dev = ["pytest>=8.3.5"]
