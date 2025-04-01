@@ -1,8 +1,3 @@
-from fastapi import FastAPI
+from centralserver.main import app
 
-app: FastAPI = FastAPI()
-
-
-@app.get("/healthcheck")
-async def root():
-    return {"message": "Healthy"}
+__all__ = ["app"]
