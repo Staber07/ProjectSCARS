@@ -1,6 +1,6 @@
 services:
   db:
-    image: mysql
+    image: docker.io/library/mysql:latest
     restart: always
     ports:
       - 3306:3306
@@ -10,7 +10,7 @@ services:
       - .env
 
   phpmyadmin:
-    image: phpmyadmin
+    image: docker.io/library/phpmyadmin:latest
     restart: always
     ports:
       - 32512:80
