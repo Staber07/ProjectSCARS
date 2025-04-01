@@ -7,4 +7,7 @@ requires-python = ">=3.12"
 dependencies = ["fastapi>=0.115.12", "sqlalchemy>=2.0.40"]
 
 [dependency-groups]
-dev = ["pytest>=8.3.5"]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+]
