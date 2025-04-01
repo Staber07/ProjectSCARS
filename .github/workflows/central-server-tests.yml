@@ -10,7 +10,6 @@ jobs:
       run:
         working-directory: CentralServer
     env:
-      uv-lockfile-path: CentralServer/uv.lock
       uv-cache-dir: /tmp/.uv-cache
     strategy:
       matrix:
@@ -33,9 +32,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.uv-cache-dir }}
-          key: uv-${{ runner.os }}-${{ hashFiles(uv-lockfile-path) }}
+          key: uv-${{ runner.os }}-${{ hashFiles('CentralServer/uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ hashFiles(uv-lockfile-path) }}
+            uv-${{ runner.os }}-${{ hashFiles('CentralServer/uv.lock') }}
             uv-${{ runner.os }}
 
       - name: Install project
