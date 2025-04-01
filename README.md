@@ -13,9 +13,11 @@ the Philippines.
 
 ### Stacks
 
-[![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,mysql,docker)](#central-server)
-[![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)
-[![Web Client Stack](https://skillicons.dev/icons?i=nodejs,ts,html,css,react,tailwind,nextjs,vite)](#web-client)
+| Component      | Stack                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,mysql,docker)](#central-server)               |
+| Local Server   | [![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)                 |
+| Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=nodejs,ts,html,css,react,tailwind,nextjs,vite)](#web-client) |
 
 #### Central Server
 
