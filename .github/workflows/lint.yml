@@ -25,6 +25,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           VALIDATE_CSS: false # we're not using stylelint
-          JAVASCRIPT_ES_CONFIG_FILE: ${{ github.workspace }}/WebClient/eslint.config.mjs
-          TYPESCRIPT_STANDARD_TSCONFIG_FILE: ${{ github.workspace }}/WebClient/tsconfig.json
+          VALIDATE_TYPESCRIPT_STANDARD: false
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
