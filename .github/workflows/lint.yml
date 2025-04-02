@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-versions: [3.12, 3.13]
+        python-versions: [3.13]
 
     steps:
       - name: Checkout code
@@ -19,24 +19,19 @@ jobs:
         with:
           python-version: "${{ matrix.python-versions }}"
 
-      - name: Check formatting using black
-        uses: psf/black@stable
+      - name: Lint Codebase using pylint, black, and isort
+        uses: ricardochaves/python-lint@v1.4.0
         with:
-          options: "--verbose --check"
-          src: "./CentralServer"
-          # use_pyproject: true
-
-      - name: Lint codebase using flake8
-        uses: py-actions/flake8@v2
-        with:
-          path: ./CentralServer
-          plugins: flake8-black
-
-      - name: Check imports arrangement using isort
-        uses: isort/isort-action@v1
-        with:
-          sort-paths: ./CentralServer
-          requirements-files: "./CentralServer/requirements.txt"
+          python-root-list: "./CentralServer/centralserver ./CentralServer/tests"
+          use-pylint: true
+          use-pycodestyle: false
+          use-flake8: false
+          use-black: true
+          use-mypy: false
+          use-isort: true
+          extra-pylint-options: "--disable=C0114,C0115"
+          extra-black-options: "--verbose --check"
+          extra-isort-options: "--check-only --diff --profile black"
 
   lint-local_server:
     runs-on: ubuntu-latest
@@ -53,21 +48,16 @@ jobs:
         with:
           python-version: "${{ matrix.python-versions }}"
 
-      - name: Check formatting using black
-        uses: psf/black@stable
+      - name: Lint Codebase using pylint, black, and isort
+        uses: ricardochaves/python-lint@v1.4.0
         with:
-          options: "--verbose --check"
-          src: "./LocalServer"
-          # use_pyproject: true
-
-      - name: Lint codebase using flake8
-        uses: py-actions/flake8@v2
-        with:
-          path: ./LocalServer
-          plugins: flake8-black
-
-      - name: Check imports arrangement using isort
-        uses: isort/isort-action@v1
-        with:
-          sort-paths: ./LocalServer
-          requirements-files: "./LocalServer/requirements.txt"
+          python-root-list: "./LocalServer/localserver ./LocalServer/tests"
+          use-pylint: true
+          use-pycodestyle: false
+          use-flake8: false
+          use-black: true
+          use-mypy: false
+          use-isort: true
+          extra-pylint-options: "--disable=C0114,C0115"
+          extra-black-options: "--verbose --check"
+          extra-isort-options: "--check-only --diff --profile black"
