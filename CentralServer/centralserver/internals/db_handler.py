@@ -1,13 +1,7 @@
-from typing import Annotated
-
-from fastapi import Depends
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlmodel import Session, SQLModel, create_engine, select
 
 from centralserver.internals.config_handler import app_config
-
-Base = declarative_base()
-
+from centralserver.internals.models import Role
 
 engine = create_engine(
     (
@@ -19,18 +13,24 @@ engine = create_engine(
 )
 
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_db_session():
+    with Session(engine) as session:
+        yield session
 
 
-def get_db():
-    """Get database session."""
+def populate_db():
+    """Populate the database with tables."""
 
-    db = SessionLocal()
-    try:
-        yield db
+    SQLModel.metadata.create_all(bind=engine)
 
-    finally:
-        db.close()
-
-
-db_dep = Annotated[Session, Depends(get_db)]  # FastAPI dependency injection
+    # Create records for user roles
+    with next(get_db_session()) as session:
+        if not session.exec(select(Role)).all():
+            roles = [
+                Role(id=1, description="Superintendent"),
+                Role(id=2, description="Administrator"),
+                Role(id=3, description="Principal"),
+                Role(id=4, description="Canteen Manager"),
+            ]
+            session.add_all(roles)
+            session.commit()

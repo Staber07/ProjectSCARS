@@ -170,7 +170,7 @@ class AppConfig:
 
 
 def read_config_file(
-    fp: str | Path = info.Configuration.default_filepath,
+    fp: str | Path,
     enc: str = info.Configuration.default_encoding,
 ) -> AppConfig:
     """Update the application's configuration from a JSON file."""
@@ -219,4 +219,6 @@ def read_config_file(
         )
 
 
-app_config = read_config_file()
+app_config = read_config_file(
+    os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath)
+)

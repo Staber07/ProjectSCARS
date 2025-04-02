@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 
 from centralserver import info
 from centralserver.internals.config_handler import app_config
-from centralserver.internals.db_handler import Base, engine
+from centralserver.internals.db_handler import populate_db
 from centralserver.internals.logger import LoggerFactory, log_app_info
 from centralserver.routers import reports_routes, users_routes
 
@@ -12,15 +12,14 @@ logger = LoggerFactory(
 ).get_logger(__name__)
 
 log_app_info(logger)
+populate_db()
+
 
 app = FastAPI(
     debug=app_config.debug.enabled,
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
 )
-
-Base.metadata.create_all(bind=engine)
-
 
 app.include_router(users_routes.router)
 app.include_router(reports_routes.router)
