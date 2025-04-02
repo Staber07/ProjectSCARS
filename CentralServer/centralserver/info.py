@@ -10,6 +10,13 @@ class Program:
     version: Final[tuple[int, int, int]] = (0, 1, 0)
 
 
+class Database:
+    default_user: Final[str] = "scars"
+    default_password: Final[str] = "projectscars"
+    default_first_name: Final[str] = "SCARS"
+    default_last_name: Final[str] = "Superintendent"
+
+
 class Configuration:
     default_filepath: Final[Path] = Path(os.getcwd(), "config.json")
     default_encoding: Final[str] = "utf-8"

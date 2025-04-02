@@ -1,11 +1,12 @@
 from typing import Annotated, Any, Sequence
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlmodel import Session, select
 
-from centralserver.internals.auth_handler import oauth2_bearer, validate_username
+from centralserver.internals.auth_handler import oauth2_bearer
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.models import NewUser, User
+from centralserver.internals.user_handler import create_user
 
 router = APIRouter(
     prefix="/users",
@@ -15,19 +16,10 @@ router = APIRouter(
 
 
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=User)
-async def create_user(
+async def create_new_user(
     new_user: NewUser, session: Annotated[Session, Depends(get_db_session)]
 ) -> User:
-
-    if not validate_username(new_user.username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid username",
-        )
-    user = User(**new_user.dict())
-    session.add(user)
-    session.commit()
-    session.refresh(user)
+    user = create_user(new_user, session)
     return user
 
 

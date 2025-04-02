@@ -1,7 +1,10 @@
 from sqlmodel import Session, SQLModel, create_engine, select
 
+from centralserver import info
+from centralserver.internals.auth_handler import get_hashed_password
 from centralserver.internals.config_handler import app_config
-from centralserver.internals.models import Role
+from centralserver.internals.models import NewUser, Role, User
+from centralserver.internals.user_handler import create_user
 
 engine = create_engine(
     (
@@ -34,3 +37,17 @@ def populate_db():
             ]
             session.add_all(roles)
             session.commit()
+
+    # Create default superintendent user
+    with next(get_db_session()) as session:
+        if not session.exec(select(User)).first():
+            create_user(
+                NewUser(
+                    username=info.Database.default_user,
+                    nameFirst=info.Database.default_first_name,
+                    nameLast=info.Database.default_last_name,
+                    roleId=1,
+                    hashed_password=get_hashed_password(info.Database.default_password),
+                ),
+                session,
+            )

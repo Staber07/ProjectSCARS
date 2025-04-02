@@ -5,17 +5,14 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-def validate_username(username: str) -> bool:
-    """Check if the username is valid.
+def get_hashed_password(password: str) -> str:
+    """Hash the password using Argon2id algorithm.
 
     Args:
-        username: The username to validate.
+        password: The password to hash.
 
     Returns:
-        True if the username is valid, False otherwise.
+        The hashed password.
     """
-    return (
-        all(c.isalnum() or c in ("_", "-") for c in username)
-        and len(username) > 3
-        and len(username) < 22
-    )
+
+    return crypt_ctx.hash(password)
