@@ -1,0 +1,17 @@
+{
+  "debug": true,
+  "database": {
+    "db_type": "mysql",
+    "db_driver": "pymysql",
+    "username": "root",
+    "password": "",
+    "host": "localhost",
+    "port": 3306,
+    "database": "projectscars"
+  },
+  "authentication": {
+    "secret_key": "UPDATE_THIS_VALUE",
+    "algorithm": "",
+    "access_token_expire_minutes": 30
+  }
+}
