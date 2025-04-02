@@ -17,7 +17,7 @@ the Philippines.
 | -------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,mysql,docker)](#central-server)               |
 | Local Server   | [![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)                 |
-| Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=nodejs,html,css,ts,react,tailwind,nextjs,vite)](#web-client) |
+| Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=ts,react,tailwind,nextjs)](#web-client) |
 
 #### Central Server
 
