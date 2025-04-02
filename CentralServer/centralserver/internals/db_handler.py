@@ -15,7 +15,7 @@ engine = create_engine(
         if app_config.debug.use_test_db
         else app_config.database.sqlalchemy_uri
     ),
-    # connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False},
 )
 
 
