@@ -39,8 +39,11 @@ def validate_password(password: str) -> bool:
     # - Minimum length of 8 characters
     # - At least one digit
     # - At least one letter
-    return len(password) > 8 and any(c.isalnum() for c in password)
-
+    return (
+        len(password) >= 8
+        and any(c.isdigit() for c in password)
+        and any(c.isalpha() for c in password)
+    )
 
 def create_user(
     new_user: NewUser,
