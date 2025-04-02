@@ -40,14 +40,22 @@ class User(SQLModel, table=True):
     )
 
     username: str = Field(unique=True, description="The username of the user.")
-    email: str | None = Field(unique=True, description="The email address of the user.")
-    nameFirst: str = Field(description="The first name of the user.")
-    nameMiddle: str | None = Field(description="The middle name of the user.")
-    nameLast: str = Field(description="The last name of the user.")
+    email: str | None = Field(
+        default=None, unique=True, description="The email address of the user."
+    )
+    nameFirst: str | None = Field(
+        default=None, description="The first name of the user."
+    )
+    nameMiddle: str | None = Field(
+        default=None, description="The middle name of the user."
+    )
+    nameLast: str | None = Field(default=None, description="The last name of the user.")
     avatarUrl: str | None = Field(
-        description="A link to the user's avatar within the file storage server."
+        default=None,
+        description="A link to the user's avatar within the file storage server.",
     )
     schoolId: int | None = Field(
+        default=None,
         description="The ID of the school the user belongs to.",
         foreign_key="schools.id",
     )
@@ -72,10 +80,5 @@ class NewUser(SQLModel):
     """A model representing a new user to be created."""
 
     username: str
-    email: str | None = None
-    nameFirst: str
-    nameMiddle: str | None = None
-    nameLast: str
-    schoolId: int | None = None
     roleId: int
-    hashed_password: str
+    plaintext_password: str

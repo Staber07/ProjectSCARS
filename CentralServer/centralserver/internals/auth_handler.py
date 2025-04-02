@@ -1,8 +1,8 @@
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 def get_hashed_password(password: str) -> str:

@@ -44,10 +44,10 @@ def populate_db():
             create_user(
                 NewUser(
                     username=info.Database.default_user,
-                    nameFirst=info.Database.default_first_name,
-                    nameLast=info.Database.default_last_name,
                     roleId=1,
-                    hashed_password=get_hashed_password(info.Database.default_password),
+                    plaintext_password=get_hashed_password(
+                        info.Database.default_password
+                    ),
                 ),
                 session,
             )

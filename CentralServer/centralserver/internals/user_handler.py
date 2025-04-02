@@ -14,6 +14,7 @@ def validate_username(username: str) -> bool:
     Returns:
         True if the username is valid, False otherwise.
     """
+
     return (
         all(c.isalnum() or c in ("_", "-") for c in username)
         and len(username) > 3
@@ -22,7 +23,7 @@ def validate_username(username: str) -> bool:
 
 
 def validate_password(password: str) -> bool:
-    """Make sure that the password is a valid Argon2id password hash.
+    """Make sure that the password is a valid password.
 
     Args:
         password: The password to validate.
@@ -31,7 +32,11 @@ def validate_password(password: str) -> bool:
         True if the password is valid, False otherwise.
     """
 
-    return crypt_ctx.identify(password) == "argon2"  # type: ignore
+    # Password requirements:
+    # - Minimum length of 8 characters
+    # - At least one digit
+    # - At least one letter
+    return len(password) > 8 and any(c.isalnum() for c in password)
 
 
 def create_user(
@@ -50,13 +55,18 @@ def create_user(
             detail="Invalid username",
         )
 
-    if not validate_password(new_user.hashed_password):
+    if not validate_password(new_user.plaintext_password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid password format",
         )
 
-    user = User(**new_user.model_dump())
+    # user = User(**new_user.model_dump())
+    user = User(
+        username=new_user.username,
+        hashed_password=crypt_ctx.hash(new_user.plaintext_password),
+        roleId=new_user.roleId,
+    )
     session.add(user)
     session.commit()
     session.refresh(user)

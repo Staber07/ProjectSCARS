@@ -12,9 +12,7 @@ class Program:
 
 class Database:
     default_user: Final[str] = "scars"
-    default_password: Final[str] = "projectscars"
-    default_first_name: Final[str] = "SCARS"
-    default_last_name: Final[str] = "Superintendent"
+    default_password: Final[str] = "projectscars1"
 
 
 class Configuration:
