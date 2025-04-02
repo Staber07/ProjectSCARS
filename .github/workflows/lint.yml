@@ -28,6 +28,7 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
+          options: "--verbose --check"
           src: "./CentralServer"
           # use_pyproject: true
 
@@ -49,5 +50,6 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
+          options: "--verbose --check"
           src: "./LocalServer"
           # use_pyproject: true
