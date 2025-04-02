@@ -136,7 +136,7 @@ class Authentication:
         if secret_key is None:
             raise ValueError("Secret key is empty in configuration file.")
 
-        self.secret_key: str | None = secret_key
+        self.secret_key: str = secret_key
         self.algorithm: str = algorithm
         self.access_token_expire_minutes: int = access_token_expire_minutes
 
