@@ -8,22 +8,52 @@
 name: Lint Codebase
 
 on: ["push", "pull_request"]
+
 jobs:
-  run-lint:
+  lint-central_server:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-versions: [3.12, 3.13]
+
+    defaults:
+      run:
+        working-directory: ./CentralServer
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          # Full git history is needed to get a proper list of changed
-          # files within `super-linter`
-          fetch-depth: 0
+          python-version: "${{ matrix.python-versions }}"
 
       - name: Lint Codebase
-        uses: github/super-linter@v4
-        env:
-          VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: "main"
-          VALIDATE_CSS: false # we're not using stylelint
-          VALIDATE_TYPESCRIPT_STANDARD: false
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: psf/black@stable
+        with:
+          use_pyproject: true
+
+  lint-local_server:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-versions: [3.12, 3.13]
+
+    defaults:
+      run:
+        working-directory: ./LocalServer
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "${{ matrix.python-versions }}"
+
+      - name: Lint Codebase
+        uses: psf/black@stable
+        with:
+          use_pyproject: true
