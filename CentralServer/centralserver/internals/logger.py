@@ -3,6 +3,7 @@ from logging.handlers import RotatingFileHandler
 from time import strftime
 
 from centralserver import info
+from centralserver.internals.config_handler import app_config
 
 
 class LoggerFactory:
@@ -19,7 +20,7 @@ class LoggerFactory:
         self.log_level = (
             log_level
             if log_level is not None
-            else "DEBUG" if info.Program.debug else "WARN"
+            else "DEBUG" if app_config.debug.enabled else "WARN"
         )
 
     def get_logger(self, name: str) -> logging.Logger:
@@ -45,16 +46,16 @@ class LoggerFactory:
             # handlers
             stream_handler = logging.StreamHandler()
             file_handler = RotatingFileHandler(
-                info.Logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
-                maxBytes=info.Logging.max_bytes,
-                backupCount=info.Logging.backup_count,
-                encoding=info.Logging.encoding,
+                app_config.logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
+                maxBytes=app_config.logging.max_bytes,
+                backupCount=app_config.logging.backup_count,
+                encoding=app_config.logging.encoding,
             )
 
             # formatters
             formatter = logging.Formatter(
-                fmt=info.Logging.log_format,
-                datefmt=info.Logging.date_format,
+                fmt=app_config.logging.log_format,
+                datefmt=app_config.logging.date_format,
             )
 
             # add formatters to handlers
@@ -66,3 +67,36 @@ class LoggerFactory:
             logger.addHandler(file_handler)
 
         return logger
+
+
+def log_app_info(logger: logging.Logger):
+    logger.debug(f"{info.Program.name=}")
+    logger.debug(f"info.Program.version={'.'.join(map(str, info.Program.version))}")
+    logger.debug(f"{info.Configuration.default_filepath=}")
+    logger.debug(f"{info.Configuration.default_encoding=}")
+
+    logger.debug(f"{app_config.debug.enabled=}")
+    logger.debug(f"{app_config.debug.use_test_db=}")
+
+    logger.debug(f"{app_config.logging.filepath=}")
+    logger.debug(f"{app_config.logging.max_bytes=}")
+    logger.debug(f"{app_config.logging.backup_count=}")
+    logger.debug(f"{app_config.logging.encoding=}")
+    logger.debug(f"{app_config.logging.log_format=}")
+    logger.debug(f"{app_config.logging.date_format=}")
+
+    logger.debug(f"{app_config.database.db_type=}")
+    logger.debug(f"{app_config.database.db_driver=}")
+    logger.debug(f"{app_config.database.username=}")
+    logger.debug(f"app_config.database.password={'*' * 8}")
+    logger.debug(f"{app_config.database.host=}")
+    logger.debug(f"{app_config.database.port=}")
+    logger.debug(f"{app_config.database.database=}")
+    logger.debug(f"{app_config.database.sqlalchemy_uri=}")
+
+    logger.debug(f"{app_config.test_database.filepath=}")
+    logger.debug(f"{app_config.test_database.sqlalchemy_uri=}")
+
+    logger.debug(f"{app_config.authentication.secret_key=}")
+    logger.debug(f"{app_config.authentication.algorithm=}")
+    logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")

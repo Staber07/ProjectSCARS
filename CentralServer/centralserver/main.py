@@ -2,21 +2,28 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 from centralserver import info
-from centralserver.internals.logger import LoggerFactory
-from centralserver.routers import reports, users
+from centralserver.internals.config_handler import app_config
+from centralserver.internals.db_handler import Base, engine
+from centralserver.internals.logger import LoggerFactory, log_app_info
+from centralserver.routers import reports_routes, users_routes
 
-logger = LoggerFactory().get_logger(info.Program.name)
+logger = LoggerFactory(
+    log_level="debug" if app_config.debug.enabled else "warn"
+).get_logger(__name__)
 
+log_app_info(logger)
 
 app = FastAPI(
-    debug=info.Program.debug,
+    debug=app_config.debug.enabled,
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
 )
 
+Base.metadata.create_all(bind=engine)
 
-app.include_router(users.router)
-app.include_router(reports.router)
+
+app.include_router(users_routes.router)
+app.include_router(reports_routes.router)
 
 
 @app.exception_handler(500)
