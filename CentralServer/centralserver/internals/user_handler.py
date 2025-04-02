@@ -45,6 +45,7 @@ def validate_password(password: str) -> bool:
         and any(c.isalpha() for c in password)
     )
 
+
 def create_user(
     new_user: NewUser,
     session: Session,
