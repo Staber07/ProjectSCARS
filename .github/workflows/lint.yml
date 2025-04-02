@@ -6,6 +6,9 @@ on: ["pull_request"]
 jobs:
   lint-central_server:
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
+
     strategy:
       matrix:
         python-versions: [3.13]
@@ -14,10 +17,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "${{ matrix.python-versions }}"
+          version: "0.5.24"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: uv-${{ runner.os }}-${{ hashFiles('CentralServer/uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('CentralServer/uv.lock') }}
+            uv-${{ runner.os }}
+
+      - name: Install project
+        run: uv sync
 
       - name: Lint Codebase using pylint, black, and isort
         uses: ricardochaves/python-lint@v1.4.0
@@ -33,20 +51,41 @@ jobs:
           extra-black-options: "--verbose --check"
           extra-isort-options: "--check-only --diff --profile black"
 
+      - name: Minimize uv cache
+        run: uv cache prune --ci
+
   lint-local_server:
     runs-on: ubuntu-latest
+    env:
+      UV_CACHE_DIR: /tmp/.uv-cache
+
     strategy:
       matrix:
-        python-versions: [3.12, 3.13]
+        python-versions: [3.13]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "${{ matrix.python-versions }}"
+          version: "0.5.24"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Restore uv cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: uv-${{ runner.os }}-${{ hashFiles('LocalServer/uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ hashFiles('LocalServer/uv.lock') }}
+            uv-${{ runner.os }}
+
+      - name: Install project
+        run: uv sync
 
       - name: Lint Codebase using pylint, black, and isort
         uses: ricardochaves/python-lint@v1.4.0
@@ -61,3 +100,6 @@ jobs:
           extra-pylint-options: "--disable=C0114,C0115,C0116"
           extra-black-options: "--verbose --check"
           extra-isort-options: "--check-only --diff --profile black"
+
+      - name: Minimize uv cache
+        run: uv cache prune --ci
