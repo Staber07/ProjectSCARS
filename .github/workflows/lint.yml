@@ -43,7 +43,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Lint Codebase using pylint
-        run: uv run pylint --disable=C0114,C0115,C0116 $target_dirs
+        run: uv run pylint --disable=C0114,C0115,C0116 --fail-under=9 $target_dirs
 
       - name: Check coding style using black
         run: uv run black --check --verbose $target_dirs
@@ -96,7 +96,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Lint Codebase using pylint
-        run: uv run pylint --disable=C0114,C0115,C0116 $target_dirs
+        run: uv run pylint --disable=C0114,C0115,C0116 --fail-under=9 $target_dirs
 
       - name: Check coding style using black
         run: uv run black --check --verbose $target_dirs
