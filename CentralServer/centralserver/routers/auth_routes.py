@@ -13,8 +13,11 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
+from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import NewUser, Token, User
 from centralserver.internals.user_handler import create_user
+
+logger = LoggerFactory().get_logger(__name__)
 
 router = APIRouter(
     prefix="/auth",
@@ -27,6 +30,7 @@ router = APIRouter(
 async def create_new_user(
     new_user: NewUser, session: Annotated[Session, Depends(get_db_session)]
 ) -> User:
+    logger.info("Creating new user: %s", new_user.username)
     user = create_user(new_user, session)
     return user
 
@@ -36,9 +40,13 @@ async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
 ):
+    logger.info("Requesting access token for user: %s", data.username)
     user: User | None = authenticate_user(data.username, data.password, session)
 
     if not user:
+        logger.warning(
+            "Failed to authenticate user: %s (Invalid credentials)", data.username
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
@@ -64,8 +72,9 @@ async def get_current_user(
             algorithms=[app_config.authentication.algorithm],
         )
         username: str | None = payload.get("sub")
-        user_id: str | None = payload.get("user_id")
+        user_id: str | None = payload.get("id")
         if username is None or user_id is None:
+            logger.warning("Failed to validate user JWT: %s", payload)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Failed to validate user.",
@@ -74,6 +83,7 @@ async def get_current_user(
         return {"username": username, "user_id": user_id}
 
     except JWTError:
+        logger.warning("Failed to decode JWT: %s", token)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Failed to validate user.",

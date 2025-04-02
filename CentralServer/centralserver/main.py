@@ -1,3 +1,5 @@
+from typing import Literal
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -30,8 +32,8 @@ app.include_router(reports_routes.router)
 async def not_found_error(request: Request, exc: Exception):
     """Return a 404 error response."""
 
-    logger.info(f"Not Found: {exc}")
-    logger.debug(f"Request: {request}")
+    logger.warning("Not Found: %s", exc)
+    logger.debug("Request: %s", request)
     return JSONResponse(status_code=404, content={"message": "Not found"})
 
 
@@ -39,11 +41,11 @@ async def not_found_error(request: Request, exc: Exception):
 async def internal_server_error(request: Request, exc: Exception):
     """Return a 500 error response."""
 
-    logger.critical(f"Internal server error: {exc}", exc_info=True)
-    logger.debug(f"Request: {request}")
+    logger.critical("Internal server error: %s", exc, exc_info=True)
+    logger.debug("Request: %s", request)
     return JSONResponse(status_code=500, content={"message": "Internal server error"})
 
 
 @app.get("/healthcheck")
-async def root():
+async def root() -> dict[Literal["message"], Literal["Healthy"]]:
     return {"message": "Healthy"}

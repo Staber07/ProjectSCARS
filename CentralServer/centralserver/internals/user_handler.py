@@ -2,7 +2,10 @@ from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import crypt_ctx
+from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import NewUser, User
+
+logger = LoggerFactory().get_logger(__name__)
 
 
 def validate_username(username: str) -> bool:
@@ -44,18 +47,27 @@ def create_user(
     session: Session,
 ) -> User:
     if session.exec(select(User).where(User.username == new_user.username)).first():
+        logger.warning(
+            "Failed to create user: %s (username already exists)", new_user.username
+        )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username already exists",
         )
 
     if not validate_username(new_user.username):
+        logger.warning(
+            "Failed to create user: %s (invalid username)", new_user.username
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid username",
         )
 
     if not validate_password(new_user.plaintext_password):
+        logger.warning(
+            "Failed to create user: %s (invalid password format)", new_user.username
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid password format",
@@ -71,4 +83,5 @@ def create_user(
     session.commit()
     session.refresh(user)
 
+    logger.info("User `%s` created.", new_user.username)
     return user
