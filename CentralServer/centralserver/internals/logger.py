@@ -88,7 +88,11 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.database.db_type=}")
     logger.debug(f"{app_config.database.db_driver=}")
     logger.debug(f"{app_config.database.username=}")
-    logger.debug(f"app_config.database.password={'*' * 8}")
+    logger.debug(
+        f"app_config.database.password={'*' * 8}"
+        if app_config.database.password
+        else "app_config.database.password=None"
+    )
     logger.debug(f"{app_config.database.host=}")
     logger.debug(f"{app_config.database.port=}")
     logger.debug(f"{app_config.database.database=}")
@@ -97,6 +101,10 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.test_database.filepath=}")
     logger.debug(f"{app_config.test_database.sqlalchemy_uri=}")
 
-    logger.debug(f"app_config.authentication.secret_key={'*' * 8}")
+    logger.debug(
+        f"app_config.authentication.secret_key={'*' * 8}{app_config.authentication.secret_key[-4:]}"
+        if app_config.authentication.secret_key
+        else "app_config.authentication.secret_key=None"
+    )
     logger.debug(f"{app_config.authentication.algorithm=}")
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")

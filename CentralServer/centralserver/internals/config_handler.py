@@ -128,10 +128,13 @@ class Authentication:
         """Create a configuration object for authentication.
 
         Args:
-            secret_key: The secret key.
+            secret_key: The secret key. (Required)
             algorithm: The algorithm to use for hashing.
             access_token_expire_minutes: How long the access token is valid in minutes.
         """
+
+        if secret_key is None:
+            raise ValueError("Secret key is empty in configuration file.")
 
         self.secret_key: str | None = secret_key
         self.algorithm: str = algorithm
