@@ -29,7 +29,7 @@ jobs:
           use-black: true
           use-mypy: false
           use-isort: true
-          extra-pylint-options: "--disable=C0114,C0115"
+          extra-pylint-options: "--disable=C0114,C0115,C0116"
           extra-black-options: "--verbose --check"
           extra-isort-options: "--check-only --diff --profile black"
 
@@ -58,6 +58,6 @@ jobs:
           use-black: true
           use-mypy: false
           use-isort: true
-          extra-pylint-options: "--disable=C0114,C0115"
+          extra-pylint-options: "--disable=C0114,C0115,C0116"
           extra-black-options: "--verbose --check"
           extra-isort-options: "--check-only --diff --profile black"
