@@ -16,10 +16,6 @@ jobs:
       matrix:
         python-versions: [3.12, 3.13]
 
-    defaults:
-      run:
-        working-directory: ./CentralServer
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,7 +28,7 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
-          src: ./CentralServer
+          src: "./CentralServer"
           use_pyproject: true
 
   lint-local_server:
@@ -41,10 +37,6 @@ jobs:
       matrix:
         python-versions: [3.12, 3.13]
 
-    defaults:
-      run:
-        working-directory: ./LocalServer
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -57,5 +49,5 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
-          src: ./LocalServer
+          src: "./LocalServer"
           use_pyproject: true
