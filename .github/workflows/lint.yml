@@ -7,6 +7,7 @@ jobs:
   lint-central_server:
     runs-on: ubuntu-latest
     env:
+      target-dirs: ./CentralServer/centralserver ./CentralServer/tests
       UV_CACHE_DIR: /tmp/.uv-cache
 
     defaults:
@@ -39,21 +40,16 @@ jobs:
             uv-${{ runner.os }}
 
       - name: Install project
-        run: uv sync
+        run: uv sync --all-extras
 
-      - name: Lint Codebase using pylint, black, and isort
-        uses: ricardochaves/python-lint@v1.4.0
-        with:
-          python-root-list: "./CentralServer/centralserver ./CentralServer/tests"
-          use-pylint: true
-          use-pycodestyle: false
-          use-flake8: false
-          use-black: true
-          use-mypy: false
-          use-isort: true
-          extra-pylint-options: "--disable=C0114,C0115,C0116"
-          extra-black-options: "--verbose --check"
-          extra-isort-options: "--check-only --diff --profile black"
+      - name: Lint Codebase using pylint
+        run: uv run pylint --disable=C0114,C0115,C0116 ${{ target-dirs }}
+
+      - name: Check coding style using black
+        run: uv run black --check --verbose ${{ target-dirs }}
+
+      - name: Check imports organization using isort
+        run: uv run isort --check-only --diff --profile black ${{ target-dirs }} -c --diff
 
       - name: Minimize uv cache
         run: uv cache prune --ci
@@ -61,6 +57,7 @@ jobs:
   lint-local_server:
     runs-on: ubuntu-latest
     env:
+      target-dirs: ./LocalServer/localserver ./LocalServer/tests
       UV_CACHE_DIR: /tmp/.uv-cache
 
     defaults:
@@ -95,19 +92,17 @@ jobs:
       - name: Install project
         run: uv sync
 
-      - name: Lint Codebase using pylint, black, and isort
-        uses: ricardochaves/python-lint@v1.4.0
-        with:
-          python-root-list: "./LocalServer/localserver ./LocalServer/tests"
-          use-pylint: true
-          use-pycodestyle: false
-          use-flake8: false
-          use-black: true
-          use-mypy: false
-          use-isort: true
-          extra-pylint-options: "--disable=C0114,C0115,C0116"
-          extra-black-options: "--verbose --check"
-          extra-isort-options: "--check-only --diff --profile black"
+      - name: Install project
+        run: uv sync --all-extras
+
+      - name: Lint Codebase using pylint
+        run: uv run pylint --disable=C0114,C0115,C0116 ${{ target-dirs }}
+
+      - name: Check coding style using black
+        run: uv run black --check --verbose ${{ target-dirs }}
+
+      - name: Check imports organization using isort
+        run: uv run isort --check-only --diff --profile black ${{ target-dirs }} -c --diff
 
       - name: Minimize uv cache
         run: uv cache prune --ci
