@@ -26,8 +26,19 @@ app.include_router(users_routes.router)
 app.include_router(reports_routes.router)
 
 
+@app.exception_handler(404)
+async def not_found_error(request: Request, exc: Exception):
+    """Return a 404 error response."""
+
+    logger.info(f"Not Found: {exc}")
+    logger.debug(f"Request: {request}")
+    return JSONResponse(status_code=404, content={"message": "Not found"})
+
+
 @app.exception_handler(500)
 async def internal_server_error(request: Request, exc: Exception):
+    """Return a 500 error response."""
+
     logger.critical(f"Internal server error: {exc}", exc_info=True)
     logger.debug(f"Request: {request}")
     return JSONResponse(status_code=500, content={"message": "Internal server error"})
