@@ -3,12 +3,16 @@ from typing import Final
 
 
 class Program:
+    """General program information."""
+
     name: Final[str] = "Project SCARS Central Server"
     version: Final[tuple[int, int, int]] = (0, 1, 0)
     debug: Final[bool] = os.getenv("CENTRAL_SERVER_DEBUG", "false").lower() == "true"
 
 
 class Database:
+    """Database connection information."""
+
     db_type: Final[str] = "mysql"
     db_driver: Final[str] = "pymysql"
     username: Final[str] = os.getenv("CENTRAL_SERVER_DB_USERNAME", "root")
