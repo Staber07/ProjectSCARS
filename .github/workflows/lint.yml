@@ -90,9 +90,6 @@ jobs:
             uv-${{ runner.os }}
 
       - name: Install project
-        run: uv sync
-
-      - name: Install project
         run: uv sync --all-extras
 
       - name: Lint Codebase using pylint
