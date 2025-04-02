@@ -15,7 +15,7 @@ def validate_username(username: str) -> bool:
         True if the username is valid, False otherwise.
     """
     return (
-        all([c for c in username if c.isalnum() or c in ("_", "-")])
+        all(c.isalnum() or c in ("_", "-") for c in username)
         and len(username) > 3
         and len(username) < 22
     )
