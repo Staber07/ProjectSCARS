@@ -46,9 +46,6 @@ def authenticate_user(
         logger.debug("Authentication failed: %s (user not found)", username)
         return None
 
-    logger.debug(plaintext_password)
-    logger.debug(found_user.hashed_password)
-    logger.debug(crypt_ctx.verify(plaintext_password, found_user.hashed_password))
     if crypt_ctx.verify(plaintext_password, found_user.hashed_password):
         logger.debug("Authentication successful: %s", username)
         return found_user
