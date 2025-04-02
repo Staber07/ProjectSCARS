@@ -32,6 +32,7 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
+          src: ./CentralServer
           use_pyproject: true
 
   lint-local_server:
@@ -56,4 +57,5 @@ jobs:
       - name: Lint Codebase
         uses: psf/black@stable
         with:
+          src: ./LocalServer
           use_pyproject: true
