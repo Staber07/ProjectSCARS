@@ -9,6 +9,10 @@ jobs:
     env:
       UV_CACHE_DIR: /tmp/.uv-cache
 
+    defaults:
+      run:
+        working-directory: ./CentralServer
+
     strategy:
       matrix:
         python-versions: [3.13]
@@ -58,6 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       UV_CACHE_DIR: /tmp/.uv-cache
+
+    defaults:
+      run:
+        working-directory: ./LocalServer
 
     strategy:
       matrix:
