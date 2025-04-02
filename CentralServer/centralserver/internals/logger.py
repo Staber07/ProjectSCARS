@@ -97,6 +97,6 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.test_database.filepath=}")
     logger.debug(f"{app_config.test_database.sqlalchemy_uri=}")
 
-    logger.debug(f"{app_config.authentication.secret_key=}")
+    logger.debug(f"app_config.authentication.secret_key={'*' * 8}")
     logger.debug(f"{app_config.authentication.algorithm=}")
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
