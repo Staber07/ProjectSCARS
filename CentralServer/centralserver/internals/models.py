@@ -3,6 +3,16 @@ import uuid
 from sqlmodel import Field, Relationship, SQLModel
 
 
+class Token(SQLModel):
+    access_token: str
+    token_type: str
+
+
+class UserLoginRequest(SQLModel):
+    username: str
+    plaintext_password: str
+
+
 class School(SQLModel, table=True):
     """A model representing schools in the system."""
 
@@ -32,7 +42,7 @@ class User(SQLModel, table=True):
 
     __tablename__: str = "users"  # type: ignore
 
-    id: str | None = Field(
+    id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         primary_key=True,
         index=True,

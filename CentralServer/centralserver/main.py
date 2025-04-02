@@ -5,7 +5,7 @@ from centralserver import info
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import populate_db
 from centralserver.internals.logger import LoggerFactory, log_app_info
-from centralserver.routers import reports_routes, users_routes
+from centralserver.routers import auth_routes, reports_routes, users_routes
 
 logger = LoggerFactory(
     log_level="debug" if app_config.debug.enabled else "warn"
@@ -21,6 +21,7 @@ app = FastAPI(
     version=".".join(map(str, info.Program.version)),
 )
 
+app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
 app.include_router(reports_routes.router)
 
