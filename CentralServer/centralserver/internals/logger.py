@@ -7,6 +7,8 @@ from centralserver.internals.config_handler import app_config
 
 
 class LoggerFactory:
+    """A factory class for creating loggers with a specific configuration."""
+
     def __init__(
         self,
         log_level: int | str | None = None,
@@ -70,8 +72,14 @@ class LoggerFactory:
 
 
 def log_app_info(logger: logging.Logger):
-    logger.debug(f"{info.Program.name=}")
-    logger.debug(f"info.Program.version={'.'.join(map(str, info.Program.version))}")
+    """Log everything about the app.
+
+    Args:
+        logger: The logger to use.
+    """
+
+    logger.info(f"{info.Program.name=}")
+    logger.info(f"info.Program.version={'.'.join(map(str, info.Program.version))}")
     logger.debug(f"{info.Configuration.default_filepath=}")
     logger.debug(f"{info.Configuration.default_encoding=}")
 
@@ -88,6 +96,7 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.database.db_type=}")
     logger.debug(f"{app_config.database.db_driver=}")
     logger.debug(f"{app_config.database.username=}")
+    # Hide the password in the logs
     logger.debug(
         f"app_config.database.password={'*' * 8}"
         if app_config.database.password
@@ -101,6 +110,7 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.test_database.filepath=}")
     logger.debug(f"{app_config.test_database.sqlalchemy_uri=}")
 
+    # Hide the secret key in the logs
     logger.debug(
         f"app_config.authentication.secret_key={'*' * 8}{app_config.authentication.secret_key[-4:]}"
         if app_config.authentication.secret_key

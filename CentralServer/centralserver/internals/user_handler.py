@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import crypt_ctx
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import NewUser, User
+from centralserver.internals.models import User, UserLoginRequest
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -47,7 +47,7 @@ def validate_password(password: str) -> bool:
 
 
 def create_user(
-    new_user: NewUser,
+    new_user: UserLoginRequest,
     session: Session,
 ) -> User:
     if session.exec(select(User).where(User.username == new_user.username)).first():
@@ -68,7 +68,7 @@ def create_user(
             detail="Invalid username",
         )
 
-    if not validate_password(new_user.plaintext_password):
+    if not validate_password(new_user.password):
         logger.warning(
             "Failed to create user: %s (invalid password format)", new_user.username
         )
@@ -80,7 +80,7 @@ def create_user(
     # user = User(**new_user.model_dump())
     user = User(
         username=new_user.username,
-        hashed_password=crypt_ctx.hash(new_user.plaintext_password),
+        password=crypt_ctx.hash(new_user.password),
         roleId=new_user.roleId,
     )
     session.add(user)

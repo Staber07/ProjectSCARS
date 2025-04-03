@@ -1,13 +1,13 @@
 import json
 import os
-from dataclasses import dataclass
 from pathlib import Path
 
 from centralserver import info
 
 
-@dataclass
 class Debug:
+    """The debugging configuration."""
+
     def __init__(self, enabled: bool = False, use_test_db: bool = False):
         """Create a configuration object for debugging.
 
@@ -20,8 +20,9 @@ class Debug:
         self.use_test_db: bool = use_test_db
 
 
-@dataclass
 class Logging:
+    """The logging configuration."""
+
     def __init__(
         self,
         filepath: str = os.path.join(os.getcwd(), "logs", "centralserver-{0}.log"),
@@ -50,8 +51,9 @@ class Logging:
         self.date_format: str = date_format
 
 
-@dataclass
 class Database:
+    """The database configuration."""
+
     def __init__(
         self,
         db_type: str = "mysql",
@@ -98,8 +100,9 @@ class Database:
         )
 
 
-@dataclass
 class TestDatabase:
+    """The test database configuration."""
+
     def __init__(
         self,
         filepath: str = os.path.join(os.getcwd(), "tests", "data", "test.db"),
@@ -114,15 +117,18 @@ class TestDatabase:
 
     @property
     def sqlalchemy_uri(self) -> str:
+        """Get the database URI for SQLAlchemy."""
+
         return f"sqlite:///{self.filepath}"
 
 
-@dataclass
 class Authentication:
+    """The authentication configuration."""
+
     def __init__(
         self,
         secret_key: str | None = None,
-        algorithm: str = "",
+        algorithm: str = "HS256",
         access_token_expire_minutes: int = 30,
     ):
         """Create a configuration object for authentication.
@@ -141,8 +147,9 @@ class Authentication:
         self.access_token_expire_minutes: int = access_token_expire_minutes
 
 
-@dataclass
 class AppConfig:
+    """The main configuration object for the application."""
+
     def __init__(
         self,
         debug: Debug | None = None,
@@ -176,7 +183,15 @@ def read_config_file(
     fp: str | Path,
     enc: str = info.Configuration.default_encoding,
 ) -> AppConfig:
-    """Update the application's configuration from a JSON file."""
+    """Update the application's configuration from a JSON file.
+
+    Args:
+        fp: The file path to the JSON configuration file.
+        enc: The encoding of the file.
+
+    Returns:
+        A new AppConfig object with the updated configuration.
+    """
 
     with open(fp, "r", encoding=enc) as f:
         config = json.load(f)
@@ -222,6 +237,7 @@ def read_config_file(
         )
 
 
+# The global configuration object for the application.
 app_config = read_config_file(
     os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath)
 )

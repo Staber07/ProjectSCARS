@@ -1,29 +1,53 @@
+from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from centralserver.internals.auth_handler import oauth2_bearer
+from centralserver.internals.auth_handler import get_current_user
+from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models import DecodedJWTToken
+
+logger = LoggerFactory().get_logger(__name__)
 
 router = APIRouter(
     prefix="/reports",
     tags=["reports"],
-    # dependencies=[Depends(get_auth_header)],
+    dependencies=[Depends(get_current_user)],
 )
 
+logged_in_dep = Annotated[DecodedJWTToken, Depends(get_current_user)]
 
-@router.get("/monthly")
+
+@router.get("/monthly/{school_id}")
 def get_monthly_reports(
-    token: Annotated[str, Depends(oauth2_bearer)],
-) -> dict[str, Annotated[str, Any]]:
+    school_id: int,
+    month: int,
+    token: logged_in_dep,
+) -> dict[str, Any]:
     """Get the last 24 months of reports."""
-    # TODO: WIP
-    return {"token": token}
+
+    logger.debug(
+        "user `%s` requesting monthly reports of school %s for month %s.",
+        token.username,
+        school_id,
+        month,
+    )
+
+    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED)  # TODO: WIP
 
 
-@router.get("/daily/{year}/{month}")
+@router.get("/daily/{school_id}")
 def get_daily_reports(
-    token: Annotated[str, Depends(oauth2_bearer)],
+    school_id: int,
+    report_date: datetime,
+    token: logged_in_dep,
 ) -> list[Any]:
     """Get all submissions on <month> <year>."""
-    # TODO: WIP
-    return [token]
+    logger.debug(
+        "user `%s` requesting daily reports of school %s for %s.",
+        token.username,
+        school_id,
+        report_date.strftime("%Y-%m-%d"),
+    )
+
+    raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED)  # TODO: WIP

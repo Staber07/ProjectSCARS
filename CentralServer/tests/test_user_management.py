@@ -13,7 +13,7 @@ def test_create_user_success():
     data: dict[str, Any] = {
         "username": "testuser",
         "roleId": 2,
-        "plaintext_password": "password123",
+        "password": "password123",
     }
 
     response = client.post(
@@ -31,9 +31,7 @@ def test_create_user_success():
     assert resp_data["avatarUrl"] is None
     assert resp_data["schoolId"] is None
     assert resp_data["roleId"] == data["roleId"]
-    assert (
-        resp_data["hashed_password"] is not None
-    )  # TODO: Remove hashed password from result
+    assert resp_data["password"] is not None  # TODO: Remove hashed password from result
     assert resp_data["deactivated"] is False
 
 
@@ -42,7 +40,7 @@ def test_create_user_missing_required_field():
 
     data: dict[str, Any] = {
         "username": "testuser3",
-        "plaintext_password": "password123",
+        "password": "password123",
     }
     response = client.post(
         "/auth/create",
@@ -62,7 +60,7 @@ def test_create_user_missing_username():
         "/auth/create",
         json={
             "roleId": 2,
-            "plaintext_password": "password123",
+            "password": "password123",
         },
     )
     assert response.status_code == 422
@@ -75,7 +73,7 @@ def test_create_user_short_username():
         json={
             "username": "ab",
             "roleId": 2,
-            "plaintext_password": "password123",
+            "password": "password123",
         },
     )
     assert response.status_code == 400
@@ -90,7 +88,7 @@ def test_create_user_invalid_data_types():
         json={
             "username": 12345,
             "roleId": 2,
-            "plaintext_password": "password123",
+            "password": "password123",
         },
     )
     assert response.status_code == 422

@@ -3,14 +3,18 @@ import uuid
 from sqlmodel import Field, Relationship, SQLModel
 
 
-class Token(SQLModel):
+class JWTToken(SQLModel):
+    """A model representing a JWT token."""
+
     access_token: str
     token_type: str
 
 
-class UserLoginRequest(SQLModel):
+class DecodedJWTToken(SQLModel):
+    """A model representing a decoded JWT token."""
+
+    id: str
     username: str
-    plaintext_password: str
 
 
 class School(SQLModel, table=True):
@@ -20,6 +24,7 @@ class School(SQLModel, table=True):
 
     id: int | None = Field(primary_key=True, index=True)
     name: str = Field(unique=True, description="The name of the school.")
+
     users: list["User"] = Relationship(back_populates="school")
 
 
@@ -72,7 +77,7 @@ class User(SQLModel, table=True):
     roleId: int = Field(
         description="The user's role in the system.", foreign_key="roles.id"
     )
-    hashed_password: str = Field(
+    password: str = Field(
         description="The hashed password of the user.",
     )
     deactivated: bool = Field(
@@ -86,9 +91,24 @@ class User(SQLModel, table=True):
     role: Role = Relationship(back_populates="users")
 
 
-class NewUser(SQLModel):
-    """A model representing a new user to be created."""
+class UserPublic(SQLModel):
+    """A model representing a user without sensitive information."""
+
+    id: str
+    username: str
+    email: str | None
+    nameFirst: str | None
+    nameMiddle: str | None
+    nameLast: str | None
+    avatarUrl: str | None
+    schoolId: int | None
+    roleId: int
+    deactivated: bool
+
+
+class UserLoginRequest(SQLModel):
+    """A model for requesting user logins."""
 
     username: str
     roleId: int
-    plaintext_password: str
+    password: str
