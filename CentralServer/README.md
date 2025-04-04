@@ -10,7 +10,7 @@ The central server is written in Python using the FastAPI framework and
 utilizes MySQL as its database. It is responsible for handling the
 backend logic and storing the submitted data of canteen managers.
 
-## Requirements
+## Central Server Requirements
 
 The central server is written in [Python](https://python.org) v3.13.1, and is
 managed using [uv](https://github.com/astral-sh/uv) v0.5.24.
