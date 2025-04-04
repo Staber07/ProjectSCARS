@@ -25,7 +25,7 @@ The central server is written in Python using the FastAPI framework and
 utilizes MySQL as its database. It is responsible for handling the
 backend logic and storing the submitted data of canteen managers.
 
-##### Requirements
+##### Central Server Requirements
 
 The central server is written in [Python](https://python.org) v3.13.1, and is
 managed using [uv](https://github.com/astral-sh/uv) v0.5.24.
@@ -96,3 +96,35 @@ is the user-facing application that allows canteen managers to submit
 their monthly financial reports to the central server. The web client
 also optionally communicates with the local server to provide inventory
 and sales functionality.
+
+##### Web Client Requirements
+
+The web client is written in TypeScript v5,
+and is run via [NodeJS](https://nodejs.org) v23.6.0.
+
+##### Web Client Development Setup
+
+1. Install the required software.
+2. Clone the repository.
+
+   ```bash
+   git clone https://github.com/Chris1320/ProjectSCARS.git
+   ```
+
+3. Navigate to the `WebClient` directory.
+
+   ```bash
+   cd ProjectSCARS/WebClient
+   ```
+
+4. Install dependencies.
+
+   ```bash
+   npm install
+   ```
+
+5. Run the development server.
+
+   ```bash
+   npm run dev
+   ```
