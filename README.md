@@ -59,6 +59,8 @@ use the SQLite database.
 
    ```bash
    cp .config.example.json config.json
+   uv run ./scripts/secret.py  # Generate a secure secret key
+                               # and write it to `config.json`
    ```
 
    Edit the `config.json` file to set the database connection string or to use
