@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlmodel import Session, select
 
-from centralserver.internals.auth_handler import get_current_user
+from centralserver.internals.auth_handler import verify_access_token
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import DecodedJWTToken, User, UserPublic
@@ -16,7 +16,7 @@ router = APIRouter(
     # dependencies=[Depends(get_db_session)],
 )
 
-logged_in_dep = Annotated[DecodedJWTToken, Depends(get_current_user)]
+logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
 @router.get("/get", status_code=status.HTTP_200_OK, response_model=list[UserPublic])

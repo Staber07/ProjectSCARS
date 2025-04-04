@@ -3,7 +3,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from centralserver.internals.auth_handler import get_current_user
+from centralserver.internals.auth_handler import verify_access_token
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import DecodedJWTToken
 
@@ -12,10 +12,10 @@ logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(
     prefix="/reports",
     tags=["reports"],
-    dependencies=[Depends(get_current_user)],
+    dependencies=[Depends(verify_access_token)],
 )
 
-logged_in_dep = Annotated[DecodedJWTToken, Depends(get_current_user)]
+logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
 @router.get("/monthly/{school_id}")

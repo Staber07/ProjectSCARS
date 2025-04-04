@@ -95,7 +95,7 @@ def create_access_token(username: str, user_id: str, expiration_td: timedelta):
     )
 
 
-async def get_current_user(
+async def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
 ) -> DecodedJWTToken | None:
     """Get the current user from the JWT token.
