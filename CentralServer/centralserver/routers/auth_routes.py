@@ -16,6 +16,7 @@ from centralserver.internals.models import (
     JWTToken,
     User,
     UserLoginRequest,
+    UserPublic,
 )
 from centralserver.internals.user_handler import create_user
 
@@ -31,7 +32,7 @@ router = APIRouter(
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=User)
 async def create_new_user(
     new_user: UserLoginRequest, session: Annotated[Session, Depends(get_db_session)]
-) -> User:
+) -> UserPublic:
     """Create a new user in the database.
 
     Args:
@@ -43,7 +44,7 @@ async def create_new_user(
     """
 
     logger.info("Creating new user: %s", new_user.username)
-    user = create_user(new_user, session)
+    user = UserPublic.model_validate(create_user(new_user, session))
     return user
 
 
