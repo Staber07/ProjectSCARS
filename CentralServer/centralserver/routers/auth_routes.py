@@ -29,7 +29,7 @@ router = APIRouter(
 )
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=User)
+@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
 async def create_new_user(
     new_user: UserLoginRequest, session: Annotated[Session, Depends(get_db_session)]
 ) -> UserPublic:
@@ -45,6 +45,7 @@ async def create_new_user(
 
     logger.info("Creating new user: %s", new_user.username)
     user = UserPublic.model_validate(create_user(new_user, session))
+    logger.debug("Returning new user information: %s", user)
     return user
 
 

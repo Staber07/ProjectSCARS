@@ -31,7 +31,6 @@ def test_create_user_success():
     assert resp_data["avatarUrl"] is None
     assert resp_data["schoolId"] is None
     assert resp_data["roleId"] == data["roleId"]
-    assert resp_data["password"] is not None  # TODO: Remove hashed password from result
     assert resp_data["deactivated"] is False
 
 
