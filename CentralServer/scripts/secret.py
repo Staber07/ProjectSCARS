@@ -12,13 +12,22 @@ import secrets
 import sys
 from pathlib import Path
 
-KEY_LENGTH = 32  # Length of the secret key in bytes
+PLACEHOLDER_VALUE = "UPDATE_THIS_VALUE"
+SECRET_KEYS: dict[str, tuple[str, int]] = {
+    "sign": ("signing_secret_key", 32),
+    "encrypt": ("encryption_secret_key", 16),
+}
 
 
 def main() -> int:
     """Main function to generate a secret key and write it to a JSON file."""
 
     parser = argparse.ArgumentParser(description="Generate a secret key.")
+
+    parser.add_argument(
+        "type",
+        help=f"The type of secret key to generate: {','.join(SECRET_KEYS.keys())}.",
+    )
 
     parser.add_argument(
         "-c",
@@ -31,10 +40,17 @@ def main() -> int:
 
     args = parser.parse_args()
     config_path = Path(args.config)
+    secret_key = SECRET_KEYS.get(args.type, None)
+
+    if secret_key is None:
+        print(
+            f"Please specify the type of secret key. ({','.join(SECRET_KEYS.keys())})"
+        )
+        return 1
 
     if not config_path.exists():
         print("Path does not exist.")
-        return 1
+        return 2
 
     try:
         with open(config_path, "r") as f:
@@ -42,12 +58,12 @@ def main() -> int:
 
     except json.JSONDecodeError:
         print(f"Error: {config_path} is not a valid JSON file.")
-        return 2
+        return 3
 
     try:
         if (
-            config["authentication"]["secret_key"] != "UPDATE_THIS_VALUE"
-            and len(config["authentication"]["secret_key"]) >= KEY_LENGTH
+            config["authentication"][secret_key[0]] != PLACEHOLDER_VALUE
+            and len(config["authentication"][secret_key[0]]) >= secret_key[1]
         ):
             if (
                 input(
@@ -58,19 +74,21 @@ def main() -> int:
                 print("Operation cancelled by user.")
                 return 0
 
-        config["authentication"]["secret_key"] = secrets.token_hex(KEY_LENGTH)
+        config["authentication"][secret_key[0]] = secrets.token_hex(secret_key[1])
         with open(config_path, "w") as f:
             json.dump(config, f, indent=4)
 
         print(f"Secret key for {config_path} has been updated.")
 
     except KeyError:
-        print(f"Error: {config_path} does not contain 'authentication.secret_key'.")
-        return 3
+        print(
+            f"Error: {config_path} does not contain 'authentication.{secret_key[0]}'."
+        )
+        return 4
 
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
-        return 4
+        return 5
 
     return 0
 
