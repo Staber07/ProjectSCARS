@@ -15,6 +15,7 @@ from pathlib import Path
 PLACEHOLDER_VALUE = "UPDATE_THIS_VALUE"
 SECRET_KEYS: dict[str, tuple[str, int]] = {
     "sign": ("signing_secret_key", 32),
+    "refresh": ("refresh_signing_secret_key", 32),
     "encrypt": ("encryption_secret_key", 16),
 }
 
