@@ -3,6 +3,7 @@ from typing import Generator
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from centralserver import info
+from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import Role, User, UserLoginRequest
@@ -41,14 +42,8 @@ def populate_db() -> None:
     with next(get_db_session()) as session:
         if not session.exec(select(Role)).all():
             logger.warning("Creating default roles")
-            roles = [
-                Role(id=1, description="Superintendent"),
-                Role(id=2, description="Administrator"),
-                Role(id=3, description="Principal"),
-                Role(id=4, description="Canteen Manager"),
-            ]
-            logger.debug("Roles: %s", roles)
-            session.add_all(roles)
+            logger.debug("Roles: %s", permissions.ROLES)
+            session.add_all(permissions.ROLES)
             session.commit()
 
     # Create default superintendent user

@@ -38,11 +38,13 @@ def validate_password(password: str) -> bool:
     # Password requirements:
     # - Minimum length of 8 characters
     # - At least one digit
-    # - At least one letter
+    # - At least one lowercase letter
+    # - At least one uppercase letter
     return (
         len(password) >= 8
         and any(c.isdigit() for c in password)
-        and any(c.isalpha() for c in password)
+        and any(c.islower() for c in password)
+        and any(c.isupper() for c in password)
     )
 
 
@@ -50,6 +52,19 @@ def create_user(
     new_user: UserLoginRequest,
     session: Session,
 ) -> User:
+    """Create a new user in the database.
+
+    Args:
+        new_user: The new user's information.
+        session: The database session to use.
+
+    Returns:
+        A new user object.
+
+    Raises:
+        HTTPException: Thrown when the user already exists or the username is invalid.
+    """
+
     if session.exec(select(User).where(User.username == new_user.username)).first():
         logger.warning(
             "Failed to create user: %s (username already exists)", new_user.username

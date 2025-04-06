@@ -28,7 +28,7 @@ def get_monthly_reports(
 
     logger.debug(
         "user `%s` requesting monthly reports of school %s for month %s.",
-        token.username,
+        token.id,
         school_id,
         month,
     )
@@ -45,7 +45,7 @@ def get_daily_reports(
     """Get all submissions on <month> <year>."""
     logger.debug(
         "user `%s` requesting daily reports of school %s for %s.",
-        token.username,
+        token.id,
         school_id,
         report_date.strftime("%Y-%m-%d"),
     )

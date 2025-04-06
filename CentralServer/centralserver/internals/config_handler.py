@@ -8,7 +8,7 @@ from centralserver import info
 class Debug:
     """The debugging configuration."""
 
-    def __init__(self, enabled: bool = False, use_test_db: bool = False):
+    def __init__(self, enabled: bool | None = None, use_test_db: bool | None = None):
         """Create a configuration object for debugging.
 
         Args:
@@ -16,8 +16,8 @@ class Debug:
             use_test_db: If True, use the test SQLite database instead of the production database.
         """
 
-        self.enabled: bool = enabled
-        self.use_test_db: bool = use_test_db
+        self.enabled: bool = enabled or False
+        self.use_test_db: bool = use_test_db or False
 
 
 class Logging:
@@ -25,12 +25,12 @@ class Logging:
 
     def __init__(
         self,
-        filepath: str = os.path.join(os.getcwd(), "logs", "centralserver-{0}.log"),
-        max_bytes: int = 1024 * 1024 * 10,  # 10 MB
-        backup_count: int = 5,
-        encoding: str = "utf-8",
-        log_format: str = "%(asctime)s:%(name)s:%(levelname)s:%(message)s",
-        date_format: str = "%d-%m-%y_%H-%M-%S",
+        filepath: str | None = None,
+        max_bytes: int | None = None,
+        backup_count: int | None = None,
+        encoding: str | None = None,
+        log_format: str | None = None,
+        date_format: str | None = None,
     ):
         """Create a configuration object for logging.
 
@@ -43,12 +43,16 @@ class Logging:
             date_format: The format of the date in the log messages.
         """
 
-        self.filepath: str = filepath
-        self.max_bytes: int = max_bytes
-        self.backup_count: int = backup_count
-        self.encoding: str = encoding
-        self.log_format: str = log_format
-        self.date_format: str = date_format
+        self.filepath: str = filepath or os.path.join(
+            os.getcwd(), "logs", "centralserver-{0}.log"
+        )
+        self.max_bytes: int = max_bytes or 10485760  # 10 MB
+        self.backup_count: int = backup_count or 5
+        self.encoding: str = encoding or "utf-8"
+        self.log_format: str = (
+            log_format or "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
+        )
+        self.date_format: str = date_format or "%d-%m-%y_%H-%M-%S"
 
 
 class Database:
@@ -56,13 +60,13 @@ class Database:
 
     def __init__(
         self,
-        db_type: str = "mysql",
-        db_driver: str = "pymysql",
-        username: str = "root",
-        password: str = "",
-        host: str = "localhost",
-        port: int = 3306,
-        database: str = "projectscars",
+        db_type: str | None = None,
+        db_driver: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        database: str | None = None,
     ):
         """Create a configuration object for the database.
 
@@ -76,13 +80,13 @@ class Database:
             database: The database name.
         """
 
-        self.db_type: str = db_type
-        self.db_driver: str = db_driver
-        self.username: str = username
-        self.password: str = password
-        self.host: str = host
-        self.port: int = port
-        self.database: str = database
+        self.db_type: str = db_type or "mysql"
+        self.db_driver: str = db_driver or "pymysql"
+        self.username: str = username or "root"
+        self.password: str = password or ""
+        self.host: str = host or "localhost"
+        self.port: int = port or 3306
+        self.database: str = database or "projectscars"
 
     @property
     def sqlalchemy_uri(self) -> str:
@@ -105,7 +109,7 @@ class TestDatabase:
 
     def __init__(
         self,
-        filepath: str = os.path.join(os.getcwd(), "tests", "data", "test.db"),
+        filepath: str | None = None,
     ):
         """Create a configuration object for the test database.
 
@@ -113,7 +117,9 @@ class TestDatabase:
             filepath: The location of the SQLite database file.
         """
 
-        self.filepath: str = filepath
+        self.filepath: str = filepath or os.path.join(
+            os.getcwd(), "tests", "data", "test.db"
+        )
 
     @property
     def sqlalchemy_uri(self) -> str:
@@ -127,24 +133,45 @@ class Authentication:
 
     def __init__(
         self,
-        secret_key: str | None = None,
-        algorithm: str = "HS256",
-        access_token_expire_minutes: int = 30,
+        signing_secret_key: str | None = None,
+        refresh_signing_secret_key: str | None = None,
+        encryption_secret_key: str | None = None,
+        signing_algorithm: str | None = None,
+        encryption_algorithm: str | None = None,
+        encoding: str | None = None,
+        access_token_expire_minutes: int | None = None,
+        refresh_token_expire_minutes: int | None = None,
     ):
         """Create a configuration object for authentication.
 
         Args:
-            secret_key: The secret key. (Required)
-            algorithm: The algorithm to use for hashing.
+            signing_secret_key: The secret key used for signing. (Required)
+            refresh_signing_secret_key: The secret key used for signing refresh tokens. (Required)
+            encryption_secret_key: The secret key used for encryption. (Required)
+            signing_algorithm: The algorithm to use for hashing.
+            encryption_algorithm: The algorithm to use for encrypting.
+            encoding: The encoding to use when decoding encrypted data.
             access_token_expire_minutes: How long the access token is valid in minutes.
+            refresh_token_expire_minutes: How long the refresh token is valid in minutes.
         """
 
-        if secret_key is None:
-            raise ValueError("Secret key is empty in configuration file.")
+        if (
+            signing_secret_key is None
+            or refresh_signing_secret_key is None
+            or encryption_secret_key is None
+        ):
+            raise ValueError(
+                "Signing or encryption secret key is empty in configuration file."
+            )
 
-        self.secret_key: str = secret_key
-        self.algorithm: str = algorithm
-        self.access_token_expire_minutes: int = access_token_expire_minutes
+        self.signing_secret_key: str = signing_secret_key
+        self.refresh_signing_secret_key: str = refresh_signing_secret_key
+        self.encryption_secret_key: str = encryption_secret_key
+        self.signing_algorithm: str = signing_algorithm or "HS256"
+        self.encryption_algorithm: str = encryption_algorithm or "A256GCM"
+        self.encoding: str = encoding or "utf-8"
+        self.access_token_expire_minutes: int = access_token_expire_minutes or 30
+        self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
 
 
 class AppConfig:
@@ -168,15 +195,11 @@ class AppConfig:
             authentication: Authentication configuration.
         """
 
-        self.debug: Debug = debug if debug else Debug()
-        self.logging: Logging = logging if logging else Logging()
-        self.database: Database = database if database else Database()
-        self.test_database: TestDatabase = (
-            test_database if test_database else TestDatabase()
-        )
-        self.authentication: Authentication = (
-            authentication if authentication else Authentication()
-        )
+        self.debug: Debug = debug or Debug()
+        self.logging: Logging = logging or Logging()
+        self.database: Database = database or Database()
+        self.test_database: TestDatabase = test_database or TestDatabase()
+        self.authentication: Authentication = authentication or Authentication()
 
 
 def read_config_file(
@@ -228,10 +251,25 @@ def read_config_file(
                 filepath=test_database_config.get("filepath", None),
             ),
             authentication=Authentication(
-                secret_key=authentication_config.get("secret_key", None),
-                algorithm=authentication_config.get("algorithm", None),
+                signing_secret_key=authentication_config.get(
+                    "signing_secret_key", None
+                ),
+                refresh_signing_secret_key=authentication_config.get(
+                    "refresh_signing_secret_key", None
+                ),
+                encryption_secret_key=authentication_config.get(
+                    "encryption_secret_key", None
+                ),
+                signing_algorithm=authentication_config.get("signing_algorithm", None),
+                encryption_algorithm=authentication_config.get(
+                    "encryption_algorithm", None
+                ),
+                encoding=authentication_config.get("encoding", None),
                 access_token_expire_minutes=authentication_config.get(
                     "access_token_expire_minutes", None
+                ),
+                refresh_token_expire_minutes=authentication_config.get(
+                    "refresh_token_expire_minutes", None
                 ),
             ),
         )

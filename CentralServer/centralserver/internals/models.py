@@ -14,7 +14,7 @@ class DecodedJWTToken(SQLModel):
     """A model representing a decoded JWT token."""
 
     id: str
-    username: str
+    is_refresh_token: bool
 
 
 class School(SQLModel, table=True):

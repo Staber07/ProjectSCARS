@@ -24,7 +24,7 @@ async def get_all_users(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> list[UserPublic]:
-    logger.debug("user %s fetching all user info", token.username)
+    logger.debug("user %s fetching all user info", token.id)
     return [
         UserPublic.model_validate(user) for user in session.exec(select(User)).all()
     ]

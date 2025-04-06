@@ -8,11 +8,15 @@ from sqlmodel import Session
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
+    get_role,
+    verify_access_token,
+    verify_user_permission,
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
+    DecodedJWTToken,
     JWTToken,
     User,
     UserLoginRequest,
@@ -28,22 +32,34 @@ router = APIRouter(
     # dependencies=[Depends(get_db_session)],
 )
 
+logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
+
 
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
 async def create_new_user(
-    new_user: UserLoginRequest, session: Annotated[Session, Depends(get_db_session)]
+    new_user: UserLoginRequest,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Create a new user in the database.
 
     Args:
         new_user: The new user's information.
+        token: The decoded JWT token of the logged-in user.
         session: The database session.
 
     Returns:
         A newly created user object.
     """
 
+    if not await verify_user_permission("users:create", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create a user.",
+        )
+
     logger.info("Creating new user: %s", new_user.username)
+    logger.debug("Created by user: %s", token.id)
     user = UserPublic.model_validate(create_user(new_user, session))
     logger.debug("Returning new user information: %s", user)
     return user
@@ -81,7 +97,6 @@ async def request_access_token(
 
     return JWTToken(
         access_token=create_access_token(
-            user.username,
             user.id,
             timedelta(minutes=app_config.authentication.access_token_expire_minutes),
         ),

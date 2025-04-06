@@ -112,9 +112,21 @@ def log_app_info(logger: logging.Logger):
 
     # Hide the secret key in the logs
     logger.debug(
-        f"app_config.authentication.secret_key={'*' * 8}{app_config.authentication.secret_key[-4:]}"
-        if app_config.authentication.secret_key
-        else "app_config.authentication.secret_key=None"
+        f"app_config.authentication.signing_secret_key={'*' * 8}{app_config.authentication.signing_secret_key[-4:]}"
+        if app_config.authentication.signing_secret_key
+        else "app_config.authentication.signing_secret_key=None"
     )
-    logger.debug(f"{app_config.authentication.algorithm=}")
+    logger.debug(
+        f"app_config.authentication.refresh_signing_secret_key={'*' * 8}{app_config.authentication.refresh_signing_secret_key[-4:]}"
+        if app_config.authentication.refresh_signing_secret_key
+        else "app_config.authentication.refresh_signing_secret_key=None"
+    )
+    logger.debug(
+        f"app_config.authentication.encryption_secret_key={'*' * 8}{app_config.authentication.encryption_secret_key[-4:]}"
+        if app_config.authentication.encryption_secret_key
+        else "app_config.authentication.encryption_secret_key=None"
+    )
+    logger.debug(f"{app_config.authentication.signing_algorithm=}")
+    logger.debug(f"{app_config.authentication.encryption_algorithm=}")
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
+    logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
