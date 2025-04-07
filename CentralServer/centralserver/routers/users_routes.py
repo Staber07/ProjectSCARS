@@ -1,9 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
-from centralserver.internals.auth_handler import verify_access_token
+from centralserver.internals.auth_handler import (
+    verify_access_token,
+    verify_user_permission,
+)
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import DecodedJWTToken, User, UserPublic
@@ -24,6 +27,12 @@ async def get_all_users(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> list[UserPublic]:
+    if not await verify_user_permission("users:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view daily reports.",
+        )
+
     logger.debug("user %s fetching all user info", token.id)
     return [
         UserPublic.model_validate(user) for user in session.exec(select(User)).all()

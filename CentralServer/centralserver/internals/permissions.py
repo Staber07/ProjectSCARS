@@ -10,14 +10,24 @@ ROLES: Final[tuple[Role, ...]] = (
 )
 
 PERMISSIONS: Final[dict[str, str]] = {
-    "users:create": "Create new users of any role.",
-    "users:modify": "Modify any user's information.",
-    "users:read": "View all users' information.",
+    "users:global:create": "Create new users of any role.",
+    "users:global:modify": "Modify any user's information.",
+    "users:global:read": "View all users' information.",
+    "reports:local:write": "Submit daily reports and monthly expenses.",
+    "reports:local:read": "View monthly reports of their assigned school.",
 }
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
-    1: ["users:create", "users:modify", "users:read"],  # Superintendent
-    2: ["users:create", "users:modify", "users:read"],  # Principal
-    3: [],  # Principal
-    4: [],  # Canteen Manager
+    1: [  # Superintendent
+        "users:global:create",
+        "users:global:modify",
+        "users:global:read",
+    ],
+    2: [  # Administrator
+        "users:global:create",
+        "users:global:modify",
+        "users:global:read",
+    ],
+    3: ["reports:local:read"],  # Principal
+    4: ["reports:local:read"],  # Canteen Manager
 }

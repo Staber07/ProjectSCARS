@@ -8,7 +8,6 @@ from sqlmodel import Session
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
-    get_role,
     verify_access_token,
     verify_user_permission,
 )
@@ -52,7 +51,7 @@ async def create_new_user(
         A newly created user object.
     """
 
-    if not await verify_user_permission("users:create", session, token):
+    if not await verify_user_permission("users:global:create", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create a user.",
