@@ -31,5 +31,11 @@
     "encryption_algorithm": "A256GCM",
     "access_token_expire_minutes": 30,
     "refresh_token_expire_minutes": 10080
+  },
+  "security": {
+    "allow_origins": ["http://localhost:3000"],
+    "allow_credentials": true,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"]
   }
 }

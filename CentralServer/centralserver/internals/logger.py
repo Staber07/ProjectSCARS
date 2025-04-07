@@ -130,3 +130,7 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.authentication.encryption_algorithm=}")
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
+    logger.debug(f"{app_config.security.allow_origins=}")
+    logger.debug(f"{app_config.security.allow_credentials=}")
+    logger.debug(f"{app_config.security.allow_methods=}")
+    logger.debug(f"{app_config.security.allow_headers=}")

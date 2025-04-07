@@ -2,6 +2,7 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
+from fastapi.middleware.cors import CORSMiddleware
 
 from centralserver import info
 from centralserver.internals.config_handler import app_config
@@ -26,6 +27,14 @@ app = FastAPI(
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
 app.include_router(reports_routes.router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=app_config.security.allow_origins,
+    allow_credentials=app_config.security.allow_credentials,
+    allow_methods=app_config.security.allow_methods,
+    allow_headers=app_config.security.allow_headers,
+)
 
 
 @app.exception_handler(status.HTTP_401_UNAUTHORIZED)

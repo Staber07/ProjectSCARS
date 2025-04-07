@@ -174,6 +174,29 @@ class Authentication:
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
 
 
+class Security:
+    def __init__(
+        self,
+        allow_origins: list[str] | None = None,
+        allow_credentials: bool | None = None,
+        allow_methods: list[str] | None = None,
+        allow_headers: list[str] | None = None,
+    ):
+        """The security configuration.
+
+        Args:
+            allow_origins: Which origins are allowed to access the API.
+            allow_credentials: Whether to allow credentials to be sent.
+            allow_methods: Which methods are allowed.
+            allow_headers: Which headers are allowed.
+        """
+
+        self.allow_origins: list[str] = allow_origins or ["*"]
+        self.allow_credentials: bool = allow_credentials or True
+        self.allow_methods: list[str] = allow_methods or ["*"]
+        self.allow_headers: list[str] = allow_headers or ["*"]
+
+
 class AppConfig:
     """The main configuration object for the application."""
 
@@ -184,6 +207,7 @@ class AppConfig:
         database: Database | None = None,
         test_database: TestDatabase | None = None,
         authentication: Authentication | None = None,
+        security: Security | None = None,
     ):
         """Create a configuration object for the application.
 
@@ -193,6 +217,7 @@ class AppConfig:
             database: Database configuration.
             test_database: Test database configuration.
             authentication: Authentication configuration.
+            security: Security configuration.
         """
 
         self.debug: Debug = debug or Debug()
@@ -200,6 +225,7 @@ class AppConfig:
         self.database: Database = database or Database()
         self.test_database: TestDatabase = test_database or TestDatabase()
         self.authentication: Authentication = authentication or Authentication()
+        self.security: Security = security or Security()
 
 
 def read_config_file(
@@ -224,6 +250,7 @@ def read_config_file(
         database_config = config.get("database", {})
         test_database_config = config.get("test_database", {})
         authentication_config = config.get("authentication", {})
+        security_config = config.get("security", {})
 
         return AppConfig(
             debug=Debug(
@@ -271,6 +298,12 @@ def read_config_file(
                 refresh_token_expire_minutes=authentication_config.get(
                     "refresh_token_expire_minutes", None
                 ),
+            ),
+            security=Security(
+                allow_origins=security_config.get("allow_origins", None),
+                allow_credentials=security_config.get("allow_credentials", None),
+                allow_methods=security_config.get("allow_methods", None),
+                allow_headers=security_config.get("allow_headers", None),
             ),
         )
 
