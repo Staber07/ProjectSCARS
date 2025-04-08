@@ -66,3 +66,9 @@ use the SQLite database.
    ```bash
    uv run fastapi dev centralserver
    ```
+
+   > [!info]
+   > The default credentials are:
+   >
+   > - username: `scars`
+   > - password: `ProjectSCARS1`

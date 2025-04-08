@@ -83,6 +83,12 @@ use the SQLite database.
    uv run fastapi dev centralserver
    ```
 
+   > [!info]
+   > The default credentials are:
+   >
+   > - username: `scars`
+   > - password: `ProjectSCARS1`
+
 #### Local Server
 
 The local server is also written in Python using the FastAPI framework.
@@ -131,3 +137,9 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    ```bash
    npm run dev
    ```
+
+   > [!info]
+   > The default credentials are:
+   >
+   > - username: `scars`
+   > - password: `ProjectSCARS1`
