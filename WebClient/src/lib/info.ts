@@ -6,8 +6,7 @@ export const Program = {
 
 export const Connections = {
   CentralServer: {
-    host: "localhost",
-    port: 8000,
+    endpoint: "http://localhost:8000",
   },
   LocalServer: {
     // TODO: WIP
