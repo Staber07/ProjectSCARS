@@ -1,0 +1,41 @@
+{
+  "debug": {
+    "enabled": true,
+    "use_test_db": true
+  },
+  "logging": {
+    "filepath": "./logs/centralserver-pytest.log",
+    "max_bytes": 10485760,
+    "backup_count": 5,
+    "encoding": "utf-8",
+    "log_format": "%(asctime)s:%(name)s:%(levelname)s:%(message)s",
+    "date_format": "%d-%m-%y_%H-%M-%S"
+  },
+  "database": {
+    "db_type": "mysql",
+    "db_driver": "pymysql",
+    "username": "root",
+    "password": "",
+    "host": "localhost",
+    "port": 3306,
+    "database": "projectscars"
+  },
+  "test_database": {
+    "filepath": "./tests/data/pytest.db"
+  },
+  "authentication": {
+    "signing_secret_key": "06c499ceaf3cca919316e85a1e050eba61d629aed5d8d2978a4381ddf8879999",
+    "refresh_signing_secret_key": "e6aaa21f1b9ecdaf1ddd1c24a721d37478523547c07e81babdc70837a4ed62e3",
+    "encryption_secret_key": "cd666741f2978618a628e2d05c9ba573",
+    "signing_algorithm": "HS256",
+    "encryption_algorithm": "A256GCM",
+    "access_token_expire_minutes": 30,
+    "refresh_token_expire_minutes": 10080
+  },
+  "security": {
+    "allow_origins": ["http://localhost:3000"],
+    "allow_credentials": true,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"]
+  }
+}
