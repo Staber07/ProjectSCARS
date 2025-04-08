@@ -88,7 +88,7 @@ def authenticate_user(
 
     Args:
         username: The username of the user to authenticate.
-        plaintext_password: The plainext password to verify.
+        plaintext_password: The plaintext password to verify.
         session: The database session to use.
 
     Returns:
