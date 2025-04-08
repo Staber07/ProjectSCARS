@@ -5,18 +5,18 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
+  - package-ecosystem: "uv" # See documentation for possible values
     directory: "/CentralServer" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels:
       - "tag > bot"
       - "kind > dependencies"
       - "scope > central server"
-  - package-ecosystem: "pip" # See documentation for possible values
+  - package-ecosystem: "uv" # See documentation for possible values
     directory: "/LocalServer" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels:
       - "tag > bot"
       - "kind > dependencies"
@@ -24,7 +24,7 @@ updates:
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/WebClient" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "daily"
     labels:
       - "tag > bot"
       - "kind > dependencies"
