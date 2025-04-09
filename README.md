@@ -83,11 +83,11 @@ use the SQLite database.
    uv run fastapi dev centralserver
    ```
 
-   > [!NOTE]
-   > The default credentials are:
-   >
-   > - username: `scars`
-   > - password: `ProjectSCARS1`
+> [!IMPORTANT]
+> The default credentials are:
+>
+> - username: `scars`
+> - password: `ProjectSCARS1`
 
 #### Local Server
 
@@ -138,8 +138,8 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    npm run dev
    ```
 
-   > [!NOTE]
-   > The default credentials are:
-   >
-   > - username: `scars`
-   > - password: `ProjectSCARS1`
+> [!IMPORTANT]
+> The default credentials are:
+>
+> - username: `scars`
+> - password: `ProjectSCARS1`
