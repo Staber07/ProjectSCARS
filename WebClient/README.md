@@ -44,8 +44,9 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    npm run dev
    ```
 
-   > [!info]
-   > The default credentials are:
-   >
-   > - username: `scars`
-   > - password: `ProjectSCARS1`
+> [!IMPORTANT]
+> The default credentials are:
+>
+> - username: `scars`
+> - password: `ProjectSCARS1`
+
