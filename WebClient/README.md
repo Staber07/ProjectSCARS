@@ -12,12 +12,12 @@ their monthly financial reports to the central server. The web client
 also optionally communicates with the local server to provide inventory
 and sales functionality.
 
-##### Web Client Requirements
+## Web Client Requirements
 
 The web client is written in TypeScript v5,
 and is run via [NodeJS](https://nodejs.org) v23.6.0.
 
-##### Web Client Development Setup
+## Web Client Development Setup
 
 1. Install the required software.
 2. Clone the repository.
@@ -49,4 +49,3 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
 >
 > - username: `scars`
 > - password: `ProjectSCARS1`
-
