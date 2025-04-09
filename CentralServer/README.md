@@ -16,8 +16,8 @@ The central server is written in [Python](https://python.org) v3.13.1, and is
 managed using [uv](https://github.com/astral-sh/uv) v0.5.24.
 If you are using [Docker](https://docker.com/) or [Podman](https://podman.io/),
 make sure to also install [docker-compose](https://docs.docker.com/compose/)/[podman-compose](https://github.com/containers/podman-compose).
-Otherwise, install [MySQL](http://www.mysql.com/) 9.2.0-1.el9 if don't plan to
-use the SQLite database.
+Otherwise, install [MySQL](http://www.mysql.com/) 9.2.0-1.el9 if you don't plan
+to use the SQLite database.
 
 ## Central Server Development Setup
 
