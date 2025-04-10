@@ -24,7 +24,7 @@ def _request_access_token(username: str, password: str) -> Response:
         "password": password,
     }
 
-    return client.post("/auth/token", data=creds)
+    return client.post("/api/v1/auth/token", data=creds)
 
 
 def test_login_user_success():
@@ -83,7 +83,7 @@ def test_create_user_success():
             "password": "Password123",
         }
         response = client.post(
-            "/auth/create",
+            "/api/v1/auth/create",
             json=data,
             headers=headers,
         )
@@ -100,7 +100,7 @@ def test_create_user_success():
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
-    response = client.get("/users/get", headers=headers)
+    response = client.get("/api/v1/users/get", headers=headers)
     for user in TEST_USERS.items():
         assert user[0] in [u["username"] for u in response.json()]
 
@@ -117,7 +117,7 @@ def test_create_user_missing_required_field():
         "password": "Password123",
     }
     response = client.post(
-        "/auth/create",
+        "/api/v1/auth/create",
         json=data,
         headers=headers,
     )
@@ -134,7 +134,7 @@ def test_create_user_missing_username():
     login = _request_access_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
-        "/auth/create",
+        "/api/v1/auth/create",
         json={
             "roleId": 2,
             "password": "Password123",
@@ -149,7 +149,7 @@ def test_create_user_short_username():
     login = _request_access_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
-        "/auth/create",
+        "/api/v1/auth/create",
         json={
             "username": "ab",
             "roleId": 2,
@@ -167,7 +167,7 @@ def test_create_user_invalid_data_types():
     login = _request_access_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
-        "/auth/create",
+        "/api/v1/auth/create",
         json={
             "username": 12345,
             "roleId": 2,
