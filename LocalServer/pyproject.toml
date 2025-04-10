@@ -7,10 +7,15 @@ requires-python = ">=3.12"
 dependencies = ["fastapi>=0.115.12"]
 
 [dependency-groups]
-dev = ["black>=25.1.0", "isort>=6.0.1", "pylint>=3.3.6", "pytest>=8.3.5"]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "pylint>=3.3.6",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.0",
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--cache-clear --color=yes --code-highlight=yes --cov=localserver --cov-branch --cov-report=xml -vvv"
 testpaths = ["tests"]
-env_files = [".pytest.env"]
