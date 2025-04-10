@@ -30,7 +30,7 @@ async def get_all_users(
     if not await verify_user_permission("users:global:read", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view daily reports.",
+            detail="You do not have permission to view users list.",
         )
 
     logger.debug("user %s fetching all user info", token.id)

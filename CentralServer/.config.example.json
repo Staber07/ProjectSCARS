@@ -4,7 +4,7 @@
     "use_test_db": false
   },
   "logging": {
-    "filepath": "./logs/centralserver-{0}.log",
+    "filepath": "./logs/centralserver.log",
     "max_bytes": 10485760,
     "backup_count": 5,
     "encoding": "utf-8",
