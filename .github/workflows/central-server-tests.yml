@@ -53,3 +53,10 @@ jobs:
 
       - name: Minimize uv cache
         run: uv cache prune --ci
+
+      - name: Upload coverage data to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          directory: CentralServer/
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}

@@ -1,6 +1,6 @@
 [project]
 name = "localserver"
-version = "0.1.0"
+version = "0.3.0"
 description = "The local server for the project"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -12,4 +12,10 @@ dev = [
     "isort>=6.0.1",
     "pylint>=3.3.6",
     "pytest>=8.3.5",
+    "pytest-cov>=6.1.0",
 ]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--cache-clear --color=yes --code-highlight=yes --cov=localserver --cov-branch --cov-report=xml -vvv"
+testpaths = ["tests"]
