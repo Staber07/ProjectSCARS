@@ -1,5 +1,3 @@
-from typing import Literal
-
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +6,7 @@ from centralserver import info
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import populate_db
 from centralserver.internals.logger import LoggerFactory, log_app_info
-from centralserver.routers import auth_routes, reports_routes, users_routes
+from centralserver.routers import auth_routes, misc_routes, reports_routes, users_routes
 
 logger = LoggerFactory(
     log_level="DEBUG" if app_config.debug.enabled else "WARN"
@@ -22,11 +20,13 @@ app = FastAPI(
     debug=app_config.debug.enabled,
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
+    root_path="/api",
 )
 
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
 app.include_router(reports_routes.router)
+app.include_router(misc_routes.router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,10 +83,3 @@ async def internal_server_error(request: Request, exc: HTTPException):
     logger.debug("Request Cookies: %s", request.cookies)
 
     return await http_exception_handler(request, exc)
-
-
-@app.get("/healthcheck")
-async def root() -> dict[Literal["message"], Literal["Healthy"]]:
-    """Always returns a 200 OK response with a message."""
-
-    return {"message": "Healthy"}

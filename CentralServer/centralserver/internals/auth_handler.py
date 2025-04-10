@@ -15,7 +15,7 @@ from centralserver.internals.models import DecodedJWTToken, Role, User
 
 logger = LoggerFactory().get_logger(__name__)
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
 
 
 def hash_secret(secret: str | bytes, salt: str | None = None) -> str:

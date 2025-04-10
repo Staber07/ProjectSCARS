@@ -14,7 +14,7 @@ from centralserver.internals.models import DecodedJWTToken, User, UserPublic
 logger = LoggerFactory().get_logger(__name__)
 
 router = APIRouter(
-    prefix="/users",
+    prefix="/v1/users",
     tags=["users"],
     # dependencies=[Depends(get_db_session)],
 )

@@ -26,7 +26,7 @@ from centralserver.internals.user_handler import create_user
 logger = LoggerFactory().get_logger(__name__)
 
 router = APIRouter(
-    prefix="/auth",
+    prefix="/v1/auth",
     tags=["authentication"],
     # dependencies=[Depends(get_db_session)],
 )
