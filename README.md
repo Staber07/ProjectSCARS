@@ -14,8 +14,10 @@ the Philippines.
 [![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
 
 <details>
-<summary>Code Coverage Graph</summary>
-[![Code Coverage Graph](https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI)](https://codecov.io/gh/Chris1320/ProjectSCARS)
+    <summary>Code Coverage Graph</summary>
+    <a href="https://codecov.io/gh/Chris1320/ProjectSCARS">
+        <img src="https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI" alt="Code Coverage Graph" />
+    </a>
 </details>
 
 ## Development
