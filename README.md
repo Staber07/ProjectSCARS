@@ -13,7 +13,10 @@ the Philippines.
 [![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)
 [![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
 
-> [![Code Coverage Graph](https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI)](https://codecov.io/gh/Chris1320/ProjectSCARS)
+<details>
+<summary>Code Coverage Graph</summary>
+[![Code Coverage Graph](https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI)](https://codecov.io/gh/Chris1320/ProjectSCARS)
+</details>
 
 ## Development
 
