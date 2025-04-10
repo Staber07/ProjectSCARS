@@ -7,11 +7,11 @@ the Philippines.
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/commits)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Chris1320/ProjectSCARS?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/issues)
 [![GitHub Repository Size](https://img.shields.io/github/repo-size/Chris1320/ProjectSCARS?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS)
-[![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=for-the-badge)](https://codecov.io/gh/Chris1320/ProjectSCARS)
-[![Central Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/central-server-tests.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml)
-[![Local Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/local-server-tests.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/local-server-tests.yml)
-[![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)
-[![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?style=for-the-badge)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
+[![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=for-the-badge&label=Code%20Coverage)](https://codecov.io/gh/Chris1320/ProjectSCARS)
+[![Central Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/central-server-tests.yml?style=for-the-badge&label=Central%20Server%20Tests)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml)
+[![Local Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/local-server-tests.yml?style=for-the-badge&label=Local%20Server%20Tests)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/local-server-tests.yml)
+[![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=for-the-badge&label=Web%20Client%20Tests)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)
+[![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?style=for-the-badge&label=Codebase%20Style)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
 
 <details>
     <summary>Code Coverage Graph</summary>
