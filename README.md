@@ -4,10 +4,11 @@ Project SCARS is a School Canteen Automated Reporting System for the Department
 of Education (DepEd) Schools Division Office (SDO) of the City of Baliwag in
 the Philippines.
 
-![Central Server Tests](https://github.com/Chris1320/inTransit/actions/workflows/central-server-tests.yml/badge.svg)
-![Local Server Tests](https://github.com/Chris1320/inTransit/actions/workflows/local-server-tests.yml/badge.svg)
-![Web Client Tests](https://github.com/Chris1320/inTransit/actions/workflows/web-client-tests.yml/badge.svg)
-![Linter Results](https://github.com/Chris1320/inTransit/actions/workflows/lint.yml/badge.svg)
+[![Central Server Tests](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml/badge.svg)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml)
+[![Local Server Tests](https://github.com/Chris1320/ProjectSCARS/actions/workflows/local-server-tests.yml/badge.svg)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/local-server-tests.yml)
+[![Web Client Tests](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml/badge.svg)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)
+[![Linter Results](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml/badge.svg)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
+[![Code Coverage](https://codecov.io/gh/Chris1320/ProjectSCARS/graph/badge.svg?token=BJWS49M1DI)](https://codecov.io/gh/Chris1320/ProjectSCARS)
 
 ## Development
 
