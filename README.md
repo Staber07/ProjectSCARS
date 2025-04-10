@@ -21,6 +21,12 @@ the Philippines.
     <a href="https://codecov.io/gh/Chris1320/ProjectSCARS">
         <img src="https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI" alt="Code Coverage Graph" />
     </a>
+    <p>
+        The inner-most circle is the entire project, moving away from the center
+        are folders then, finally, a single file. The size and color of each
+        slice is representing the number of statements and the coverage,
+        respectively.
+    </p>
 </details>
 
 ## Development
