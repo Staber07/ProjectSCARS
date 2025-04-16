@@ -7,7 +7,6 @@ the Philippines.
 [![GitHub Last Commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat)](https://github.com/Chris1320/ProjectSCARS/commits)
 [![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat)](https://github.com/Chris1320/ProjectSCARS/issues)
 [![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
-[![System Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/system-tests.yml?branch=main&style=flat&label=System%20Tests)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/system-tests.yml)
 [![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage)](https://codecov.io/gh/Chris1320/ProjectSCARS)
 [![GitHub Repository Size](https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat)](https://github.com/Chris1320/ProjectSCARS)
 
