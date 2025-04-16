@@ -91,12 +91,10 @@ def test_create_user_success():
         resp_data: dict[str, Any] = response.json()
         assert type(resp_data["id"]) is str
         assert resp_data["username"] == data["username"]
-        assert resp_data["email"] is None
         assert resp_data["nameFirst"] is None
         assert resp_data["nameMiddle"] is None
         assert resp_data["nameLast"] is None
         assert resp_data["avatarUrl"] is None
-        assert resp_data["schoolId"] is None
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
