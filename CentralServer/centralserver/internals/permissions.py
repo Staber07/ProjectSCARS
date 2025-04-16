@@ -13,6 +13,7 @@ PERMISSIONS: Final[dict[str, str]] = {
     "users:global:create": "Create new users of any role.",
     "users:global:modify": "Modify any user's information.",
     "users:global:read": "View all users' information.",
+    "users:global:selfupdate": "Update their own information.",
     "reports:local:write": "Submit daily reports and monthly expenses.",
     "reports:local:read": "View monthly reports of their assigned school.",
 }
@@ -22,12 +23,20 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:global:create",
         "users:global:modify",
         "users:global:read",
+        "users:global:selfupdate",
     ],
     2: [  # Administrator
         "users:global:create",
         "users:global:modify",
         "users:global:read",
+        "users:global:selfupdate",
     ],
-    3: ["reports:local:read"],  # Principal
-    4: ["reports:local:read"],  # Canteen Manager
+    3: [  # Principal
+        "users:global:selfupdate",
+        "reports:local:read",
+    ],
+    4: [  # Canteen Manager
+        "users:global:selfupdate",
+        "reports:local:read",
+    ],
 }

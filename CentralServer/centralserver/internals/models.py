@@ -84,6 +84,10 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user account is deactivated.",
     )
+    force_update_info: bool = Field(
+        default=False,
+        description="Whether the user is required to update their information.",
+    )
 
     school: School | None = Relationship(
         back_populates="users",
@@ -104,6 +108,19 @@ class UserPublic(SQLModel):
     schoolId: int | None
     roleId: int
     deactivated: bool
+    force_update_info: bool
+
+
+class UserUpdate(SQLModel):
+    """A model used when updating user information."""
+
+    id: str
+    username: str
+    email: str | None
+    nameFirst: str
+    nameMiddle: str | None
+    nameLast: str
+    avatarUrl: str | None
 
 
 class UserLoginRequest(SQLModel):

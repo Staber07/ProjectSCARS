@@ -3,7 +3,12 @@ from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import crypt_ctx
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import User, UserLoginRequest
+from centralserver.internals.models import (
+    User,
+    UserLoginRequest,
+    UserPublic,
+    UserUpdate,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -104,3 +109,39 @@ def create_user(
 
     logger.info("User `%s` created.", new_user.username)
     return user
+
+
+def update_user_info(
+    acquired_user: User, updated_user: User, session: Session
+) -> UserPublic:
+    """Update the user's information in the database.
+
+    Args:
+        updated_user: The updated user information.
+        session: The database session to use.
+    """
+
+    if session.exec(select(User).where(User.username == updated_user.username)).first():
+        logger.warning(
+            "Failed to create user: %s (username already exists)", updated_user.username
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists",
+        )
+
+    if not validate_username(updated_user.username):
+        logger.warning(
+            "Failed to create user: %s (invalid username)", updated_user.username
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid username",
+        )
+
+    acquired_user.sqlmodel_update(updated_user)
+    session.commit()
+    session.refresh(acquired_user)
+
+    logger.info("User info for `%s` updated.", updated_user.username)
+    return UserPublic.model_validate(acquired_user)
