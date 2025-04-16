@@ -47,8 +47,7 @@ def populate_db() -> bool:
         else:
             logger.debug("roles are already populated, skipping...")
 
-    # Create default local admin user
-    with next(get_db_session()) as session:
+        # Create default local admin user
         if not session.exec(select(User)).first():
             logger.warning("Creating default user")
             create_user(
