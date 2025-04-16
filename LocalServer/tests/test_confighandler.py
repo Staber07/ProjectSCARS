@@ -80,6 +80,54 @@ def test_config_authentication_encryption_key_unpopulated() -> None:
         raise AssertionError("Expected ValueError, but no exception was raised.")
 
 
+def test_config_authentication_signing_key_none() -> None:
+    """Check the behavior of Authentication() when signing secret key is empty."""
+
+    try:
+        _ = config_handler.Authentication(
+            refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
+            encryption_secret_key=VALID_ENCRYPTION_KEY,
+        )
+
+    except ValueError:
+        pass  # Expected
+
+    else:
+        raise AssertionError("Expected ValueError, but no exception was raised.")
+
+
+def test_config_authentication_refresh_signing_key_none() -> None:
+    """Check the behavior of Authentication() when refresh signing secret key is empty."""
+
+    try:
+        _ = config_handler.Authentication(
+            signing_secret_key=VALID_SIGNING_KEY,
+            encryption_secret_key=VALID_ENCRYPTION_KEY,
+        )
+
+    except ValueError:
+        pass  # Expected
+
+    else:
+        raise AssertionError("Expected ValueError, but no exception was raised.")
+
+
+def test_config_authentication_encryption_key_none() -> None:
+    """Check the behavior of Authentication() when encryption secret key is empty."""
+
+    try:
+        _ = config_handler.Authentication(
+            signing_secret_key=VALID_SIGNING_KEY,
+            refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
+        )
+
+    except ValueError:
+        pass  # Expected
+
+    else:
+        raise AssertionError("Expected ValueError, but no exception was raised.")
+
+
 def test_config_authentication_signing_key_invalid() -> None:
     """Check the behavior of Authentication() when signing secret key is invalid."""
 
