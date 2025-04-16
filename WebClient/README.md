@@ -8,7 +8,7 @@ the Philippines.
 [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20web%20client?style=flat&label=Open%20Issues)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20web%20client%22)
 [![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=flat&label=Web%20Client%20Tests)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)
 [![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
-[![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage)](https://codecov.io/gh/Chris1320/ProjectSCARS)
+[![Web Client Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=web-client&label=Code%20Coverage&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags)
 
 <details>
     <summary>Code Coverage Graph</summary>
@@ -66,7 +66,5 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    ```
 
 > [!IMPORTANT]
-> The default credentials are:
->
-> - username: `scars`
-> - password: `ProjectSCARS1`
+> Look at the _central server_ and _local server_ documentation for the default
+> credentials.
