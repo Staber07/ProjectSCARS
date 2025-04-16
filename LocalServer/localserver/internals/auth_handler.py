@@ -229,7 +229,7 @@ async def verify_access_token(
 async def verify_user_permission(
     required_role: str,
     session: Session,
-    token: Annotated[DecodedJWTToken, Depends(oauth2_bearer)],
+    token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
 ) -> bool:
     """Check if the user has the required permissions based on their role.
 
