@@ -1,5 +1,5 @@
 ---
-name: System Tests
+name: Tests
 
 on:
   push:
@@ -115,10 +115,19 @@ jobs:
     runs-on: ubuntu-latest
     needs: [test-central-server, test-local-server]
     steps:
-      - name: Download artifacts
+      - uses: actions/checkout@v4
+
+      - name: Download central server code coverage report artifact
         uses: actions/download-artifact@v4
         with:
-          pattern: "*-coverage"
+          name: "CentralServer-coverage"
+          path: CentralServer
+
+      - name: Download local server code coverage report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: "LocalServer-coverage"
+          path: LocalServer
 
       - name: Upload coverage data to Codecov
         uses: codecov/codecov-action@v5
