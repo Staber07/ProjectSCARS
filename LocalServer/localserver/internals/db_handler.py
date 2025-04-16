@@ -28,9 +28,10 @@ def get_db_session() -> Generator[Session, None, None]:
         yield session
 
 
-def populate_db() -> None:
+def populate_db() -> bool:
     """Populate the database with tables."""
 
+    populated: bool = False
     logger.warning("Creating database tables")
     SQLModel.metadata.create_all(bind=engine)
 
@@ -41,6 +42,10 @@ def populate_db() -> None:
             logger.debug("Roles: %s", permissions.ROLES)
             session.add_all(permissions.ROLES)
             session.commit()
+            populated = True
+
+        else:
+            logger.debug("roles are already populated, skipping...")
 
     # Create default local admin user
     with next(get_db_session()) as session:
@@ -54,3 +59,9 @@ def populate_db() -> None:
                 ),
                 session,
             )
+            populated = True
+
+        else:
+            logger.debug("there is already a user, skipping...")
+
+    return populated
