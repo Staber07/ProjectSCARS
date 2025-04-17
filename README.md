@@ -100,7 +100,7 @@ to use the SQLite database.
 7. Run the FastAPI development server.
 
    ```bash
-   uv run fastapi dev centralserver
+   uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
    ```
 
 > [!IMPORTANT]
