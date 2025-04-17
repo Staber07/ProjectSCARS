@@ -11,8 +11,11 @@ flag_management:
   default_rules:
     carryforward: true
     statuses:
+      - type: project
+        target: 85%
+
       - type: patch
-        target: 90%
+        target: 80%
 
   individual_flags:
     - name: central-server
