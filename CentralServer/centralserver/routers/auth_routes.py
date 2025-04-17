@@ -17,6 +17,7 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     DecodedJWTToken,
     JWTToken,
+    Role,
     User,
     UserLoginRequest,
     UserPublic,
@@ -55,6 +56,13 @@ async def create_new_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create a user.",
+        )
+
+    user_role = session.get(Role, new_user.roleId)
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role ID provided.",
         )
 
     logger.info("Creating new user: %s", new_user.username)
