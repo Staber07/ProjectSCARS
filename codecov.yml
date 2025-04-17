@@ -10,9 +10,6 @@ comment:
 flag_management:
   default_rules:
     carryforward: true
-    statuses:
-      - type: patch
-        target: 90%
 
   individual_flags:
     - name: central-server
