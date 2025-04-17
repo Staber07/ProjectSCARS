@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
     authenticate_user,
@@ -109,3 +109,28 @@ async def request_access_token(
         ),
         token_type="bearer",
     )
+
+
+@router.get("/roles", response_model=list[Role])
+async def get_all_roles(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> list[Role]:
+    """Get all roles in the database.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+
+    Returns:
+        A list of all roles in the database.
+    """
+
+    if not await verify_user_permission("roles:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view all roles.",
+        )
+
+    # NOTE: Should we include the permissions of each role in the response?
+    return [role for role in session.exec(select(Role)).all()]
