@@ -1,5 +1,6 @@
 import uuid
 
+from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -55,7 +56,7 @@ class User(SQLModel, table=True):
     )
 
     username: str = Field(unique=True, description="The username of the user.")
-    email: str | None = Field(
+    email: EmailStr | None = Field(
         default=None, unique=True, description="The email address of the user."
     )
     nameFirst: str | None = Field(
@@ -100,7 +101,7 @@ class UserPublic(SQLModel):
 
     id: str
     username: str
-    email: str | None
+    email: EmailStr | None
     nameFirst: str | None
     nameMiddle: str | None
     nameLast: str | None
