@@ -258,7 +258,7 @@ def test_self_profile_logged_out():
     assert response.json()["detail"] == "Not authenticated"
 
 
-def test_self_profile_update():
+def test_self_profile_update_name():
     login = _request_access_token("testuser3", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
@@ -272,6 +272,7 @@ def test_self_profile_update():
         json={
             "id": resp_data["id"],
             "nameFirst": "John",
+            "nameMiddle": "M.",
             "nameLast": "Doe",
         },
         headers=headers,
@@ -281,7 +282,120 @@ def test_self_profile_update():
     assert type(resp_data["id"]) is str
     assert resp_data["username"] == "testuser3"
     assert resp_data["nameFirst"] == "John"
+    assert resp_data["nameMiddle"] == "M."
     assert resp_data["nameLast"] == "Doe"
+
+
+def test_self_profile_update_username_unchanged():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "username": "testuser3",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["username"] == "testuser3"
+    assert resp_data["nameFirst"] == "John"
+    assert resp_data["nameMiddle"] == "M."
+    assert resp_data["nameLast"] == "Doe"
+
+
+def test_self_profile_update_username_taken():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "username": "testuser1",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 409
+    assert response.json()["detail"] == "Username already exists"
+
+
+def test_self_profile_update_username_invalid():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "username": "never gonna give you up",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid username"
+
+
+def test_self_profile_update_email_valid():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "email": "testuser3@example.com",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["email"] == "testuser3@example.com"
+
+
+def test_self_profile_update_email_invalid():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "email": "invalid_email",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 422
+    # TODO: More checks
 
 
 def test_self_profile_update_invalid_id():
