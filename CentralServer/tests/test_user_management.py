@@ -502,3 +502,76 @@ def test_view_all_roles_no_permission():
     )
     assert response.status_code == 403
     assert response.json()["detail"] == "You do not have permission to view all roles."
+
+
+def test_update_user_role_no_permission():
+    login = _request_access_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_access_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+    response = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info["id"], "roleId": 1},
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You do not have permission to update users' roles."
+    )
+
+
+def test_update_user_role_invalid_user():
+    login = _request_access_token("testuser2", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": "blah", "roleId": 1},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "User not found."
+
+
+def test_update_user_role_invalid_role():
+    login = _request_access_token("testuser2", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_access_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+    response = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info["id"], "roleId": 0},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid role ID provided."
+
+
+def test_update_user_role():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_access_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+    response = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info["id"], "roleId": 1},
+        headers=headers,
+    )
+    print(response.json())
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["username"] == "testuser3"
+    assert resp_data["roleId"] == 1
