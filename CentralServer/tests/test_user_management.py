@@ -177,3 +177,154 @@ def test_create_user_invalid_data_types():
     )
     assert response.status_code == 422
     assert "username" in response.json()["detail"][0]["loc"]
+
+
+def test_create_user_invalid_role_id():
+    """Test creating a user with invalid role ID."""
+
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.post(
+        "/api/v1/auth/create",
+        json={
+            "username": "John",
+            "roleId": 0,
+            "password": "Password123",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid role ID provided."
+
+
+def test_update_user():
+    # TODO: WIP
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.patch(
+        "/api/v1/users/update",
+        json={
+            "id": "TODO",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 501
+
+
+def test_update_user_no_permission():
+    # TODO: WIP
+    login = _request_access_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.patch(
+        "/api/v1/users/update",
+        json={
+            "id": "TODO",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You do not have permission to update user profiles. Use `/me/update` to update your own profile."
+    )
+
+
+def test_self_profile_logged_in():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["username"] == Database.default_user
+    assert resp_data["email"] is None
+    assert resp_data["nameFirst"] is None
+    assert resp_data["nameMiddle"] is None
+    assert resp_data["nameLast"] is None
+    assert resp_data["avatarUrn"] is None
+    assert resp_data["schoolId"] is None
+    assert resp_data["roleId"] == 1
+    assert resp_data["deactivated"] is False
+
+
+def test_self_profile_logged_out():
+    response = client.get(
+        "/api/v1/users/me",
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+def test_self_profile_update():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": resp_data["id"],
+            "nameFirst": "John",
+            "nameLast": "Doe",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["username"] == "testuser3"
+    assert resp_data["nameFirst"] == "John"
+    assert resp_data["nameLast"] == "Doe"
+
+
+def test_self_profile_update_invalid_id():
+    login = _request_access_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={
+            "id": "INVALID",
+            "nameFirst": "John",
+            "nameLast": "Doe",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You can only update your own profile. Use `/users/update` if you want to update another user's profile."
+    )
+
+
+def test_view_all_roles():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get(
+        "/api/v1/auth/roles",
+        headers=headers,
+    )
+    assert response.status_code == 200
+    roles: list[dict[str, str | int]] = response.json()
+    assert type(roles) is list
+    for role in roles:
+        assert type(role["id"]) is int
+        assert type(role["description"]) is str
+        assert len(role["description"]) > 0
+
+
+def test_view_all_roles_no_permission():
+    login = _request_access_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get(
+        "/api/v1/auth/roles",
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"] == "You do not have permission to view all roles."
