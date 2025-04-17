@@ -18,25 +18,6 @@ crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
 
 
-def hash_secret(secret: str | bytes, salt: str | None = None) -> str:
-    """Hash the plaintext password using Argon2id algorithm.
-
-    Args:
-        password: The password to hash.
-        salt: The salt to use for hashing.
-
-    Returns:
-        The hashed password in its encoded form.
-    """
-
-    if salt:
-        logger.debug("Hashing using Argon2id with salt.")
-        return crypt_ctx.hash(secret, salt=salt)
-
-    logger.debug("Hashing using Argon2id without salt.")
-    return crypt_ctx.hash(secret)
-
-
 def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
     """Get a user from the database.
 
