@@ -103,7 +103,7 @@ class User(SQLModel, table=True):
         default=None,
         description="The last time the user logged in.",
     )
-    LastLoggedInIp: str | None = Field(
+    lastLoggedInIp: str | None = Field(
         default=None,
         description="The last IP address the user logged in from.",
     )
@@ -131,7 +131,7 @@ class UserPublic(SQLModel):
     dateCreated: datetime.datetime
     lastModified: datetime.datetime
     lastLoggedInTime: datetime.datetime | None
-    LastLoggedInIp: str | None
+    lastLoggedInIp: str | None
 
 
 class UserUpdate(SQLModel):

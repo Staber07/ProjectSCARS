@@ -106,7 +106,7 @@ async def request_access_token(
         )
 
     user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    user.LastLoggedInIp = request.client.host if request.client else None
+    user.lastLoggedInIp = request.client.host if request.client else None
     session.commit()
     session.refresh(user)
 
