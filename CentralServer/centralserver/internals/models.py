@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from pydantic import EmailStr
@@ -66,7 +67,7 @@ class User(SQLModel, table=True):
         default=None, description="The middle name of the user."
     )
     nameLast: str | None = Field(default=None, description="The last name of the user.")
-    avatarUrl: str | None = Field(
+    avatarUrn: str | None = Field(
         default=None,
         description="A link to the user's avatar within the file storage server.",
     )
@@ -85,9 +86,26 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user account is deactivated.",
     )
-    force_update_info: bool = Field(
+    forceUpdateInfo: bool = Field(
         default=False,
         description="Whether the user is required to update their information.",
+    )
+
+    dateCreated: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+        description="The timestamp when the record was created.",
+    )
+    lastModified: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+        description="The last time the user information was modified.",
+    )
+    lastLoggedInTime: datetime.datetime | None = Field(
+        default=None,
+        description="The last time the user logged in.",
+    )
+    LastLoggedInIp: str | None = Field(
+        default=None,
+        description="The last IP address the user logged in from.",
     )
 
     school: School | None = Relationship(
@@ -105,23 +123,28 @@ class UserPublic(SQLModel):
     nameFirst: str | None
     nameMiddle: str | None
     nameLast: str | None
-    avatarUrl: str | None
+    avatarUrn: str | None
     schoolId: int | None
     roleId: int
     deactivated: bool
-    force_update_info: bool
+    forceUpdateInfo: bool
+    dateCreated: datetime.datetime
+    lastModified: datetime.datetime
+    lastLoggedInTime: datetime.datetime | None
+    LastLoggedInIp: str | None
 
 
 class UserUpdate(SQLModel):
     """A model used when updating user information."""
 
-    id: str
-    username: str
-    email: str | None
-    nameFirst: str
-    nameMiddle: str | None
-    nameLast: str
-    avatarUrl: str | None
+    id: str  # The ID of the user to be updated.
+    username: str | None = None
+    email: EmailStr | None = None
+    nameFirst: str | None = None
+    nameMiddle: str | None = None
+    nameLast: str | None = None
+    avatarUrn: str | None = None
+    password: str | None = None
 
 
 class NewUserRequest(SQLModel):

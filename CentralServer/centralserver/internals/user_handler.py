@@ -1,4 +1,7 @@
+import datetime
+
 from fastapi import HTTPException, status
+from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import crypt_ctx
@@ -111,37 +114,88 @@ def create_user(
     return user
 
 
-def update_user_info(
-    acquired_user: User, updated_user: User, session: Session
-) -> UserPublic:
+def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
     """Update the user's information in the database.
 
     Args:
-        updated_user: The updated user information.
+        target_user: The user to update with new info.
         session: The database session to use.
     """
 
-    if session.exec(select(User).where(User.username == updated_user.username)).first():
-        logger.warning(
-            "Failed to create user: %s (username already exists)", updated_user.username
-        )
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already exists",
-        )
+    selected_user = session.get(User, target_user.id)
 
-    if not validate_username(updated_user.username):
-        logger.warning(
-            "Failed to create user: %s (invalid username)", updated_user.username
-        )
+    if not selected_user:  # Check if user exists
+        logger.warning("Failed to update user: %s (user not found)", target_user.id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid username",
+            detail="User not found",
         )
 
-    acquired_user.sqlmodel_update(updated_user)
-    session.commit()
-    session.refresh(acquired_user)
+    if target_user.username:  # Update username if provided
+        # Check username availability
+        if target_user.username != selected_user.username:
+            try:
+                _ = session.exec(
+                    select(User).where(User.username == target_user.username)
+                ).one()
+                logger.warning(
+                    "Failed to update user: %s (username already exists)",
+                    target_user.id,
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Username already exists",
+                )
 
-    logger.info("User info for `%s` updated.", updated_user.username)
-    return UserPublic.model_validate(acquired_user)
+            except NoResultFound:
+                logger.debug("Username %s is available.", target_user.username)
+
+        # Check username validity
+        if not validate_username(target_user.username):
+            logger.warning(
+                "Failed to update user: %s (invalid username)", target_user.username
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid username",
+            )
+
+        # Set new username
+        selected_user.username = target_user.username
+
+    if target_user.email:  # Update email if provided
+        selected_user.email = target_user.email
+
+    if target_user.nameFirst:  # Update first name if provided
+        selected_user.nameFirst = target_user.nameFirst
+
+    if target_user.nameMiddle:  # Update middle name if provided
+        selected_user.nameMiddle = target_user.nameMiddle
+
+    if target_user.nameLast:  # Update last name if provided
+        selected_user.nameLast = target_user.nameLast
+
+    # TODO: Validate this when object store is implemented
+    if target_user.avatarUrn:  # Update avatar if provided
+        selected_user.avatarUrn = target_user.avatarUrn
+
+    if target_user.password:  # Update password if provided
+        if not validate_password(target_user.password):  # Validate password
+            logger.warning(
+                "Failed to update user: %s (invalid password format)",
+                target_user.username,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid password format",
+            )
+
+        # Set new password
+        selected_user.password = crypt_ctx.hash(target_user.password)
+
+    selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
+
+    session.commit()
+    session.refresh(selected_user)
+    logger.info("User info for `%s` updated.", selected_user.username)
+    return UserPublic.model_validate(selected_user)

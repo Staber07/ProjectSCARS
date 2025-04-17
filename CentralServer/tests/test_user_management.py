@@ -95,7 +95,7 @@ def test_create_user_success():
         assert resp_data["nameFirst"] is None
         assert resp_data["nameMiddle"] is None
         assert resp_data["nameLast"] is None
-        assert resp_data["avatarUrl"] is None
+        assert resp_data["avatarUrn"] is None
         assert resp_data["schoolId"] is None
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False

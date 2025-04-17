@@ -1,7 +1,8 @@
+import datetime
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
@@ -76,12 +77,14 @@ async def create_new_user(
 async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
+    request: Request,
 ) -> JWTToken:
     """Get an access token for a user.
 
     Args:
         data: The data from the OAuth2 password request form.
         session: The database session.
+        request: The HTTP request object.
 
     Returns:
         A JWT token object containing the access token and token type.
@@ -101,6 +104,11 @@ async def request_access_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
         )
+
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.LastLoggedInIp = request.client.host if request.client else None
+    session.commit()
+    session.refresh(user)
 
     return JWTToken(
         access_token=create_access_token(
