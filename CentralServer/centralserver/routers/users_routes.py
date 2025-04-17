@@ -46,6 +46,28 @@ async def get_all_users(
     ]
 
 
+@router.get("/get/{user}", response_model=UserPublic)
+async def get_user(
+    userId: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> UserPublic:
+    if not await verify_user_permission("users:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view users.",
+        )
+
+    logger.debug("user %s fetching all user info", token.id)
+    selected_user = session.get(User, userId)
+    if not selected_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found.",
+        )
+    return UserPublic.model_validate(selected_user)
+
+
 @router.patch("/update")
 async def update_user(
     updated_user_info: UserUpdate,
@@ -97,16 +119,16 @@ async def update_user_school(
 
 @router.patch("/update/role")
 async def update_user_role(
-    user_id: str,
-    role_id: int,
+    userId: str,
+    roleId: int,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Update a user's role.
 
     Args:
-        user_id: The ID of the user to update.
-        role_id: The ID of the new role to assign.
+        userId: The ID of the user to update.
+        roleId: The ID of the new role to assign.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -123,8 +145,8 @@ async def update_user_role(
             detail="You do not have permission to update users' roles.",
         )
 
-    user_role = session.get(Role, role_id)
-    selected_user = session.get(User, user_id)
+    user_role = session.get(Role, roleId)
+    selected_user = session.get(User, userId)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -136,7 +158,7 @@ async def update_user_role(
             detail="Invalid role ID provided.",
         )
 
-    selected_user.roleId = role_id
+    selected_user.roleId = roleId
     session.commit()
     session.refresh(selected_user)
     return UserPublic.model_validate(selected_user)
