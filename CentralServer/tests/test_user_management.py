@@ -198,17 +198,35 @@ def test_create_user_invalid_role_id():
 
 
 def test_update_user():
-    # TODO: WIP
     login = _request_access_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_access_token("testuser2", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    testuser_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    )
     response = client.patch(
         "/api/v1/users/update",
         json={
-            "id": "TODO",
+            "id": testuser_info.json()["id"],
+            "username": "testuser2_new",
         },
         headers=headers,
     )
-    assert response.status_code == 501
+    assert response.status_code == 200
+    assert response.json()["username"] == "testuser2_new"
+    # Revert the change
+    response = client.patch(
+        "/api/v1/users/update",
+        json={
+            "id": testuser_info.json()["id"],
+            "username": "testuser2",
+        },
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["username"] == "testuser2"
 
 
 def test_update_user_no_permission():
