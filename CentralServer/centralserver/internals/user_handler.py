@@ -4,8 +4,8 @@ from sqlmodel import Session, select
 from centralserver.internals.auth_handler import crypt_ctx
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
+    NewUserRequest,
     User,
-    UserLoginRequest,
     UserPublic,
     UserUpdate,
 )
@@ -54,7 +54,7 @@ def validate_password(password: str) -> bool:
 
 
 def create_user(
-    new_user: UserLoginRequest,
+    new_user: NewUserRequest,
     session: Session,
 ) -> User:
     """Create a new user in the database.

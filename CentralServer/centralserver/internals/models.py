@@ -123,8 +123,8 @@ class UserUpdate(SQLModel):
     avatarUrl: str | None
 
 
-class UserLoginRequest(SQLModel):
-    """A model for requesting user logins."""
+class NewUserRequest(SQLModel):
+    """A model used for creating new user accounts."""
 
     username: str
     roleId: int
