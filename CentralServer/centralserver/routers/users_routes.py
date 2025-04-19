@@ -186,14 +186,14 @@ async def update_user_role_endpoint(
 
 @router.patch("/update/deactivate")
 async def deactivate_user_endpoint(
-    user_id: str,
+    userId: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Deactivate a user.
 
     Args:
-        user_id: The ID of the user to deactivate.
+        userId: The ID of the user to deactivate.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -210,7 +210,7 @@ async def deactivate_user_endpoint(
             detail="You do not have permission to deactivate users.",
         )
 
-    selected_user = session.get(User, user_id)
+    selected_user = session.get(User, userId)
 
     if not selected_user:
         raise HTTPException(
@@ -237,14 +237,14 @@ async def deactivate_user_endpoint(
 
 @router.patch("/update/reactivate")
 async def reactivate_user_endpoint(
-    user_id: str,
+    userId: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Reactivate a user.
 
     Args:
-        user_id: The ID of the user to reactivate.
+        userId: The ID of the user to reactivate.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -261,7 +261,7 @@ async def reactivate_user_endpoint(
             detail="You do not have permission to reactivate users.",
         )
 
-    selected_user = session.get(User, user_id)
+    selected_user = session.get(User, userId)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -276,14 +276,14 @@ async def reactivate_user_endpoint(
 
 @router.patch("/update/force")
 async def force_update_user_endpoint(
-    user_id: str,
+    userId: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Force a user to update their profile information on login.
 
     Args:
-        user_id: The ID of the user to force update.
+        userId: The ID of the user to force update.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -300,7 +300,7 @@ async def force_update_user_endpoint(
             detail="You do not have permission to update user profiles.",
         )
 
-    selected_user = session.get(User, user_id)
+    selected_user = session.get(User, userId)
 
     if not selected_user:
         raise HTTPException(
