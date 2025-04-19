@@ -58,4 +58,5 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           directory: CentralServer/
+          flags: central-server
           fail_ci_if_error: true
