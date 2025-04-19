@@ -48,7 +48,7 @@ async def get_all_users_endpoint(
     ]
 
 
-@router.get("/get/{user}", response_model=UserPublic)
+@router.get("/get/{userId}", response_model=UserPublic)
 async def get_user_endpoint(
     userId: str,
     token: logged_in_dep,
