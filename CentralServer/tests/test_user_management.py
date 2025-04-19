@@ -141,6 +141,20 @@ def test_view_user_fail():
         assert response2.status_code == 403
 
 
+def test_view_user_not_found():
+    """Test viewing a user's info successfully."""
+
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/get", headers=headers)
+    assert response.status_code == 200
+    response2 = client.get(
+        "/api/v1/users/get/non-existent-user-id",
+        headers=headers,
+    )
+    assert response2.status_code == 400
+
+
 def test_create_user_missing_required_field():
     """Test creating a user with a missing required field."""
 
@@ -602,9 +616,60 @@ def test_update_user_role():
         params={"userId": user_info["id"], "roleId": 1},
         headers=headers,
     )
-    print(response.json())
     assert response.status_code == 200
     resp_data: dict[str, Any] = response.json()
     assert type(resp_data["id"]) is str
     assert resp_data["username"] == "testuser3"
     assert resp_data["roleId"] == 1
+
+
+def test_update_user_role_last_superintendent():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    # Remove another superintendent
+    login2 = _request_access_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+    response = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info["id"], "roleId": 3},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["id"]) is str
+    assert resp_data["username"] == "testuser3"
+    assert resp_data["roleId"] == 3
+
+    # Remove non-last superintendent
+    login3 = _request_access_token("testuser1", "Password123")
+    headers3 = {"Authorization": f"Bearer {login3.json()['access_token']}"}
+    user_info2 = client.get(
+        "/api/v1/users/me",
+        headers=headers3,
+    ).json()
+    response2 = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info2["id"], "roleId": 4},
+        headers=headers,
+    )
+    assert response2.status_code == 200
+    resp_data2: dict[str, Any] = response2.json()
+    assert type(resp_data2["id"]) is str
+    assert resp_data2["username"] == "testuser1"
+    assert resp_data2["roleId"] == 4
+
+    user_info3 = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    ).json()
+    response3 = client.patch(
+        "/api/v1/users/update/role",
+        params={"userId": user_info3["id"], "roleId": 4},
+        headers=headers,
+    )
+    assert response3.status_code == 400
