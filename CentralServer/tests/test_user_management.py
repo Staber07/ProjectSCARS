@@ -230,13 +230,12 @@ def test_update_user():
 
 
 def test_update_user_no_permission():
-    # TODO: WIP
     login = _request_access_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/update",
         json={
-            "id": "TODO",
+            "id": "somethingsomething",
         },
         headers=headers,
     )
