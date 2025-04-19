@@ -44,3 +44,9 @@ jobs:
 
       - name: Build with Next.js
         run: npm run build
+        env:
+          # Used to upload bundle to Codecov for bundle analysis
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run Tests
+        run: npm test
