@@ -9,19 +9,34 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@mantine/charts": "^7.17.4",
+    "@mantine/core": "^7.17.4",
+    "@mantine/dates": "^7.17.4",
+    "@mantine/dropzone": "^7.17.4",
+    "@mantine/form": "^7.17.4",
+    "@mantine/hooks": "^7.17.4",
+    "@mantine/notifications": "^7.17.4",
+    "@mantine/nprogress": "^7.17.4",
+    "@mantine/tiptap": "^7.17.4",
+    "@tiptap/extension-link": "^2.11.7",
+    "@tiptap/pm": "^2.11.7",
+    "@tiptap/react": "^2.11.7",
+    "@tiptap/starter-kit": "^2.11.7",
+    "dayjs": "^1.11.13",
+    "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "next": "15.3.1"
+    "recharts": "^2.15.3"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }
