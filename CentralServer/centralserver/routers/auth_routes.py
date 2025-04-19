@@ -1,9 +1,10 @@
+import datetime
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
     authenticate_user,
@@ -17,8 +18,9 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     DecodedJWTToken,
     JWTToken,
+    NewUserRequest,
+    Role,
     User,
-    UserLoginRequest,
     UserPublic,
 )
 from centralserver.internals.user_handler import create_user
@@ -36,7 +38,7 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
 async def create_new_user(
-    new_user: UserLoginRequest,
+    new_user: NewUserRequest,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
@@ -57,6 +59,13 @@ async def create_new_user(
             detail="You do not have permission to create a user.",
         )
 
+    user_role = session.get(Role, new_user.roleId)
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role ID provided.",
+        )
+
     logger.info("Creating new user: %s", new_user.username)
     logger.debug("Created by user: %s", token.id)
     user = UserPublic.model_validate(create_user(new_user, session))
@@ -68,12 +77,14 @@ async def create_new_user(
 async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
+    request: Request,
 ) -> JWTToken:
     """Get an access token for a user.
 
     Args:
         data: The data from the OAuth2 password request form.
         session: The database session.
+        request: The HTTP request object.
 
     Returns:
         A JWT token object containing the access token and token type.
@@ -94,6 +105,11 @@ async def request_access_token(
             detail="Invalid credentials",
         )
 
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = request.client.host if request.client else None
+    session.commit()
+    session.refresh(user)
+
     return JWTToken(
         access_token=create_access_token(
             user.id,
@@ -101,3 +117,28 @@ async def request_access_token(
         ),
         token_type="bearer",
     )
+
+
+@router.get("/roles", response_model=list[Role])
+async def get_all_roles(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> list[Role]:
+    """Get all roles in the database.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+
+    Returns:
+        A list of all roles in the database.
+    """
+
+    if not await verify_user_permission("roles:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view all roles.",
+        )
+
+    # NOTE: Should we include the permissions of each role in the response?
+    return [role for role in session.exec(select(Role)).all()]

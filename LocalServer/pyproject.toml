@@ -24,6 +24,6 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cache-clear --color=yes --code-highlight=yes --cov=localserver --cov-branch --cov-report=xml -vvv"
+addopts = "--cache-clear --color=yes --code-highlight=yes --cov=localserver --cov-branch --cov-report=term --cov-report=xml -vvv"
 testpaths = ["tests"]
 env_files = [".pytest.env"]
