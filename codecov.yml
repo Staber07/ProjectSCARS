@@ -14,12 +14,12 @@ flag_management:
   individual_flags:
     - name: central-server
       paths:
-        - CentralServer/
+        - "CentralServer/**"
 
     - name: local-server
       paths:
-        - LocalServer/
+        - "LocalServer/**"
 
     - name: web-client
       paths:
-        - WebClient/
+        - "WebClient/**"
