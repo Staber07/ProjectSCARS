@@ -18,25 +18,6 @@ crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
 
 
-def hash_secret(secret: str | bytes, salt: str | None = None) -> str:
-    """Hash the plaintext password using Argon2id algorithm.
-
-    Args:
-        password: The password to hash.
-        salt: The salt to use for hashing.
-
-    Returns:
-        The hashed password in its encoded form.
-    """
-
-    if salt:
-        logger.debug("Hashing using Argon2id with salt.")
-        return crypt_ctx.hash(secret, salt=salt)
-
-    logger.debug("Hashing using Argon2id without salt.")
-    return crypt_ctx.hash(secret)
-
-
 def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
     """Get a user from the database.
 
@@ -56,7 +37,21 @@ def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
     )
 
 
-def get_role(user_id: str, session: Session, by_id: bool = True) -> Role | None:
+def get_role(role_id: int, session: Session) -> Role | None:
+    """Get a role by ID.
+
+    Args:
+        role_id: The ID of the role.
+        session: The database session to use.
+
+    Returns:
+        The Role object.
+    """
+
+    return session.get(Role, role_id)
+
+
+def get_user_role(user_id: str, session: Session, by_id: bool = True) -> Role | None:
     """Get the role of a user.
 
     Args:
@@ -242,7 +237,7 @@ async def verify_user_permission(
         Returns True if the user has the required permissions, False otherwise.
     """
 
-    user_role = get_role(token.id, session)
+    user_role = get_user_role(token.id, session)
     if user_role is None:
         logger.warning("User role not found for user ID: %s", token.id)
         raise HTTPException(

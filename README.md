@@ -100,7 +100,7 @@ to use the SQLite database.
 7. Run the FastAPI development server.
 
    ```bash
-   uv run fastapi dev centralserver
+   uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
    ```
 
 > [!IMPORTANT]
@@ -208,3 +208,32 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
 > [!IMPORTANT]
 > Look at the _central server_ and _local server_ documentation for the default
 > credentials.
+
+---
+
+## Authors
+
+<div align="center">
+    <table>
+        <tbody>
+            <tr>
+                <td><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></td>
+                <td><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></td>
+                <td><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></td>
+                <td><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></td>
+            </tr>
+            <tr>
+                <td><p><b><a href="https://github.com/Kirito090504">Kirito090504</a></b></p></td>
+                <td><p><b><a href="https://github.com/Staber07">Staber07</a></b></p></td>
+                <td><p><b><a href="https://github.com/arabelaramos">arabelaramos</a></b></p></td>
+                <td><p><b><a href="https://github.com/Chris1320">Chris1320</a></b></p></td>
+            </tr>
+            <tr>
+                <td><p>BS Computer Science</p></td>
+                <td><p>BS Information Technology</p></td>
+                <td><p>BS Computer Science</p></td>
+                <td><p>BS Computer Science</p></td>
+            </tr>
+        </tbody>
+    </table>
+</div>

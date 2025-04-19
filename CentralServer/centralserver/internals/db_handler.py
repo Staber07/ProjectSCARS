@@ -6,7 +6,7 @@ from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import Role, User, UserLoginRequest
+from centralserver.internals.models import NewUserRequest, Role, User
 from centralserver.internals.user_handler import create_user
 
 logger = LoggerFactory().get_logger(__name__)
@@ -43,8 +43,17 @@ def populate_db() -> bool:
     with next(get_db_session()) as session:
         if not session.exec(select(Role)).all():
             logger.warning("Creating default roles")
-            logger.debug("Roles: %s", permissions.ROLES)
-            session.add_all(permissions.ROLES)
+            logger.debug("Roles: %s", permissions.DEFAULT_ROLES)
+            session.add_all(
+                [
+                    Role(
+                        id=role.id,
+                        description=role.description,
+                        modifiable=role.modifiable,
+                    )
+                    for role in permissions.DEFAULT_ROLES
+                ]
+            )
             session.commit()
             populated = True
 
@@ -53,7 +62,7 @@ def populate_db() -> bool:
         if not session.exec(select(User)).first():
             logger.warning("Creating default user")
             create_user(
-                UserLoginRequest(
+                NewUserRequest(
                     username=info.Database.default_user,
                     roleId=1,
                     password=info.Database.default_password,
