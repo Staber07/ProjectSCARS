@@ -756,3 +756,101 @@ def test_deactivate_user_last_superintendent():
     assert response.status_code == 400
     assert response.json()["detail"] == "Cannot deactivate the last admin user."
     assert len(deactivated_users) == 0
+
+
+def test_reactivate_user_no_permission():
+    login = _request_access_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = client.patch(
+        "/api/v1/users/update/reactivate",
+        params={"userId": "non-existent-user-id"},  # We don't need a real user ID here
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"] == "You do not have permission to reactivate users."
+    )
+
+
+def test_reactivate_user_not_found():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = client.patch(
+        "/api/v1/users/update/reactivate",
+        params={"userId": "non-existent-user-id"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "User not found."
+
+
+def test_reactivate_user_success():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    login2 = _request_access_token("testuser1", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.patch(
+        "/api/v1/users/update/reactivate",
+        params={"userId": user_info["id"]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+
+
+def test_force_update_user_info_no_permission():
+    login = _request_access_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = client.patch(
+        "/api/v1/users/update/force",
+        params={"userId": "non-existent-user-id"},  # We don't need a real user ID here
+        headers=headers,
+    )
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You do not have permission to update user profiles."
+    )
+
+
+def test_force_update_user_info_not_found():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    response = client.patch(
+        "/api/v1/users/update/reactivate",
+        params={"userId": "non-existent-user-id"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "User not found."
+
+
+def test_force_update_user_info_success():
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+    login2 = _request_access_token("testuser1", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.patch(
+        "/api/v1/users/update/force",
+        params={"userId": user_info["id"]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert resp_data["username"] == "testuser1"
+    assert resp_data["forceUpdateInfo"] is True
