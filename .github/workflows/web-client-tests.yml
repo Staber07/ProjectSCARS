@@ -44,3 +44,18 @@ jobs:
 
       - name: Build with Next.js
         run: npm run build
+        env:
+          # Used to upload bundle to Codecov for bundle analysis
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run Tests
+        run: npm run test:ci
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          directory: WebClient/
+          flags: web-client
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
