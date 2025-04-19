@@ -171,7 +171,7 @@ async def update_user_role_endpoint(
         superintendent_quantity = len(
             session.exec(select(User).where(User.roleId == 1)).all()
         )
-        if superintendent_quantity == DEFAULT_ROLES[0].id:
+        if superintendent_quantity == 1:  # Ensure at least one superintendent user remains
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot change the role of the last admin user.",
