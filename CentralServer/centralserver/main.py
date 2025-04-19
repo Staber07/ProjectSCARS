@@ -37,6 +37,18 @@ app.add_middleware(
 )
 
 
+@app.exception_handler(status.HTTP_400_BAD_REQUEST)
+async def bad_request_error(request: Request, exc: HTTPException):
+    """Return a 400 error response."""
+
+    logger.warning("Bad Request: %s", exc)
+    logger.debug("Request URL: %s", request.url)
+    logger.debug("Request Headers: %s", request.headers)
+    logger.debug("Request Cookies: %s", request.cookies)
+
+    return await http_exception_handler(request, exc)
+
+
 @app.exception_handler(status.HTTP_401_UNAUTHORIZED)
 async def unauthorized_error(request: Request, exc: HTTPException):
     """Return a 401 error response."""

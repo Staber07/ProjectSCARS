@@ -1,12 +1,12 @@
 from typing import Final
 
-from centralserver.internals.models import Role
+from centralserver.internals.models import DefaultRole
 
-ROLES: Final[tuple[Role, ...]] = (
-    Role(id=1, description="Superintendent"),
-    Role(id=2, description="Administrator"),
-    Role(id=3, description="Principal"),
-    Role(id=4, description="Canteen Manager"),
+DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
+    DefaultRole(id=1, description="Superintendent", modifiable=False),
+    DefaultRole(id=2, description="Administrator", modifiable=False),
+    DefaultRole(id=3, description="Principal", modifiable=False),
+    DefaultRole(id=4, description="Canteen Manager", modifiable=False),
 )
 
 PERMISSIONS: Final[dict[str, str]] = {

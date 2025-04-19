@@ -1,8 +1,16 @@
 import datetime
 import uuid
+from dataclasses import dataclass
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
+
+
+@dataclass(frozen=True)
+class DefaultRole:
+    id: int
+    description: str
+    modifiable: bool
 
 
 class JWTToken(SQLModel):
@@ -39,6 +47,10 @@ class Role(SQLModel, table=True):
     description: str = Field(
         unique=True,
         description="Canteen Manager, Principal, Administrator, or Superintendent",
+    )
+    modifiable: bool = Field(
+        default=False,
+        description="Whether the role's characteristics can be modified.",
     )
 
     users: list["User"] = Relationship(back_populates="role")

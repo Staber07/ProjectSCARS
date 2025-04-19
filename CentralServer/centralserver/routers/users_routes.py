@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
+    get_role,
+    get_user,
     verify_access_token,
     verify_user_permission,
 )
@@ -11,11 +13,11 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     DecodedJWTToken,
-    Role,
     User,
     UserPublic,
     UserUpdate,
 )
+from centralserver.internals.permissions import DEFAULT_ROLES
 from centralserver.internals.user_handler import update_user_info
 
 logger = LoggerFactory().get_logger(__name__)
@@ -30,7 +32,7 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
 @router.get("/get", status_code=status.HTTP_200_OK, response_model=list[UserPublic])
-async def get_all_users(
+async def get_all_users_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> list[UserPublic]:
@@ -47,7 +49,7 @@ async def get_all_users(
 
 
 @router.get("/get/{user}", response_model=UserPublic)
-async def get_user(
+async def get_user_endpoint(
     userId: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -69,7 +71,7 @@ async def get_user(
 
 
 @router.patch("/update")
-async def update_user(
+async def update_user_endpoint(
     updated_user_info: UserUpdate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -94,7 +96,7 @@ async def update_user(
 
 
 @router.patch("/update/school")
-async def update_user_school(
+async def update_user_school_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ):
@@ -118,7 +120,7 @@ async def update_user_school(
 
 
 @router.patch("/update/role")
-async def update_user_role(
+async def update_user_role_endpoint(
     userId: str,
     roleId: int,
     token: logged_in_dep,
@@ -139,14 +141,15 @@ async def update_user_role(
         HTTPException: Raised when the user does not have permission to update users' roles.
     """
 
+    logger.debug("User %s is updating user role of %s...", token.id, userId)
     if not await verify_user_permission("users:global:modify", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to update users' roles.",
         )
 
-    user_role = session.get(Role, roleId)
-    selected_user = session.get(User, userId)
+    selected_user = get_user(userId, session=session, by_id=True)
+    user_role = get_role(roleId, session)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -158,6 +161,23 @@ async def update_user_role(
             detail="Invalid role ID provided.",
         )
 
+    if selected_user.roleId == DEFAULT_ROLES[0].id:
+        logger.warning(
+            "%s is trying to change the role of another superintendent user (%s)",
+            token.id,
+            selected_user.id,
+        )
+        # Make sure that there is at least one superintedent user in the database
+        superintendent_quantity = len(
+            session.exec(select(User).where(User.roleId == 1)).all()
+        )
+        if superintendent_quantity == DEFAULT_ROLES[0].id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot change the role of the last admin user.",
+            )
+
+    logger.debug("Setting user %s role to %s", selected_user.id, user_role.id)
     selected_user.roleId = roleId
     session.commit()
     session.refresh(selected_user)
@@ -165,7 +185,7 @@ async def update_user_role(
 
 
 @router.patch("/update/deactivate")
-async def deactivate_user(
+async def deactivate_user_endpoint(
     user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -198,6 +218,17 @@ async def deactivate_user(
             detail="User not found.",
         )
 
+    if selected_user.roleId == DEFAULT_ROLES[0].id:
+        # Make sure that there is at least one superintedent user in the database
+        if (
+            len(session.exec(select(User).where(User.roleId == 1)).all())
+            == DEFAULT_ROLES[0].id
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot deactivate the last admin user.",
+            )
+
     selected_user.deactivated = True
     session.commit()
     session.refresh(selected_user)
@@ -205,7 +236,7 @@ async def deactivate_user(
 
 
 @router.patch("/update/reactivate")
-async def reactivate_user(
+async def reactivate_user_endpoint(
     user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -244,7 +275,7 @@ async def reactivate_user(
 
 
 @router.patch("/update/force")
-async def force_update_user(
+async def force_update_user_endpoint(
     user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -284,7 +315,7 @@ async def force_update_user(
 
 
 @router.get("/me")
-async def get_user_profile(
+async def get_user_profile_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
@@ -305,7 +336,7 @@ async def get_user_profile(
 
 
 @router.patch("/me/update")
-async def update_user_profile(
+async def update_user_profile_endpoint(
     updated_user_info: UserUpdate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],

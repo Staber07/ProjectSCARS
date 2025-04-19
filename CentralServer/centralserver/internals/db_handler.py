@@ -43,8 +43,17 @@ def populate_db() -> bool:
     with next(get_db_session()) as session:
         if not session.exec(select(Role)).all():
             logger.warning("Creating default roles")
-            logger.debug("Roles: %s", permissions.ROLES)
-            session.add_all(permissions.ROLES)
+            logger.debug("Roles: %s", permissions.DEFAULT_ROLES)
+            session.add_all(
+                [
+                    Role(
+                        id=role.id,
+                        description=role.description,
+                        modifiable=role.modifiable,
+                    )
+                    for role in permissions.DEFAULT_ROLES
+                ]
+            )
             session.commit()
             populated = True
 
