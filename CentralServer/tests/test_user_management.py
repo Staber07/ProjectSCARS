@@ -107,6 +107,40 @@ def test_create_user_success():
     assert response.status_code == 200
 
 
+def test_view_user_success():
+    """Test viewing a user's info successfully."""
+
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/get", headers=headers)
+    assert response.status_code == 200
+
+    for user in response.json():
+        response2 = client.get(
+            f"/api/v1/users/get/{user["id"]}",
+            headers=headers,
+        )
+        assert response2.status_code == 200
+
+
+def test_view_user_fail():
+    """Test failing to view a user's info."""
+
+    login = _request_access_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_access_token("testuser4", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    response = client.get("/api/v1/users/get", headers=headers)
+    assert response.status_code == 200
+
+    for user in response.json():
+        response2 = client.get(
+            f"/api/v1/users/get/{user["id"]}",
+            headers=headers2,
+        )
+        assert response2.status_code == 403
+
+
 def test_create_user_missing_required_field():
     """Test creating a user with a missing required field."""
 
