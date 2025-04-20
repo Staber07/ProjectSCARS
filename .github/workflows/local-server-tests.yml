@@ -10,6 +10,10 @@ on:
       - "LocalServer/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   test-local-server:
     name: Test Local Server
