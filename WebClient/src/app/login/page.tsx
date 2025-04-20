@@ -1,5 +1,5 @@
-import { AuthenticationTitle } from "@/components/AuthenticationTitle"
+import { MainLoginComponent } from "@/components/MainLoginComponent";
 
-export default function LoginPage (){
-    return <AuthenticationTitle />
+export default function LoginPage() {
+  return <MainLoginComponent />;
 }
