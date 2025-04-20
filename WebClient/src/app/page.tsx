@@ -15,16 +15,16 @@ export default function HomePage() {
 }
 
 function HomeContent() {
-  const { is_authenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!is_authenticated) {
+    if (!isAuthenticated) {
       router.push("/login"); // Redirect to the login page if not authenticated
     }
-  }, [is_authenticated, router]);
+  }, [isAuthenticated, router]);
 
-  if (!is_authenticated) {
+  if (!isAuthenticated) {
     return null; // TODO: WIP
   }
 
