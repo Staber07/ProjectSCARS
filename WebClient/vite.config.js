@@ -1,4 +1,3 @@
-// vite.config.js
 import { defineConfig } from "vite";
 import { codecovVitePlugin } from "@codecov/vite-plugin";
 import react from "@vitejs/plugin-react";
@@ -16,7 +15,7 @@ export default defineConfig({
     // Put the Codecov vite plugin after all other plugins
     codecovVitePlugin({
       enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
-      bundleName: ".next",
+      bundleName: ".next", // FIXME: not uploaded
       uploadToken: process.env.CODECOV_TOKEN,
     }),
   ],

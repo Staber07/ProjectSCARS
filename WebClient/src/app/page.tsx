@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { useAuth, AuthProvider } from "@/lib/auth";
+import { useAuth, AuthProvider } from "@/lib/providers/auth";
 
 /// Wrapper for the entire page
 // to enable the use of the AuthProvider
