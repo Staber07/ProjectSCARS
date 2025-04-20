@@ -6,7 +6,7 @@ import { useAuth, AuthProvider } from "@/lib/auth";
 
 /// Wrapper for the entire page
 // to enable the use of the AuthProvider
-export default function Home() {
+export default function HomePage() {
   return (
     <AuthProvider>
       <HomeContent />
