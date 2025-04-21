@@ -2,10 +2,12 @@ import "@testing-library/jest-dom/vitest";
 
 import { vi } from "vitest";
 
+// Mocking the ResizeObserver
 const { getComputedStyle } = window;
 window.getComputedStyle = (elt) => getComputedStyle(elt);
 window.HTMLElement.prototype.scrollIntoView = () => {};
 
+// Mocking the IntersectionObserver
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: vi.fn().mockImplementation((query) => ({

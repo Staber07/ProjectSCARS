@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext, ReactNode } from "react";
 import { LocalStorage } from "@/lib/info";
 
 interface AuthContextType {
-  is_authenticated: boolean; // Whether the user is authenticated
+  isAuthenticated: boolean; // Whether the user is authenticated
   login: (token: string) => void; // Function to log the user in
   logout: () => void; // Function to log the user out
 }
@@ -16,7 +16,7 @@ interface AuthProviderProps {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [is_authenticated, setIsAuthenticated] = useState<boolean>(() => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       console.debug("Window is undefined");
       return false;
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ is_authenticated, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
