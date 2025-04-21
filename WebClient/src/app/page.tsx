@@ -30,5 +30,5 @@ function RootContent() {
     return <LoadingComponent />;
   }
 
-  return null;
+  return <div>Welcome! You are successfully authenticated.</div>;
 }
