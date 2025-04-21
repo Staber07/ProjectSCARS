@@ -12,7 +12,7 @@ import {
   TextInput,
   Title,
 } from "@mantine/core";
-import classes from "./MainLoginComponent.module.css";
+import classes from "@/components/MainLoginComponent.module.css";
 import { Program } from "@/lib/info";
 
 export function MainLoginComponent() {
@@ -25,7 +25,7 @@ export function MainLoginComponent() {
         {Program.description}
       </Text>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <TextInput label="Username" placeholder="Username" required />
+        <TextInput label="Username" placeholder="Your username" required />
         <PasswordInput
           label="Password"
           placeholder="Your password"

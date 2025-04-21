@@ -3,20 +3,28 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-import ky from "ky";
-
-import { useAuth } from "@/lib/providers/auth";
+import { useAuth, AuthProvider } from "@/lib/providers/auth";
 import { MainLoginComponent } from "@/components/MainLoginComponent";
 
+/// Wrapper for the entire page
+// to enable the use of the AuthProvider
 export default function LoginPage() {
-  // const { isAuthenticated } = useAuth();
-  // const router = useRouter();
-  //
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     router.push("/");
-  //   }
-  // }, [isAuthenticated, router]);
+  return (
+    <AuthProvider>
+      <LoginContent />
+    </AuthProvider>
+  );
+}
+
+function LoginContent() {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/");
+    }
+  }, [isAuthenticated, router]);
 
   return <MainLoginComponent />;
 }

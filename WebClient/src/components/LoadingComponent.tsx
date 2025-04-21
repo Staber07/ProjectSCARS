@@ -1,0 +1,22 @@
+import { Loader, Stack, Text, Title } from "@mantine/core";
+
+import { Program } from "@/lib/info";
+
+import classes from "@/components/LoadingComponent.module.css";
+
+type LoadingComponentProps = {
+  message?: string;
+};
+
+/// Show a loading screen
+export const LoadingComponent: React.FC<LoadingComponentProps> = ({
+  message = "Loading...",
+}) => {
+  return (
+    <Stack align="center" justify="center" gap="xs">
+      <Title className={classes.title}>{Program.name}</Title>
+      <Text>{message}</Text>
+      <Loader color="blue" type="bars" />
+    </Stack>
+  );
+};
