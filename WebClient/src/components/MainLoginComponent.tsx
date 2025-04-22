@@ -14,6 +14,7 @@ import {
   Title,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
 
 import ky from "ky";
 
@@ -48,9 +49,17 @@ export function MainLoginComponent() {
       );
       const responseData: AccessTokenType = await centralServerResponse.json();
       auth.login(responseData["access_token"]);
+      notifications.show({
+        title: "Login successful",
+        message: "You are now logged in.",
+      });
       router.push("/");
     } catch (error) {
       console.error("Error logging in:", error);
+      notifications.show({
+        title: "Login failed",
+        message: `${error}`,
+      });
     }
   };
 
