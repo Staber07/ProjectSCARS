@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 
+import Head from "next/head";
 import {
   ColorSchemeScript,
   MantineProvider,
   mantineHtmlProps,
 } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+import "@mantine/notifications/styles.css";
 
 import { Program } from "@/lib/info";
 import { defaultColorscheme, theme } from "@/lib/theme";
@@ -23,12 +26,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" {...mantineHtmlProps}>
-      <head>
+      <Head>
         <ColorSchemeScript />
-      </head>
+      </Head>
       <body>
         <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
           {children}
+          <Notifications />
         </MantineProvider>
       </body>
     </html>
