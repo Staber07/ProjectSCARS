@@ -16,8 +16,10 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({
     <Center>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
         <Stack align="center" justify="center" gap="xs">
-          <Title className={classes.title}>{Program.name}</Title>
-          {message && <Text>{message}</Text>}
+          <Title className={classes.title} data-testid="loading-title">
+            {Program.name}
+          </Title>
+          {message && <Text data-testid="loading-message">{message}</Text>}
           <Loader color="blue" type="bars" />
         </Stack>
       </Paper>
