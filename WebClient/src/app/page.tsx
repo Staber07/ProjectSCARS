@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { useAuth, AuthProvider } from "@/lib/providers/auth";
 import { LoadingComponent } from "@/components/LoadingComponent";
+import { Text } from "@mantine/core";
 
 /// Wrapper for the entire page
 // to enable the use of the AuthProvider
@@ -30,5 +31,5 @@ function RootContent() {
     return <LoadingComponent />;
   }
 
-  return <div>Welcome! You are successfully authenticated.</div>;
+  return <Text>Welcome! You are successfully authenticated.</Text>;
 }
