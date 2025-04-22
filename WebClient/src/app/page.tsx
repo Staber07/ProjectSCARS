@@ -3,12 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { useAuth, AuthProvider } from "@/lib/providers/auth";
-import { LoadingComponent } from "@/components/LoadingComponent";
 import { Text } from "@mantine/core";
 
-/// Wrapper for the entire page
-// to enable the use of the AuthProvider
+import { useAuth, AuthProvider } from "@/lib/providers/auth";
+
+import { LoadingComponent } from "@/components/LoadingComponent";
+
+/**
+ * Wrapper for the entire page to enable the use of the AuthProvider.
+ */
 export default function RootPage() {
   return (
     <AuthProvider>
@@ -17,6 +20,12 @@ export default function RootPage() {
   );
 }
 
+/**
+ * Shows the main content of the page if the user is authenticated.
+ * Otherwise, redirect user to the login page.
+ *
+ * @returns The main content of the page.
+ */
 function RootContent() {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
@@ -27,9 +36,11 @@ function RootContent() {
     }
   }, [isAuthenticated, router]);
 
+  // if rendering the page for the first time, show loading component
   if (!isAuthenticated) {
     return <LoadingComponent />;
   }
 
+  // TODO: WIP
   return <Text>Welcome! You are successfully authenticated.</Text>;
 }
