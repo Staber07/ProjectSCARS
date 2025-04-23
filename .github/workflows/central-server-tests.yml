@@ -3,8 +3,8 @@ name: Tests - Central Server
 
 on:
   push:
-    paths:
-      - "CentralServer/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "CentralServer/**"

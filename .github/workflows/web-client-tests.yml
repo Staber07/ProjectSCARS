@@ -3,8 +3,8 @@ name: Tests - Web Client
 
 on:
   push:
-    paths:
-      - "WebClient/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "WebClient/**"

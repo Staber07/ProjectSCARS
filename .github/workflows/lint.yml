@@ -1,7 +1,12 @@
 ---
 name: Codebase Style
 
-on: ["pull_request"]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   lint-central_server:

@@ -3,8 +3,8 @@ name: Tests - Local Server
 
 on:
   push:
-    paths:
-      - "LocalServer/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "LocalServer/**"
