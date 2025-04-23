@@ -224,9 +224,6 @@ def read_config_file(
                 )
 
             case _:
-                logging.warning(
-                    f"Unsupported database type '{database_type}' provided. Falling back to default SQLite configuration."
-                )
                 final_db_config = None
 
         return AppConfig(
