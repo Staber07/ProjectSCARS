@@ -25,7 +25,7 @@ the Philippines.
 
 ## Development
 
-[![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,docker,sqlite,mysql)](#)
+[![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,mysql,docker)](#)
 
 The central server is written in Python using the FastAPI framework and
 utilizes SQLite or MySQL as its database, depending on the selected
