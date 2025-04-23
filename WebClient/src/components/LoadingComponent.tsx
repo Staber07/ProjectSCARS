@@ -8,7 +8,9 @@ type LoadingComponentProps = {
   message?: string;
 };
 
-/// Show a loading screen
+/**
+ * Show a loading screen
+ */
 export const LoadingComponent: React.FC<LoadingComponentProps> = ({
   message = null,
 }) => {

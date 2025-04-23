@@ -2,10 +2,11 @@
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { LocalStorage } from "@/lib/info";
+import { AccessTokenType } from "@/lib/types";
 
 interface AuthContextType {
   isAuthenticated: boolean; // Whether the user is authenticated
-  login: (token: string) => void; // Function to log the user in
+  login: (token: AccessTokenType) => void; // Function to log the user in
   logout: () => void; // Function to log the user out
 }
 
@@ -19,7 +20,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window === "undefined") {
       console.debug("Window is undefined");
-      return false;
+      return false; // Server-side rendering
     }
 
     console.debug("Window is defined");
@@ -28,9 +29,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   /// Log the user in
-  const login = (token: string) => {
+  const login = (token: AccessTokenType) => {
+    localStorage.setItem(LocalStorage.jwt_name, token.access_token);
+    localStorage.setItem(LocalStorage.jwt_type, token.token_type);
     setIsAuthenticated(true);
-    localStorage.setItem(LocalStorage.jwt_name, token);
   };
 
   /// Log the user out
@@ -47,8 +49,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-/// Hook to access the authentication context.
-// This hook is used to access the authentication context in a component
+/**
+ * Hook to access the authentication context.
+ * This hook is used to access the authentication context in a component
+ */
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
   if (!ctx) {

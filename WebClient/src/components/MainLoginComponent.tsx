@@ -1,8 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+
 import {
-  // Anchor,
   Button,
   Checkbox,
   Container,
@@ -16,14 +16,15 @@ import {
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 
-import ky from "ky";
-
-import classes from "@/components/MainLoginComponent.module.css";
-import { Connections, Program } from "@/lib/info";
+import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
-import { AccessTokenType } from "@/lib/types";
+import { CentralServerLogInUser } from "@/lib/api/auth";
+import classes from "@/components/MainLoginComponent.module.css";
 
-export function MainLoginComponent() {
+/**
+ * The component for the main login page.
+ */
+export function MainLoginComponent(): React.ReactElement {
   const router = useRouter();
   const auth = useAuth();
   const form = useForm({
@@ -38,17 +39,9 @@ export function MainLoginComponent() {
     rememberMe: boolean;
   }) => {
     try {
-      const loginFormData = new URLSearchParams();
-      loginFormData.set("grant_type", "password");
-      loginFormData.set("username", values.username);
-      loginFormData.set("password", values.password);
-
-      const centralServerResponse = await ky.post(
-        `${Connections.CentralServer.endpoint}/api/v1/auth/token`,
-        { body: loginFormData },
+      auth.login(
+        await CentralServerLogInUser(values.username, values.password),
       );
-      const responseData: AccessTokenType = await centralServerResponse.json();
-      auth.login(responseData["access_token"]);
       notifications.show({
         title: "Login successful",
         message: "You are now logged in.",
