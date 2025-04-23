@@ -17,14 +17,10 @@ class DatabaseAdapterConfig(ABC):
     def sqlalchemy_uri(self) -> str:
         """Get the database URI for SQLAlchemy."""
 
-        pass
-
     @property
     @abstractmethod
     def connect_args(self) -> dict[str, Any]:
         """Get the connection arguments for SQLAlchemy."""
-
-        pass
 
 
 class SQLiteDatabaseConfig(DatabaseAdapterConfig):
@@ -47,6 +43,7 @@ class SQLiteDatabaseConfig(DatabaseAdapterConfig):
         self.filepath: Path = Path(
             filepath or os.path.join(os.getcwd(), "centralserver.db")
         )
+
         self._connect_args = {**default_connect_args, **(connect_args or {})}
 
     @property
