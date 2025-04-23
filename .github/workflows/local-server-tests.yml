@@ -1,10 +1,13 @@
 ---
 name: Tests - Local Server
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   push:
-    paths:
-      - "LocalServer/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "LocalServer/**"

@@ -1,7 +1,6 @@
 {
   "debug": {
-    "enabled": true,
-    "use_test_db": true
+    "enabled": false
   },
   "logging": {
     "filepath": "./logs/centralserver-pytest.log",
@@ -12,16 +11,10 @@
     "date_format": "%d-%m-%y_%H-%M-%S"
   },
   "database": {
-    "db_type": "mysql",
-    "db_driver": "pymysql",
-    "username": "root",
-    "password": "",
-    "host": "localhost",
-    "port": 3306,
-    "database": "projectscars"
-  },
-  "test_database": {
-    "filepath": "./tests/data/pytest.db"
+    "type": "sqlite",
+    "config": {
+      "filepath": "./tests/data/test.db"
+    }
   },
   "authentication": {
     "signing_secret_key": "06c499ceaf3cca919316e85a1e050eba61d629aed5d8d2978a4381ddf8879999",
@@ -33,9 +26,10 @@
     "refresh_token_expire_minutes": 10080
   },
   "security": {
-    "allow_origins": ["http://localhost:3000"],
+    "allow_origins": ["http://localhost:8080"],
     "allow_credentials": true,
     "allow_methods": ["*"],
     "allow_headers": ["*"]
   }
 }
+
