@@ -16,6 +16,12 @@
       "filepath": "./tests/data/test.db"
     }
   },
+  "object_store": {
+    "type": "local",
+    "config": {
+      "filepath": "./data/"
+    }
+  },
   "authentication": {
     "signing_secret_key": "06c499ceaf3cca919316e85a1e050eba61d629aed5d8d2978a4381ddf8879999",
     "refresh_signing_secret_key": "e6aaa21f1b9ecdaf1ddd1c24a721d37478523547c07e81babdc70837a4ed62e3",
@@ -32,4 +38,3 @@
     "allow_headers": ["*"]
   }
 }
-
