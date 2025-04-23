@@ -1,6 +1,6 @@
 services:
   db:
-    image: docker.io/library/mysql:latest
+    image: docker.io/library/mysql:9.3.0
     restart: always
     ports:
       - 3306:3306
@@ -10,10 +10,10 @@ services:
       - .env
 
   phpmyadmin:
-    image: docker.io/library/phpmyadmin:latest
+    image: docker.io/library/phpmyadmin:5.2.2
     restart: always
     ports:
-      - 32512:80
+      - 8083:80
     environment:
       - PMA_ARBITRARY=1
       - PMA_HOST=db

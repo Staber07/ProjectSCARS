@@ -84,11 +84,11 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
 
         default_connect_args: dict[str, Any] = {}
 
-        self.username: str = username or "root"
-        self.password: str = password or ""
+        self.username: str = username or "ProjectSCARS_DatabaseAdmin"
+        self.password: str = password or "ProjectSCARS_mysql143"
         self.host: str = host or "localhost"
         self.port: int = port or 3306
-        self.database: str = database or "projectscars"
+        self.database: str = database or "ProjectSCARS_CentralServer"
         self._connect_args = {**default_connect_args, **(connect_args or {})}
 
     @property

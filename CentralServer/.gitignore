@@ -1,5 +1,9 @@
-centralserver.db
-centralserver-dev.db
+*.db
+!.config.example.json
+!.config.dev.json
+!config.pytest.json
+.config.*.json
+config.*.json
 config.json
 
 #--------------------------------------------------#
