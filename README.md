@@ -114,7 +114,8 @@ The central server supports the following databases:
 **Central Server SQLite Database**
 
 To start using SQLite, just edit `./CentralServer/config.json` and adjust the
-`database` property to use SQLite.
+`database` property to use SQLite. The `connect_args` property is optional
+and can be used to pass additional SQLAlchemy connection arguments.
 
 ```jsonc
 {
