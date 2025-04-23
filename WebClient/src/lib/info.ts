@@ -14,5 +14,6 @@ export const Connections = {
 };
 
 export const LocalStorage = {
-  jwt_name: "t",
+  jwt_name: "at",
+  jwt_type: "tt",
 };
