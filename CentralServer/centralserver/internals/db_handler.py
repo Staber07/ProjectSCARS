@@ -11,12 +11,8 @@ from centralserver.internals.user_handler import create_user
 
 logger = LoggerFactory().get_logger(__name__)
 engine = create_engine(
-    (
-        app_config.test_database.sqlalchemy_uri
-        if app_config.debug.use_test_db
-        else app_config.database.sqlalchemy_uri
-    ),
-    connect_args={"check_same_thread": False},
+    app_config.database.sqlalchemy_uri,
+    connect_args=app_config.database.connect_args,
 )
 
 
