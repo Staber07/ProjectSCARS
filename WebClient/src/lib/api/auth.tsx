@@ -25,6 +25,12 @@ export async function CentralServerLogInUser(
   const centralServerResponse = await ky.post(`${endpoint}/auth/token`, {
     body: loginFormData,
   });
+  if (!centralServerResponse.ok) {
+    throw new Error(
+      `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`,
+    );
+  }
+
   const responseData: AccessTokenType = await centralServerResponse.json();
   return {
     access_token: responseData["access_token"],
