@@ -1,23 +1,27 @@
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from centralserver import info
+from centralserver.internals.adapters.database import (
+    DatabaseAdapterConfig,
+    MySQLDatabaseConfig,
+    SQLiteDatabaseConfig,
+)
 
 
 class Debug:
     """The debugging configuration."""
 
-    def __init__(self, enabled: bool | None = None, use_test_db: bool | None = None):
+    def __init__(self, enabled: bool | None = None):
         """Create a configuration object for debugging.
 
         Args:
             enabled: If True, enable debugging mode.
-            use_test_db: If True, use the test SQLite database instead of the production database.
         """
 
         self.enabled: bool = enabled or False
-        self.use_test_db: bool = use_test_db or False
 
 
 class Logging:
@@ -53,79 +57,6 @@ class Logging:
             log_format or "%(asctime)s:%(name)s:%(levelname)s:%(message)s"
         )
         self.date_format: str = date_format or "%d-%m-%y_%H-%M-%S"
-
-
-class Database:
-    """The database configuration."""
-
-    def __init__(
-        self,
-        db_type: str | None = None,
-        db_driver: str | None = None,
-        username: str | None = None,
-        password: str | None = None,
-        host: str | None = None,
-        port: int | None = None,
-        database: str | None = None,
-    ):
-        """Create a configuration object for the database.
-
-        Args:
-            db_type: The type of the database.
-            db_driver: The drive to use.
-            username: The database username.
-            password: The database password.
-            host: The hostname of the database server.
-            port: The port number of the database server.
-            database: The database name.
-        """
-
-        self.db_type: str = db_type or "mysql"
-        self.db_driver: str = db_driver or "pymysql"
-        self.username: str = username or "root"
-        self.password: str = password or ""
-        self.host: str = host or "localhost"
-        self.port: int = port or 3306
-        self.database: str = database or "projectscars"
-
-    @property
-    def sqlalchemy_uri(self) -> str:
-        """Get the database URI for SQLAlchemy."""
-        return (
-            "{type}+{driver}://{username}:{password}@{host}:{port}/{database}".format(
-                type=self.db_type,
-                driver=self.db_driver,
-                username=self.username,
-                password=self.password,
-                host=self.host,
-                port=self.port,
-                database=self.database,
-            )
-        )
-
-
-class TestDatabase:
-    """The test database configuration."""
-
-    def __init__(
-        self,
-        filepath: str | None = None,
-    ):
-        """Create a configuration object for the test database.
-
-        Args:
-            filepath: The location of the SQLite database file.
-        """
-
-        self.filepath: str = filepath or os.path.join(
-            os.getcwd(), "tests", "data", "test.db"
-        )
-
-    @property
-    def sqlalchemy_uri(self) -> str:
-        """Get the database URI for SQLAlchemy."""
-
-        return f"sqlite:///{self.filepath}"
 
 
 class Authentication:
@@ -225,8 +156,7 @@ class AppConfig:
         self,
         debug: Debug | None = None,
         logging: Logging | None = None,
-        database: Database | None = None,
-        test_database: TestDatabase | None = None,
+        database: DatabaseAdapterConfig | None = None,
         authentication: Authentication | None = None,
         security: Security | None = None,
     ):
@@ -243,8 +173,8 @@ class AppConfig:
 
         self.debug: Debug = debug or Debug()
         self.logging: Logging = logging or Logging()
-        self.database: Database = database or Database()
-        self.test_database: TestDatabase = test_database or TestDatabase()
+        # By default, use SQLite for the database.
+        self.database: DatabaseAdapterConfig = database or SQLiteDatabaseConfig()
         self.authentication: Authentication = authentication or Authentication()
         self.security: Security = security or Security()
 
@@ -268,15 +198,37 @@ def read_config_file(
 
         debug_config = config.get("debug", {})
         logging_config = config.get("logging", {})
-        database_config = config.get("database", {})
-        test_database_config = config.get("test_database", {})
         authentication_config = config.get("authentication", {})
         security_config = config.get("security", {})
+
+        # Determine database type and create the appropriate config object
+        database: dict[str, Any] = config.get("database", {})
+        database_type: None | str = database.get("type", None)
+        database_config: dict[str, Any] = database.get("config", {})
+        final_db_config: DatabaseAdapterConfig | None = None
+        match database_type:
+            case "sqlite":
+                final_db_config = SQLiteDatabaseConfig(
+                    database_config.get("filepath", None),
+                    database_config.get("connect_args", None),
+                )
+
+            case "mysql":
+                final_db_config = MySQLDatabaseConfig(
+                    database_config.get("username", None),
+                    database_config.get("password", None),
+                    database_config.get("host", None),
+                    database_config.get("port", None),
+                    database_config.get("database", None),
+                    database_config.get("connect_args", None),
+                )
+
+            case _:
+                final_db_config = None
 
         return AppConfig(
             debug=Debug(
                 enabled=debug_config.get("enabled", None),
-                use_test_db=debug_config.get("use_test_db", None),
             ),
             logging=Logging(
                 filepath=logging_config.get("filepath", None),
@@ -286,18 +238,7 @@ def read_config_file(
                 log_format=logging_config.get("log_format", None),
                 date_format=logging_config.get("date_format", None),
             ),
-            database=Database(
-                db_type=database_config.get("db_type", None),
-                db_driver=database_config.get("db_driver", None),
-                username=database_config.get("username", None),
-                password=database_config.get("password", None),
-                host=database_config.get("host", None),
-                port=database_config.get("port", None),
-                database=database_config.get("database", None),
-            ),
-            test_database=TestDatabase(
-                filepath=test_database_config.get("filepath", None),
-            ),
+            database=final_db_config,
             authentication=Authentication(
                 signing_secret_key=authentication_config.get(
                     "signing_secret_key", None
