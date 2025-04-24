@@ -277,7 +277,7 @@ containerized environment using Docker or Podman.
      "object_store": {
        "type": "minio",
        "config": {
-         "endpoint": "http://localhost:9000",
+         "endpoint": "localhost:9000",
          "access_key": "YOUR_ACCESS_KEY",
          "secret_key": "YOUR_SECRET_KEY",
          "secure": false,
