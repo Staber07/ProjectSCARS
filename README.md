@@ -236,10 +236,9 @@ To start using the local file object store, just edit
 
 When the central server starts, it will use the provided
 filepath to store the files (objects). Make sure that the
-filepath is an existing directory and is writable by the server.
-The default is `./data/` in the root directory of the
-central server. It is already created in the repository,
-so no further action is needed.
+filepath is writable by the server. The default is `./data/`
+in the root directory of the central server. It is already
+created in the repository, so no further action is needed.
 
 Because the local file object store is implemented in the
 central server itself, it does not provide any integrity
