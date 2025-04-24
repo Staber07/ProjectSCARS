@@ -14,6 +14,11 @@ class DatabaseAdapterConfig(ABC):
 
     @property
     @abstractmethod
+    def info(self) -> dict[str, Any]:
+        """Get the database adapter information."""
+
+    @property
+    @abstractmethod
     def sqlalchemy_uri(self) -> str:
         """Get the database URI for SQLAlchemy."""
 
@@ -45,6 +50,16 @@ class SQLiteDatabaseConfig(DatabaseAdapterConfig):
         )
 
         self._connect_args = {**default_connect_args, **(connect_args or {})}
+
+    @property
+    @override
+    def info(self) -> dict[str, Any]:
+        return {
+            "name": "SQLite",
+            "filepath": str(self.filepath),
+            "connect_args": self._connect_args,
+            "sqlalchemy_uri": self.sqlalchemy_uri,
+        }
 
     @property
     @override
@@ -90,6 +105,21 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
         self.port: int = port or 3306
         self.database: str = database or "ProjectSCARS_CentralServer"
         self._connect_args = {**default_connect_args, **(connect_args or {})}
+
+    @property
+    @override
+    def info(self) -> dict[str, Any]:
+        """Get the name of the database adapter."""
+        return {
+            "name": "MySQL",
+            "username": self.username,
+            "password_set": self.password != "",
+            "host": self.host,
+            "port": self.port,
+            "database": self.database,
+            "connect_args": self._connect_args,
+            "sqlalchemy_uri": self.sqlalchemy_uri,
+        }
 
     @property
     @override
