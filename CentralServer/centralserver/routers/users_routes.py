@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
@@ -18,7 +18,7 @@ from centralserver.internals.models import (
     UserUpdate,
 )
 from centralserver.internals.permissions import DEFAULT_ROLES
-from centralserver.internals.user_handler import update_user_info
+from centralserver.internals.user_handler import update_user_avatar, update_user_info
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -93,6 +93,34 @@ async def update_user_endpoint(
         "user %s is updating user profile of %s...", token.id, updated_user_info.id
     )
     return update_user_info(updated_user_info, session)
+
+
+@router.patch("/update/avatar")
+async def update_user_avatar_endpoint(
+    userId: str,
+    img: UploadFile,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> UserPublic:
+    """Update a user's avatar.
+
+    Args:
+        img: The new avatar image.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        The updated user information.
+    """
+
+    if not await verify_user_permission("users:global:modify", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update user profiles. Use `/me/update` to update your own profile.",
+        )
+
+    logger.debug("user %s is updating user profile of %s...", token.id, userId)
+    return update_user_avatar(userId, await img.read(), session)
 
 
 @router.patch("/update/school")

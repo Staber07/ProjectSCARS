@@ -155,7 +155,6 @@ class UserUpdate(SQLModel):
     nameFirst: str | None = None
     nameMiddle: str | None = None
     nameLast: str | None = None
-    avatarUrn: str | None = None
     password: str | None = None
 
 

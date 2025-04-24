@@ -4,7 +4,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
+from centralserver.internals.adapters.object_store import (
+    BucketNames,
+    get_object_store_handler,
+)
 from centralserver.internals.auth_handler import crypt_ctx
+from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     NewUserRequest,
@@ -114,6 +119,41 @@ def create_user(
     return user
 
 
+def update_user_avatar(target_user: str, img: bytes, session: Session) -> UserPublic:
+    """Update the user's avatar in the database.
+
+    Args:
+        target_user: The user to update.
+        img: The new avatar image.
+        session: The database session to use.
+
+    Returns:
+        The updated user object.
+    """
+
+    selected_user = session.get(User, target_user)
+
+    if not selected_user:  # Check if user exists
+        logger.warning("Failed to update user: %s (user not found)", target_user)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    # Try to upload user avatar
+    # TODO: Implement upload to object store
+    object_store_manager = get_object_store_handler(app_config.object_store)
+    object = object_store_manager.put(BucketNames.AVATARS, selected_user.id, img)
+
+    selected_user.avatarUrn = object.fn
+    selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
+
+    session.commit()
+    session.refresh(selected_user)
+    logger.info("User info for `%s` updated.", selected_user.username)
+    return UserPublic.model_validate(selected_user)
+
+
 def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
     """Update the user's information in the database.
 
@@ -174,10 +214,6 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
 
     if target_user.nameLast:  # Update last name if provided
         selected_user.nameLast = target_user.nameLast
-
-    # TODO: Validate this when object store is implemented
-    if target_user.avatarUrn:  # Update avatar if provided
-        selected_user.avatarUrn = target_user.avatarUrn
 
     if target_user.password:  # Update password if provided
         if not validate_password(target_user.password):  # Validate password

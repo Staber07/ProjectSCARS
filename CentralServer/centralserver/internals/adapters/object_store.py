@@ -1,16 +1,19 @@
 import hashlib
 import os
 from abc import ABC, abstractmethod
+from enum import Enum
 from io import BytesIO
 from pathlib import Path
 from typing import Any, Final, override
 
 from minio import Minio
 
-from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import BucketObject
 
-logger = LoggerFactory().get_logger(__name__)
+
+class BucketNames(Enum):
+    AVATARS = "centralserver-avatars"
+    REPORT_EXPORTS = "centralserver-reports"
 
 
 class ObjectStoreAdapterConfig(ABC):
@@ -26,7 +29,7 @@ class ObjectStoreAdapter(ABC):
     """Superclass for object store adapter configuration."""
 
     @abstractmethod
-    def put(self, bucket: str, fn: str, obj: bytes) -> BucketObject:
+    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         """Put the object into the object store and return its ID.
 
         Args:
@@ -38,7 +41,7 @@ class ObjectStoreAdapter(ABC):
         pass
 
     @abstractmethod
-    def get(self, bucket: str, fn: str) -> BucketObject:
+    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
         """Get the object with the given ID from the object store."""
 
         pass
@@ -65,7 +68,6 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
     """Use the local filesystem as the central server's object store."""
 
     _ENCODING: Final[str] = "utf-8"
-    __DIRECTORY_NAMES: Final[set[str]] = {"avatars", "exports"}
 
     def __init__(self, config: LocalObjectStoreAdapterConfig) -> None:
         """Initialize the local object store adapter.
@@ -95,62 +97,48 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     def verify_paths(self) -> None:
-        logger.debug(
-            "Creating the local object store directory if it does not exist..."
-        )
         self.config.filepath.mkdir(parents=True, exist_ok=True)
-        logger.debug("Verifying existence of the local object store subdirectories...")
-        for directory in self.__DIRECTORY_NAMES:
-            subdir = self.config.filepath / directory
-            logger.debug(f"Creating {subdir} if it does not exist...")
+        for directory in BucketNames:
+            subdir = self.config.filepath / directory.value
             subdir.mkdir(parents=True, exist_ok=True)
-            file_count = sum(1 for _ in subdir.iterdir())
-            logger.debug(f"Subdirectory '{directory}' contains {file_count} files.")
 
     def get_object_filesystem_filename(self, fn: str) -> str:
         return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
 
     @override
-    def put(self, bucket: str, fn: str, obj: bytes) -> BucketObject:
-        if bucket not in self.__DIRECTORY_NAMES:
-            raise ValueError(
-                f"Bucket name '{bucket}' is invalid. Allowed buckets: {self.__DIRECTORY_NAMES}"
-            )
-
+    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         if not self.validate_object_name(fn):
             raise ValueError(f"Invalid object name: {fn}")
 
         hashed_filename = self.get_object_filesystem_filename(fn)
-        new_file_dir = self.config.filepath / bucket / hashed_filename[:2]
+        new_file_dir = self.config.filepath / bucket.value / hashed_filename[:2]
         new_file_dir.mkdir(parents=True, exist_ok=True)
         new_fp = new_file_dir / hashed_filename
         if new_fp.exists():
-            logger.warning(f"File {new_fp} already exists.")
             raise FileExistsError("File already exists. Please use a different name.")
 
         with open(
-            self.config.filepath / bucket / hashed_filename[:2] / hashed_filename, "wb"
+            self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename,
+            "wb",
         ) as f:
-            logger.debug(f"Writing object to {new_fp}...")
             f.write(obj)
 
         return BucketObject(
-            bucket=bucket,
+            bucket=bucket.value,
             fn=fn,
             obj=obj,
         )
 
     @override
-    def get(self, bucket: str, fn: str) -> BucketObject:
-        object_fp = self.config.filepath / bucket / fn[:2] / fn
+    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
+        object_fp = self.config.filepath / bucket.value / fn[:2] / fn
         if not object_fp.exists():
-            logger.warning(f"File {object_fp} does not exist.")
             raise FileNotFoundError(f"File {object_fp} does not exist.")
 
         data = object_fp.read_bytes()
 
         return BucketObject(
-            bucket=bucket,
+            bucket=bucket.value,
             fn=fn,
             obj=data,
         )
@@ -198,11 +186,6 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
 class MinIOObjectStoreAdapter(ObjectStoreAdapter):
     """Use MinIO as the central server's object store."""
 
-    __BUCKET_NAMES: Final[set[str]] = {
-        "centralserver-avatars",
-        "centralserver-reports",
-    }
-
     def __init__(self, config: MinIOObjectStoreAdapterConfig):
         """Initialize the MinIO object store adapter.
 
@@ -212,7 +195,6 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
         self.config = config
 
-        logger.debug("Connecting to MinIO object store...")
         self.client = Minio(
             config.endpoint,
             access_key=config.access_key,
@@ -221,10 +203,6 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
         self.check_buckets()
-
-    @property
-    def bucket_names(self) -> set[str]:
-        return self.__BUCKET_NAMES
 
     @staticmethod
     def validate_object_name(object_name: str) -> bool:
@@ -244,46 +222,34 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     def check_buckets(self) -> None:
-        logger.debug("Checking MinIO buckets...")
-        for bucket in self.__BUCKET_NAMES:
-            logger.debug(f"Checking bucket: {bucket}")
-            if not self.client.bucket_exists(bucket):
-                logger.info(f"Bucket {bucket} does not exist. Creating...")
-                self.client.make_bucket(bucket)
-
-            else:
-                logger.debug(f"Bucket {bucket} already exists.")
+        for bucket in BucketNames:
+            if not self.client.bucket_exists(bucket.value):
+                self.client.make_bucket(bucket.value)
 
     @override
-    def put(self, bucket: str, fn: str, obj: bytes) -> BucketObject:
-        logger.debug(f"Putting object {fn} into bucket {bucket}...")
-        if bucket not in self.__BUCKET_NAMES:
-            logger.warning(f"Invalid object name: {fn}")
-            raise ValueError(f"Invalid bucket name: {bucket}")
-
+    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         if not self.validate_object_name(fn):
-            logger.warning(f"Invalid object name: {fn}")
             raise ValueError(f"Invalid object name: {fn}")
 
         length = len(obj)
         self.client.put_object(
-            bucket_name=bucket,
+            bucket_name=bucket.value,
             object_name=fn,
             data=BytesIO(obj),
             length=length,
         )
 
         return BucketObject(
-            bucket=bucket,
+            bucket=bucket.value,
             fn=fn,
             obj=obj,
         )
 
     @override
-    def get(self, bucket: str, fn: str) -> BucketObject:
+    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
         response = None
         try:
-            response = self.client.get_object(bucket_name=bucket, object_name=fn)
+            response = self.client.get_object(bucket_name=bucket.value, object_name=fn)
             response_data = response.read()
 
         finally:
@@ -294,7 +260,27 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
                 response.release_conn()
 
         return BucketObject(
-            bucket=bucket,
+            bucket=bucket.value,
             fn=fn,
             obj=response_data,
         )
+
+
+def get_object_store_handler(conf: ObjectStoreAdapterConfig) -> ObjectStoreAdapter:
+    """Get the appropriate object store adapter based on the configuration.
+
+    Args:
+        The object store adapter configuration.
+
+    Returns:
+        The object store adapter instance.
+    """
+
+    if isinstance(conf, LocalObjectStoreAdapterConfig):
+        return LocalObjectStoreAdapter(conf)
+
+    elif isinstance(conf, MinIOObjectStoreAdapterConfig):
+        return MinIOObjectStoreAdapter(conf)
+
+    else:
+        raise ValueError("Invalid object store configuration.")
