@@ -1,6 +1,6 @@
 {
   "debug": {
-    "enabled": false
+    "enabled": true
   },
   "logging": {
     "filepath": "./logs/centralserver-pytest.log",
