@@ -25,24 +25,27 @@ the Philippines.
 
 ## Development
 
-[![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,mysql,docker)](#)
+[![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,mysql,docker)](#)
 
 The central server is written in Python using the FastAPI framework and
-utilizes MySQL as its database. It is responsible for handling the
-backend logic and storing the submitted data of canteen managers.
+utilizes SQLite or MySQL as its database, depending on the selected
+configuration. It also uses either a pure-Python file object storage
+or a third-party S3-compatible object storage for storing user avatars
+and exported PDFs. It is responsible for handling the backend logic and
+storing the submitted data of canteen managers.
 
-### Central Server Requirements
+##### Central Server Requirements
 
-The central server is written in [Python](https://python.org) v3.13.1, and is
-managed using [uv](https://github.com/astral-sh/uv) v0.5.24.
-If you are using [Docker](https://docker.com/) or [Podman](https://podman.io/),
-make sure to also install [docker-compose](https://docs.docker.com/compose/)/[podman-compose](https://github.com/containers/podman-compose).
-Otherwise, install [MySQL](http://www.mysql.com/) 9.2.0-1.el9 if you don't plan
-to use the SQLite database.
+The hard requirements are as follows:
 
-### Central Server Development Setup
+- [Python](https://python.org/) 3.13
+- [uv](https://docs.astral.sh/uv/) 0.5.x
+- [Docker](https://docker.com/) or [Podman](https://podman.io/)
+  - [docker-compose](https://docs.docker.com/compose/) or [podman-compose](https://github.com/containers/podman-compose)
 
-1. Install the required software.
+##### Central Server Development Setup
+
+1. Install the [required software](#central-server-requirements).
 2. Clone the repository.
 
    ```bash
@@ -70,18 +73,10 @@ to use the SQLite database.
    uv run ./scripts/secret.py refresh
    ```
 
-   Edit the `config.json` file to set the database connection string or to use
-   the local SQLite database.
+   Edit the `config.json` file to their appropriate values.
 
-6. If you are using the containerized version of MySQL, run the following
-   command to start the database container. Otherwise, manually start the
-   database server if `debug.use_test_db` is set to `false` in `config.json`.
-
-   ```bash
-   cd ./db
-   docker-compose up -d
-   cd ..
-   ```
+6. Select the database you want to use. See [Database Setup](#central-server-database-setup) for more
+   information.
 
 7. Run the FastAPI development server.
 
@@ -94,3 +89,98 @@ to use the SQLite database.
 >
 > - username: `scars`
 > - password: `ProjectSCARS1`
+
+###### Central Server Database Setup
+
+The central server supports the following databases:
+
+- SQLite (default)
+- MySQL
+
+**Central Server SQLite Database**
+
+To start using SQLite, just edit `./CentralServer/config.json` and adjust the
+`database` property to use SQLite. The `connect_args` property is optional
+and can be used to pass additional SQLAlchemy connection arguments.
+
+```jsonc
+{
+  /* ... */
+  "database": {
+    "type": "sqlite",
+    "config": {
+      "filepath": "database.db"
+      "connect_args": {
+        // SQLAlchemy connection arguments
+      }
+    }
+  }
+  /* ... */
+}
+```
+
+On startup, the central server will create a SQLite database file
+in the file path specified in the `filepath` property. The default
+is `centralserver.db` in the root directory of the central server.
+
+This database is sufficient for development and testing purposes, but
+for production use, it is recommended to use MySQL or similar
+database server.
+
+**Central Server MySQL Database**
+
+Since SQLite is a file-based database and lacks the ability to run
+multiple instances, it is not suitable for production use which needs
+high throughput and availability. Therefore, the central server also
+supports MySQL as a database. The MySQL database can be run in a
+containerized environment using Docker or Podman.
+
+1. Adjust the environment variables in
+   `./CentralServer/system/mysql/.env`. For more information
+   about MySQL Docker environment variables, see [their documentation](https://hub.docker.com/_/mysql).
+
+2. Run the MySQL container.
+
+   ```bash
+   cd ./system/mysql/
+   docker-compose up -d # Run this if you are using Docker.
+   podman-compose up -d # Run this if you are using Podman.
+   cd ../..
+   ```
+
+3. If successful, you should be able to access PHPMyAdmin at
+   `http://localhost:8083`.
+
+> [!IMPORTANT]
+> You might need to log in as the root user in the database
+> in the future. The root password is randomly generated,
+> which can be seen in the logs of the MySQL container with
+> the following format:
+>
+> `[Note] [Entrypoint]: GENERATED ROOT PASSWORD: bfPy...lqLL`
+
+4. Update `./CentralServer/config.json` to use MySQL. Use the
+   same database credentials as the ones in the
+   `.env` file. The `connect_args` property is optional and
+   can be used to pass additional SQLAlchemy connection
+   arguments.
+
+   ```jsonc
+   {
+     /* ... */
+     "database": {
+       "type": "mysql",
+       "config": {
+         "username": "ProjectSCARS_DatabaseAdmin",
+         "password": "ProjectSCARS_mysql143",
+         "host": "localhost",
+         "port": 3306,
+         "database": "ProjectSCARS_CentralServer",
+         "connect_args": {
+           // sqlalchemy connection arguments
+         },
+       },
+     },
+     /* ... */
+   }
+   ```

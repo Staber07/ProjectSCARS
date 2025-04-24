@@ -35,7 +35,7 @@ the Philippines.
 
 | Component      | Stack                                                                                                     |
 | -------------- | --------------------------------------------------------------------------------------------------------- |
-| Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,docker,sqlite,mysql)](#central-server) |
+| Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,mysql,docker)](#central-server) |
 | Local Server   | [![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)          |
 | Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=ts,react,tailwind,nextjs)](#web-client)               |
 
@@ -114,7 +114,8 @@ The central server supports the following databases:
 **Central Server SQLite Database**
 
 To start using SQLite, just edit `./CentralServer/config.json` and adjust the
-`database` property to use SQLite.
+`database` property to use SQLite. The `connect_args` property is optional
+and can be used to pass additional SQLAlchemy connection arguments.
 
 ```jsonc
 {
