@@ -9,6 +9,11 @@ from centralserver.internals.adapters.database import (
     MySQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
+from centralserver.internals.adapters.object_store import (
+    LocalObjectStoreAdapterConfig,
+    MinIOObjectStoreAdapterConfig,
+    ObjectStoreAdapterConfig,
+)
 
 
 class Debug:
@@ -157,6 +162,7 @@ class AppConfig:
         debug: Debug | None = None,
         logging: Logging | None = None,
         database: DatabaseAdapterConfig | None = None,
+        object_store: ObjectStoreAdapterConfig | None = None,
         authentication: Authentication | None = None,
         security: Security | None = None,
     ):
@@ -166,6 +172,7 @@ class AppConfig:
             debug: Debugging configuration.
             logging: Logging configuration.
             database: Database configuration.
+            object_store: Object store configuration.
             test_database: Test database configuration.
             authentication: Authentication configuration.
             security: Security configuration.
@@ -175,6 +182,10 @@ class AppConfig:
         self.logging: Logging = logging or Logging()
         # By default, use SQLite for the database.
         self.database: DatabaseAdapterConfig = database or SQLiteDatabaseConfig()
+        # By default, store files locally.
+        self.object_store: ObjectStoreAdapterConfig = (
+            object_store or LocalObjectStoreAdapterConfig()
+        )
         self.authentication: Authentication = authentication or Authentication()
         self.security: Security = security or Security()
 
@@ -209,22 +220,50 @@ def read_config_file(
         match database_type:
             case "sqlite":
                 final_db_config = SQLiteDatabaseConfig(
-                    database_config.get("filepath", None),
-                    database_config.get("connect_args", None),
+                    filepath=database_config.get("filepath", None),
+                    connect_args=database_config.get("connect_args", None),
                 )
 
             case "mysql":
                 final_db_config = MySQLDatabaseConfig(
-                    database_config.get("username", None),
-                    database_config.get("password", None),
-                    database_config.get("host", None),
-                    database_config.get("port", None),
-                    database_config.get("database", None),
-                    database_config.get("connect_args", None),
+                    username=database_config.get("username", None),
+                    password=database_config.get("password", None),
+                    host=database_config.get("host", None),
+                    port=database_config.get("port", None),
+                    database=database_config.get("database", None),
+                    connect_args=database_config.get("connect_args", None),
                 )
 
-            case _:
-                final_db_config = None
+            case None:  # Skip if no database is specified
+                pass
+
+            case _:  # Error if the database type is not supported
+                raise ValueError(f"Unsupported {database_type} database type.")
+
+        # Determine object store type and create the appropriate config object
+        object_store: dict[str, Any] = config.get("object_store", {})
+        object_store_type: None | str = object_store.get("type", None)
+        object_store_config: dict[str, Any] = object_store.get("config", {})
+        final_object_store_config: ObjectStoreAdapterConfig | None = None
+        match object_store_type:
+            case "local":
+                final_object_store_config = LocalObjectStoreAdapterConfig(
+                    filepath=object_store_config.get("filepath", None)
+                )
+
+            case "minio":
+                final_object_store_config = MinIOObjectStoreAdapterConfig(
+                    access_key=object_store_config.get("access_key", None),
+                    secret_key=object_store_config.get("secret_key", None),
+                    endpoint=object_store_config.get("endpoint", None),
+                    secure=object_store_config.get("secure", None),
+                )
+
+            case None:  # Skip if no object store is specified
+                pass
+
+            case _:  # Error if the object store type is not supported
+                raise ValueError(f"Unsupported {object_store_type} object store type.")
 
         return AppConfig(
             debug=Debug(
@@ -239,6 +278,7 @@ def read_config_file(
                 date_format=logging_config.get("date_format", None),
             ),
             database=final_db_config,
+            object_store=final_object_store_config,
             authentication=Authentication(
                 signing_secret_key=authentication_config.get(
                     "signing_secret_key", None

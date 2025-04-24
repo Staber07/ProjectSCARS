@@ -165,3 +165,11 @@ class NewUserRequest(SQLModel):
     username: str
     roleId: int
     password: str
+
+
+class BucketObject(SQLModel):
+    """A model representing an object in a bucket."""
+
+    bucket: str
+    fn: str
+    obj: bytes
