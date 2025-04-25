@@ -126,7 +126,7 @@ and can be used to pass additional SQLAlchemy connection arguments.
   "database": {
     "type": "sqlite",
     "config": {
-      "filepath": "database.db"
+      "filepath": "database.db",
       "connect_args": {
         // SQLAlchemy connection arguments
       }
