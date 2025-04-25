@@ -35,7 +35,7 @@ the Philippines.
 
 | Component      | Stack                                                                                                     |
 | -------------- | --------------------------------------------------------------------------------------------------------- |
-| Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,docker,sqlite,mysql)](#central-server) |
+| Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,mysql,docker)](#central-server) |
 | Local Server   | [![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)          |
 | Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=ts,react,tailwind,nextjs)](#web-client)               |
 
