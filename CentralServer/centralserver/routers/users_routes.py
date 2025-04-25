@@ -1,6 +1,8 @@
+from io import BytesIO
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
@@ -18,7 +20,11 @@ from centralserver.internals.models import (
     UserUpdate,
 )
 from centralserver.internals.permissions import DEFAULT_ROLES
-from centralserver.internals.user_handler import update_user_avatar, update_user_info
+from centralserver.internals.user_handler import (
+    get_user_avatar,
+    update_user_avatar,
+    update_user_info,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -68,6 +74,21 @@ async def get_user_endpoint(
             detail="User not found.",
         )
     return UserPublic.model_validate(selected_user)
+
+
+@router.get("/avatar/{fn}")
+async def get_user_avatar_endpoint(
+    fn: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> StreamingResponse:
+    if not await verify_user_permission("users:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view users.",
+        )
+
+    return StreamingResponse(BytesIO(get_user_avatar(fn).obj), media_type="image/*")
 
 
 @router.patch("/update")
@@ -121,6 +142,24 @@ async def update_user_avatar_endpoint(
 
     logger.debug("user %s is updating user profile of %s...", token.id, userId)
     return update_user_avatar(userId, await img.read(), session)
+
+
+@router.delete("/update/avatar")
+async def delete_user_avatar_endpoint(
+    userId: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+):
+    """Delete a user's avatar."""
+
+    if not await verify_user_permission("users:global:modify", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update user profiles. Use `/me/update` to update your own profile.",
+        )
+
+    logger.debug("user %s is deleting user avatar of %s...", token.id, userId)
+    return update_user_avatar(userId, None, session)
 
 
 @router.patch("/update/school")

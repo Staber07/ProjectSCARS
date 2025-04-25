@@ -12,6 +12,7 @@ from centralserver.internals.auth_handler import crypt_ctx
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
+    BucketObject,
     NewUserRequest,
     User,
     UserPublic,
@@ -119,7 +120,9 @@ def create_user(
     return user
 
 
-def update_user_avatar(target_user: str, img: bytes, session: Session) -> UserPublic:
+def update_user_avatar(
+    target_user: str, img: bytes | None, session: Session
+) -> UserPublic:
     """Update the user's avatar in the database.
 
     Args:
@@ -140,12 +143,18 @@ def update_user_avatar(target_user: str, img: bytes, session: Session) -> UserPu
             detail="User not found",
         )
 
-    # Try to upload user avatar
-    # TODO: Implement upload to object store
     object_store_manager = get_object_store_handler(app_config.object_store)
-    object = object_store_manager.put(BucketNames.AVATARS, selected_user.id, img)
+    if img is None:
+        if selected_user.avatarUrn is None:
+            raise ValueError("No avatar to delete.")
 
-    selected_user.avatarUrn = object.fn
+        object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
+        selected_user.avatarUrn = None
+
+    else:
+        object = object_store_manager.put(BucketNames.AVATARS, selected_user.id, img)
+        selected_user.avatarUrn = object.fn
+
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
     session.commit()
@@ -235,3 +244,9 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
     session.refresh(selected_user)
     logger.info("User info for `%s` updated.", selected_user.username)
     return UserPublic.model_validate(selected_user)
+
+
+def get_user_avatar(fn: str) -> BucketObject:
+    return get_object_store_handler(app_config.object_store).get(
+        BucketNames.AVATARS, fn
+    )

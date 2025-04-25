@@ -29,6 +29,10 @@ class ObjectStoreAdapter(ABC):
     """Superclass for object store adapter configuration."""
 
     @abstractmethod
+    def check(self) -> None:
+        """Verify the health of the object store."""
+
+    @abstractmethod
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         """Put the object into the object store and return its ID.
 
@@ -38,13 +42,13 @@ class ObjectStoreAdapter(ABC):
             obj: The object to put into the object store.
         """
 
-        pass
-
     @abstractmethod
-    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
+    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
         """Get the object with the given ID from the object store."""
 
-        pass
+    @abstractmethod
+    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        """Delete the object with the given ID from the object store."""
 
 
 class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
@@ -77,7 +81,6 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         """
 
         self.config = config
-        self.verify_paths()
 
     @staticmethod
     def validate_object_name(object_name: str) -> bool:
@@ -96,14 +99,15 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             )
         )
 
-    def verify_paths(self) -> None:
+    def get_object_filesystem_filename(self, fn: str) -> str:
+        return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
+
+    @override
+    def check(self) -> None:
         self.config.filepath.mkdir(parents=True, exist_ok=True)
         for directory in BucketNames:
             subdir = self.config.filepath / directory.value
             subdir.mkdir(parents=True, exist_ok=True)
-
-    def get_object_filesystem_filename(self, fn: str) -> str:
-        return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
 
     @override
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
@@ -125,13 +129,15 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
         return BucketObject(
             bucket=bucket.value,
-            fn=fn,
+            fn=hashed_filename,
             obj=obj,
         )
 
     @override
-    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
-        object_fp = self.config.filepath / bucket.value / fn[:2] / fn
+    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+        object_fp = (
+            self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
+        )
         if not object_fp.exists():
             raise FileNotFoundError(f"File {object_fp} does not exist.")
 
@@ -139,9 +145,19 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
         return BucketObject(
             bucket=bucket.value,
-            fn=fn,
+            fn=hashed_filename,
             obj=data,
         )
+
+    @override
+    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        object_fp = (
+            self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
+        )
+        if not object_fp.exists():
+            raise FileNotFoundError(f"File {object_fp} does not exist.")
+
+        os.remove(object_fp)
 
 
 class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
@@ -202,8 +218,6 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
             secure=config.secure,
         )
 
-        self.check_buckets()
-
     @staticmethod
     def validate_object_name(object_name: str) -> bool:
         """Check if the object name is valid."""
@@ -221,7 +235,8 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
             )
         )
 
-    def check_buckets(self) -> None:
+    @override
+    def check(self) -> None:
         for bucket in BucketNames:
             if not self.client.bucket_exists(bucket.value):
                 self.client.make_bucket(bucket.value)
@@ -246,10 +261,12 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def get(self, bucket: BucketNames, fn: str) -> BucketObject:
+    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
         response = None
         try:
-            response = self.client.get_object(bucket_name=bucket.value, object_name=fn)
+            response = self.client.get_object(
+                bucket_name=bucket.value, object_name=hashed_filename
+            )
             response_data = response.read()
 
         finally:
@@ -261,9 +278,16 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
         return BucketObject(
             bucket=bucket.value,
-            fn=fn,
+            fn=hashed_filename,
             obj=response_data,
         )
+
+    @override
+    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        try:
+            self.client.remove_object(bucket.value, hashed_filename)
+        except Exception as e:
+            raise FileNotFoundError(f"File {hashed_filename} does not exist.") from e
 
 
 def get_object_store_handler(conf: ObjectStoreAdapterConfig) -> ObjectStoreAdapter:
