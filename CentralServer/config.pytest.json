@@ -19,7 +19,7 @@
   "object_store": {
     "type": "local",
     "config": {
-      "filepath": "./data/"
+      "filepath": "./tests/data/test"
     }
   },
   "authentication": {
