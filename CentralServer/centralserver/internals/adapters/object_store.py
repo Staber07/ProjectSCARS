@@ -3,26 +3,24 @@ import os
 from abc import ABC, abstractmethod
 from enum import Enum
 from io import BytesIO
-from pathlib import Path
-from typing import Any, Final, override
+from typing import Final, override
 
 from minio import Minio
 
+from centralserver.internals.adapters.config import (
+    LocalObjectStoreAdapterConfig,
+    MinIOObjectStoreAdapterConfig,
+    ObjectStoreAdapterConfig,
+)
+from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import BucketObject
+
+logger = LoggerFactory().get_logger(__name__)
 
 
 class BucketNames(Enum):
     AVATARS = "centralserver-avatars"
     REPORT_EXPORTS = "centralserver-reports"
-
-
-class ObjectStoreAdapterConfig(ABC):
-    """Adapter configuration for object store."""
-
-    @property
-    @abstractmethod
-    def info(self) -> dict[str, Any]:
-        """Get the object store adapter information"""
 
 
 class ObjectStoreAdapter(ABC):
@@ -49,23 +47,6 @@ class ObjectStoreAdapter(ABC):
     @abstractmethod
     def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
         """Delete the object with the given ID from the object store."""
-
-
-class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
-    """Adapter configuration for local object store."""
-
-    def __init__(self, filepath: str | None = None) -> None:
-        self.filepath: Path = Path(filepath or os.path.join(os.getcwd(), "data"))
-
-    @property
-    @override
-    def info(self) -> dict[str, Any]:
-        """Get the object store adapter information."""
-
-        return {
-            "name": "Local",
-            "filepath": str(self.filepath),
-        }
 
 
 class LocalObjectStoreAdapter(ObjectStoreAdapter):
@@ -104,13 +85,16 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def check(self) -> None:
+        logger.debug("Ensuring existence of local object store directories.")
         self.config.filepath.mkdir(parents=True, exist_ok=True)
         for directory in BucketNames:
+            logger.debug(f"Ensuring existence of directory: {directory.value}")
             subdir = self.config.filepath / directory.value
             subdir.mkdir(parents=True, exist_ok=True)
 
     @override
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+        logger.debug("Putting object into local object store.")
         if not self.validate_object_name(fn):
             raise ValueError(f"Invalid object name: {fn}")
 
@@ -135,6 +119,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+        logger.debug("Getting object from local object store.")
         object_fp = (
             self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
         )
@@ -151,6 +136,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        logger.debug("Deleting object from local object store.")
         object_fp = (
             self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
         )
@@ -158,45 +144,6 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             raise FileNotFoundError(f"File {object_fp} does not exist.")
 
         os.remove(object_fp)
-
-
-class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
-    """Adapter configuration for MinIO."""
-
-    def __init__(
-        self,
-        access_key: str | None = None,
-        secret_key: str | None = None,
-        endpoint: str | None = None,
-        secure: bool | None = None,
-    ):
-        """Configuration for MinIO object store adapter.
-
-        Args:
-            access_key: The access key for MinIO. (required)
-            secret_key: The secret key for MinIO. (required)
-            endpoint: The URL of the MinIO server. (default: http://localhost:9000)
-            secure: Use secure (TLS) connection. (default: False).
-        """
-
-        if access_key is None or secret_key is None:
-            raise ValueError("The access key and secret key are required.")
-
-        self.access_key: str = access_key
-        self.secret_key: str = secret_key
-        self.endpoint: str = endpoint or "http://localhost:9000"
-        self.secure: bool = secure or False
-
-    @property
-    @override
-    def info(self) -> dict[str, Any]:
-        return {
-            "name": "MinIO",
-            "access_key_set": self.access_key != "",
-            "secret_key_set": self.secret_key != "",
-            "endpoint": self.endpoint,
-            "secure": self.secure,
-        }
 
 
 class MinIOObjectStoreAdapter(ObjectStoreAdapter):
@@ -237,12 +184,16 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def check(self) -> None:
+        logger.debug("Ensuring existence of MinIO buckets.")
         for bucket in BucketNames:
+            logger.debug(f"Ensuring existence of bucket: {bucket.value}")
             if not self.client.bucket_exists(bucket.value):
+                logger.debug(f"Creating bucket: {bucket.value}")
                 self.client.make_bucket(bucket.value)
 
     @override
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+        logger.debug("Putting object into MinIO object store.")
         if not self.validate_object_name(fn):
             raise ValueError(f"Invalid object name: {fn}")
 
@@ -262,6 +213,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+        logger.debug("Getting object from MinIO object store.")
         response = None
         try:
             response = self.client.get_object(
@@ -271,9 +223,10 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
         finally:
             if response is not None:
+                logger.debug("Closing MinIO response.")
                 # Close the response to release the connection
                 # and avoid resource leaks.
-                response.close()
+                response.close()  # WARN: Why are these not implemented according to source?
                 response.release_conn()
 
         return BucketObject(
@@ -284,6 +237,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        logger.debug("Deleting object from MinIO object store.")
         try:
             self.client.remove_object(bucket.value, hashed_filename)
         except Exception as e:
@@ -301,10 +255,13 @@ def get_object_store_handler(conf: ObjectStoreAdapterConfig) -> ObjectStoreAdapt
     """
 
     if isinstance(conf, LocalObjectStoreAdapterConfig):
+        logger.debug("Using local object store adapter.")
         return LocalObjectStoreAdapter(conf)
 
     elif isinstance(conf, MinIOObjectStoreAdapterConfig):
+        logger.debug("Using MinIO object store adapter.")
         return MinIOObjectStoreAdapter(conf)
 
     else:
+        logger.error("Invalid object store configuration.")
         raise ValueError("Invalid object store configuration.")

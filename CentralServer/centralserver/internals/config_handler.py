@@ -4,15 +4,13 @@ from pathlib import Path
 from typing import Any
 
 from centralserver import info
-from centralserver.internals.adapters.database import (
+from centralserver.internals.adapters.config import (
     DatabaseAdapterConfig,
-    MySQLDatabaseConfig,
-    SQLiteDatabaseConfig,
-)
-from centralserver.internals.adapters.object_store import (
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
+    MySQLDatabaseConfig,
     ObjectStoreAdapterConfig,
+    SQLiteDatabaseConfig,
 )
 
 
