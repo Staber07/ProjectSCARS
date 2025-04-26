@@ -916,3 +916,20 @@ def test_delete_user_avatar():
     )
     assert response.status_code == 200
     assert response.json()["avatarUrn"] is None
+
+
+def test_delete_user_avatar_no_current():
+    login = _request_access_token("testuser1", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    ).json()
+
+    response = client.delete(
+        "/api/v1/users/update/avatar",
+        params={"userId": user_info["id"]},
+        headers=headers,
+    )
+    assert response.status_code == 200
+    assert response.json()["avatarUrn"] is None
