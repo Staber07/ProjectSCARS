@@ -269,3 +269,57 @@ def test_configreader_mysql_minio():
     appconfig = config_handler.read_config(confdata)
     assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
+
+
+def test_configreader_no_objectstore():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["object_store"]["type"] = None  # Will use default object store
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
+
+
+def test_configreader_no_database():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = None  # Will use default database
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
+
+
+def test_configreader_invalid_database():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "invalid database type"
+
+    try:
+        _ = config_handler.read_config(confdata)
+
+    except ValueError as e:
+        assert str(e) == "Unsupported invalid database type database type."
+        return
+
+    raise AssertionError("Expected ValueError, but no exception was raised.")
+
+
+def test_configreader_invalid_objectstore():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["object_store"]["type"] = "invalid object store type"
+
+    try:
+        _ = config_handler.read_config(confdata)
+
+    except ValueError as e:
+        assert str(e) == "Unsupported invalid object store type object store type."
+        return
+
+    raise AssertionError("Expected ValueError, but no exception was raised.")
