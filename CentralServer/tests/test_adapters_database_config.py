@@ -1,13 +1,16 @@
 import os
 from pathlib import Path
 
-from centralserver.internals.adapters import database
+from centralserver.internals.adapters.config import (
+    MySQLDatabaseConfig,
+    SQLiteDatabaseConfig,
+)
 
 
 def test_valid_sqlite_config():
     """Test the SQLite database configuration."""
 
-    config = database.SQLiteDatabaseConfig(filepath="test.db")
+    config = SQLiteDatabaseConfig(filepath="test.db")
 
     assert str(config.filepath.absolute()) == str(
         Path(os.getcwd(), "test.db").absolute()
@@ -19,7 +22,7 @@ def test_valid_sqlite_config():
 def test_empty_sqlite_config():
     """Test the SQLite database configuration with empty filepath."""
 
-    config = database.SQLiteDatabaseConfig(filepath="")
+    config = SQLiteDatabaseConfig(filepath="")
     # Default is used if empty string
     assert str(config.filepath.absolute()) == str(
         Path(os.getcwd(), "centralserver.db").absolute()
@@ -31,7 +34,7 @@ def test_empty_sqlite_config():
 def test_valid_mysql_config():
     """Test the MySQL database configuration."""
 
-    config = database.MySQLDatabaseConfig(
+    config = MySQLDatabaseConfig(
         host="192.168.0.252",
         port=3306,
         username="sample_user",
