@@ -919,17 +919,20 @@ def test_delete_user_avatar():
 
 
 def test_delete_user_avatar_no_current():
-    login = _request_access_token("testuser1", "Password123")
+    login = _request_access_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    user_info = client.get(
+
+    login2 = _request_access_token("testuser1", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info2 = client.get(
         "/api/v1/users/me",
-        headers=headers,
+        headers=headers2,
     ).json()
 
     response = client.delete(
         "/api/v1/users/update/avatar",
-        params={"userId": user_info["id"]},
+        params={"userId": user_info2["id"]},
         headers=headers,
     )
-    assert response.status_code == 200
-    assert response.json()["avatarUrn"] is None
+    assert response.status_code == 400
+    assert response.json()["detail"] == "User does not have an avatar set."

@@ -159,7 +159,15 @@ async def delete_user_avatar_endpoint(
         )
 
     logger.debug("user %s is deleting user avatar of %s...", token.id, userId)
-    return update_user_avatar(userId, None, session)
+    try:
+        return update_user_avatar(userId, None, session)
+
+    except ValueError as e:
+        logger.warning(f"Error deleting user avatar: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User does not have an avatar set.",
+        )
 
 
 @router.patch("/update/school")
