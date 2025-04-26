@@ -180,7 +180,7 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
         Args:
             access_key: The access key for MinIO. (required)
             secret_key: The secret key for MinIO. (required)
-            endpoint: The URL of the MinIO server. (default: http://localhost:9000)
+            endpoint: The URL of the MinIO server. (default: localhost:9000)
             secure: Use secure (TLS) connection. (default: False).
         """
 
@@ -189,7 +189,7 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
 
         self.access_key: str = access_key
         self.secret_key: str = secret_key
-        self.endpoint: str = endpoint or "http://localhost:9000"
+        self.endpoint: str = endpoint or "localhost:9000"
         self.secure: bool = secure or False
 
     @property
