@@ -1,6 +1,8 @@
+import json
 from typing import Final
 
 from centralserver.internals import config_handler
+from centralserver.internals.adapters import config
 
 DEFAULT_VALUE: Final[str] = "UPDATE_THIS_VALUE"
 VALID_SIGNING_KEY: Final[str] = (
@@ -205,3 +207,65 @@ def test_config_authentication_all_keys_valid() -> None:
         refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
         encryption_secret_key=VALID_ENCRYPTION_KEY,
     )
+
+
+def test_configreader_sqlite_local():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "sqlite"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "local"
+    confdata["object_store"]["config"] = {}  # Use default config
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
+
+
+def test_configreader_sqlite_minio():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "sqlite"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "minio"
+    confdata["object_store"]["config"] = {
+        "access_key": "bf51e071508becb67bf2263c9f60403f",
+        "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
+
+
+def test_configreader_mysql_local():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "mysql"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "local"
+    confdata["object_store"]["config"] = {}  # Use default config
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
+
+
+def test_configreader_mysql_minio():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "mysql"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "minio"
+    confdata["object_store"]["config"] = {
+        "access_key": "bf51e071508becb67bf2263c9f60403f",
+        "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
