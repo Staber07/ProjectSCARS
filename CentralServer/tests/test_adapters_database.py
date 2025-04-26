@@ -15,8 +15,8 @@ def test_valid_sqlite_config():
     assert str(config.filepath.absolute()) == str(
         Path(os.getcwd(), "test.db").absolute()
     )
-    assert config.sqlalchemy_uri == f"sqlite:///{config.filepath.absolute()}"
-    assert config.connect_args == {"check_same_thread": False}
+    assert config.info["sqlalchemy_uri"] == f"sqlite:///{config.filepath.absolute()}"
+    assert config.info["connect_args"] == {"check_same_thread": False}
 
 
 def test_empty_sqlite_config():
@@ -27,8 +27,8 @@ def test_empty_sqlite_config():
     assert str(config.filepath.absolute()) == str(
         Path(os.getcwd(), "centralserver.db").absolute()
     )
-    assert config.sqlalchemy_uri == f"sqlite:///{config.filepath.absolute()}"
-    assert config.connect_args == {"check_same_thread": False}
+    assert config.info["sqlalchemy_uri"] == f"sqlite:///{config.filepath.absolute()}"
+    assert config.info["connect_args"] == {"check_same_thread": False}
 
 
 def test_valid_mysql_config():
@@ -43,6 +43,6 @@ def test_valid_mysql_config():
     )
 
     assert (
-        config.sqlalchemy_uri
+        config.info["sqlalchemy_uri"]
         == "mysql+pymysql://sample_user:password123@192.168.0.252:3306/test_db"
     )
