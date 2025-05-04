@@ -1,6 +1,6 @@
 "use client";
 
-import { AppShell, Burger, Skeleton, Group, TextInput, ActionIcon, Flex } from '@mantine/core';
+import { AppShell, Burger, Skeleton, Group, TextInput, ActionIcon, Flex, Pagination } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Table, TableData } from '@mantine/core';
 import { Avatar } from '@mantine/core';
@@ -23,9 +23,9 @@ export default function rootContent() {
 
   return (
     <AppShell
-    //header={{ height: 60 }}
-    //navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-    //padding="md"
+    header={{ height: 60 }}
+    navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+    padding="md"
     >
       <AppShell.Header>
         header
@@ -71,6 +71,16 @@ export default function rootContent() {
           verticalSpacing={"sm"}
           highlightOnHover
           data={tableData} />
+
+        <Pagination.Root total={10}>
+          <Group gap={10} justify="center">
+          <Pagination.First />
+          <Pagination.Previous />
+          <Pagination.Items />
+          <Pagination.Next />
+          <Pagination.Last />
+          </Group>
+        </Pagination.Root>
       </AppShell.Main>
 
     </AppShell>
