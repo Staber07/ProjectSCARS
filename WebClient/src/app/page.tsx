@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { Text } from "@mantine/core";
-
 import { useAuth, AuthProvider } from "@/lib/providers/auth";
 
 import { LoadingComponent } from "@/components/LoadingComponent";
@@ -31,19 +29,11 @@ function RootContent() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login"); // Redirect to the login page if not authenticated
-    }
-    else {
-      router.push("/Dashboard"); // Redirect to the dashboard if authenticated
-    }
+    router.push(isAuthenticated ? "/dashboard" : "/login");
   }, [isAuthenticated, router]);
 
   // if rendering the page for the first time, show loading component
   if (!isAuthenticated) {
     return <LoadingComponent />;
   }
-
-  // TODO: WIP
-  return <Text>Welcome! You are successfully authenticated.</Text>;
 }

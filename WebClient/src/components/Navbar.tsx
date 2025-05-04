@@ -1,39 +1,49 @@
-import { useState } from 'react';
+import { useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   IconBuilding,
   IconDashboard,
   IconLogout,
   IconReport,
   IconSettings,
-  IconSwitchHorizontal,
   IconUser,
-  IconGraph
-} from '@tabler/icons-react';
-import { Code, Group } from '@mantine/core';
-//import { MantineLogo } from '@mantinex/mantine-logo';
-import { useRouter } from 'next/navigation';
-import classes from './NavbarSimple.module.css';
+  IconGraph,
+} from "@tabler/icons-react";
+import { Code, Group, Title } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 
-const AdminNavbarContent = [
-  { link: '/administration/statistics', label: 'Statistics', icon: IconGraph },
-  { link: '/administration/reports', label: 'Reports', icon: IconReport },
-  { link: '/administration/users', label: 'Users', icon: IconUser },
-  { link: '/administration/schools', label: 'Schools', icon: IconBuilding },
-  { link: '', label: 'Settings', icon: IconSettings }
-];
+import classes from "./NavbarSimple.module.css";
+import { CentralServerGetUserInfo } from "@/lib/api/auth";
+import { useAuth } from "@/lib/providers/auth";
+import { Program } from "@/lib/info";
 
-const UserNavbarContent = [
-  { link: '/Dashboard', label: 'Dashboard', icon: IconDashboard },
-  { link: '', label: 'Statistics', icon: IconGraph },
-  { link: '', label: 'Reports', icon: IconReport },
-  { link: '', label: 'Profile', icon: IconUser },
-]
+const navbarContents = {
+  default: [
+    { link: "/dashboard", label: "Dashboard", icon: IconDashboard },
+    { link: "/statistics", label: "Statistics", icon: IconGraph },
+    { link: "/reports", label: "Reports", icon: IconReport },
+    { link: "/account/profile", label: "Profile", icon: IconUser },
+  ],
+  admin: [
+    {
+      link: "/administration/statistics",
+      label: "Statistics",
+      icon: IconGraph,
+    },
+    { link: "/administration/reports", label: "Reports", icon: IconReport },
+    { link: "/administration/users", label: "Users", icon: IconUser },
+    { link: "/administration/schools", label: "Schools", icon: IconBuilding },
+    { link: "/administration/settings", label: "Settings", icon: IconSettings },
+  ],
+};
 
 export function Navbar() {
-  const [active, setActive] = useState('Statistics');
+  const [active, setActive] = useState("Statistics");
   const router = useRouter();
+  const { logout } = useAuth();
 
-  const links = AdminNavbarContent.map((item) => (
+  const links = navbarContents.default.map((item) => (
     <a
       className={classes.link}
       data-active={item.label === active || undefined}
@@ -42,7 +52,7 @@ export function Navbar() {
       onClick={(event) => {
         event.preventDefault();
         setActive(item.label);
-        router.push(item.link); 
+        router.push(item.link);
       }}
     >
       <item.icon className={classes.linkIcon} stroke={1.5} />
@@ -50,22 +60,69 @@ export function Navbar() {
     </a>
   ));
 
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const userInfo = await CentralServerGetUserInfo();
+        if (userInfo["roleId"] === 1) {
+          links.push(
+            ...navbarContents.admin.map((item) => (
+              <a
+                className={classes.link}
+                data-active={item.label === active || undefined}
+                href={item.link}
+                key={item.label}
+                onClick={(event) => {
+                  event.preventDefault();
+                  setActive(item.label);
+                  router.push(item.link);
+                }}
+              >
+                <item.icon className={classes.linkIcon} stroke={1.5} />
+                <span>{item.label}</span>
+              </a>
+            )),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to fetch user role:", error);
+      }
+    };
+
+    fetchUserRole();
+  }, [active, links, router]);
+
   return (
     <nav className={classes.navbar}>
       <div className={classes.navbarMain}>
         <Group className={classes.header} justify="space-between">
-          <Code fw={700}>v3.1.2</Code>
+          <Title>{Program.name}</Title>
+          <Code fw={700}>{Program.version}</Code>
         </Group>
         {links}
       </div>
-
       <div className={classes.footer}>
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
-          <IconSwitchHorizontal className={classes.linkIcon} stroke={1.5} />
-          <span>Change account</span>
-        </a>
-
-        <a href="#" className={classes.link} onClick={(event) => event.preventDefault()}>
+        {/* <a */}
+        {/*   href="#" */}
+        {/*   className={classes.link} */}
+        {/*   onClick={(event) => event.preventDefault()} */}
+        {/* > */}
+        {/*   <IconSwitchHorizontal className={classes.linkIcon} stroke={1.5} /> */}
+        {/*   <span>Change account</span> */}
+        {/* </a> */}
+        <a
+          href="#"
+          className={classes.link}
+          onClick={(event) => {
+            event.preventDefault();
+            logout();
+            notifications.show({
+              title: "Logged Out",
+              message: "You are now logged out.",
+            });
+            router.push("/");
+          }}
+        >
           <IconLogout className={classes.linkIcon} stroke={1.5} />
           <span>Logout</span>
         </a>
