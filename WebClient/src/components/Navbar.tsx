@@ -11,6 +11,7 @@ import {
 } from '@tabler/icons-react';
 import { Code, Group } from '@mantine/core';
 //import { MantineLogo } from '@mantinex/mantine-logo';
+import { useRouter } from 'next/navigation';
 import classes from './NavbarSimple.module.css';
 
 const AdminNavbarContent = [
@@ -30,6 +31,7 @@ const UserNavbarContent = [
 
 export function Navbar() {
   const [active, setActive] = useState('Statistics');
+  const router = useRouter();
 
   const links = AdminNavbarContent.map((item) => (
     <a
@@ -40,6 +42,7 @@ export function Navbar() {
       onClick={(event) => {
         event.preventDefault();
         setActive(item.label);
+        router.push(item.link); 
       }}
     >
       <item.icon className={classes.linkIcon} stroke={1.5} />

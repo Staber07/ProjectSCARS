@@ -22,67 +22,45 @@ export default function rootContent() {
   };
 
   return (
-    <AppShell
-    header={{ height: 60 }}
-    navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-    padding="md"
-    >
-      <AppShell.Header>
-        header
-        <Group h="100%" px="md">
-          <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-        </Group>
-      </AppShell.Header>
-      <AppShell.Navbar p="md">
-        guard
-        {Array(15)
-          .fill(0)
-          .map((_, index) => (
-            <Skeleton key={index} h={28} mt="sm" animate={false} />
-          ))}
-      </AppShell.Navbar>
+    <div>
+      <Flex
+        mih={50}
+        gap="xl"
+        justify="flex-start"
+        align="flex-start"
+        direction="row"
+        wrap="nowrap"
+      >
+        <TextInput
+          placeholder="Search for users"
+          size="md"
+          style={{ width: '400px' }}
+        />
+        <ActionIcon
+          style={{ marginLeft: '300px' }}
+          size="input-md"
+          variant="default"
+          aria-label="ActionIcon the same size as inputs">
+          {<IconSearch size={16} />}
+        </ActionIcon>
+      </Flex>
+      <Table
+        stickyHeader
+        stickyHeaderOffset={60}
+        horizontalSpacing={"sm"}
+        verticalSpacing={"sm"}
+        highlightOnHover
+        data={tableData} />
 
-      <AppShell.Main>
-        <Flex
-          mih={50}
-          gap="xl"
-          justify="flex-start"
-          align="flex-start"
-          direction="row"
-          wrap="nowrap"
-        >
-          <TextInput
-            placeholder="Search for users"
-            size="md"
-            style={{ width: '400px' }}
-          />
-          <ActionIcon
-            style={{ marginLeft: '300px' }}
-            size="input-md"
-            variant="default"
-            aria-label="ActionIcon the same size as inputs">
-            {<IconSearch size={16} />}
-          </ActionIcon>
-        </Flex>
-        <Table
-          stickyHeader
-          stickyHeaderOffset={60}
-          horizontalSpacing={"sm"}
-          verticalSpacing={"sm"}
-          highlightOnHover
-          data={tableData} />
-
-        <Pagination.Root total={10}>
-          <Group gap={10} justify="center">
+      <Pagination.Root total={10}>
+        <Group gap={10} justify="center">
           <Pagination.First />
           <Pagination.Previous />
           <Pagination.Items />
           <Pagination.Next />
           <Pagination.Last />
-          </Group>
-        </Pagination.Root>
-      </AppShell.Main>
-
-    </AppShell>
+        </Group>
+      </Pagination.Root>
+    </div>
   );
 }
