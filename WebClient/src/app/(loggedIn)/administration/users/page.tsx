@@ -1,11 +1,10 @@
 "use client";
 
-import { AppShell, Burger, Skeleton, Group, TextInput} from '@mantine/core';
-//import { useState } from 'react';
+import { AppShell, Burger, Skeleton, Group, TextInput, ActionIcon, Flex } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Table, TableData } from '@mantine/core';
 import { Avatar } from '@mantine/core';
-//import { IconChevronDown, IconChevronUp, IconSearch, IconSelector } from '@tabler/icons-react';
+import { IconSearch } from '@tabler/icons-react';
 
 
 export default function rootContent() {
@@ -24,9 +23,9 @@ export default function rootContent() {
 
   return (
     <AppShell
-      header={{ height: 60 }}
-      navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
-      padding="md"
+    //header={{ height: 60 }}
+    //navbar={{ width: 300, breakpoint: 'sm', collapsed: { mobile: !opened } }}
+    //padding="md"
     >
       <AppShell.Header>
         header
@@ -44,8 +43,34 @@ export default function rootContent() {
       </AppShell.Navbar>
 
       <AppShell.Main>
-        //<TextInput></TextInput>
-        <Table stickyHeader stickyHeaderOffset={60} horizontalSpacing={"sm"} verticalSpacing={"sm"} highlightOnHover data={tableData} />
+        <Flex
+          mih={50}
+          gap="xl"
+          justify="flex-start"
+          align="flex-start"
+          direction="row"
+          wrap="nowrap"
+        >
+          <TextInput
+            placeholder="Search for users"
+            size="md"
+            style={{ width: '400px' }}
+          />
+          <ActionIcon
+            style={{ marginLeft: '300px' }}
+            size="input-md"
+            variant="default"
+            aria-label="ActionIcon the same size as inputs">
+            {<IconSearch size={16} />}
+          </ActionIcon>
+        </Flex>
+        <Table
+          stickyHeader
+          stickyHeaderOffset={60}
+          horizontalSpacing={"sm"}
+          verticalSpacing={"sm"}
+          highlightOnHover
+          data={tableData} />
       </AppShell.Main>
 
     </AppShell>
