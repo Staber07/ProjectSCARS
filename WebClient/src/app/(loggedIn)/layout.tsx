@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from '@/lib/providers/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { AppShell, Text } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 
 export default function rootLayout({
     children,
@@ -30,6 +31,7 @@ export function RootContent({
 
     const { isAuthenticated } = useAuth();
     const router = useRouter();
+    const [opened] = useDisclosure();
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -38,9 +40,17 @@ export function RootContent({
     }, [isAuthenticated, router]);
 
     return (
-        <AppShell> 
-            <AppShell.Navbar p="md"><Navbar/></AppShell.Navbar>
-            <AppShell.Main> 
+        <AppShell
+            header={{ height: 60 }}
+            navbar={{
+                width: 300,
+                breakpoint: 'sm',
+                collapsed: { mobile: !opened },
+            }}
+            padding="md"
+        >
+            <AppShell.Navbar p="md"><Navbar /></AppShell.Navbar>
+            <AppShell.Main>
                 {children}
             </AppShell.Main>
         </AppShell>
