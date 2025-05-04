@@ -1,33 +1,37 @@
 import { useState } from 'react';
 import {
-  Icon2fa,
-  IconBellRinging,
-  IconDatabaseImport,
-  IconFingerprint,
-  IconKey,
+  IconBuilding,
+  IconDashboard,
   IconLogout,
-  IconReceipt2,
+  IconReport,
   IconSettings,
   IconSwitchHorizontal,
+  IconUser,
+  IconGraph
 } from '@tabler/icons-react';
 import { Code, Group } from '@mantine/core';
 //import { MantineLogo } from '@mantinex/mantine-logo';
 import classes from './NavbarSimple.module.css';
 
-const data = [
-  { link: '', label: 'Notifications', icon: IconBellRinging },
-  { link: '', label: 'Billing', icon: IconReceipt2 },
-  { link: '', label: 'Security', icon: IconFingerprint },
-  { link: '', label: 'SSH Keys', icon: IconKey },
-  { link: '', label: 'Databases', icon: IconDatabaseImport },
-  { link: '', label: 'Authentication', icon: Icon2fa },
-  { link: '', label: 'Other Settings', icon: IconSettings },
+const AdminNavbarContent = [
+  { link: '/administration/statistics', label: 'Statistics', icon: IconGraph },
+  { link: '/administration/reports', label: 'Reports', icon: IconReport },
+  { link: '/administration/users', label: 'Users', icon: IconUser },
+  { link: '/administration/schools', label: 'Schools', icon: IconBuilding },
+  { link: '', label: 'Settings', icon: IconSettings }
 ];
 
-export function Navbar() {
-  const [active, setActive] = useState('Billing');
+const UserNavbarContent = [
+  { link: '/Dashboard', label: 'Dashboard', icon: IconDashboard },
+  { link: '', label: 'Statistics', icon: IconGraph },
+  { link: '', label: 'Reports', icon: IconReport },
+  { link: '', label: 'Profile', icon: IconUser },
+]
 
-  const links = data.map((item) => (
+export function Navbar() {
+  const [active, setActive] = useState('Statistics');
+
+  const links = AdminNavbarContent.map((item) => (
     <a
       className={classes.link}
       data-active={item.label === active || undefined}
