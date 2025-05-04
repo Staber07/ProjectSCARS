@@ -34,6 +34,9 @@ function RootContent() {
     if (!isAuthenticated) {
       router.push("/login"); // Redirect to the login page if not authenticated
     }
+    else {
+      router.push("/Dashboard"); // Redirect to the dashboard if authenticated
+    }
   }, [isAuthenticated, router]);
 
   // if rendering the page for the first time, show loading component

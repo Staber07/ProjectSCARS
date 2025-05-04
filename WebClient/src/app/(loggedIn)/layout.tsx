@@ -14,7 +14,7 @@ export default function rootLayout({
 
     return (
         <AuthProvider>
-            <RootContent children={children} />  
+            <RootContent children={children} />
         </AuthProvider>
     );
 }
@@ -25,7 +25,7 @@ export function RootContent({
     children: React.ReactNode
 }) {
 
-    
+
 
     const { isAuthenticated } = useAuth();
     const router = useRouter();
