@@ -14,10 +14,3 @@ test("Validate central server endpoint", () => {
   const urlRegex = /^(http|https):\/\/[^ "]+$/;
   expect(endpoint).toMatch(urlRegex);
 });
-
-test("Validate local server endpoint", () => {
-  // make sure local server endpoint is a valid URL
-  const endpoint = Connections.LocalServer.endpoint;
-  const urlRegex = /^(http|https):\/\/[^ "]+$/;
-  expect(endpoint).toMatch(urlRegex);
-});

@@ -8,9 +8,6 @@ export const Connections = {
   CentralServer: {
     endpoint: "http://localhost:8081",
   },
-  LocalServer: {
-    endpoint: "http://localhost:8082",
-  },
 };
 
 export const LocalStorage = {
