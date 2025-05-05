@@ -17,4 +17,7 @@
 
 ## Pull Requests
 
-In order for pull requests to be merged, all CI tests must pass first, although there are exceptions depending on the code owners' decision.
+In order for pull requests to be merged, all CI tests must pass first, although
+there are exceptions depending on the code owners' decision. A merge commit is
+preferred for pull requests opened by collaborators, while a rebase is preferred
+for pull requests created by automation tools (i.e., Dependabot).
