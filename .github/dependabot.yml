@@ -13,14 +13,6 @@ updates:
       - "tag > bot"
       - "kind > dependencies"
       - "scope > central server"
-  - package-ecosystem: "uv" # See documentation for possible values
-    directory: "/LocalServer" # Location of package manifests
-    schedule:
-      interval: "daily"
-    labels:
-      - "tag > bot"
-      - "kind > dependencies"
-      - "scope > local server"
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/WebClient" # Location of package manifests
     schedule:
