@@ -16,6 +16,7 @@ class DefaultRole:
 class JWTToken(SQLModel):
     """A model representing a JWT token."""
 
+    uid: uuid.UUID
     access_token: str
     token_type: str
 

@@ -19,8 +19,10 @@ logger = LoggerFactory().get_logger(__name__)
 
 
 class BucketNames(Enum):
-    AVATARS = "centralserver-avatars"
-    REPORT_EXPORTS = "centralserver-reports"
+    """Names of the buckets in the object store."""
+
+    AVATARS = "centralserver-avatars"  # Contains user profile pictures
+    REPORT_EXPORTS = "centralserver-reports"  # Contains exported reports
 
 
 class ObjectStoreAdapter(ABC):
@@ -81,21 +83,38 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     def get_object_filesystem_filename(self, fn: str) -> str:
+        """Hash the filename to create a unique identifier for the object.
+
+        Args:
+            fn: The filename to hash.
+        """
+
         return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
 
     @override
     def check(self) -> None:
+        """Check if the local object store is healthy."""
+
         logger.debug("Ensuring existence of local object store directories.")
         self.config.filepath.mkdir(parents=True, exist_ok=True)
         for directory in BucketNames:
-            logger.debug(f"Ensuring existence of directory: {directory.value}")
+            logger.debug("Ensuring existence of directory: %s", directory.value)
             subdir = self.config.filepath / directory.value
             subdir.mkdir(parents=True, exist_ok=True)
 
     @override
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+        """Store the object in the local object store.
+
+        Args:
+            bucket: The name of the bucket to put the object into.
+            fn: The name of the file in the object store.
+            obj: The object to put into the object store.
+        """
+
         logger.debug("Putting object into local object store.")
         if not self.validate_object_name(fn):
+            logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
         hashed_filename = self.get_object_filesystem_filename(fn)
@@ -103,6 +122,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         new_file_dir.mkdir(parents=True, exist_ok=True)
         new_fp = new_file_dir / hashed_filename
         if new_fp.exists():
+            logger.warning("File already exists: %s", new_fp)
             raise FileExistsError("File already exists. Please use a different name.")
 
         with open(
@@ -119,11 +139,19 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+        """Retrieve an object from the local object store.
+
+        Args:
+            bucket: The name of the bucket to get the object from.
+            hashed_filename: The hashed filename of the object to retrieve.
+        """
+
         logger.debug("Getting object from local object store.")
         object_fp = (
             self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
         )
         if not object_fp.exists():
+            logger.warning("File does not exist: %s", object_fp)
             raise FileNotFoundError(f"File {object_fp} does not exist.")
 
         data = object_fp.read_bytes()
@@ -136,11 +164,19 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        """Remove an object from the local object store.
+
+        Args:
+            bucket: The name of the bucket to delete the object from.
+            hashed_filename: The hashed filename of the object to delete.
+        """
+
         logger.debug("Deleting object from local object store.")
         object_fp = (
             self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename
         )
         if not object_fp.exists():
+            logger.warning("File does not exist: %s", object_fp)
             raise FileNotFoundError(f"File {object_fp} does not exist.")
 
         os.remove(object_fp)
@@ -158,6 +194,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
         self.config = config
 
+        logger.debug("Initializing MinIO object store adapter.")
         self.client = Minio(
             config.endpoint,
             access_key=config.access_key,
@@ -167,7 +204,11 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @staticmethod
     def validate_object_name(object_name: str) -> bool:
-        """Check if the object name is valid."""
+        """Check if the object name is valid.
+
+        Args:
+            object_name: The name of the object to validate.
+        """
 
         allowed_symbols = {"-", ".", "_"}
         # NOTE: Object name requirements:
@@ -184,20 +225,32 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def check(self) -> None:
+        """Check if the MinIO object store is healthy."""
+
         logger.debug("Ensuring existence of MinIO buckets.")
         for bucket in BucketNames:
-            logger.debug(f"Ensuring existence of bucket: {bucket.value}")
+            logger.debug("Ensuring existence of bucket: %s", bucket.value)
             if not self.client.bucket_exists(bucket.value):
-                logger.debug(f"Creating bucket: {bucket.value}")
+                logger.debug("Creating bucket: %s", bucket.value)
                 self.client.make_bucket(bucket.value)
 
     @override
     def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+        """Upload an object to the MinIO object store.
+
+        Args:
+            bucket: The name of the bucket to put the object into.
+            fn: The name of the file in the object store.
+            obj: The object to put into the object store.
+        """
+
         logger.debug("Putting object into MinIO object store.")
         if not self.validate_object_name(fn):
+            logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
         length = len(obj)
+        logger.debug("Object length: %d", length)
         self.client.put_object(
             bucket_name=bucket.value,
             object_name=fn,
@@ -213,12 +266,21 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+        """Retrieve an object from the MinIO object store.
+
+        Args:
+            bucket: The name of the bucket to get the object from.
+            hashed_filename: The hashed filename of the object to retrieve.
+        """
+
         logger.debug("Getting object from MinIO object store.")
         response = None
         try:
+            logger.debug("Retrieving object: %s", hashed_filename)
             response = self.client.get_object(
                 bucket_name=bucket.value, object_name=hashed_filename
             )
+            logger.debug("Object retrieved successfully. Reading...")
             response_data = response.read()
 
         finally:
@@ -237,10 +299,19 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
 
     @override
     def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        """Remove an object from the MinIO object store.
+
+        Args:
+            bucket: The name of the bucket to delete the object from.
+            hashed_filename: The hashed filename of the object to delete.
+        """
+
         logger.debug("Deleting object from MinIO object store.")
         try:
             self.client.remove_object(bucket.value, hashed_filename)
+
         except Exception as e:
+            logger.warning("File does not exist: %s", hashed_filename)
             raise FileNotFoundError(f"File {hashed_filename} does not exist.") from e
 
 
