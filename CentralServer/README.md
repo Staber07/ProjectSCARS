@@ -115,9 +115,9 @@ and can be used to pass additional SQLAlchemy connection arguments.
       "filepath": "database.db",
       "connect_args": {
         // SQLAlchemy connection arguments
-      }
-    }
-  }
+      },
+    },
+  },
   /* ... */
 }
 ```
@@ -286,3 +286,13 @@ containerized environment using Docker or Podman.
      /* ... */
    }
    ```
+
+#### Central Server Environment Variables
+
+The following environment variables are used by the central server
+to further configure its behavior. These variables are optional.
+
+| Environment Variable             | Value         | Description                                |
+| -------------------------------- | ------------- | ------------------------------------------ |
+| `CENTRAL_SERVER_CONFIG_FILE`     | ./config.json | The path of the configuration file to use. |
+| `CENTRAL_SERVER_CONFIG_ENCODING` | utf-8         | The encoding of the configuration file.    |
