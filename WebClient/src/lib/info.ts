@@ -11,7 +11,7 @@ export const Connections = {
 };
 
 export const LocalStorage = {
-  jwt_name: "at", // Access Token
-  jwt_type: "tt", // Token Type
-  user_data: "ud", // User Data
+  access_token: "at",
+  refresh_token: "rt",
+  user_data: "ud",
 };

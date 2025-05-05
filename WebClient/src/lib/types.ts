@@ -1,9 +1,10 @@
+/** A type representing an access token. */
 export type AccessTokenType = {
   access_token: string;
   token_type: string;
 };
 
-/** A model representing a user without sensitive information. */
+/** A type representing a user without sensitive information. */
 export type UserPublicType = {
   id: string;
   username: string;

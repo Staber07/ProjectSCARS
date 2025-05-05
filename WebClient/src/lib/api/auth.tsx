@@ -6,13 +6,12 @@ import { AccessTokenType, UserPublicType } from "@/lib/types";
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
 function GetAccessTokenHeader(): string {
-  const accessToken = localStorage.getItem(LocalStorage.jwt_name);
-  const tokenType = localStorage.getItem(LocalStorage.jwt_type);
-  if (accessToken === null || tokenType === null) {
-    throw new Error("Access token or token type is not set");
+  const accessToken = localStorage.getItem(LocalStorage.access_token);
+  if (accessToken === undefined) {
+    throw new Error("Access token is not set");
   }
 
-  return `${tokenType} ${accessToken}`;
+  return `Bearer ${accessToken}`;
 }
 
 /**
@@ -26,7 +25,7 @@ function GetAccessTokenHeader(): string {
 export async function CentralServerLogInUser(
   username: string,
   password: string,
-): Promise<AccessTokenType> {
+): Promise<AccessTokenType[]> {
   const loginFormData = new URLSearchParams();
   loginFormData.set("grant_type", "password");
   loginFormData.set("username", username);
@@ -41,11 +40,17 @@ export async function CentralServerLogInUser(
     );
   }
 
-  const responseData: AccessTokenType = await centralServerResponse.json();
-  return {
-    access_token: responseData["access_token"],
-    token_type: responseData["token_type"],
-  };
+  const responseData: AccessTokenType[] = await centralServerResponse.json();
+  return [
+    {
+      access_token: responseData[0]["access_token"],
+      token_type: responseData[0]["token_type"],
+    },
+    {
+      access_token: responseData[1]["access_token"],
+      token_type: responseData[1]["token_type"],
+    },
+  ];
 }
 
 export async function CentralServerGetUserInfo(
