@@ -1,23 +1,20 @@
 "use client";
 
-import { AppShell, Burger, Skeleton, Group, TextInput, ActionIcon, Flex, Pagination } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { Table, TableData } from '@mantine/core';
-import { Avatar } from '@mantine/core';
-import { IconSearch } from '@tabler/icons-react';
+import { Group, TextInput, ActionIcon, Flex, Pagination } from "@mantine/core";
+import { Table, TableData } from "@mantine/core";
+import { Avatar } from "@mantine/core";
+import { IconSearch } from "@tabler/icons-react";
 
-
-export default function rootContent() {
-  const [opened, { toggle }] = useDisclosure();
+export default function UsersPage() {
   const tableData: TableData = {
-    caption: 'Some elements from periodic table',
-    head: ['', 'Element position', 'Atomic mass', 'Symbol', 'Element name'],
+    caption: "Some elements from periodic table",
+    head: ["", "Element position", "Atomic mass", "Symbol", "Element name"],
     body: [
-      [<Avatar />, 6, 12.011, 'C', 'Carbon'],
-      [<Avatar />, 7, 14.007, 'N', 'Nitrogen'],
-      [<Avatar />, 39, 88.906, 'Y', 'Yttrium'],
-      [<Avatar />, 56, 137.33, 'Ba', 'Barium'],
-      [<Avatar />, 58, 140.12, 'Ce', 'Cerium'],
+      [<Avatar key="C" />, 6, 12.011, "C", "Carbon"],
+      [<Avatar key="N" />, 7, 14.007, "N", "Nitrogen"],
+      [<Avatar key="Y" />, 39, 88.906, "Y", "Yttrium"],
+      [<Avatar key="Ba" />, 56, 137.33, "Ba", "Barium"],
+      [<Avatar key="Ce" />, 58, 140.12, "Ce", "Cerium"],
     ],
   };
 
@@ -34,13 +31,14 @@ export default function rootContent() {
         <TextInput
           placeholder="Search for users"
           size="md"
-          style={{ width: '400px' }}
+          style={{ width: "400px" }}
         />
         <ActionIcon
-          style={{ marginLeft: '300px' }}
+          style={{ marginLeft: "300px" }}
           size="input-md"
           variant="default"
-          aria-label="ActionIcon the same size as inputs">
+          aria-label="ActionIcon the same size as inputs"
+        >
           {<IconSearch size={16} />}
         </ActionIcon>
       </Flex>
@@ -50,7 +48,8 @@ export default function rootContent() {
         horizontalSpacing={"sm"}
         verticalSpacing={"sm"}
         highlightOnHover
-        data={tableData} />
+        data={tableData}
+      />
 
       <Pagination.Root total={10}>
         <Group gap={10} justify="center">
@@ -64,3 +63,4 @@ export default function rootContent() {
     </div>
   );
 }
+
