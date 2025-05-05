@@ -67,10 +67,3 @@ jobs:
           flags: web-client
           fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
-
-      - name: Upload coverage data to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          directory: WebClient/
-          flags: central-server
-          fail_ci_if_error: true
