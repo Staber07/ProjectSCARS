@@ -162,6 +162,12 @@ async def refresh_access_token(
             detail="Invalid credentials",
         )
 
+    if not token.is_refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
     user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
     user.lastLoggedInIp = request.client.host if request.client else None
     session.commit()
