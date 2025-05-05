@@ -1,17 +1,25 @@
 ---
 name: Tests - Web Client
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   push:
-    paths:
-      - "WebClient/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "WebClient/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  test-web-client:
+    name: Test Web Client
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -43,3 +51,18 @@ jobs:
 
       - name: Build with Next.js
         run: npm run build
+        env:
+          # Used to upload bundle to Codecov for bundle analysis
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run Tests
+        run: npm run test:ci
+
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          directory: WebClient/
+          flags: web-client
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}

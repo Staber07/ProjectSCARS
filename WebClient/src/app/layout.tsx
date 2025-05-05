@@ -1,18 +1,19 @@
-import { Program } from "@/lib/info";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import Head from "next/head";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import {
+  ColorSchemeScript,
+  MantineProvider,
+  mantineHtmlProps,
+} from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
+
+import { Program } from "@/lib/info";
+import { defaultColorscheme, theme } from "@/lib/theme";
+
+import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 
 export const metadata: Metadata = {
   title: Program.name,
@@ -25,12 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-        <Toaster richColors closeButton />
+    <html lang="en" {...mantineHtmlProps}>
+      <Head>
+        <ColorSchemeScript />
+      </Head>
+      <body>
+        <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
+          {children}
+          <Notifications />
+        </MantineProvider>
       </body>
     </html>
   );

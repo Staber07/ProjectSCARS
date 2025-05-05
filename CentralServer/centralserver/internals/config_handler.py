@@ -1,23 +1,30 @@
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from centralserver import info
+from centralserver.internals.adapters.config import (
+    DatabaseAdapterConfig,
+    LocalObjectStoreAdapterConfig,
+    MinIOObjectStoreAdapterConfig,
+    MySQLDatabaseConfig,
+    ObjectStoreAdapterConfig,
+    SQLiteDatabaseConfig,
+)
 
 
 class Debug:
     """The debugging configuration."""
 
-    def __init__(self, enabled: bool | None = None, use_test_db: bool | None = None):
+    def __init__(self, enabled: bool | None = None):
         """Create a configuration object for debugging.
 
         Args:
             enabled: If True, enable debugging mode.
-            use_test_db: If True, use the test SQLite database instead of the production database.
         """
 
         self.enabled: bool = enabled or False
-        self.use_test_db: bool = use_test_db or False
 
 
 class Logging:
@@ -55,79 +62,6 @@ class Logging:
         self.date_format: str = date_format or "%d-%m-%y_%H-%M-%S"
 
 
-class Database:
-    """The database configuration."""
-
-    def __init__(
-        self,
-        db_type: str | None = None,
-        db_driver: str | None = None,
-        username: str | None = None,
-        password: str | None = None,
-        host: str | None = None,
-        port: int | None = None,
-        database: str | None = None,
-    ):
-        """Create a configuration object for the database.
-
-        Args:
-            db_type: The type of the database.
-            db_driver: The drive to use.
-            username: The database username.
-            password: The database password.
-            host: The hostname of the database server.
-            port: The port number of the database server.
-            database: The database name.
-        """
-
-        self.db_type: str = db_type or "mysql"
-        self.db_driver: str = db_driver or "pymysql"
-        self.username: str = username or "root"
-        self.password: str = password or ""
-        self.host: str = host or "localhost"
-        self.port: int = port or 3306
-        self.database: str = database or "projectscars"
-
-    @property
-    def sqlalchemy_uri(self) -> str:
-        """Get the database URI for SQLAlchemy."""
-        return (
-            "{type}+{driver}://{username}:{password}@{host}:{port}/{database}".format(
-                type=self.db_type,
-                driver=self.db_driver,
-                username=self.username,
-                password=self.password,
-                host=self.host,
-                port=self.port,
-                database=self.database,
-            )
-        )
-
-
-class TestDatabase:
-    """The test database configuration."""
-
-    def __init__(
-        self,
-        filepath: str | None = None,
-    ):
-        """Create a configuration object for the test database.
-
-        Args:
-            filepath: The location of the SQLite database file.
-        """
-
-        self.filepath: str = filepath or os.path.join(
-            os.getcwd(), "tests", "data", "test.db"
-        )
-
-    @property
-    def sqlalchemy_uri(self) -> str:
-        """Get the database URI for SQLAlchemy."""
-
-        return f"sqlite:///{self.filepath}"
-
-
 class Authentication:
     """The authentication configuration."""
 
@@ -162,6 +96,27 @@ class Authentication:
         ):
             raise ValueError(
                 "Signing or encryption secret key is empty in configuration file."
+            )
+
+        if signing_secret_key == "UPDATE_THIS_VALUE" or len(signing_secret_key) != 64:
+            raise ValueError(
+                "Signing secret key is not valid. Please update the configuration file."
+            )
+
+        if (
+            refresh_signing_secret_key == "UPDATE_THIS_VALUE"
+            or len(refresh_signing_secret_key) != 64
+        ):
+            raise ValueError(
+                "Refresh signing secret key is not valid. Please update the configuration file."
+            )
+
+        if (
+            encryption_secret_key == "UPDATE_THIS_VALUE"
+            or len(encryption_secret_key) != 32
+        ):
+            raise ValueError(
+                "Encryption secret key is not valid. Please update the configuration file."
             )
 
         self.signing_secret_key: str = signing_secret_key
@@ -204,8 +159,8 @@ class AppConfig:
         self,
         debug: Debug | None = None,
         logging: Logging | None = None,
-        database: Database | None = None,
-        test_database: TestDatabase | None = None,
+        database: DatabaseAdapterConfig | None = None,
+        object_store: ObjectStoreAdapterConfig | None = None,
         authentication: Authentication | None = None,
         security: Security | None = None,
     ):
@@ -215,6 +170,7 @@ class AppConfig:
             debug: Debugging configuration.
             logging: Logging configuration.
             database: Database configuration.
+            object_store: Object store configuration.
             test_database: Test database configuration.
             authentication: Authentication configuration.
             security: Security configuration.
@@ -222,13 +178,128 @@ class AppConfig:
 
         self.debug: Debug = debug or Debug()
         self.logging: Logging = logging or Logging()
-        self.database: Database = database or Database()
-        self.test_database: TestDatabase = test_database or TestDatabase()
+        # By default, use SQLite for the database.
+        self.database: DatabaseAdapterConfig = database or SQLiteDatabaseConfig()
+        # By default, store files locally.
+        self.object_store: ObjectStoreAdapterConfig = (
+            object_store or LocalObjectStoreAdapterConfig()
+        )
         self.authentication: Authentication = authentication or Authentication()
         self.security: Security = security or Security()
 
 
-def read_config_file(
+def read_config(config: dict[str, Any]) -> AppConfig:
+    """Update the application's configuration from a JSON file.
+
+    Args:
+        config: The configuration file contents.
+
+    Returns:
+        A new AppConfig object.
+    """
+
+    debug_config = config.get("debug", {})
+    logging_config = config.get("logging", {})
+    authentication_config = config.get("authentication", {})
+    security_config = config.get("security", {})
+
+    # Determine database type and create the appropriate config object
+    database: dict[str, Any] = config.get("database", {})
+    database_type: None | str = database.get("type", None)
+    database_config: dict[str, Any] = database.get("config", {})
+    final_db_config: DatabaseAdapterConfig | None = None
+    match database_type:
+        case "sqlite":
+            final_db_config = SQLiteDatabaseConfig(
+                filepath=database_config.get("filepath", None),
+                connect_args=database_config.get("connect_args", None),
+            )
+
+        case "mysql":
+            final_db_config = MySQLDatabaseConfig(
+                username=database_config.get("username", None),
+                password=database_config.get("password", None),
+                host=database_config.get("host", None),
+                port=database_config.get("port", None),
+                database=database_config.get("database", None),
+                connect_args=database_config.get("connect_args", None),
+            )
+
+        case None:  # Skip if no database is specified
+            pass
+
+        case _:  # Error if the database type is not supported
+            raise ValueError(f"Unsupported {database_type} database type.")
+
+    # Determine object store type and create the appropriate config object
+    object_store: dict[str, Any] = config.get("object_store", {})
+    object_store_type: None | str = object_store.get("type", None)
+    object_store_config: dict[str, Any] = object_store.get("config", {})
+    final_object_store_config: ObjectStoreAdapterConfig | None = None
+    match object_store_type:
+        case "local":
+            final_object_store_config = LocalObjectStoreAdapterConfig(
+                filepath=object_store_config.get("filepath", None)
+            )
+
+        case "minio":
+            final_object_store_config = MinIOObjectStoreAdapterConfig(
+                access_key=object_store_config.get("access_key", None),
+                secret_key=object_store_config.get("secret_key", None),
+                endpoint=object_store_config.get("endpoint", None),
+                secure=object_store_config.get("secure", None),
+            )
+
+        case None:  # Skip if no object store is specified
+            pass
+
+        case _:  # Error if the object store type is not supported
+            raise ValueError(f"Unsupported {object_store_type} object store type.")
+
+    return AppConfig(
+        debug=Debug(
+            enabled=debug_config.get("enabled", None),
+        ),
+        logging=Logging(
+            filepath=logging_config.get("filepath", None),
+            max_bytes=logging_config.get("max_bytes", None),
+            backup_count=logging_config.get("backup_count", None),
+            encoding=logging_config.get("encoding", None),
+            log_format=logging_config.get("log_format", None),
+            date_format=logging_config.get("date_format", None),
+        ),
+        database=final_db_config,
+        object_store=final_object_store_config,
+        authentication=Authentication(
+            signing_secret_key=authentication_config.get("signing_secret_key", None),
+            refresh_signing_secret_key=authentication_config.get(
+                "refresh_signing_secret_key", None
+            ),
+            encryption_secret_key=authentication_config.get(
+                "encryption_secret_key", None
+            ),
+            signing_algorithm=authentication_config.get("signing_algorithm", None),
+            encryption_algorithm=authentication_config.get(
+                "encryption_algorithm", None
+            ),
+            encoding=authentication_config.get("encoding", None),
+            access_token_expire_minutes=authentication_config.get(
+                "access_token_expire_minutes", None
+            ),
+            refresh_token_expire_minutes=authentication_config.get(
+                "refresh_token_expire_minutes", None
+            ),
+        ),
+        security=Security(
+            allow_origins=security_config.get("allow_origins", None),
+            allow_credentials=security_config.get("allow_credentials", None),
+            allow_methods=security_config.get("allow_methods", None),
+            allow_headers=security_config.get("allow_headers", None),
+        ),
+    )
+
+
+def __read_config_file(
     fp: str | Path,
     enc: str = info.Configuration.default_encoding,
 ) -> AppConfig:
@@ -243,72 +314,11 @@ def read_config_file(
     """
 
     with open(fp, "r", encoding=enc) as f:
-        config = json.load(f)
-
-        debug_config = config.get("debug", {})
-        logging_config = config.get("logging", {})
-        database_config = config.get("database", {})
-        test_database_config = config.get("test_database", {})
-        authentication_config = config.get("authentication", {})
-        security_config = config.get("security", {})
-
-        return AppConfig(
-            debug=Debug(
-                enabled=debug_config.get("enabled", None),
-                use_test_db=debug_config.get("use_test_db", None),
-            ),
-            logging=Logging(
-                filepath=logging_config.get("filepath", None),
-                max_bytes=logging_config.get("max_bytes", None),
-                backup_count=logging_config.get("backup_count", None),
-                encoding=logging_config.get("encoding", None),
-                log_format=logging_config.get("log_format", None),
-                date_format=logging_config.get("date_format", None),
-            ),
-            database=Database(
-                db_type=database_config.get("db_type", None),
-                db_driver=database_config.get("db_driver", None),
-                username=database_config.get("username", None),
-                password=database_config.get("password", None),
-                host=database_config.get("host", None),
-                port=database_config.get("port", None),
-                database=database_config.get("database", None),
-            ),
-            test_database=TestDatabase(
-                filepath=test_database_config.get("filepath", None),
-            ),
-            authentication=Authentication(
-                signing_secret_key=authentication_config.get(
-                    "signing_secret_key", None
-                ),
-                refresh_signing_secret_key=authentication_config.get(
-                    "refresh_signing_secret_key", None
-                ),
-                encryption_secret_key=authentication_config.get(
-                    "encryption_secret_key", None
-                ),
-                signing_algorithm=authentication_config.get("signing_algorithm", None),
-                encryption_algorithm=authentication_config.get(
-                    "encryption_algorithm", None
-                ),
-                encoding=authentication_config.get("encoding", None),
-                access_token_expire_minutes=authentication_config.get(
-                    "access_token_expire_minutes", None
-                ),
-                refresh_token_expire_minutes=authentication_config.get(
-                    "refresh_token_expire_minutes", None
-                ),
-            ),
-            security=Security(
-                allow_origins=security_config.get("allow_origins", None),
-                allow_credentials=security_config.get("allow_credentials", None),
-                allow_methods=security_config.get("allow_methods", None),
-                allow_headers=security_config.get("allow_headers", None),
-            ),
-        )
+        return read_config(json.load(f))
 
 
 # The global configuration object for the application.
-app_config = read_config_file(
-    os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath)
+app_config = __read_config_file(
+    os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath),
+    os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
 )

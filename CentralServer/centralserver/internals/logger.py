@@ -84,7 +84,6 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{info.Configuration.default_encoding=}")
 
     logger.debug(f"{app_config.debug.enabled=}")
-    logger.debug(f"{app_config.debug.use_test_db=}")
 
     logger.debug(f"{app_config.logging.filepath=}")
     logger.debug(f"{app_config.logging.max_bytes=}")
@@ -93,22 +92,8 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.logging.log_format=}")
     logger.debug(f"{app_config.logging.date_format=}")
 
-    logger.debug(f"{app_config.database.db_type=}")
-    logger.debug(f"{app_config.database.db_driver=}")
-    logger.debug(f"{app_config.database.username=}")
-    # Hide the password in the logs
-    logger.debug(
-        f"app_config.database.password={'*' * 8}"
-        if app_config.database.password
-        else "app_config.database.password=None"
-    )
-    logger.debug(f"{app_config.database.host=}")
-    logger.debug(f"{app_config.database.port=}")
-    logger.debug(f"{app_config.database.database=}")
-    logger.debug(f"{app_config.database.sqlalchemy_uri=}")
-
-    logger.debug(f"{app_config.test_database.filepath=}")
-    logger.debug(f"{app_config.test_database.sqlalchemy_uri=}")
+    logger.debug(f"{app_config.database.info=}")
+    logger.debug(f"{app_config.object_store.info=}")
 
     # Hide the secret key in the logs
     logger.debug(

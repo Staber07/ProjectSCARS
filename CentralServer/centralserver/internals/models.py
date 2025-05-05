@@ -1,6 +1,16 @@
+import datetime
 import uuid
+from dataclasses import dataclass
 
+from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
+
+
+@dataclass(frozen=True)
+class DefaultRole:
+    id: int
+    description: str
+    modifiable: bool
 
 
 class JWTToken(SQLModel):
@@ -38,6 +48,10 @@ class Role(SQLModel, table=True):
         unique=True,
         description="Canteen Manager, Principal, Administrator, or Superintendent",
     )
+    modifiable: bool = Field(
+        default=False,
+        description="Whether the role's characteristics can be modified.",
+    )
 
     users: list["User"] = Relationship(back_populates="role")
 
@@ -55,7 +69,7 @@ class User(SQLModel, table=True):
     )
 
     username: str = Field(unique=True, description="The username of the user.")
-    email: str | None = Field(
+    email: EmailStr | None = Field(
         default=None, unique=True, description="The email address of the user."
     )
     nameFirst: str | None = Field(
@@ -65,7 +79,7 @@ class User(SQLModel, table=True):
         default=None, description="The middle name of the user."
     )
     nameLast: str | None = Field(default=None, description="The last name of the user.")
-    avatarUrl: str | None = Field(
+    avatarUrn: str | None = Field(
         default=None,
         description="A link to the user's avatar within the file storage server.",
     )
@@ -84,6 +98,27 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user account is deactivated.",
     )
+    forceUpdateInfo: bool = Field(
+        default=False,
+        description="Whether the user is required to update their information.",
+    )
+
+    dateCreated: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+        description="The timestamp when the record was created.",
+    )
+    lastModified: datetime.datetime = Field(
+        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
+        description="The last time the user information was modified.",
+    )
+    lastLoggedInTime: datetime.datetime | None = Field(
+        default=None,
+        description="The last time the user logged in.",
+    )
+    lastLoggedInIp: str | None = Field(
+        default=None,
+        description="The last IP address the user logged in from.",
+    )
 
     school: School | None = Relationship(
         back_populates="users",
@@ -96,19 +131,44 @@ class UserPublic(SQLModel):
 
     id: str
     username: str
-    email: str | None
+    email: EmailStr | None
     nameFirst: str | None
     nameMiddle: str | None
     nameLast: str | None
-    avatarUrl: str | None
+    avatarUrn: str | None
     schoolId: int | None
     roleId: int
     deactivated: bool
+    forceUpdateInfo: bool
+    dateCreated: datetime.datetime
+    lastModified: datetime.datetime
+    lastLoggedInTime: datetime.datetime | None
+    lastLoggedInIp: str | None
 
 
-class UserLoginRequest(SQLModel):
-    """A model for requesting user logins."""
+class UserUpdate(SQLModel):
+    """A model used when updating user information."""
+
+    id: str  # The ID of the user to be updated.
+    username: str | None = None
+    email: EmailStr | None = None
+    nameFirst: str | None = None
+    nameMiddle: str | None = None
+    nameLast: str | None = None
+    password: str | None = None
+
+
+class NewUserRequest(SQLModel):
+    """A model used for creating new user accounts."""
 
     username: str
     roleId: int
     password: str
+
+
+class BucketObject(SQLModel):
+    """A model representing an object in a bucket."""
+
+    bucket: str
+    fn: str
+    obj: bytes

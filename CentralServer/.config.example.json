@@ -1,10 +1,9 @@
 {
   "debug": {
-    "enabled": false,
-    "use_test_db": false
+    "enabled": false
   },
   "logging": {
-    "filepath": "./logs/centralserver-{0}.log",
+    "filepath": "./logs/centralserver.log",
     "max_bytes": 10485760,
     "backup_count": 5,
     "encoding": "utf-8",
@@ -12,16 +11,14 @@
     "date_format": "%d-%m-%y_%H-%M-%S"
   },
   "database": {
-    "db_type": "mysql",
-    "db_driver": "pymysql",
-    "username": "root",
-    "password": "",
-    "host": "localhost",
-    "port": 3306,
-    "database": "projectscars"
+    "type": "sqlite",
+    "config": { "filepath": "./centralserver.db" }
   },
-  "test_database": {
-    "filepath": "./tests/data/test.db"
+  "object_store": {
+    "type": "local",
+    "config": {
+      "filepath": "./data/"
+    }
   },
   "authentication": {
     "signing_secret_key": "UPDATE_THIS_VALUE",
@@ -33,7 +30,7 @@
     "refresh_token_expire_minutes": 10080
   },
   "security": {
-    "allow_origins": ["http://localhost:3000"],
+    "allow_origins": ["http://localhost:8080"],
     "allow_credentials": true,
     "allow_methods": ["*"],
     "allow_headers": ["*"]

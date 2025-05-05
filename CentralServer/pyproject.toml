@@ -1,13 +1,13 @@
 [project]
 name = "centralserver"
-version = "0.1.0"
+version = "0.3.2"
 description = "The central server for the project"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.115.12",
+    "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
-    "pyjwt>=2.10.1",
     "pymysql>=1.1.1",
     "python-jose[cryptography]>=3.4.0",
     "sqlalchemy>=2.0.40",
@@ -27,6 +27,6 @@ dev = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cache-clear --color=yes --code-highlight=yes --cov=centralserver -vvv"
+addopts = "--cache-clear --color=yes --code-highlight=yes --cov=centralserver --cov-branch --cov-report=term --cov-report=xml -vvv"
 testpaths = ["tests"]
 env_files = [".pytest.env"]

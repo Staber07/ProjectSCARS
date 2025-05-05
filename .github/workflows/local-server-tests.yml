@@ -1,18 +1,25 @@
 ---
 name: Tests - Local Server
+permissions:
+  contents: read
+  pull-requests: read
 
 on:
   push:
-    paths:
-      - "LocalServer/**"
+    branches:
+      - main
   pull_request:
     paths:
       - "LocalServer/**"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: python
+  test-local-server:
+    name: Test Local Server
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,3 +60,10 @@ jobs:
 
       - name: Minimize uv cache
         run: uv cache prune --ci
+
+      - name: Upload coverage data to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          directory: LocalServer/
+          flags: local-server
+          fail_ci_if_error: true
