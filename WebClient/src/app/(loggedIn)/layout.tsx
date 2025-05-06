@@ -8,29 +8,32 @@ import { useDisclosure } from "@mantine/hooks";
 import { AuthProvider, useAuth } from "@/lib/providers/auth";
 import { Navbar } from "@/components/Navbar";
 
-export default function rootLayout({
+export default function LoggedInLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  console.debug("Rendering LoggedInLayout");
   return (
     <AuthProvider>
-      <RootContent>{children}</RootContent>
+      <LoggedInContent>{children}</LoggedInContent>
     </AuthProvider>
   );
 }
 
-function RootContent({ children }: { children: React.ReactNode }) {
+function LoggedInContent({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const router = useRouter();
   const [opened] = useDisclosure();
 
   useEffect(() => {
+    console.debug("LoggedInContent useEffect started", { isAuthenticated });
     if (!isAuthenticated) {
       router.push("/");
     }
   }, [isAuthenticated, router]);
 
+  console.debug("Rendering LoggedInContent", { isAuthenticated });
   return (
     <AppShell
       header={{ height: 60 }}

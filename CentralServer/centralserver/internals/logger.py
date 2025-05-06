@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from time import strftime
 
@@ -119,3 +120,4 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.security.allow_credentials=}")
     logger.debug(f"{app_config.security.allow_methods=}")
     logger.debug(f"{app_config.security.allow_headers=}")
+    logger.debug(f"Environment Variables:\n\n{os.environ}")

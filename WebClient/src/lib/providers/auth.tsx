@@ -2,11 +2,14 @@
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { LocalStorage } from "@/lib/info";
-import { AccessTokenType } from "@/lib/types";
+import { TokenType } from "@/lib/types";
 
 interface AuthContextType {
   isAuthenticated: boolean; // Whether the user is authenticated
-  login: (token: AccessTokenType) => void; // Function to log the user in
+  login: (
+    access_token: TokenType,
+    refresh_token: TokenType,
+  ) => void; // Function to log the user in
   logout: () => void; // Function to log the user out
 }
 
@@ -24,22 +27,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     console.debug("Window is defined");
-    const stored_auth_state = localStorage.getItem(LocalStorage.jwt_name);
+    const stored_auth_state = localStorage.getItem(LocalStorage.access_token);
     return stored_auth_state !== null;
   });
 
   /// Log the user in
-  const login = (token: AccessTokenType) => {
-    localStorage.setItem(LocalStorage.jwt_name, token.access_token);
-    localStorage.setItem(LocalStorage.jwt_type, token.token_type);
+  const login = (
+    access_token: TokenType,
+    refresh_token: TokenType,
+  ) => {
+    console.debug("Setting local login state to true");
+    localStorage.setItem(
+      LocalStorage.access_token,
+      JSON.stringify(access_token),
+    );
+    localStorage.setItem(
+      LocalStorage.refresh_token,
+      JSON.stringify(refresh_token),
+    );
     setIsAuthenticated(true);
   };
 
   /// Log the user out
   const logout = () => {
-    console.log("Logging out");
+    console.debug("Setting local login state to false");
     setIsAuthenticated(false);
-    localStorage.removeItem(LocalStorage.jwt_name);
+    localStorage.removeItem(LocalStorage.access_token);
+    localStorage.removeItem(LocalStorage.refresh_token);
+    localStorage.removeItem(LocalStorage.user_data);
   };
 
   return (
@@ -54,9 +69,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
  * This hook is used to access the authentication context in a component
  */
 export function useAuth(): AuthContextType {
+  console.debug("useAuth called");
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    const errorMessage = "useAuth must be used within an AuthProvider";
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
   return ctx;
 }

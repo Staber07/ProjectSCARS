@@ -145,14 +145,20 @@ def update_user_avatar(
 
     object_store_manager = get_object_store_handler(app_config.object_store)
     if img is None:
+        logger.debug("Deleting avatar for user: %s", target_user)
         if selected_user.avatarUrn is None:
+            logger.warning("No avatar to delete for user: %s", target_user)
             raise ValueError("No avatar to delete.")
 
         object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
         selected_user.avatarUrn = None
 
     else:
+        logger.debug("Updating avatar for user: %s", target_user)
         object = object_store_manager.put(BucketNames.AVATARS, selected_user.id, img)
+        if selected_user.avatarUrn is not None:  # Delete old avatar if it exists
+            object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
+
         selected_user.avatarUrn = object.fn
 
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
@@ -181,6 +187,7 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
         )
 
     if target_user.username:  # Update username if provided
+        logger.debug("Updating username for user: %s", target_user.id)
         # Check username availability
         if target_user.username != selected_user.username:
             try:
@@ -213,18 +220,23 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
         selected_user.username = target_user.username
 
     if target_user.email:  # Update email if provided
+        logger.debug("Updating email for user: %s", target_user.id)
         selected_user.email = target_user.email
 
     if target_user.nameFirst:  # Update first name if provided
+        logger.debug("Updating first name for user: %s", target_user.id)
         selected_user.nameFirst = target_user.nameFirst
 
     if target_user.nameMiddle:  # Update middle name if provided
+        logger.debug("Updating middle name for user: %s", target_user.id)
         selected_user.nameMiddle = target_user.nameMiddle
 
     if target_user.nameLast:  # Update last name if provided
+        logger.debug("Updating last name for user: %s", target_user.id)
         selected_user.nameLast = target_user.nameLast
 
     if target_user.password:  # Update password if provided
+        logger.debug("Updating password for user: %s", target_user.id)
         if not validate_password(target_user.password):  # Validate password
             logger.warning(
                 "Failed to update user: %s (invalid password format)",

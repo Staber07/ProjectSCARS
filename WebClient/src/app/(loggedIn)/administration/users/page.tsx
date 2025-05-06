@@ -18,6 +18,7 @@ export default function UsersPage() {
     ],
   };
 
+  console.debug("Rendering UsersPage");
   return (
     <div>
       <Flex
@@ -63,4 +64,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
