@@ -38,10 +38,17 @@ export function MainLoginComponent(): React.ReactElement {
     password: string;
     rememberMe: boolean;
   }) => {
+    console.debug("Logging in user", {
+      username: values.username,
+      rememberMe: values.rememberMe,
+    });
     try {
-      auth.login(
-        await CentralServerLogInUser(values.username, values.password),
+      const tokens = await CentralServerLogInUser(
+        values.username,
+        values.password,
       );
+      auth.login(tokens[0], tokens[1]);
+      console.info(`Login successful for user ${values.username}`);
       notifications.show({
         title: "Login successful",
         message: "You are now logged in.",
@@ -56,6 +63,7 @@ export function MainLoginComponent(): React.ReactElement {
     }
   };
 
+  console.debug("Returning MainLoginComponent");
   return (
     <Container size={420} my={40}>
       <Title ta="center" className={classes.title}>

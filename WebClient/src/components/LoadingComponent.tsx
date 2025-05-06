@@ -14,6 +14,7 @@ type LoadingComponentProps = {
 export const LoadingComponent: React.FC<LoadingComponentProps> = ({
   message = null,
 }) => {
+  console.debug("Returning LoadingComponent", { message });
   return (
     <Center>
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">

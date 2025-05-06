@@ -11,6 +11,7 @@ import { LoadingComponent } from "@/components/LoadingComponent";
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function RootPage() {
+  console.debug("Rendering RootPage");
   return (
     <AuthProvider>
       <RootContent />
@@ -29,9 +30,11 @@ function RootContent() {
   const router = useRouter();
 
   useEffect(() => {
+    console.debug("RootContent useEffect started", { isAuthenticated });
     router.push(isAuthenticated ? "/dashboard" : "/login");
   }, [isAuthenticated, router]);
 
+  console.debug("Rendering RootContent", { isAuthenticated });
   // if rendering the page for the first time, show loading component
   if (!isAuthenticated) {
     return <LoadingComponent />;

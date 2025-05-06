@@ -36,12 +36,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     access_token: AccessTokenType,
     refresh_token: AccessTokenType,
   ) => {
+    console.debug("Setting local login state to true");
     localStorage.setItem(
       LocalStorage.access_token,
       JSON.stringify(access_token),
     );
     localStorage.setItem(
-      LocalStorage.access_token,
+      LocalStorage.refresh_token,
       JSON.stringify(refresh_token),
     );
     setIsAuthenticated(true);
@@ -49,7 +50,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   /// Log the user out
   const logout = () => {
-    console.log("Logging out");
+    console.debug("Setting local login state to false");
     setIsAuthenticated(false);
     localStorage.removeItem(LocalStorage.access_token);
     localStorage.removeItem(LocalStorage.refresh_token);
@@ -68,9 +69,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
  * This hook is used to access the authentication context in a component
  */
 export function useAuth(): AuthContextType {
+  console.debug("useAuth called");
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    const errorMessage = "useAuth must be used within an AuthProvider";
+    console.error(errorMessage);
+    throw new Error(errorMessage);
   }
   return ctx;
 }

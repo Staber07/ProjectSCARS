@@ -84,11 +84,11 @@ export function Navbar() {
       className={classes.link}
       data-active={item.key === active || undefined}
       href={item.link}
-      key={item.label}
+      key={item.key}
       onClick={(event) => {
-        console.debug("Clicked link: ", item.label);
+        console.debug("Clicked navbar link: ", item.label);
         event.preventDefault();
-        setActive(item.label);
+        setActive(item.key);
         // router.push(item.link);
       }}
     >
@@ -97,6 +97,7 @@ export function Navbar() {
     </a>
   ));
 
+  console.debug("Returning Navbar");
   return (
     <nav className={classes.navbar}>
       <div className={classes.navbarMain}>
@@ -113,6 +114,7 @@ export function Navbar() {
           onClick={(event) => {
             event.preventDefault();
             logout();
+            console.info("User logged out");
             notifications.show({
               title: "Logged Out",
               message: "You are now logged out.",

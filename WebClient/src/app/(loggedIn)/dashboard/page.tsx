@@ -8,12 +8,13 @@ import { UserPublicType } from "@/lib/types";
 export default function DashboardPage() {
   const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
   useEffect(() => {
+    console.debug("DashboardPage useEffect started");
     const fetchUserInfo = async () => {
       setUserInfo(await CentralServerGetUserInfo());
     };
     fetchUserInfo();
   });
+  console.debug("Rendering DashboardPage");
   // TODO: WIP
   return <Text>{JSON.stringify(userInfo)}</Text>;
 }
-

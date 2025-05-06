@@ -1,3 +1,4 @@
+// NOTE: react-scan must be the top-most import
 import { ReactScan } from "@/components/dev/ReactScan";
 
 import type { Metadata } from "next";
@@ -23,11 +24,13 @@ export const metadata: Metadata = {
   description: Program.description,
 };
 
+/** The layout for the entire application. */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.debug("Rendering RootLayout");
   return (
     <html lang="en" {...mantineHtmlProps}>
       <ReactScan />
