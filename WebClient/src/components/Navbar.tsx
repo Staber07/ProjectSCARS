@@ -74,7 +74,7 @@ const navbarContents = {
   ],
 };
 
-export function Navbar() {
+export function Navbar(enableAdminButtons: boolean = false) {
   const [active, setActive] = useState("dashboard");
   const router = useRouter();
   const { logout } = useAuth();
@@ -96,6 +96,26 @@ export function Navbar() {
       <span>{item.label}</span>
     </a>
   ));
+  const adminLinks = navbarContents.admin.map(
+    (item) =>
+      enableAdminButtons && (
+        <a
+          className={classes.link}
+          data-active={item.key === active || undefined}
+          href={item.link}
+          key={item.key}
+          onClick={(event) => {
+            console.debug("Clicked navbar link: ", item.label);
+            event.preventDefault();
+            setActive(item.key);
+            router.push(item.link);
+          }}
+        >
+          <item.icon className={classes.linkIcon} stroke={1.5} />
+          <span>{item.label}</span>
+        </a>
+      ),
+  );
 
   console.debug("Returning Navbar");
   return (
@@ -106,6 +126,7 @@ export function Navbar() {
           <Code fw={700}>{Program.version}</Code>
         </Group>
         {links}
+        {adminLinks}
       </div>
       <div className={classes.footer}>
         <a
