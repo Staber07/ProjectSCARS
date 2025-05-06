@@ -2,13 +2,13 @@
 
 import React, { createContext, useState, useContext, ReactNode } from "react";
 import { LocalStorage } from "@/lib/info";
-import { AccessTokenType } from "@/lib/types";
+import { TokenType } from "@/lib/types";
 
 interface AuthContextType {
   isAuthenticated: boolean; // Whether the user is authenticated
   login: (
-    access_token: AccessTokenType,
-    refresh_token: AccessTokenType,
+    access_token: TokenType,
+    refresh_token: TokenType,
   ) => void; // Function to log the user in
   logout: () => void; // Function to log the user out
 }
@@ -33,8 +33,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   /// Log the user in
   const login = (
-    access_token: AccessTokenType,
-    refresh_token: AccessTokenType,
+    access_token: TokenType,
+    refresh_token: TokenType,
   ) => {
     console.debug("Setting local login state to true");
     localStorage.setItem(
