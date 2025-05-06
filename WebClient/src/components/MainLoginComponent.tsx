@@ -72,7 +72,7 @@ export function MainLoginComponent(): React.ReactElement {
 
   console.debug("Returning MainLoginComponent");
   return (
-    <Container size={420} my={40}>
+    <Container size={420} my={40} style={{ paddingTop: "150px" }}>
       <Title ta="center" className={classes.title}>
         <Flex
           mih={50}
