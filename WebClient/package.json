@@ -1,6 +1,6 @@
 {
   "name": "webclient",
-  "version": "0.3.2",
+  "version": "0.3.4",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack --port 8080",
@@ -22,6 +22,7 @@
     "@mantine/notifications": "^8.0.0",
     "@mantine/nprogress": "^8.0.0",
     "@mantine/tiptap": "^8.0.0",
+    "@tabler/icons-react": "^3.31.0",
     "@tiptap/extension-link": "^2.11.7",
     "@tiptap/pm": "^2.11.9",
     "@tiptap/react": "^2.11.9",
@@ -31,6 +32,7 @@
     "next": "15.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-scan": "^0.3.3",
     "recharts": "^2.15.3"
   },
   "devDependencies": {
