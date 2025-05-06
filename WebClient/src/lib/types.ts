@@ -1,7 +1,7 @@
 /** A type representing an access token. */
-export type AccessTokenType = {
-  access_token: string;
-  token_type: string;
+export type TokenType = {
+  token: string;
+  type: string;
 };
 
 /** A type representing a user without sensitive information. */

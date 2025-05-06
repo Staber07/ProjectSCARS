@@ -114,23 +114,23 @@ async def request_access_token(
     return (
         JWTToken(
             uid=uuid.uuid4(),
-            access_token=create_access_token(
+            token=create_access_token(
                 user.id,
                 timedelta(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
             ),
-            token_type="bearer",
+            type="bearer",
         ),
         JWTToken(
             uid=uuid.uuid4(),
-            access_token=create_access_token(
+            token=create_access_token(
                 user.id,
                 timedelta(
                     minutes=app_config.authentication.refresh_token_expire_minutes
                 ),
             ),
-            token_type="refresh",
+            type="refresh",
         ),
     )
 
@@ -169,11 +169,11 @@ async def refresh_access_token(
 
     return JWTToken(
         uid=uuid.uuid4(),
-        access_token=create_access_token(
+        token=create_access_token(
             user.id,
             timedelta(minutes=app_config.authentication.access_token_expire_minutes),
         ),
-        token_type="bearer",
+        type="bearer",
     )
 
 

@@ -89,7 +89,7 @@ export function Navbar() {
         console.debug("Clicked navbar link: ", item.label);
         event.preventDefault();
         setActive(item.key);
-        // router.push(item.link);
+        router.push(item.link);
       }}
     >
       <item.icon className={classes.linkIcon} stroke={1.5} />
