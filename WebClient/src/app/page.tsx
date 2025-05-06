@@ -35,8 +35,6 @@ function RootContent() {
   }, [isAuthenticated, router]);
 
   console.debug("Rendering RootContent", { isAuthenticated });
-  // if rendering the page for the first time, show loading component
-  if (!isAuthenticated) {
-    return <LoadingComponent />;
-  }
+  // Show loading component while navigating
+  return <LoadingComponent />;
 }
