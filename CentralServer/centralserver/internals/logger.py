@@ -123,6 +123,6 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.security.allow_headers=}")
     logger.debug(
         "Environment Variables: opted out"
-        if not app_config.debug.logenv_optout
-        else f"Environment Variables:\n\n{os.environ}"
+        if app_config.debug.logenv_optout
+        else f"Environment Variables:\n{os.environ}"
     )
