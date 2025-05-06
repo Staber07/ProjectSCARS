@@ -12,6 +12,8 @@ import {
   Text,
   TextInput,
   Title,
+  Image,
+  Flex
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
@@ -23,6 +25,7 @@ import {
   CentralServerLogInUser,
 } from "@/lib/api/auth";
 import classes from "@/components/MainLoginComponent.module.css";
+import BENTO from "./BENTOLogo.svg";
 
 /**
  * The component for the main login page.
@@ -71,7 +74,25 @@ export function MainLoginComponent(): React.ReactElement {
   return (
     <Container size={420} my={40}>
       <Title ta="center" className={classes.title}>
-        {Program.name}
+        <Flex
+          mih={50}
+          justify="center"
+          align="center"
+          direction="row"
+          wrap="wrap"
+        >
+          <Image
+            src={BENTO.src}
+            alt="BENTO Logo"
+            radius="md"
+            h={70}
+            w="auto"
+            fit="contain"
+            style={{ marginRight: "10px" }}
+          >
+          </Image>
+          {Program.name}
+        </Flex>
       </Title>
       <Text c="dimmed" size="sm" ta="center" mt={5}>
         {Program.description}

@@ -1,6 +1,6 @@
 export const Program = {
-  name: "Project SCARS",
-  description: "School Canteen Automated Reporting System",
+  name: "BENTO",
+  description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
   version: "0.3.4",
 };
 
