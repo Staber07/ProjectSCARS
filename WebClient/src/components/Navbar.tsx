@@ -18,6 +18,10 @@ import classes from "./NavbarSimple.module.css";
 import { useAuth } from "@/lib/providers/auth";
 import { Program } from "@/lib/info";
 
+type NavbarProps = {
+  enableAdminButtons?: boolean;
+};
+
 const navbarContents = {
   default: [
     {
@@ -74,7 +78,9 @@ const navbarContents = {
   ],
 };
 
-export function Navbar(enableAdminButtons: boolean = false) {
+export const Navbar: React.FC<NavbarProps> = ({
+  enableAdminButtons = false,
+}) => {
   const [active, setActive] = useState("dashboard");
   const router = useRouter();
   const { logout } = useAuth();
@@ -149,4 +155,4 @@ export function Navbar(enableAdminButtons: boolean = false) {
       </div>
     </nav>
   );
-}
+};
