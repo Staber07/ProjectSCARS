@@ -18,7 +18,10 @@ import { notifications } from "@mantine/notifications";
 
 import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
-import { CentralServerLogInUser } from "@/lib/api/auth";
+import {
+  CentralServerGetUserInfo,
+  CentralServerLogInUser,
+} from "@/lib/api/auth";
 import classes from "@/components/MainLoginComponent.module.css";
 
 /**
@@ -47,8 +50,8 @@ export function MainLoginComponent(): React.ReactElement {
         values.username,
         values.password,
       );
-      // console.debug(tokens);
       auth.login(tokens[0], tokens[1]);
+      await CentralServerGetUserInfo(true);
       console.info(`Login successful for user ${values.username}`);
       notifications.show({
         title: "Login successful",
