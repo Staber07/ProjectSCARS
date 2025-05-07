@@ -3,8 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { Text } from "@mantine/core";
-
 import { useAuth, AuthProvider } from "@/lib/providers/auth";
 
 import { LoadingComponent } from "@/components/LoadingComponent";
@@ -13,6 +11,7 @@ import { LoadingComponent } from "@/components/LoadingComponent";
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function RootPage() {
+  console.debug("Rendering RootPage");
   return (
     <AuthProvider>
       <RootContent />
@@ -31,16 +30,11 @@ function RootContent() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login"); // Redirect to the login page if not authenticated
-    }
+    console.debug("RootContent useEffect started", { isAuthenticated });
+    router.push(isAuthenticated ? "/dashboard" : "/login");
   }, [isAuthenticated, router]);
 
-  // if rendering the page for the first time, show loading component
-  if (!isAuthenticated) {
-    return <LoadingComponent />;
-  }
-
-  // TODO: WIP
-  return <Text>Welcome! You are successfully authenticated.</Text>;
+  console.debug("Rendering RootContent", { isAuthenticated });
+  // Show loading component while navigating
+  return <LoadingComponent />;
 }

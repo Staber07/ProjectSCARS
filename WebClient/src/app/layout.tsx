@@ -1,3 +1,6 @@
+// NOTE: react-scan must be the top-most import
+import { ReactScan } from "@/components/dev/ReactScan";
+
 import type { Metadata } from "next";
 
 import Head from "next/head";
@@ -15,18 +18,22 @@ import { defaultColorscheme, theme } from "@/lib/theme";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 
+// Set page metadata
 export const metadata: Metadata = {
   title: Program.name,
   description: Program.description,
 };
 
+/** The layout for the entire application. */
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.debug("Rendering RootLayout");
   return (
     <html lang="en" {...mantineHtmlProps}>
+      <ReactScan />
       <Head>
         <ColorSchemeScript />
       </Head>
