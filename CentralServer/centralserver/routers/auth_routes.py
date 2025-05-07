@@ -119,6 +119,7 @@ async def request_access_token(
                 timedelta(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
+                False,
             ),
             token_type="bearer",
         ),
@@ -129,6 +130,7 @@ async def request_access_token(
                 timedelta(
                     minutes=app_config.authentication.refresh_token_expire_minutes
                 ),
+                True,
             ),
             token_type="refresh",
         ),
@@ -168,8 +170,11 @@ async def refresh_access_token(
             detail="Invalid refresh token",
         )
 
-    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    user.lastLoggedInIp = request.client.host if request.client else None
+    # I don't think we need to update the last logged in time and IP here
+    # because the user didn't actually log in again...
+    #
+    # user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    # user.lastLoggedInIp = request.client.host if request.client else None
     session.commit()
     session.refresh(user)
 
