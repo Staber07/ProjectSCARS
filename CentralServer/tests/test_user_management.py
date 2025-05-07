@@ -76,9 +76,7 @@ def test_login_user_wrong_username_and_password():
 def test_refresh_login_user_success():
     """Test getting a new access token using a refresh token"""
 
-    login_response = _request_access_token(
-        Database.default_user, Database.default_password
-    )
+    login_response = _request_token(Database.default_user, Database.default_password)
     response = client.post(
         "/api/v1/auth/refresh",
         headers={"Authorization": f"Bearer {login_response.json()[1]['access_token']}"},
@@ -92,9 +90,7 @@ def test_refresh_login_user_success():
 def test_refresh_login_user_access_token():
     """Test getting a new access token using another access token"""
 
-    login_response = _request_access_token(
-        Database.default_user, Database.default_password
-    )
+    login_response = _request_token(Database.default_user, Database.default_password)
     response = client.post(
         "/api/v1/auth/refresh",
         headers={"Authorization": f"Bearer {login_response.json()[0]['access_token']}"},
