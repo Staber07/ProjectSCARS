@@ -1,6 +1,6 @@
 "use client";
 
-import { Text, MantineProvider, Container, createTheme, Flex } from "@mantine/core";
+import { MantineProvider, Container, createTheme } from "@mantine/core";
 import { LineChart } from "@mantine/charts";
 
 import { data } from './data';
