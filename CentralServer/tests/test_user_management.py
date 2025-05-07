@@ -79,12 +79,12 @@ def test_refresh_login_user_success():
     login_response = _request_token(Database.default_user, Database.default_password)
     response = client.post(
         "/api/v1/auth/refresh",
-        headers={"Authorization": f"Bearer {login_response.json()[1]['access_token']}"},
+        headers={"Authorization": f"Bearer {login_response.json()[1]['token']}"},
     )
     assert response.status_code == 200
     resp_data: dict[str, Any] = response.json()
-    assert type(resp_data["access_token"]) is str
-    assert resp_data["token_type"] == "bearer"
+    assert type(resp_data["token"]) is str
+    assert resp_data["type"] == "bearer"
 
 
 def test_refresh_login_user_access_token():
@@ -93,7 +93,7 @@ def test_refresh_login_user_access_token():
     login_response = _request_token(Database.default_user, Database.default_password)
     response = client.post(
         "/api/v1/auth/refresh",
-        headers={"Authorization": f"Bearer {login_response.json()[0]['access_token']}"},
+        headers={"Authorization": f"Bearer {login_response.json()[0]['token']}"},
     )
 
     assert response.status_code == 401
