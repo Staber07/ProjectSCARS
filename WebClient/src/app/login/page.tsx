@@ -5,16 +5,20 @@ import { useRouter } from "next/navigation";
 
 import { useAuth, AuthProvider } from "@/lib/providers/auth";
 import { MainLoginComponent } from "@/components/MainLoginComponent";
+import { useMantineTheme } from "@mantine/core";
 
 /**
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function LoginPage() {
+
+  const theme = useMantineTheme();
+
   console.debug("Rendering LoginPage");
   return (
-    <AuthProvider>
-      <LoginContent />
-    </AuthProvider>
+      <AuthProvider>
+        <LoginContent />
+      </AuthProvider>
   );
 }
 

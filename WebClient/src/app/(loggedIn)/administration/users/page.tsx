@@ -3,7 +3,7 @@
 import { Group, TextInput, ActionIcon, Flex, Pagination } from "@mantine/core";
 import { Table, TableData } from "@mantine/core";
 import { Avatar } from "@mantine/core";
-import { IconSearch } from "@tabler/icons-react";
+import { IconSearch, IconEdit } from "@tabler/icons-react";
 
 export default function UsersPage() {
   const tableData: TableData = {
@@ -25,7 +25,7 @@ export default function UsersPage() {
         mih={50}
         gap="xl"
         justify="flex-start"
-        align="flex-start"
+        align="center"
         direction="row"
         wrap="nowrap"
       >
@@ -34,15 +34,22 @@ export default function UsersPage() {
           size="md"
           style={{ width: "400px" }}
         />
-        <ActionIcon
-          style={{ marginLeft: "300px" }}
-          size="input-md"
-          variant="default"
-          aria-label="ActionIcon the same size as inputs"
-        >
-          {<IconSearch size={16} />}
-        </ActionIcon>
+
+        <Flex ml="auto" gap="sm" align="center">
+          <ActionIcon size="input-md" variant="default">
+            <IconEdit size={16} />
+          </ActionIcon>
+
+          <ActionIcon
+            size="input-md"
+            variant="default"
+            aria-label="ActionIcon the same size as inputs"
+          >
+            <IconSearch size={16} />
+          </ActionIcon>
+        </Flex>
       </Flex>
+      
       <Table
         stickyHeader
         stickyHeaderOffset={60}

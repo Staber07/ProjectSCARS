@@ -1,7 +1,7 @@
 "use client";
 
 import { Table, Flex, ActionIcon, TextInput, Pagination, Group } from "@mantine/core";
-import { IconSearch } from "@tabler/icons-react";
+import { IconEdit, IconSearch } from "@tabler/icons-react";
 
 
 const tableData = {
@@ -25,25 +25,29 @@ export default function SchoolsPage() {
         mih={50}
         gap="xl"
         justify="flex-start"
-        align="flex-start"
+        align="center"
         direction="row"
         wrap="nowrap"
       >
-
         <TextInput
-          placeholder="Search for users"
+          placeholder="Search for Schools"
           size="md"
           style={{ width: "400px" }}
         />
-        <ActionIcon
-          style={{ marginLeft: "300px" }}
-          size="input-md"
-          variant="default"
-          aria-label="ActionIcon the same size as inputs"
-        >
-          {<IconSearch size={16} />}
-        </ActionIcon>
 
+        <Flex ml="auto" gap="sm" align="center">
+          <ActionIcon size="input-md" variant="default">
+            <IconEdit size={16} />
+          </ActionIcon>
+
+          <ActionIcon
+            size="input-md"
+            variant="default"
+            aria-label="ActionIcon the same size as inputs"
+          >
+            <IconSearch size={16} />
+          </ActionIcon>
+        </Flex>
       </Flex>
 
       <Table
@@ -53,9 +57,11 @@ export default function SchoolsPage() {
         highlightOnHover
         withTableBorder
         data={tableData}
-      />;
+        style={{
+          marginTop: "10px",}}
+      />
 
-      <Pagination.Root total={10}>
+      <Pagination.Root total={10} style={{ marginTop: "20px" }}>
         <Group gap={10} justify="center">
           <Pagination.First />
           <Pagination.Previous />

@@ -72,62 +72,62 @@ export function MainLoginComponent(): React.ReactElement {
 
   console.debug("Returning MainLoginComponent");
   return (
-    <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-      <Title ta="center" className={classes.title}>
-        <Flex
-          mih={50}
-          justify="center"
-          align="center"
-          direction="row"
-          wrap="wrap"
-        >
-          <Image
-            src={BENTO.src}
-            alt="BENTO Logo"
-            radius="md"
-            h={70}
-            w="auto"
-            fit="contain"
-            style={{ marginRight: "10px" }}
+      <Container size={420} my={40} style={{ paddingTop: "150px" }}>
+        <Title ta="center" className={classes.title}>
+          <Flex
+            mih={50}
+            justify="center"
+            align="center"
+            direction="row"
+            wrap="wrap"
           >
-          </Image>
-          {Program.name}
-        </Flex>
-      </Title>
-      <Text c="dimmed" size="sm" ta="center" mt={5}>
-        {Program.description}
-      </Text>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <form onSubmit={form.onSubmit(loginUser)}>
-          <TextInput
-            label="Username"
-            placeholder="Your username"
-            key={form.key("username")}
-            {...form.getInputProps("username")}
-            required
-          />
-          <PasswordInput
-            label="Password"
-            placeholder="Your password"
-            key={form.key("password")}
-            {...form.getInputProps("password")}
-            required
-            mt="md"
-          />
-          <Group justify="space-between" mt="lg">
-            <Checkbox
-              label="Remember me"
-              {...form.getInputProps("rememberMe", { type: "checkbox" })}
+            <Image
+              src={BENTO.src}
+              alt="BENTO Logo"
+              radius="md"
+              h={70}
+              w="auto"
+              fit="contain"
+              style={{ marginRight: "10px" }}
+            >
+            </Image>
+            {Program.name}
+          </Flex>
+        </Title>
+        <Text c="dimmed" size="sm" ta="center" mt={5}>
+          {Program.description}
+        </Text>
+        <Paper withBorder shadow="md" p={30} mt={30} radius="md">
+          <form onSubmit={form.onSubmit(loginUser)}>
+            <TextInput
+              label="Username"
+              placeholder="Your username"
+              key={form.key("username")}
+              {...form.getInputProps("username")}
+              required
             />
-            {/* <Anchor component="button" size="sm"> */}
-            {/*   Forgot password? */}
-            {/* </Anchor> */}
-          </Group>
-          <Button type="submit" fullWidth mt="xl">
-            Sign in
-          </Button>
-        </form>
-      </Paper>
-    </Container>
+            <PasswordInput
+              label="Password"
+              placeholder="Your password"
+              key={form.key("password")}
+              {...form.getInputProps("password")}
+              required
+              mt="md"
+            />
+            <Group justify="space-between" mt="lg">
+              <Checkbox
+                label="Remember me"
+                {...form.getInputProps("rememberMe", { type: "checkbox" })}
+              />
+              {/* <Anchor component="button" size="sm"> */}
+              {/*   Forgot password? */}
+              {/* </Anchor> */}
+            </Group>
+            <Button type="submit" fullWidth mt="xl">
+              Sign in
+            </Button>
+          </form>
+        </Paper>
+      </Container>
   );
 }
