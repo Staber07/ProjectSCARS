@@ -250,6 +250,12 @@ async def verify_user_permission(
         Returns True if the user has the required permissions, False otherwise.
     """
 
+    if token.is_refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid JWT token",
+        )
+
     user_role = get_user_role(token.id, session)
     if user_role is None:
         logger.warning("User role not found for user ID: %s", token.id)
