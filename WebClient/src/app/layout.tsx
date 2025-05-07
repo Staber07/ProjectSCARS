@@ -17,6 +17,7 @@ import { defaultColorscheme, theme } from "@/lib/theme";
 
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
+import '@mantine/spotlight/styles.css';
 
 // Set page metadata
 export const metadata: Metadata = {

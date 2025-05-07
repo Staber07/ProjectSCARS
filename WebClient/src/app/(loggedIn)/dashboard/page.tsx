@@ -5,6 +5,7 @@ import { Text } from "@mantine/core";
 import { CentralServerGetUserInfo } from "@/lib/api/auth";
 import { UserPublicType } from "@/lib/types";
 import { LoadingComponent } from "@/components/LoadingComponent";
+import { SpotlightComponent } from "@/components/SpotlightComponent";
 
 export default function DashboardPage() {
   const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
@@ -27,8 +28,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <Text>
-      {userInfo ? JSON.stringify(userInfo) : "No user info available"}
-    </Text>
+    <div>
+      <SpotlightComponent />
+
+      <Text>
+        {userInfo ? JSON.stringify(userInfo) : "No user info available"}
+      </Text>
+    </div>
   );
 }
