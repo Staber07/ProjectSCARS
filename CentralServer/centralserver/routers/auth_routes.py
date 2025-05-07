@@ -119,6 +119,7 @@ async def request_access_token(
                 timedelta(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
+                False,
             ),
             type="bearer",
         ),
@@ -129,6 +130,7 @@ async def request_access_token(
                 timedelta(
                     minutes=app_config.authentication.refresh_token_expire_minutes
                 ),
+                True,
             ),
             type="refresh",
         ),
@@ -162,8 +164,17 @@ async def refresh_access_token(
             detail="Invalid credentials",
         )
 
-    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    user.lastLoggedInIp = request.client.host if request.client else None
+    if not token.is_refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+
+    # I don't think we need to update the last logged in time and IP here
+    # because the user didn't actually log in again...
+    #
+    # user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    # user.lastLoggedInIp = request.client.host if request.client else None
     session.commit()
     session.refresh(user)
 
