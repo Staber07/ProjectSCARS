@@ -73,6 +73,37 @@ def test_login_user_wrong_username_and_password():
     assert resp_data["detail"] == "Invalid credentials"
 
 
+def test_refresh_login_user_success():
+    """Test getting a new access token using a refresh token"""
+
+    login_response = _request_access_token(
+        Database.default_user, Database.default_password
+    )
+    response = client.post(
+        "/api/v1/auth/refresh",
+        headers={"Authorization": f"Bearer {login_response.json()[1]['access_token']}"},
+    )
+    assert response.status_code == 200
+    resp_data: dict[str, Any] = response.json()
+    assert type(resp_data["access_token"]) is str
+    assert resp_data["token_type"] == "bearer"
+
+
+def test_refresh_login_user_access_token():
+    """Test getting a new access token using another access token"""
+
+    login_response = _request_access_token(
+        Database.default_user, Database.default_password
+    )
+    response = client.post(
+        "/api/v1/auth/refresh",
+        headers={"Authorization": f"Bearer {login_response.json()[0]['access_token']}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Invalid refresh token"
+
+
 def test_create_user_success():
     """Test creating a user successfully."""
 
