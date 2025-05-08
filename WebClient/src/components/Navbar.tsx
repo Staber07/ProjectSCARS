@@ -9,14 +9,15 @@ import {
   IconReport,
   IconSettings,
   IconUser,
-  IconGraph,
+  IconGraph
 } from "@tabler/icons-react";
-import { Code, Group, Title } from "@mantine/core";
+import { Code, Group, Title, Image } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
 import classes from "./NavbarSimple.module.css";
 import { useAuth } from "@/lib/providers/auth";
 import { Program } from "@/lib/info";
+import BENTO from "./BENTOLogo.svg";
 
 type NavbarProps = {
   enableAdminButtons?: boolean;
@@ -128,6 +129,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     <nav className={classes.navbar}>
       <div className={classes.navbarMain}>
         <Group className={classes.header} justify="space-between">
+          <Image
+            src={BENTO.src}
+            alt="BENTO Logo"
+            radius="md"
+            h={70}
+            w="auto"
+            fit="contain" 
+          >
+          </Image>
           <Title>{Program.name}</Title>
           <Code fw={700}>{Program.version}</Code>
         </Group>
