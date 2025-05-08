@@ -1,58 +1,118 @@
 "use client";
 
-import { Avatar, Group, Text, Title, Divider, Button } from "@mantine/core";
-import { IconAt, IconPhoneCall } from '@tabler/icons-react';
+import { useState } from "react";
+import { Box, Divider, Group, Stack, Flex, Space } from "@mantine/core";
+import { Title, Text, TextInput, Switch } from "@mantine/core";
+import { Avatar, Button, FileButton } from "@mantine/core";
+// import { Modal } from "@mantine/core";
+// import { useDisclosure } from '@mantine/hooks';
 
 export default function ProfilePage() {
+  const [image, setImage] = useState<File | null>(null);
+  
   console.debug("Rendering ProfilePage");
   return (
     <div>
-      <Group justify="space-between" mb="sm">
-        <Title order={4} style={{ textDecoration: 'underline' }}>
-          Profile
-        </Title>
-      </Group>
+      <Box maw={900} mx="auto" mt={30}>
+        <Title order={3} mb="sm">Profile</Title>
+        <Divider mb="lg" />
 
-      <Divider mb="md" />
+        <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
+          <Group gap={20}>
+            <Avatar
+              variant="light"
+              radius="lg"
+              size={100}
+              color="#258ce6"
+              src=""
+            />
+            <Stack gap={0}>
+              <Text size="sm" c="dimmed">Canteen Manager</Text>
+              <Text fw={600} size="lg">Brian Federin</Text>
+              <Text size="sm" c="dimmed">@brianfederin</Text>
+            </Stack>
+          </Group>
+        
+          <FileButton onChange={setImage} accept="image/png,image/jpeg">
+            {(props) => (
+              <Button {...props} variant="outline" size="sm" aria-label="Upload image">
+                Upload image
+              </Button>
+            )}
+          </FileButton>
+        </Flex>
 
-      <Group justify="space-between" align="flex-start" mb="md">
-        <Group wrap="nowrap">
-          <Avatar
-            src=""
-            size={130}
-            radius="md"
-          />
-          <div>
-            <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-              Canteen Manager
+        <Divider my="lg" />
+
+        <Title order={4} mb="sm">Account Security</Title>
+        
+        <Flex justify="space-between" align="end" w="100%" gap="lg">
+          <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+            <TextInput
+              label="Email"
+              placeholder="brianfederin@gmail.com"
+              size="sm"
+              disabled
+              w="100%"
+              style={{ flexGrow: 1, minWidth: 0 }}
+              labelProps={{ style: { marginBottom: 6 } }}
+            />
+          </Stack>
+
+            <Button variant="outline"
+              size="sm"
+              style={{
+              height: 35,
+              whiteSpace: 'nowrap',
+              minWidth: 150,
+              flexShrink: 0,
+              }}
+            >
+              Change email
+            </Button>
+        </Flex>
+
+        <Space h="md" />
+
+        <Flex justify="space-between" align="end" w="100%" gap="lg">
+          <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+            <TextInput
+              label="Password"
+              value="********"
+              size="sm"
+              disabled
+              w="100%"
+              style={{ flexGrow: 1, minWidth: 0 }}
+              labelProps={{ style: { marginBottom: 6 } }}
+            />
+          </Stack>
+          
+          <Button variant="outline"
+            size="sm"
+            style={{
+            height: 35,
+            whiteSpace: 'nowrap',
+            minWidth: 150,
+            flexShrink: 0,
+            }}
+          >
+            Change password
+          </Button>
+        </Flex>
+
+        <Space h="md" />
+
+        <Group justify="space-between" mt="md">
+          <Box>
+            <Text fw={500} size="sm">2-Step Verifications</Text>
+            <Text size="xs" c="dimmed">
+              Add an additional layer of security to your account during login.
             </Text>
-
-            <Text fz="lg" fw={500}>
-              Robert Glassbreaker
-            </Text>
-
-            <Group wrap="nowrap" gap={10} mt={3}>
-              <IconAt stroke={1.5} size={16} />
-              <Text fz="xs" c="dimmed">
-                robert@gmail.com
-              </Text>
-            </Group>
-
-            <Group wrap="nowrap" gap={10} mt={5}>
-              <IconPhoneCall stroke={1.5} size={16} />
-              <Text fz="xs" c="dimmed">
-                +63 933 1234567
-              </Text>
-            </Group>
-          </div>
+          </Box>
+          <Switch />
         </Group>
 
-        <Button
-          variant="outline"
-          size="sm">
-          Edit Profile
-        </Button>
-      </Group>
+      </Box>
     </div>
   );
 }
