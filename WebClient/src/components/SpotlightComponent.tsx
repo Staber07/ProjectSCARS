@@ -20,7 +20,7 @@ const actions: SpotlightActionData[] = [
   {
     id: 'documentation',
     label: 'Documentation',
-    description: 'Visit documentation to lean more about all features',
+    description: 'Visit documentation to learn more about all features',
     onClick: () => console.log('Documentation'),
     leftSection: <IconFileText size={24} stroke={1.5} />,
   },
