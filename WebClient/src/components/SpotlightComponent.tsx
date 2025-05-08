@@ -44,6 +44,7 @@ export function SpotlightComponent() {
       >
         BENTO
       </Button>
+
       <Spotlight
         actions={actions}
         nothingFound="Nothing found..."

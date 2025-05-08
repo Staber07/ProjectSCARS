@@ -20,7 +20,7 @@ const theme = createTheme({
 export default function StatisticsPage() {
   console.debug("Rendering StatisticsPage");
   return (
-
+  
       <MantineProvider theme={theme}>
         <Container size="responsive" bg="var(--mantine-color-blue-light)">
           <LineChart
@@ -34,5 +34,6 @@ export default function StatisticsPage() {
           />
         </Container>
       </MantineProvider>
+    
   );
 }
