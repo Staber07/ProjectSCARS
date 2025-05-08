@@ -1,20 +1,23 @@
 "use client";
 
-import { Group, TextInput, ActionIcon, Flex, Pagination } from "@mantine/core";
+import { Group, TextInput, ActionIcon, Flex, Pagination, Avatar, ScrollArea } from "@mantine/core";
 import { Table, TableData } from "@mantine/core";
-import { Avatar } from "@mantine/core";
 import { IconSearch, IconEdit } from "@tabler/icons-react";
 
 export default function UsersPage() {
   const tableData: TableData = {
-    caption: "Some elements from periodic table",
-    head: ["", "Element position", "Atomic mass", "Symbol", "Element name"],
+    head: ["", "First Name", "Middle Name", "Last Name", "Email Address", "Contact Number", "Address"],
     body: [
-      [<Avatar key="C" />, 6, 12.011, "C", "Carbon"],
-      [<Avatar key="N" />, 7, 14.007, "N", "Nitrogen"],
-      [<Avatar key="Y" />, 39, 88.906, "Y", "Yttrium"],
-      [<Avatar key="Ba" />, 56, 137.33, "Ba", "Barium"],
-      [<Avatar key="Ce" />, 58, 140.12, "Ce", "Cerium"],
+      [<Avatar key="C" />, "Chie", 12.011, "C", "Carbon"],
+      [<Avatar key="N" />, "Cheese", 14.007, "N", "Nitrogen"],
+      [<Avatar key="Y" />, "Ara", 88.906, "Y", "Yttrium"],
+      [<Avatar key="Ba" />, "Andrew", 137.33, "Ba", "Barium"],
+      [<Avatar key="Ce" />, "Meow", 140.12, "Ce", "Cerium"],
+      [<Avatar key="H" />, "Sam", 1.008, "H", "Hydrogen"],
+      [<Avatar key="O" />, "Liam", 15.999, "O", "Oxygen"],
+      [<Avatar key="Fe" />, "Noah", 55.845, "Fe", "Iron"],
+      [<Avatar key="Ne" />, "Emma", 20.180, "Ne", "Neon"],
+      [<Avatar key="Mg" />, "Olivia", 24.305, "Mg", "Magnesium"],
     ],
   };
 
@@ -49,18 +52,20 @@ export default function UsersPage() {
           </ActionIcon>
         </Flex>
       </Flex>
-      
+
       <Table
         stickyHeader
         stickyHeaderOffset={60}
         horizontalSpacing={"sm"}
         verticalSpacing={"sm"}
         highlightOnHover
+        style={{ height: "500px", width: "100%" }}
         data={tableData}
       />
 
+
       <Pagination.Root total={10}>
-        <Group gap={10} justify="center">
+        <Group gap={10} justify="center" style={{ marginTop: "10px" }}>
           <Pagination.First />
           <Pagination.Previous />
           <Pagination.Items />
