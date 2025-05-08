@@ -5,7 +5,6 @@ import {
   Flex,
   Card,
   Image,
-  Badge,
   Button,
   Group,
   ActionIcon,
