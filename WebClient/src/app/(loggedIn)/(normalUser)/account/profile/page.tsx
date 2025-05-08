@@ -40,6 +40,14 @@ export default function ProfilePage() {
               </Button>
             )}
           </FileButton>
+          
+          {/* .... */}
+          {image && (
+            <Text size="sm" ta="right" mt="sm">
+              Picked file: {image.name}
+            </Text>
+          )}
+          {/* .... */}
         </Flex>
 
         <Divider my="lg" />
