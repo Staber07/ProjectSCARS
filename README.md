@@ -1,14 +1,28 @@
-# Project SCARS
+<div align="center">
+    <a href="https://github.com/Chris1320/ProjectSCARS">
+        <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/537fb4b6f6545be0758f956e4bd7ab447ff1fccc/WebClient/src/components/BENTOLogo.svg" alt="Bento Logo" width="15%" height="auto" />
+    </a>
+    <h1>Bento</h1>
+    <a href="https://github.com/Chris1320/ProjectSCARS/commits"><img src="https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat" alt="GitHub Last Commit" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/issues"><img src="https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat" alt="GitHub Issues or Pull Requests" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style" alt="Linter Results" /></a>
+    <a href="https://codecov.io/gh/Chris1320/ProjectSCARS"><img src="https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage" alt="Code Coverage" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS"><img src="https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat" alt="GitHub Repository Size" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/milestone/2"><img src="https://img.shields.io/github/milestones/progress-percent/Chris1320/ProjectSCARS/2?style=flat&color=orange" alt="Project Milestone Progress" /></a>
+</div>
 
-Project SCARS is a School Canteen Automated Reporting System for the Department
+**Bento** is a School Canteen Automated Reporting System for the Department
 of Education (DepEd) Schools Division Office (SDO) of the City of Baliwag in
 the Philippines.
 
-[![GitHub Last Commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat)](https://github.com/Chris1320/ProjectSCARS/commits)
-[![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat)](https://github.com/Chris1320/ProjectSCARS/issues)
-[![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
-[![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage)](https://codecov.io/gh/Chris1320/ProjectSCARS)
-[![GitHub Repository Size](https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat)](https://github.com/Chris1320/ProjectSCARS)
+> *Why Bento?*
+> 
+> "A bento is a Japanese-style single-portion take-out or home-packed meal,
+> often for lunch, typically including rice and packaged in a box with a lid.
+> The term bento is derived from the Chinese term biandang, which means
+> "convenient" or "convenience"."
+> 
+> \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
 
 | Component      | Open Issues                                                                                                                                                                                                                                                                                                            | Last Commit                                                                                                                                                                                                                  | Test Results                                                                                                                                                                                                                             | Code Coverage                                                                                                                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
