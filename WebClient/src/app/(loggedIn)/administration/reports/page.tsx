@@ -54,7 +54,7 @@ const groceries = [
   },
   {
     emoji: '👨🏻‍🎓',
-    value: 'Faculty and Student Devlopment Fund',
+    value: 'Faculty and Student Development Fund',
     description:
       'Nutrient-packed green vegetable. ',
   },
