@@ -12,9 +12,9 @@ import { MainLoginComponent } from "@/components/MainLoginComponent";
 export default function LoginPage() {
   console.debug("Rendering LoginPage");
   return (
-    <AuthProvider>
-      <LoginContent />
-    </AuthProvider>
+      <AuthProvider>
+        <LoginContent />
+      </AuthProvider>
   );
 }
 
