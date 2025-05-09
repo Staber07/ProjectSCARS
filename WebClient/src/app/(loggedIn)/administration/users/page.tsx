@@ -1,6 +1,6 @@
 "use client";
 
-import { Group, TextInput, ActionIcon, Flex, Pagination, Avatar, ScrollArea } from "@mantine/core";
+import { Group, TextInput, ActionIcon, Flex, Pagination, Avatar } from "@mantine/core";
 import { Table, TableData } from "@mantine/core";
 import { IconSearch, IconEdit } from "@tabler/icons-react";
 
