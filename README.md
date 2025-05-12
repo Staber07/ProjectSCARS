@@ -375,10 +375,10 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
     <table>
         <tbody>
             <tr>
-                <td><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></td>
+                <td><a href="https://github.com/Kirito090504"><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/Staber07"><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/arabelaramos"><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/Chris1320"><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></a></td>
             </tr>
             <tr>
                 <td><p><b><a href="https://github.com/Kirito090504">Kirito090504</a></b></p></td>
