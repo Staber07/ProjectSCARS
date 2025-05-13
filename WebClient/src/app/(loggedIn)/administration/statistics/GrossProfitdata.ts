@@ -1,18 +1,18 @@
 export const Grossdata = [
 {
     date: 'January',
-    gross: 100,
+    gross: 5,
 },
 {
     date: 'February',
-    gross: 300,
+    gross: 60,
 },
 {
     date: 'March',
-    gross: 500,
+    gross: 23,
 },
 {
     date: 'April',
-    gross: 800,
+    gross: 20,
 }
 ]
