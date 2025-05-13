@@ -20,51 +20,52 @@ const groceries = [
     emoji: '⚙️',
     value: 'Operating Expenses',
     description:
-      'Crisp and refreshing fruit. ',
+      'These encompass the general costs associated with running the school canteen, such as salaries of personnel, utilities (water and electricity), supplies, and insurance.',
   },
   {
-    emoji: '👨‍💼',
+    emoji: '🗂️',
     value: 'Administrative Expenses',
     description:
-      'Naturally sweet and potassium-rich fruit. ',
+      'Administrative expenses refer to the overarching costs of business operations, including salaries, supplies, utility bills, insurance, and other general expenditures necessary for the canteen\'s functioning.',
   },
   {
-    emoji: '🔄',
+    emoji: '🔁',
     value: 'Revolving Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'This fund serves as the working capital for the canteen, ensuring continuous operations by covering the purchase of goods and other operational needs.',
   },
   {
-    emoji: '🎓',
+    emoji: '🏫',
     value: 'School Operation Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'Allocated 25% of the canteen\'s net income, this fund supports various school operational needs, including maintenance, minor repairs, and essential services.',
   },
   {
-    emoji: '🏥',
+    emoji: '🩺',
     value: 'Clinic Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'Designated 5% of the canteen\'s net income, this fund supports health-related services such as medical supplies and programs for student well-being.',
   },
   {
-    emoji: '🍽️',
+    emoji: '🧵',
     value: 'HE Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'Receiving 10% of the canteen\'s net income, this fund enhances instructional materials and resources for Home Economics classes.',
   },
   {
-    emoji: '👨🏻‍🎓',
+    emoji: '👨‍🏫',
     value: 'Faculty and Student Development Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'Allocated 15% of the canteen\'s net income, this fund supports the professional growth of teachers and holistic student development through training and educational activities.',
   },
   {
-    emoji: '🥣',
+    emoji: '🥗',
     value: 'Supplementary Feeding Fund',
     description:
-      'Nutrient-packed green vegetable. ',
+      'This fund, comprising 35% of the canteen\'s net income, provides additional nutritious meals to undernourished pupils and students.',
   },
 ];
+
 
 export default function ReportsPage() {
   console.debug("Rendering ReportsPage");
