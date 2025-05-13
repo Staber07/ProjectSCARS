@@ -76,7 +76,7 @@ export default function StatisticsPage() {
             breakpoints={{ xs: '100px', sm: '200px', md: '300px', lg: '400px', xl: '500px' }}
           >
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}><LineChart
+            <Grid.Col span={{ base: 12, md: 6, lg: 6 }}><LineChart
               h={300}
               data={Netdata}
               dataKey="date"
@@ -86,7 +86,7 @@ export default function StatisticsPage() {
             />
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
+            <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
               <LineChart
                 h={300}
                 data={Grossdata}
@@ -97,13 +97,6 @@ export default function StatisticsPage() {
               />
             </Grid.Col>
 
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
-              3
-            </Grid.Col>
-            
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
-
-            </Grid.Col>
           </Grid>
         </div>
 
