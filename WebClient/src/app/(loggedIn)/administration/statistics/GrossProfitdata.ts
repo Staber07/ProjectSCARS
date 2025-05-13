@@ -1,18 +1,18 @@
-export const Netdata = [
+export const Grossdata = [
 {
     date: 'January',
-    sales: 100,
+    gross: 100,
 },
 {
     date: 'February',
-    sales: 300,
+    gross: 300,
 },
 {
     date: 'March',
-    sales: 500,
+    gross: 500,
 },
 {
     date: 'April',
-    sales: 800,
+    gross: 800,
 }
 ]

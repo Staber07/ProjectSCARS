@@ -15,7 +15,8 @@ import { LineChart } from '@mantine/charts';
 import classes from './Stats.module.css';
 
 
-import { data } from './NetSalesdata';
+import { Netdata } from './NetSalesdata';
+import { Grossdata } from './GrossProfitdata';
 
 const icons = {
   user: IconUserPlus,
@@ -74,17 +75,35 @@ export default function StatisticsPage() {
             type="container"
             breakpoints={{ xs: '100px', sm: '200px', md: '300px', lg: '400px', xl: '500px' }}
           >
+
             <Grid.Col span={{ base: 12, md: 6, lg: 5 }}><LineChart
               h={300}
-              data={data}
+              data={Netdata}
               dataKey="date"
               series={[{ name: 'sales', color: 'indigo.6' }]}
               curveType="monotone"
               connectNulls
-            /></Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>2</Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>3</Grid.Col>
-            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>4</Grid.Col>
+            />
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
+              <LineChart
+                h={300}
+                data={Grossdata}
+                dataKey="date"
+                series={[{ name: 'gross', color: 'indigo.6' }]}
+                curveType="bump"
+                connectNulls
+              />
+            </Grid.Col>
+
+            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
+              3
+            </Grid.Col>
+            
+            <Grid.Col span={{ base: 12, md: 6, lg: 5 }}>
+
+            </Grid.Col>
           </Grid>
         </div>
 
