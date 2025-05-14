@@ -17,6 +17,8 @@ import {
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
+import { useDisclosure } from "@mantine/hooks";
+import { IconLogin } from "@tabler/icons-react";
 
 import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
@@ -24,8 +26,8 @@ import {
     CentralServerGetUserInfo,
     CentralServerLogInUser,
 } from "@/lib/api/auth";
+
 import classes from "@/components/MainLoginComponent.module.css";
-import { useDisclosure } from "@mantine/hooks";
 
 /**
  * The component for the main login page.
@@ -127,7 +129,7 @@ export function MainLoginComponent(): React.ReactElement {
                         {/*   Forgot password? */}
                         {/* </Anchor> */}
                     </Group>
-                    <Button type="submit" fullWidth mt="xl" loading={buttonLoading}>
+                    <Button type="submit" fullWidth mt="xl" loading={buttonLoading} rightSection={<IconLogin />}>
                         Sign in
                     </Button>
                 </form>
