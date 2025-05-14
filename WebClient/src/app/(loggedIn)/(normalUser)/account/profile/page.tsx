@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Divider, Group, Stack, Flex, Space } from "@mantine/core";
-import { Title, Text, TextInput, Switch } from "@mantine/core";
-import { Avatar, Button, FileButton } from "@mantine/core";
-// import { Modal } from "@mantine/core";
-// import { useDisclosure } from '@mantine/hooks';
+
+import { Box, Divider, Group, Flex, Stack, Space } from "@mantine/core";
+import { Avatar, Title, Text, TextInput } from "@mantine/core";
+import { Anchor, Button, FileButton, Modal, Switch } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 
 export default function ProfilePage() {
   const [image, setImage] = useState<File | null>(null);
+  const [opened, { open, close }] = useDisclosure(false);
   
   console.debug("Rendering ProfilePage");
   return (
     <div>
-      <Box maw={900} mx="auto" mt={30}>
+      <Box mx="auto" p="lg">
         <Title order={3} mb="sm">Profile</Title>
         <Divider mb="lg" />
 
@@ -35,8 +36,8 @@ export default function ProfilePage() {
         
           <FileButton onChange={setImage} accept="image/png,image/jpeg">
             {(props) => (
-              <Button {...props} variant="outline" size="sm" aria-label="Upload image">
-                Upload image
+              <Button {...props} variant="outline" size="sm">
+                Edit Profile
               </Button>
             )}
           </FileButton>
@@ -67,12 +68,13 @@ export default function ProfilePage() {
             />
           </Stack>
 
-            <Button variant="outline"
+            <Button
+              variant="outline"
               size="sm"
               style={{
               height: 35,
               whiteSpace: 'nowrap',
-              minWidth: 150,
+              width: 165,
               flexShrink: 0,
               }}
             >
@@ -95,14 +97,56 @@ export default function ProfilePage() {
             />
           </Stack>
           
-          <Button variant="outline"
+          <Modal opened={opened} onClose={close} title="Update Password" centered>
+            <Stack>
+              <TextInput
+                label="Current Password"
+                placeholder=""
+                type="password"
+                required
+              />
+              <TextInput
+                label="New Password"
+                placeholder="At least 8 characters"
+                type="password"
+                required
+              />
+              <TextInput
+                label="Confirm Password"
+                placeholder="At least 8 characters"
+                type="password"
+                required
+              />
+
+              <Button
+                variant="filled"
+                color="blue"
+              >
+                Update Password
+              </Button>
+
+              <Anchor
+                size="xs"
+                style={{
+                  color: "gray",
+                  textAlign: "center",
+                  cursor: "pointer" }}
+              >
+                Forgotten your password?
+              </Anchor>
+            </Stack>
+          </Modal>
+
+          <Button
+            variant="outline"
             size="sm"
             style={{
             height: 35,
             whiteSpace: 'nowrap',
-            minWidth: 150,
-            flexShrink: 0,
+            width: 165,
+            flexShrink: 0
             }}
+            onClick={open}
           >
             Change password
           </Button>
@@ -112,7 +156,7 @@ export default function ProfilePage() {
 
         <Group justify="space-between" mt="md">
           <Box>
-            <Text fw={500} size="sm">2-Step Verifications</Text>
+            <Text fw={500} size="sm">2-Step Verification</Text>
             <Text size="xs" c="dimmed">
               Add an additional layer of security to your account during login.
             </Text>

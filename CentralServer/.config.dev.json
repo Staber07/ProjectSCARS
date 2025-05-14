@@ -1,41 +1,47 @@
 {
-  "debug": {
-    "enabled": true,
-    "logenv_optout": false
-  },
-  "logging": {
-    "filepath": "./logs/centralserver-dev.log",
-    "max_bytes": 10485760,
-    "backup_count": 5,
-    "encoding": "utf-8",
-    "log_format": "%(asctime)s:%(name)s:%(levelname)s:%(message)s",
-    "date_format": "%d-%m-%y_%H-%M-%S"
-  },
-  "database": {
-    "type": "sqlite",
-    "config": {
-      "filepath": "./centralserver-dev.db"
+    "debug": {
+        "enabled": true,
+        "logenv_optout": true
+    },
+    "logging": {
+        "filepath": "./logs/centralserver-dev.log",
+        "max_bytes": 10485760,
+        "backup_count": 5,
+        "encoding": "utf-8",
+        "log_format": "%(asctime)s:%(name)s:%(levelname)s:%(message)s",
+        "date_format": "%d-%m-%y_%H-%M-%S"
+    },
+    "database": {
+        "type": "sqlite",
+        "config": {
+            "filepath": "./centralserver-dev.db"
+        }
+    },
+    "object_store": {
+        "type": "local",
+        "config": {
+            "filepath": "./data-dev/"
+        }
+    },
+    "authentication": {
+        "signing_secret_key": "dcbff885338a9590cd5b72819c2d077234a0bce528b02563a1c252caaa516212",
+        "refresh_signing_secret_key": "26670e03942b389d61522655a64edb09f81bf94b9f691f777c594eefba2be284",
+        "encryption_secret_key": "73d24c3d9067038014ac0d84e684094c",
+        "signing_algorithm": "HS256",
+        "encryption_algorithm": "A256GCM",
+        "access_token_expire_minutes": 30,
+        "refresh_token_expire_minutes": 10080
+    },
+    "security": {
+        "allow_origins": [
+            "http://localhost:8080"
+        ],
+        "allow_credentials": true,
+        "allow_methods": [
+            "*"
+        ],
+        "allow_headers": [
+            "*"
+        ]
     }
-  },
-  "object_store": {
-    "type": "local",
-    "config": {
-      "filepath": "./data/"
-    }
-  },
-  "authentication": {
-    "signing_secret_key": "ad5db1aa6101aadf76c436b334cdb106ea75241d3c6ae5f9efdd673d1ecad48f",
-    "refresh_signing_secret_key": "2d5c535a5857a1604ad5ae0c3bd8f106f61cdddd6058f0f0a64cb0b7a341c3a3",
-    "encryption_secret_key": "77eccd011ac7edcc26038b6edba8a3be",
-    "signing_algorithm": "HS256",
-    "encryption_algorithm": "A256GCM",
-    "access_token_expire_minutes": 30,
-    "refresh_token_expire_minutes": 10080
-  },
-  "security": {
-    "allow_origins": ["http://localhost:8080"],
-    "allow_credentials": true,
-    "allow_methods": ["*"],
-    "allow_headers": ["*"]
-  }
 }
