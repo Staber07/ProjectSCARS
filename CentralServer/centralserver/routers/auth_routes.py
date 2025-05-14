@@ -79,7 +79,7 @@ async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
-) -> tuple[JWTToken, JWTToken]:
+) -> JWTToken:
     """Get an access token for a user.
 
     Args:
@@ -88,7 +88,7 @@ async def request_access_token(
         request: The HTTP request object.
 
     Returns:
-        A JWT token and a refresh token.
+        A JWT token.
 
     Raises:
         HTTPException: If the user cannot be authenticated.
@@ -111,29 +111,14 @@ async def request_access_token(
     session.commit()
     session.refresh(user)
 
-    return (
-        JWTToken(
-            uid=uuid.uuid4(),
-            token=create_access_token(
-                user.id,
-                timedelta(
-                    minutes=app_config.authentication.access_token_expire_minutes
-                ),
-                False,
-            ),
-            type="bearer",
+    return JWTToken(
+        uid=uuid.uuid4(),
+        token=create_access_token(
+            user.id,
+            timedelta(minutes=app_config.authentication.access_token_expire_minutes),
+            False,
         ),
-        JWTToken(
-            uid=uuid.uuid4(),
-            token=create_access_token(
-                user.id,
-                timedelta(
-                    minutes=app_config.authentication.refresh_token_expire_minutes
-                ),
-                True,
-            ),
-            type="refresh",
-        ),
+        type="bearer",
     )
 
 
