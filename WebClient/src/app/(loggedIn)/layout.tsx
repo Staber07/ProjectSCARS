@@ -10,50 +10,50 @@ import { Navbar } from "@/components/Navbar";
 import { CentralServerGetUserInfo } from "@/lib/api/auth";
 
 export default function LoggedInLayout({
-  children,
+    children,
 }: {
-  children: React.ReactNode;
+    children: React.ReactNode;
 }) {
-  console.debug("Rendering LoggedInLayout");
-  return (
-    <AuthProvider>
-      <LoggedInContent>{children}</LoggedInContent>
-    </AuthProvider>
-  );
+    console.debug("Rendering LoggedInLayout");
+    return (
+        <AuthProvider>
+            <LoggedInContent>{children}</LoggedInContent>
+        </AuthProvider>
+    );
 }
 
 function LoggedInContent({ children }: { children: React.ReactNode }) {
-  const [userRole, setUserRole] = useState<number | null>(null);
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
-  const [opened] = useDisclosure();
-  const fetchUserRole = async () => {
-    setUserRole((await CentralServerGetUserInfo())?.roleId);
-  };
+    const [userRole, setUserRole] = useState<number | null>(null);
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
+    const [opened] = useDisclosure();
+    const fetchUserRole = async () => {
+        setUserRole((await CentralServerGetUserInfo())?.roleId);
+    };
 
-  useEffect(() => {
-    console.debug("LoggedInContent useEffect started", { isAuthenticated });
-    if (!isAuthenticated) {
-      router.push("/");
-    }
-    fetchUserRole();
-  }, [isAuthenticated, router]);
+    useEffect(() => {
+        console.debug("LoggedInContent useEffect started", { isAuthenticated });
+        if (!isAuthenticated) {
+            router.push("/");
+        }
+        fetchUserRole();
+    }, [isAuthenticated, router]);
 
-  console.debug("Rendering LoggedInContent", { isAuthenticated });
-  return (
-    <AppShell
-      header={{ height: 60 }}
-      navbar={{
-        width: 300,
-        breakpoint: "sm",
-        collapsed: { mobile: !opened },
-      }}
-      padding="md"
-    >
-      <AppShell.Navbar p="md">
-        <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
-      </AppShell.Navbar>
-      <AppShell.Main>{children}</AppShell.Main>
-    </AppShell>
-  );
+    console.debug("Rendering LoggedInContent", { isAuthenticated });
+    return (
+        <AppShell
+            header={{ height: 60 }}
+            navbar={{
+                width: 325,
+                breakpoint: "sm",
+                collapsed: { mobile: !opened },
+            }}
+            padding="md"
+        >
+            <AppShell.Navbar p="md">
+                <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
+            </AppShell.Navbar>
+            <AppShell.Main>{children}</AppShell.Main>
+        </AppShell>
+    );
 }
