@@ -82,9 +82,18 @@ export default function UsersPage() {
     setSelected(updated);
   };
 
+  console.debug("Rendering UsersPage");
+
   return (
     <div>
-      <Flex mih={50} gap="xl" justify="flex-start" align="center">
+      <Flex
+        mih={50}
+        gap="xl"
+        justify="flex-start"
+        align="center"
+        direction="row"
+        wrap="nowrap"
+      >
         <TextInput
           placeholder="Search for users"
           value={searchTerm}
@@ -141,7 +150,9 @@ export default function UsersPage() {
         </TableTbody>
       </Table>
 
-      <Pagination total={1} mt="md" />
+      <Group justify="center">
+        <Pagination total={1} mt="md" />
+      </Group>
 
       <Modal
         opened={editIndex !== null}
