@@ -122,55 +122,55 @@ async def request_access_token(
     )
 
 
-@router.post("/refresh")
-async def refresh_access_token(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    request: Request,
-) -> JWTToken:
-    """Get an access token for a user.
-
-    Args:
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-        request: The HTTP request object.
-
-    Returns:
-        A JWT token.
-
-    Raises:
-        HTTPException: If the user cannot be authenticated.
-    """
-
-    user: User | None = session.get(User, token.id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-        )
-
-    if not token.is_refresh_token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token",
-        )
-
-    # I don't think we need to update the last logged in time and IP here
-    # because the user didn't actually log in again...
-    #
-    # user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    # user.lastLoggedInIp = request.client.host if request.client else None
-    session.commit()
-    session.refresh(user)
-
-    return JWTToken(
-        uid=uuid.uuid4(),
-        token=create_access_token(
-            user.id,
-            timedelta(minutes=app_config.authentication.access_token_expire_minutes),
-        ),
-        type="bearer",
-    )
+# @router.post("/refresh")
+# async def refresh_access_token(
+#     token: logged_in_dep,
+#     session: Annotated[Session, Depends(get_db_session)],
+#     request: Request,
+# ) -> JWTToken:
+#     """Get an access token for a user.
+#
+#     Args:
+#         token: The decoded JWT token of the logged-in user.
+#         session: The database session.
+#         request: The HTTP request object.
+#
+#     Returns:
+#         A JWT token.
+#
+#     Raises:
+#         HTTPException: If the user cannot be authenticated.
+#     """
+#
+#     user: User | None = session.get(User, token.id)
+#     if not user:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid credentials",
+#         )
+#
+#     if not token.is_refresh_token:
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid refresh token",
+#         )
+#
+#     # I don't think we need to update the last logged in time and IP here
+#     # because the user didn't actually log in again...
+#     #
+#     # user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+#     # user.lastLoggedInIp = request.client.host if request.client else None
+#     session.commit()
+#     session.refresh(user)
+#
+#     return JWTToken(
+#         uid=uuid.uuid4(),
+#         token=create_access_token(
+#             user.id,
+#             timedelta(minutes=app_config.authentication.access_token_expire_minutes),
+#         ),
+#         type="bearer",
+#     )
 
 
 @router.get("/roles", response_model=list[Role])
