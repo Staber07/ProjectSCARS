@@ -8,7 +8,7 @@ import {
   IconReceipt2,
   IconUserPlus,
 } from '@tabler/icons-react';
-import { Group, Paper, SimpleGrid, Text, Flex, Grid } from '@mantine/core';
+import { Group, Paper, SimpleGrid, Text, Grid } from '@mantine/core';
 import { LineChart } from '@mantine/charts';
 
 
