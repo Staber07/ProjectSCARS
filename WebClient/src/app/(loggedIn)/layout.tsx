@@ -51,7 +51,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
             padding="md"
         >
             <AppShell.Navbar p="md">
-                <ScrollArea>
+                <ScrollArea scrollbars="y">
                     <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
                 </ScrollArea>
             </AppShell.Navbar>
