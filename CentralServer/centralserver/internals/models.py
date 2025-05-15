@@ -99,6 +99,10 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user account is deactivated.",
     )
+    onboardingDone: bool = Field(
+        default=False,
+        description="Whether the user has completed the onboarding process.",
+    )
     forceUpdateInfo: bool = Field(
         default=False,
         description="Whether the user is required to update their information.",
@@ -140,6 +144,7 @@ class UserPublic(SQLModel):
     schoolId: int | None
     roleId: int
     deactivated: bool
+    onboardingDone: bool
     forceUpdateInfo: bool
     dateCreated: datetime.datetime
     lastModified: datetime.datetime
@@ -157,6 +162,8 @@ class UserUpdate(SQLModel):
     nameMiddle: str | None = None
     nameLast: str | None = None
     password: str | None = None
+
+    onboardingDone: bool | None = None
 
 
 class NewUserRequest(SQLModel):

@@ -250,6 +250,10 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
 
+    if target_user.onboardingDone is not None:  # Update onboarding status if provided
+        logger.debug("Updating onboarding status for user: %s", target_user.id)
+        selected_user.onboardingDone = target_user.onboardingDone
+
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
     session.commit()
