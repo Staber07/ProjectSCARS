@@ -15,6 +15,7 @@ export default function ProfilePage() {
     const [userInfo, setUserInfo] = useState<UserPublicType | null>(null)
     const [opened, { open, close }] = useDisclosure(false);
 
+    // TODO: Implement the file upload logic for uploading user avatars.
     const uploadAvatar = () => { }
 
     useEffect(() => {
