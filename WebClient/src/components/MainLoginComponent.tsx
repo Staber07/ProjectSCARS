@@ -71,7 +71,6 @@ export function MainLoginComponent(): React.ReactElement {
                 title: "Login failed",
                 message: `${error}`,
             });
-        } finally {
             buttonStateHandler.close();
         }
     };
