@@ -27,16 +27,29 @@ export default function ProfilePage() {
             console.debug("Getting user avatar...");
             const userAvatarImage = await CentralServerGetUserAvatar()
             if (userAvatarImage !== null) {
-                console.debug("Setting avatar blob URL...")
-                setAvatarBlobUrl(URL.createObjectURL(userAvatarImage))
+                console.debug("Setting avatar blob URL...");
+                setAvatarBlobUrl((prevUrl) => {
+                    if (prevUrl) {
+                        URL.revokeObjectURL(prevUrl);
+                    }
+                    return URL.createObjectURL(userAvatarImage);
+                });
+            } else {
+                console.debug("User avatar is null, skipping....");
             }
-            else {
-                console.debug("User avatar is null, skipping....")
-            }
-        }
-        getUserInfo()
-    }, [])
+        };
+        getUserInfo();
 
+        return () => {
+            console.debug("Cleaning up avatar blob URL...");
+            setAvatarBlobUrl((prevUrl) => {
+                if (prevUrl) {
+                    URL.revokeObjectURL(prevUrl);
+                }
+                return null;
+            });
+        };
+    }, []);
     console.debug("Rendering ProfilePage");
     return (
         <div>
