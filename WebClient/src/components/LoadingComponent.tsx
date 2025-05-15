@@ -1,8 +1,4 @@
-import { Center, Container, Image, Loader, Paper, Stack, Text, Title } from "@mantine/core";
-
-import { Program } from "@/lib/info";
-
-import classes from "@/components/LoadingComponent.module.css";
+import { Center, Container, Image, Loader, Paper, Stack, Text } from "@mantine/core";
 
 type LoadingComponentProps = {
     message?: string;  // The message to display below the title
