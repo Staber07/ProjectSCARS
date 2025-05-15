@@ -11,12 +11,12 @@ import { LoadingComponent } from "@/components/LoadingComponent";
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function RootPage() {
-  console.debug("Rendering RootPage");
-  return (
-    <AuthProvider>
-      <RootContent />
-    </AuthProvider>
-  );
+    console.debug("Rendering RootPage");
+    return (
+        <AuthProvider>
+            <RootContent />
+        </AuthProvider>
+    );
 }
 
 /**
@@ -26,15 +26,15 @@ export default function RootPage() {
  * @returns The main content of the page.
  */
 function RootContent() {
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
 
-  useEffect(() => {
-    console.debug("RootContent useEffect started", { isAuthenticated });
-    router.push(isAuthenticated ? "/dashboard" : "/login");
-  }, [isAuthenticated, router]);
+    useEffect(() => {
+        console.debug("RootContent useEffect started", { isAuthenticated });
+        router.push(isAuthenticated ? "/dashboard" : "/login");
+    }, [isAuthenticated, router]);
 
-  console.debug("Rendering RootContent", { isAuthenticated });
-  // Show loading component while navigating
-  return <LoadingComponent />;
+    console.debug("Rendering RootContent", { isAuthenticated });
+    // Show loading component while navigating
+    return <LoadingComponent withBorder={false} />;
 }

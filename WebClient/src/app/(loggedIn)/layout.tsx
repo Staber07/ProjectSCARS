@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { AppShell } from "@mantine/core";
+import { AppShell, ScrollArea } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
 import { AuthProvider, useAuth } from "@/lib/providers/auth";
@@ -51,7 +51,9 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
             padding="md"
         >
             <AppShell.Navbar p="md">
-                <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
+                <ScrollArea scrollbars="y">
+                    <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
+                </ScrollArea>
             </AppShell.Navbar>
             <AppShell.Main>{children}</AppShell.Main>
         </AppShell>

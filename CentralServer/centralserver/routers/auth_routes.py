@@ -113,12 +113,12 @@ async def request_access_token(
 
     return JWTToken(
         uid=uuid.uuid4(),
-        token=create_access_token(
+        access_token=create_access_token(
             user.id,
             timedelta(minutes=app_config.authentication.access_token_expire_minutes),
             False,
         ),
-        type="bearer",
+        token_type="bearer",
     )
 
 

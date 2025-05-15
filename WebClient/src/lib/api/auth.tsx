@@ -5,7 +5,7 @@ import { TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
-function GetAccessTokenHeader(): string {
+export function GetAccessTokenHeader(): string {
     console.debug("Getting access token header");
     const storedToken = localStorage.getItem(LocalStorage.access_token);
     if (storedToken === null) {
@@ -44,11 +44,11 @@ export async function CentralServerLogInUser(
         throw new Error(errorMessage);
     }
 
-    const responseData: TokenType = await centralServerResponse.json();
+    const responseData: { access_token: string, token_type: string } = await centralServerResponse.json();
     console.debug("Access and refresh tokens received");
     return {
-        token: responseData["token"],
-        type: responseData["type"],
+        token: responseData["access_token"],
+        type: responseData["token_type"],
     }
 }
 
