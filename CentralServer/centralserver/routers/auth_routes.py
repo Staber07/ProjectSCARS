@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from datetime import timedelta
 from typing import Annotated
 
@@ -17,6 +18,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     DecodedJWTToken,
+    JWTToken,
     NewUserRequest,
     Role,
     User,
@@ -77,7 +79,7 @@ async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
-) -> dict[str, str]:
+) -> JWTToken:
     """Get an access token for a user.
 
     Args:
@@ -109,24 +111,15 @@ async def request_access_token(
     session.commit()
     session.refresh(user)
 
-    # return JWTToken(
-    #     uid=uuid.uuid4(),
-    #     token=create_access_token(
-    #         user.id,
-    #         timedelta(minutes=app_config.authentication.access_token_expire_minutes),
-    #         False,
-    #     ),
-    #     type="bearer",
-    # )
-
-    return {
-        "access_token": create_access_token(
+    return JWTToken(
+        uid=uuid.uuid4(),
+        access_token=create_access_token(
             user.id,
             timedelta(minutes=app_config.authentication.access_token_expire_minutes),
             False,
         ),
-        "token_type": "bearer",
-    }
+        token_type="bearer",
+    )
 
 
 # @router.post("/refresh")

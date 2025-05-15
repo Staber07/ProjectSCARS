@@ -17,8 +17,8 @@ class JWTToken(SQLModel):
     """A model representing a JWT token."""
 
     uid: uuid.UUID
-    token: str
-    type: str
+    access_token: str
+    token_type: str
 
 
 class DecodedJWTToken(SQLModel):
