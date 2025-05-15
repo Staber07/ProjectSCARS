@@ -19,6 +19,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLogin } from "@tabler/icons-react";
+import { motion } from "motion/react";
 
 import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
@@ -128,7 +129,18 @@ export function MainLoginComponent(): React.ReactElement {
                         {/*   Forgot password? */}
                         {/* </Anchor> */}
                     </Group>
-                    <Button type="submit" fullWidth mt="xl" loading={buttonLoading} rightSection={<IconLogin />}>
+                    <Button
+                        id="login-button"
+                        type="submit"
+                        fullWidth
+                        mt="xl"
+                        loading={buttonLoading}
+                        rightSection={<IconLogin />}
+                        component={motion.button}
+                        transition={{ type: "spring", stiffness: 2000, damping: 20, mass: 1.7 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                    >
                         Sign in
                     </Button>
                 </form>
