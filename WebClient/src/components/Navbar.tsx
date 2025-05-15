@@ -11,7 +11,7 @@ import {
     IconUser,
     IconGraph
 } from "@tabler/icons-react";
-import { Code, Group, Title, Stack, Image } from "@mantine/core";
+import { Code, Group, Title, Image } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
 import classes from "./Navbar.module.css";
