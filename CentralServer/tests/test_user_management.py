@@ -33,8 +33,8 @@ def test_login_user_success():
     response = _request_token(Database.default_user, Database.default_password)
     assert response.status_code == 200
     resp_data: dict[str, Any] = response.json()
-    assert type(resp_data["token"]) is str
-    assert resp_data["type"] == "bearer"
+    assert type(resp_data["access_token"]) is str
+    assert resp_data["token_type"] == "bearer"
 
 
 def test_login_user_wrong_password():
@@ -75,7 +75,7 @@ def test_create_user_success():
     """Test creating a user successfully."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     for user in TEST_USERS.items():
         data: dict[str, Any] = {
             "username": user[0],
@@ -111,7 +111,7 @@ def test_view_user_success():
     """Test viewing a user's info successfully."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.get("/api/v1/users/get", headers=headers)
     assert response.status_code == 200
 
@@ -127,9 +127,9 @@ def test_view_user_fail():
     """Test failing to view a user's info."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser4", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     response = client.get("/api/v1/users/get", headers=headers)
     assert response.status_code == 200
 
@@ -145,7 +145,7 @@ def test_view_user_not_found():
     """Test viewing a user's info successfully."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.get("/api/v1/users/get", headers=headers)
     assert response.status_code == 200
     response2 = client.get(
@@ -159,7 +159,7 @@ def test_create_user_missing_required_field():
     """Test creating a user with a missing required field."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     data: dict[str, Any] = {
         "username": "testuser3",
         "password": "Password123",
@@ -180,7 +180,7 @@ def test_create_user_missing_username():
     """Test creating a user with a missing username."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
         "/api/v1/auth/create",
         json={
@@ -195,7 +195,7 @@ def test_create_user_missing_username():
 
 def test_create_user_short_username():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
         "/api/v1/auth/create",
         json={
@@ -213,7 +213,7 @@ def test_create_user_invalid_data_types():
     """Test creating a user with invalid data types."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
         "/api/v1/auth/create",
         json={
@@ -231,7 +231,7 @@ def test_create_user_invalid_role_id():
     """Test creating a user with invalid role ID."""
 
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.post(
         "/api/v1/auth/create",
         json={
@@ -247,9 +247,9 @@ def test_create_user_invalid_role_id():
 
 def test_update_user():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser2", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     testuser_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -279,7 +279,7 @@ def test_update_user():
 
 def test_update_user_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/update",
         json={
@@ -296,7 +296,7 @@ def test_update_user_no_permission():
 
 def test_self_profile_logged_in():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -325,7 +325,7 @@ def test_self_profile_logged_out():
 
 def test_self_profile_update_name():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -353,7 +353,7 @@ def test_self_profile_update_name():
 
 def test_self_profile_update_username_unchanged():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -379,7 +379,7 @@ def test_self_profile_update_username_unchanged():
 
 def test_self_profile_update_username_taken():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -400,7 +400,7 @@ def test_self_profile_update_username_taken():
 
 def test_self_profile_update_username_invalid():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -421,7 +421,7 @@ def test_self_profile_update_username_invalid():
 
 def test_self_profile_update_email_valid():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -444,7 +444,7 @@ def test_self_profile_update_email_valid():
 
 def test_self_profile_update_email_invalid():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -465,7 +465,7 @@ def test_self_profile_update_email_invalid():
 
 def test_self_profile_update_password_weak():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -483,7 +483,7 @@ def test_self_profile_update_password_weak():
 
 def test_self_profile_update_password_good():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -507,7 +507,7 @@ def test_self_profile_update_password_good():
 
 def test_self_profile_update_invalid_id():
     login = _request_token("testuser3", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/me/update",
         json={
@@ -526,7 +526,7 @@ def test_self_profile_update_invalid_id():
 
 def test_view_all_roles():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.get(
         "/api/v1/auth/roles",
         headers=headers,
@@ -542,7 +542,7 @@ def test_view_all_roles():
 
 def test_view_all_roles_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.get(
         "/api/v1/auth/roles",
         headers=headers,
@@ -553,9 +553,9 @@ def test_view_all_roles_no_permission():
 
 def test_update_user_role_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser3", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -574,7 +574,7 @@ def test_update_user_role_no_permission():
 
 def test_update_user_role_invalid_user():
     login = _request_token("testuser2", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/update/role",
         params={"userId": "blah", "roleId": 1},
@@ -586,9 +586,9 @@ def test_update_user_role_invalid_user():
 
 def test_update_user_role_invalid_role():
     login = _request_token("testuser2", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser3", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -604,9 +604,9 @@ def test_update_user_role_invalid_role():
 
 def test_update_user_role():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser3", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -625,11 +625,11 @@ def test_update_user_role():
 
 def test_update_user_role_last_superintendent():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     # Remove another superintendent
     login2 = _request_token("testuser3", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -647,7 +647,7 @@ def test_update_user_role_last_superintendent():
 
     # Remove non-last superintendent
     login3 = _request_token("testuser1", "Password123")
-    headers3 = {"Authorization": f"Bearer {login3.json()['token']}"}
+    headers3 = {"Authorization": f"Bearer {login3.json()['access_token']}"}
     user_info2 = client.get(
         "/api/v1/users/me",
         headers=headers3,
@@ -677,7 +677,7 @@ def test_update_user_role_last_superintendent():
 
 def test_deactivate_user_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/deactivate",
@@ -692,7 +692,7 @@ def test_deactivate_user_no_permission():
 
 def test_deactivate_user_not_found():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/deactivate",
@@ -705,10 +705,10 @@ def test_deactivate_user_not_found():
 
 def test_deactivate_user_success():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     login2 = _request_token("testuser1", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -724,7 +724,7 @@ def test_deactivate_user_success():
 
 def test_deactivate_user_last_superintendent():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     users = client.get(
         "/api/v1/users/get",
@@ -760,7 +760,7 @@ def test_deactivate_user_last_superintendent():
 
 def test_reactivate_user_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/reactivate",
@@ -775,7 +775,7 @@ def test_reactivate_user_no_permission():
 
 def test_reactivate_user_not_found():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/reactivate",
@@ -788,10 +788,10 @@ def test_reactivate_user_not_found():
 
 def test_reactivate_user_success():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     login2 = _request_token("testuser1", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -807,7 +807,7 @@ def test_reactivate_user_success():
 
 def test_force_update_user_info_no_permission():
     login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/force",
@@ -823,7 +823,7 @@ def test_force_update_user_info_no_permission():
 
 def test_force_update_user_info_not_found():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
         "/api/v1/users/update/reactivate",
@@ -836,10 +836,10 @@ def test_force_update_user_info_not_found():
 
 def test_force_update_user_info_success():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     login2 = _request_token("testuser1", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers2,
@@ -858,7 +858,7 @@ def test_force_update_user_info_success():
 
 def test_update_user_avatar():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -882,7 +882,7 @@ def test_update_user_avatar():
 
 def test_get_user_avatar():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -903,7 +903,7 @@ def test_get_user_avatar():
 
 def test_delete_user_avatar():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
         headers=headers,
@@ -920,10 +920,10 @@ def test_delete_user_avatar():
 
 def test_delete_user_avatar_no_current():
     login = _request_token(Database.default_user, Database.default_password)
-    headers = {"Authorization": f"Bearer {login.json()['token']}"}
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     login2 = _request_token("testuser1", "Password123")
-    headers2 = {"Authorization": f"Bearer {login2.json()['token']}"}
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info2 = client.get(
         "/api/v1/users/me",
         headers=headers2,
