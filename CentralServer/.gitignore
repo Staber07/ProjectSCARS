@@ -1,3 +1,4 @@
+data-dev/
 *.db
 !.config.example.json
 !.config.dev.json
