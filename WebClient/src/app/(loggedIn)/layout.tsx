@@ -42,7 +42,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
     console.debug("Rendering LoggedInContent", { isAuthenticated });
     return (
         <AppShell
-            header={{ height: 60 }}
+            // header={{ height: 60 }}
             navbar={{
                 width: 325,
                 breakpoint: "sm",

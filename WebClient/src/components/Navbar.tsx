@@ -11,10 +11,10 @@ import {
     IconUser,
     IconGraph
 } from "@tabler/icons-react";
-import { Code, Group, Title, Image } from "@mantine/core";
+import { Code, Group, Title, Stack, Image } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
-import classes from "./NavbarSimple.module.css";
+import classes from "./Navbar.module.css";
 import { useAuth } from "@/lib/providers/auth";
 import { Program } from "@/lib/info";
 
@@ -127,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
-                <Group className={classes.header} justify="space-between">
+                <Group className={classes.header}>
                     <Image
                         src="/assets/BENTOLogo.svg"
                         alt="BENTO Logo"
