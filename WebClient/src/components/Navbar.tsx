@@ -89,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <a
             className={classes.link}
             data-active={item.key === active || undefined}
+            data-onboarding-tour-id={`onboarding-navbar-${item.key}`}
             href={item.link}
             key={item.key}
             onClick={(event) => {
@@ -127,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
-                <Group className={classes.header}>
+                <Group className={classes.header} data-onboarding-tour-id="onboarding-navbar-header">
                     <Image
                         src="/assets/BENTOLogo.svg"
                         alt="BENTO Logo"

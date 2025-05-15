@@ -6,6 +6,22 @@ type LoadingComponentProps = {
     withBorder?: boolean; // Whether to show a border around the loading screen
 };
 
+const randomMessages: string[] = [
+    "Balancing the school canteen budget...",
+    "Sharpening pencils and double-checking decimals...",
+    "Making sure every peso finds its desk...",
+    "Reviewing receipts with a magnifying glass...",
+    "Organizing ledgers for learning...",
+    "Counting coins...",
+    "Preparing your financial report card...",
+    "Ensuring every cent is in its seat...",
+    "Counting coins and balancing books...",
+    "Crunching numbers for your school’s success...",
+    "Reviewing receipts and sharpening pencils...",
+    "Auditing the piggy bank...",
+    "Making sure every cent is accounted for...",
+];
+
 /**
  * Show a loading screen
  */
@@ -14,6 +30,10 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({
     withBorder = true,
 }) => {
     console.debug("Returning LoadingComponent", { message });
+    if (!message) {
+        message = randomMessages[Math.floor(Math.random() * randomMessages.length)];
+        console.debug("Random message: ", message);
+    }
     return (
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
             <Center>
@@ -23,13 +43,15 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({
                             <Image src="/assets/BENTOLogo.svg" alt="BENTO Logo" width={100} height={100} />
                         </ motion.div>
                         <motion.div key="text" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
-                            {/*
-                                <Title className={classes.title} data-testid="loading-title">
-                                    {Program.name}
-                                </Title>
-                                */}
-                            {message && <Text data-testid="loading-message">{message}</Text>}
-                            <Loader color="blue" type="bars" />
+                            <Stack align="center" justify="center" gap="xs">
+                                <Loader color="blue" type="bars" />
+                                {
+                                    message &&
+                                    <Text c="dimmed" ta="center" data-testid="loading-message">
+                                        {message}
+                                    </Text>
+                                }
+                            </Stack>
                         </motion.div>
                     </Stack>
                 </Paper>
