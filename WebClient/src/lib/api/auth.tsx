@@ -81,3 +81,19 @@ export async function CentralServerGetUserInfo(
 
     return userData;
 }
+
+export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
+    console.debug("Updating user info");
+    const centralServerResponse = await ky.put(`${endpoint}/users/me/update`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        json: newUserInfo,
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to update user info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    const updatedUserInfo: UserPublicType = await centralServerResponse.json();
+    localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserInfo));
+    return updatedUserInfo;
+}

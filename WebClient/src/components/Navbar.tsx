@@ -14,7 +14,7 @@ import {
 import { Code, Group, Title, Image } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 
-import classes from "./NavbarSimple.module.css";
+import classes from "./Navbar.module.css";
 import { useAuth } from "@/lib/providers/auth";
 import { Program } from "@/lib/info";
 
@@ -89,6 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <a
             className={classes.link}
             data-active={item.key === active || undefined}
+            data-onboarding-tour-id={`onboarding-navbar-${item.key}`}
             href={item.link}
             key={item.key}
             onClick={(event) => {
@@ -127,7 +128,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
-                <Group className={classes.header} justify="space-between">
+                <Group className={classes.header} data-onboarding-tour-id="onboarding-navbar-header">
                     <Image
                         src="/assets/BENTOLogo.svg"
                         alt="BENTO Logo"
