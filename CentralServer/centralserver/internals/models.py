@@ -103,6 +103,10 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user is required to update their information.",
     )
+    finishedTutorials: str = Field(
+        default_factory=str,
+        description="A list of onboarding tutorials the user has completed.",
+    )
 
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
@@ -140,6 +144,7 @@ class UserPublic(SQLModel):
     schoolId: int | None
     roleId: int
     deactivated: bool
+    finishedTutorials: str
     forceUpdateInfo: bool
     dateCreated: datetime.datetime
     lastModified: datetime.datetime
@@ -157,6 +162,8 @@ class UserUpdate(SQLModel):
     nameMiddle: str | None = None
     nameLast: str | None = None
     password: str | None = None
+
+    finishedTutorials: str | None = None
 
 
 class NewUserRequest(SQLModel):

@@ -250,6 +250,25 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
 
+    if (  # Update onboarding status if provided
+        target_user.finishedTutorials is not None
+    ):
+        if len(target_user.finishedTutorials) > 50:
+            logger.warning(
+                "Failed to update user: %s (too many tutorials)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Too many tutorials finished.",
+            )
+
+        logger.debug(
+            "Updating onboarding status for user: %s (%s)",
+            target_user.id,
+            len(target_user.finishedTutorials),
+        )
+        selected_user.finishedTutorials = target_user.finishedTutorials
+
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
     session.commit()
