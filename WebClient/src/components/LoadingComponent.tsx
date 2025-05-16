@@ -1,4 +1,4 @@
-import { Center, Container, Image, Loader, Paper, Stack, Text } from "@mantine/core";
+import { Center, Container, Image, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
 
 type LoadingComponentProps = {
