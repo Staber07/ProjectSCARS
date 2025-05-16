@@ -56,12 +56,12 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
         };
         try {
             console.debug("Updating user info in server...");
-            CentralServerUpdateUserInfo(updatedUserInfo);
+            await CentralServerUpdateUserInfo(updatedUserInfo);
+            console.debug("User info updated successfully");
         } catch (error) {
             console.error("Error updating user info", error);
             notifications.show({ title: "Error", message: "Error updating user info" });
         }
-        console.debug("User info updated successfully");
     }
 
     const onboardingSteps: OnboardingTourStep[] = [
