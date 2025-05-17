@@ -99,11 +99,8 @@ export function MainLoginComponent(): React.ReactElement {
                         component={motion.img}
                         whileTap={{ scale: 0.95 }}
                         drag
-                        onDragEnd={() => {
-                            setTimeout(() => {
-                                logoControls.start({ x: 0, y: 0 });
-                            }, 2000);
-                        }}
+                        dragElastic={{ top: 0.25, left: 0.25, right: 0, bottom: 0 }}
+                        dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
                         animate={logoControls}
                     />
                     {Program.name}

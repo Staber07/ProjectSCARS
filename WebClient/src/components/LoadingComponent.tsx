@@ -58,7 +58,7 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({
                                 }}
                                 style={{ originX: 0.5, originY: 0.5 }}
                                 drag
-                                dragElastic={1}
+                                dragElastic={{ top: 0.25, left: 0.25, right: 0.25, bottom: 0 }}
                                 dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
                             />
                         </motion.div>
