@@ -1,19 +1,32 @@
-# Project SCARS
+<div align="center">
+    <a href="https://github.com/Chris1320/ProjectSCARS">
+        <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/537fb4b6f6545be0758f956e4bd7ab447ff1fccc/WebClient/src/components/BENTOLogo.svg" alt="Bento Logo" width="15%" height="auto" />
+    </a>
+    <h1>Bento</h1>
+    <a href="https://github.com/Chris1320/ProjectSCARS/commits"><img src="https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat" alt="GitHub Last Commit" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/issues"><img src="https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat" alt="GitHub Issues or Pull Requests" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style" alt="Linter Results" /></a>
+    <a href="https://codecov.io/gh/Chris1320/ProjectSCARS"><img src="https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage" alt="Code Coverage" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS"><img src="https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat" alt="GitHub Repository Size" /></a>
+    <a href="https://github.com/Chris1320/ProjectSCARS/milestone/2"><img src="https://img.shields.io/github/milestones/progress-percent/Chris1320/ProjectSCARS/2?style=flat&color=orange" alt="Project Milestone Progress" /></a>
+</div>
 
-Project SCARS is a School Canteen Automated Reporting System for the Department
+**Bento** is a School Canteen Automated Reporting System for the Department
 of Education (DepEd) Schools Division Office (SDO) of the City of Baliwag in
 the Philippines.
 
-[![GitHub Last Commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat)](https://github.com/Chris1320/ProjectSCARS/commits)
-[![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat)](https://github.com/Chris1320/ProjectSCARS/issues)
-[![Linter Results](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml)
-[![Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage)](https://codecov.io/gh/Chris1320/ProjectSCARS)
-[![GitHub Repository Size](https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat)](https://github.com/Chris1320/ProjectSCARS)
+> *Why Bento?*
+> 
+> "A bento is a Japanese-style single-portion take-out or home-packed meal,
+> often for lunch, typically including rice and packaged in a box with a lid.
+> The term bento is derived from the Chinese term biandang, which means
+> "convenient" or "convenience"."
+> 
+> \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
 
 | Component      | Open Issues                                                                                                                                                                                                                                                                                                            | Last Commit                                                                                                                                                                                                                  | Test Results                                                                                                                                                                                                                             | Code Coverage                                                                                                                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Central Server | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20central%20server?style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20central%20server%22) | [![GitHub last commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?path=CentralServer&style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/tree/main/CentralServer) | [![Central Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/central-server-tests.yml?style=flat&label=)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml) | [![Central Server Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=central-server&label=&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags) |
-| Local Server   | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20local%20server?style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20local%20server%22)     | [![GitHub last commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?path=LocalServer&style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/tree/main/LocalServer)     | [![Local Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/local-server-tests.yml?style=flat&label=)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/local-server-tests.yml)       | [![Local Server Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=local-server&label=&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags)     |
 | Web Client     | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20web%20client?style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20web%20client%22)         | [![GitHub last commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?path=WebClient&style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/tree/main/WebClient)         | [![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=flat&label=)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)             | [![Web Client Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=web-client&label=&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags)         |
 
 <details>
@@ -36,7 +49,6 @@ the Philippines.
 | Component      | Stack                                                                                                     |
 | -------------- | --------------------------------------------------------------------------------------------------------- |
 | Central Server | [![Central Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,mysql,docker)](#central-server) |
-| Local Server   | [![Local Server Stack](https://skillicons.dev/icons?i=py,fastapi,sqlite,arduino)](#local-server)          |
 | Web Client     | [![Web Client Stack](https://skillicons.dev/icons?i=ts,react,tailwind,nextjs)](#web-client)               |
 
 #### Central Server
@@ -129,9 +141,9 @@ and can be used to pass additional SQLAlchemy connection arguments.
       "filepath": "database.db",
       "connect_args": {
         // SQLAlchemy connection arguments
-      }
-    }
-  }
+      },
+    },
+  },
   /* ... */
 }
 ```
@@ -301,61 +313,15 @@ containerized environment using Docker or Podman.
    }
    ```
 
-#### Local Server
+###### Central Server Environment Variables
 
-The local server is also written in Python using the FastAPI framework.
-SQLite is used as its database which is sufficient for local database
-transactions while providing a lightweight solution. The local server
-is responsible for providing inventory management and sales functionality
-to the web client. It also serves as a bridge between the web client
-and the canteen membership module.
+The following environment variables are used by the central server
+to further configure its behavior. These variables are optional.
 
-##### Local Server Requirements
-
-The local server is written in [Python](https://python.org) v3.13.1, and is
-managed using [uv](https://github.com/astral-sh/uv) v0.5.24.
-
-##### Local Server Development Setup
-
-1. Install the required software.
-2. Clone the repository.
-
-   ```bash
-   git clone https://github.com/Chris1320/ProjectSCARS.git
-   ```
-
-3. Navigate to the `LocalServer` directory.
-
-   ```bash
-   cd ProjectSCARS/LocalServer
-   ```
-
-4. Install dependencies.
-
-   ```bash
-   uv sync
-   ```
-
-5. Copy and edit the configuration file.
-
-   ```bash
-   cp .config.example.json config.json
-   uv run ./scripts/secret.py sign     # Generate secure secret keys
-   uv run ./scripts/secret.py encrypt  # and write it to `config.json`
-   uv run ./scripts/secret.py refresh
-   ```
-
-6. Run the FastAPI development server.
-
-   ```bash
-   uv run fastapi dev localserver
-   ```
-
-> [!IMPORTANT]
-> The default credentials are:
->
-> - username: `scars_localadmin`
-> - password: `SCARS_LocalAdmin0`
+| Environment Variable             | Value           | Description                                |
+| -------------------------------- | --------------- | ------------------------------------------ |
+| `CENTRAL_SERVER_CONFIG_FILE`     | `./config.json` | The path of the configuration file to use. |
+| `CENTRAL_SERVER_CONFIG_ENCODING` | `utf-8`         | The encoding of the configuration file.    |
 
 #### Web Client
 
@@ -409,10 +375,10 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
     <table>
         <tbody>
             <tr>
-                <td><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></td>
-                <td><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></td>
+                <td><a href="https://github.com/Kirito090504"><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/Staber07"><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/arabelaramos"><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/Chris1320"><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></a></td>
             </tr>
             <tr>
                 <td><p><b><a href="https://github.com/Kirito090504">Kirito090504</a></b></p></td>

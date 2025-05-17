@@ -1,19 +1,18 @@
+// Used for exporting the program information and connection details into NavBar Component
 export const Program = {
-  name: "Project SCARS",
-  description: "School Canteen Automated Reporting System",
-  version: "0.3.0",
+    name: "BENTO",
+    description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
+    version: "0.3.5",
 };
 
 export const Connections = {
-  CentralServer: {
-    endpoint: "http://localhost:8081",
-  },
-  LocalServer: {
-    endpoint: "http://localhost:8082",
-  },
+    CentralServer: {
+        endpoint: "http://localhost:8081",
+    },
 };
 
 export const LocalStorage = {
-  jwt_name: "at",
-  jwt_type: "tt",
+    access_token: "at",
+    refresh_token: "rt",
+    user_data: "ud",
 };

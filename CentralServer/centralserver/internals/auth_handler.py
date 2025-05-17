@@ -30,6 +30,10 @@ def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
         The user object if found, None otherwise.
     """
 
+    logger.debug(
+        "Getting user with ID: %s" if by_id else "Getting user with username: %s",
+        user_id,
+    )
     return (
         session.exec(select(User).where(User.id == user_id)).first()
         if by_id
@@ -48,6 +52,7 @@ def get_role(role_id: int, session: Session) -> Role | None:
         The Role object.
     """
 
+    logger.debug("Getting role with ID: %s", role_id)
     return session.get(Role, role_id)
 
 
@@ -63,6 +68,14 @@ def get_user_role(user_id: str, session: Session, by_id: bool = True) -> Role | 
         The ID of the role of the user.
     """
 
+    logger.debug(
+        (
+            "Getting role for user with ID: %s"
+            if by_id
+            else "Getting role for user with username: %s"
+        ),
+        user_id,
+    )
     return session.exec(
         select(Role).where(
             Role.id
@@ -236,6 +249,12 @@ async def verify_user_permission(
     Returns:
         Returns True if the user has the required permissions, False otherwise.
     """
+
+    if token.is_refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid JWT token",
+        )
 
     user_role = get_user_role(token.id, session)
     if user_role is None:

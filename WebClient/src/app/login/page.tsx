@@ -10,10 +10,11 @@ import { MainLoginComponent } from "@/components/MainLoginComponent";
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function LoginPage() {
+  console.debug("Rendering LoginPage");
   return (
-    <AuthProvider>
-      <LoginContent />
-    </AuthProvider>
+      <AuthProvider>
+        <LoginContent />
+      </AuthProvider>
   );
 }
 
@@ -27,10 +28,12 @@ function LoginContent() {
   const router = useRouter();
 
   useEffect(() => {
+    console.debug("LoginContent useEffect started", { isAuthenticated });
     if (isAuthenticated) {
       router.push("/");
     }
   }, [isAuthenticated, router]);
 
+  console.debug("Rendering LoginContent", { isAuthenticated });
   return <MainLoginComponent />;
 }

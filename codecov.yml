@@ -16,10 +16,6 @@ flag_management:
       paths:
         - "CentralServer/**"
 
-    - name: local-server
-      paths:
-        - "LocalServer/**"
-
     - name: web-client
       paths:
         - "WebClient/**"

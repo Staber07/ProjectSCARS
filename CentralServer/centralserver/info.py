@@ -7,7 +7,7 @@ class Program:
     """General program information."""
 
     name: Final[str] = "Project SCARS Central Server"
-    version: Final[tuple[int, int, int]] = (0, 3, 0)
+    version: Final[tuple[int, int, int]] = (0, 3, 5)
 
 
 class Database:

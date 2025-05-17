@@ -7,7 +7,7 @@ from typing import Any, override
 
 
 class DatabaseAdapterConfig(ABC):
-    """Superclass for database adapter configuration."""
+    """Superclass for database adapter configurations."""
 
     @property
     @abstractmethod
@@ -140,7 +140,7 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
 
 
 class ObjectStoreAdapterConfig(ABC):
-    """Adapter configuration for object store."""
+    """Superclass for object store configurations."""
 
     @property
     @abstractmethod

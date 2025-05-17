@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from time import strftime
 
@@ -84,6 +85,7 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{info.Configuration.default_encoding=}")
 
     logger.debug(f"{app_config.debug.enabled=}")
+    logger.debug(f"{app_config.debug.logenv_optout=}")
 
     logger.debug(f"{app_config.logging.filepath=}")
     logger.debug(f"{app_config.logging.max_bytes=}")
@@ -119,3 +121,8 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.security.allow_credentials=}")
     logger.debug(f"{app_config.security.allow_methods=}")
     logger.debug(f"{app_config.security.allow_headers=}")
+    logger.debug(
+        "Environment Variables: opted out"
+        if app_config.debug.logenv_optout
+        else f"Environment Variables:\n{os.environ}"
+    )
