@@ -327,9 +327,7 @@ to further configure its behavior. These variables are optional.
 
 The web client is written in TypeScript using the Next.js framework. It
 is the user-facing application that allows canteen managers to submit
-their monthly financial reports to the central server. The web client
-also optionally communicates with the local server to provide inventory
-and sales functionality.
+their monthly financial reports to the central server.
 
 ##### Web Client Requirements
 
@@ -364,7 +362,7 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    ```
 
 > [!IMPORTANT]
-> Look at the _central server_ and _local server_ documentation for the default
+> Look at the _central server_ documentation for the default
 > credentials.
 
 ---
