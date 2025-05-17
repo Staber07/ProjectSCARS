@@ -19,7 +19,7 @@ import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
 import { IconLogin } from "@tabler/icons-react";
-import { motion } from "motion/react";
+import { motion, useAnimation } from "motion/react";
 
 import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
@@ -41,6 +41,7 @@ export function MainLoginComponent(): React.ReactElement {
         initialValues: { username: "", password: "", rememberMe: false },
     });
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const logoControls = useAnimation();
 
     /// Login function
     const loginUser = async (values: {
@@ -95,8 +96,13 @@ export function MainLoginComponent(): React.ReactElement {
                         w="auto"
                         fit="contain"
                         style={{ marginRight: "10px" }}
-                    >
-                    </Image>
+                        component={motion.img}
+                        whileTap={{ scale: 0.95 }}
+                        drag
+                        dragElastic={{ top: 0.25, left: 0.25, right: 0, bottom: 0 }}
+                        dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+                        animate={logoControls}
+                    />
                     {Program.name}
                 </Flex>
             </Title>
@@ -137,9 +143,12 @@ export function MainLoginComponent(): React.ReactElement {
                         loading={buttonLoading}
                         rightSection={<IconLogin />}
                         component={motion.button}
-                        transition={{ type: "spring", stiffness: 2000, damping: 20, mass: 1.7 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        drag
+                        dragElastic={0.1}
+                        dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
                     >
                         Sign in
                     </Button>
