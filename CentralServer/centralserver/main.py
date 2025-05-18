@@ -27,7 +27,7 @@ app = FastAPI(
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
     root_path="/api",
-    on_startup=(startup,),
+    on_startup=[startup],
 )
 
 app.include_router(auth_routes.router)
