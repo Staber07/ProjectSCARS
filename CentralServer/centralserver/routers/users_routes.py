@@ -39,7 +39,7 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 ##### Normal user routes #####
 
 
-@router.get("/me")
+@router.get("/me", status_code=status.HTTP_200_OK, response_model=UserPublic)
 async def get_user_profile_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
