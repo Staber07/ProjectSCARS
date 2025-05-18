@@ -9,85 +9,113 @@ import {
   Group,
   Checkbox,
   ScrollArea,
+  Button,
+  rem,
 } from "@mantine/core";
-import { IconEdit, IconSearch } from "@tabler/icons-react";
-import { useState } from "react";
+import { IconEdit, IconSearch, IconTrash, IconDownload } from "@tabler/icons-react";
+import { useEffect, useMemo, useState } from "react";
 
-// Mock data (20 rows for better pagination)
-const SchoolsData = Array.from({ length: 20 }, (_, i) => [
-  `School ${i + 1}`,
-  `Barangay ${i + 1}, Baliuag, Bulacan`,
-  1000 + i * 100,
-  50 + i * 10,
-  500 + i * 50,
-]);
-
-const ITEMS_PER_PAGE = 10;
+// Generate mock data
+const generateMockData = () => {
+  const schools = [
+    "Hinukay", "Pinagbarilan", "Calantipay", "Tilapayong", "Poblacion",
+    "Subic", "Santa Barbara", "San Rafael", "San Jose", "Bagong Bayan",
+    "San Isidro", "San Miguel", "Sto. Cristo", "Tiaong", "Tibag",
+    "Tarcan", "Malolos", "Paombong", "Bustos", "Guiguinto"
+  ];
+  return schools.map((name, index) => ({
+    id: index + 1,
+    school: name,
+    address: "Baliuag, Bulacan",
+    netIncome: Math.floor(Math.random() * 10000),
+    netProfit: Math.floor(Math.random() * 5000),
+    grossProfit: Math.floor(Math.random() * 8000),
+  }));
+};
 
 export default function SchoolsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [data] = useState(generateMockData());
   const [editMode, setEditMode] = useState(false);
-  const [selectedRows, setSelectedRows] = useState<number[]>([]);
-  const [activePage, setActivePage] = useState(1);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
-  // Filter and paginate data
-  const filteredData = SchoolsData.filter((row) =>
-    String(row[0]).toLowerCase().includes(searchQuery.toLowerCase())
-  );
-  const paginatedData = filteredData.slice(
-    (activePage - 1) * ITEMS_PER_PAGE,
-    activePage * ITEMS_PER_PAGE
+  const filteredData = useMemo(
+    () => data.filter((row) => row.school.toLowerCase().includes(search.toLowerCase())),
+    [search, data]
   );
 
-  const handleSearch = () => setActivePage(1);
+  const paginatedData = useMemo(
+    () => filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [filteredData, page]
+  );
 
-  const toggleEditMode = () => {
-    setEditMode((prev) => !prev);
-    setSelectedRows([]);
+  const toggleSelection = (id: number) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
   };
 
-  const handleSelectRow = (index: number) => {
-    setSelectedRows((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+  const handleExport = () => {
+    const csvContent = [
+      ["School", "Address", "Net Income", "Net Profit", "Gross Profit"],
+      ...filteredData.map(row => [
+        row.school,
+        row.address,
+        row.netIncome,
+        row.netProfit,
+        row.grossProfit,
+      ])
+    ].map(e => e.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute("download", "schools_data.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
     <div>
-      <Flex mih={50} gap="xl" align="center" wrap="nowrap">
+      <Flex mih={50} gap="xl" justify="flex-start" align="center" direction="row" wrap="nowrap">
         <TextInput
           placeholder="Search for Schools"
           size="md"
           style={{ width: "400px" }}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.currentTarget.value)}
+          value={search}
+          onChange={(e) => setSearch(e.currentTarget.value)}
         />
 
         <Flex ml="auto" gap="sm" align="center">
-          <ActionIcon size="input-md" variant="default" onClick={toggleEditMode}>
+          <ActionIcon size="input-md" variant="default" onClick={() => setEditMode((v) => !v)}>
             <IconEdit size={16} />
           </ActionIcon>
-
-          <ActionIcon
-            size="input-md"
-            variant="default"
-            aria-label="Search"
-            onClick={handleSearch}
-          >
+          <ActionIcon size="input-md" variant="default" onClick={handleExport}>
+            <IconDownload size={16} />
+          </ActionIcon>
+          <ActionIcon size="input-md" variant="default">
             <IconSearch size={16} />
           </ActionIcon>
         </Flex>
       </Flex>
 
-      <ScrollArea>
-        <Table
-          stickyHeader
-          stickyHeaderOffset={60}
-          verticalSpacing="sm"
-          highlightOnHover
-          withTableBorder
-          style={{ marginTop: "10px", minWidth: "100%" }}
-        >
+      {editMode && (
+        <Group mt="md">
+          <Button
+            leftSection={<IconTrash size={16} />}
+            color="red"
+            onClick={() => setSelected([])}
+          >
+            Clear Selection
+          </Button>
+        </Group>
+      )}
+
+      <ScrollArea style={{ marginTop: rem(20) }}>
+        <Table stickyHeader stickyHeaderOffset={60} verticalSpacing="sm" highlightOnHover withTableBorder>
           <Table.Thead>
             <Table.Tr>
               {editMode && <Table.Th></Table.Th>}
@@ -99,31 +127,36 @@ export default function SchoolsPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {paginatedData.map((row, index) => (
-              <Table.Tr key={index}>
+            {paginatedData.map((row) => (
+              <Table.Tr key={row.id}>
                 {editMode && (
                   <Table.Td>
                     <Checkbox
-                      checked={selectedRows.includes(index)}
-                      onChange={() => handleSelectRow(index)}
+                      checked={selected.includes(row.id)}
+                      onChange={() => toggleSelection(row.id)}
                     />
                   </Table.Td>
                 )}
-                {row.map((cell, i) => (
-                  <Table.Td key={i}>{cell}</Table.Td>
-                ))}
+                <Table.Td>{row.school}</Table.Td>
+                <Table.Td>{row.address}</Table.Td>
+                <Table.Td>{row.netIncome}</Table.Td>
+                <Table.Td>{row.netProfit}</Table.Td>
+                <Table.Td>{row.grossProfit}</Table.Td>
               </Table.Tr>
             ))}
+
+            {paginatedData.length === 0 && (
+              <Table.Tr>
+                <Table.Td colSpan={editMode ? 6 : 5} align="center">
+                  No schools found.
+                </Table.Td>
+              </Table.Tr>
+            )}
           </Table.Tbody>
         </Table>
       </ScrollArea>
 
-      <Pagination.Root
-        total={Math.ceil(filteredData.length / ITEMS_PER_PAGE)}
-        value={activePage}
-        onChange={setActivePage}
-        style={{ marginTop: "20px" }}
-      >
+      <Pagination.Root total={Math.ceil(filteredData.length / rowsPerPage)} value={page} onChange={setPage} style={{ marginTop: "20px" }}>
         <Group gap={10} justify="center">
           <Pagination.First />
           <Pagination.Previous />
