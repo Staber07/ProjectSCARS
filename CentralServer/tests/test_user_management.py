@@ -487,7 +487,7 @@ def test_self_profile_update_email_invalid():
     # TODO: More checks
 
 
-def test_self_profile_update_password_weak():
+def test_self_profile_update_password_short():
     login = _request_token("testuser3", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
@@ -499,6 +499,42 @@ def test_self_profile_update_password_weak():
     response = client.patch(
         "/api/v1/users/me/update",
         json={"id": resp_data["id"], "password": "you"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Invalid password format")
+
+
+def test_self_profile_update_password_alllcase():
+    login = _request_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={"id": resp_data["id"], "password": "weak_password"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Invalid password format")
+
+
+def test_self_profile_update_password_allucase():
+    login = _request_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={"id": resp_data["id"], "password": "WEAK_PASSWORD"},
         headers=headers,
     )
     assert response.status_code == 400
