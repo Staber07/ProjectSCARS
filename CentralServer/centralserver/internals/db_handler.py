@@ -28,7 +28,7 @@ def get_db_session() -> Generator[Session, None, None]:
         yield session
 
 
-def populate_db() -> bool:
+async def populate_db() -> bool:
     """Populate the database with tables."""
 
     populated = False
@@ -57,7 +57,7 @@ def populate_db() -> bool:
     with next(get_db_session()) as session:
         if not session.exec(select(User)).first():
             logger.warning("Creating default user")
-            create_user(
+            await create_user(
                 NewUserRequest(
                     username=info.Database.default_user,
                     roleId=1,
