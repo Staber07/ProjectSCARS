@@ -13,10 +13,9 @@ import {
   rem,
 } from "@mantine/core";
 import { IconEdit, IconSearch, IconTrash, IconDownload } from "@tabler/icons-react";
-import { useEffect, useMemo, useState } from "react";
+import {  useMemo, useState } from "react";
 
-// Generate mock data
-const generateMockData = () => {
+const SchoolsData = () => {
   const schools = [
     "Hinukay", "Pinagbarilan", "Calantipay", "Tilapayong", "Poblacion",
     "Subic", "Santa Barbara", "San Rafael", "San Jose", "Bagong Bayan",
@@ -35,7 +34,7 @@ const generateMockData = () => {
 
 export default function SchoolsPage() {
   const [search, setSearch] = useState("");
-  const [data] = useState(generateMockData());
+  const [data] = useState(SchoolsData());
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [page, setPage] = useState(1);
@@ -116,7 +115,7 @@ export default function SchoolsPage() {
 
       <ScrollArea style={{ marginTop: rem(20) }}>
         <Table stickyHeader stickyHeaderOffset={60} verticalSpacing="sm" highlightOnHover withTableBorder>
-          <Table.Thead>
+          
             <Table.Tr>
               {editMode && <Table.Th></Table.Th>}
               <Table.Th>Schools</Table.Th>
@@ -125,7 +124,7 @@ export default function SchoolsPage() {
               <Table.Th>Net Profit</Table.Th>
               <Table.Th>Gross Profit</Table.Th>
             </Table.Tr>
-          </Table.Thead>
+          
           <Table.Tbody>
             {paginatedData.map((row) => (
               <Table.Tr key={row.id}>
