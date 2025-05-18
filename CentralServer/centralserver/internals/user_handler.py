@@ -46,7 +46,8 @@ async def validate_password(password: str) -> tuple[bool, str | None]:
         password: The password to validate.
 
     Returns:
-        True if the password is valid, False otherwise.
+        A tuple containing a boolean whether the password is valid or not,
+        and an optional error message when the password is invalid.
     """
 
     if len(password) < 8:

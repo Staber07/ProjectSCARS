@@ -84,7 +84,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             )
         )
 
-    async def get_object_filesystem_filename(self, fn: str) -> str:
+    def get_object_filesystem_filename(self, fn: str) -> str:
         """Hash the filename to create a unique identifier for the object.
 
         Args:
@@ -119,7 +119,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
-        hashed_filename = await self.get_object_filesystem_filename(fn)
+        hashed_filename = self.get_object_filesystem_filename(fn)
         new_file_dir = self.config.filepath / bucket.value / hashed_filename[:2]
         new_file_dir.mkdir(parents=True, exist_ok=True)
         new_fp = new_file_dir / hashed_filename
