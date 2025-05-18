@@ -1,3 +1,3 @@
-from centralserver.main import app
+from centralserver.main import app, startup
 
-__all__ = ["app"]
+__all__ = ["app", "startup"]

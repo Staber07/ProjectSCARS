@@ -1,9 +1,10 @@
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from centralserver import app
+from centralserver import app, startup
 from centralserver.info import Database
 
 TEST_USERS = {
@@ -25,6 +26,13 @@ def _request_token(username: str, password: str) -> Response:
     }
 
     return client.post("/api/v1/auth/token", data=creds)
+
+
+@pytest.mark.asyncio
+async def test_startup_sequence():
+    """Test the startup sequence of the application."""
+
+    await startup()
 
 
 def test_login_user_success():
@@ -100,7 +108,7 @@ def test_create_user_success():
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     for user in TEST_USERS.items():
         assert user[0] in [u["username"] for u in response.json()]
 
@@ -112,12 +120,12 @@ def test_view_user_success():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/get/{user["id"]}",
+            f"/api/v1/users/{user["id"]}",
             headers=headers,
         )
         assert response2.status_code == 200
@@ -130,12 +138,12 @@ def test_view_user_fail():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser4", "Password123")
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/get/{user["id"]}",
+            f"/api/v1/users/{user["id"]}",
             headers=headers2,
         )
         assert response2.status_code == 403
@@ -146,10 +154,10 @@ def test_view_user_not_found():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
     response2 = client.get(
-        "/api/v1/users/get/non-existent-user-id",
+        "/api/v1/users/non-existent-user-id",
         headers=headers,
     )
     assert response2.status_code == 400
@@ -478,7 +486,7 @@ def test_self_profile_update_password_weak():
         headers=headers,
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid password format"
+    assert response.json()["detail"].startswith("Invalid password format")
 
 
 def test_self_profile_update_password_good():
@@ -573,7 +581,7 @@ def test_update_user_role_no_permission():
 
 
 def test_update_user_role_invalid_user():
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/update/role",
@@ -585,7 +593,7 @@ def test_update_user_role_invalid_user():
 
 
 def test_update_user_role_invalid_role():
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser3", "Password123")
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
@@ -727,7 +735,7 @@ def test_deactivate_user_last_superintendent():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     users = client.get(
-        "/api/v1/users/get",
+        "/api/v1/users/all",
         headers=headers,
     )
     deactivated_users: dict[str, Any] = {}

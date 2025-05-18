@@ -1,8 +1,12 @@
+import pytest
+
 from centralserver.internals import db_handler
 
 
-def test_db_repopulation() -> None:
+@pytest.mark.asyncio
+async def test_db_repopulation() -> None:
     """Check the behavior of populate_db() when database is already populated."""
 
     # The database should be populated already
-    assert db_handler.populate_db() is False
+    assert await db_handler.populate_db() is True
+    assert await db_handler.populate_db() is False
