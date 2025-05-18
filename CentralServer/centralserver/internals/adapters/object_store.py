@@ -29,11 +29,11 @@ class ObjectStoreAdapter(ABC):
     """Superclass for object store adapter configuration."""
 
     @abstractmethod
-    def check(self) -> None:
+    async def check(self) -> None:
         """Verify the health of the object store."""
 
     @abstractmethod
-    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+    async def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         """Put the object into the object store and return its ID.
 
         Args:
@@ -43,11 +43,13 @@ class ObjectStoreAdapter(ABC):
         """
 
     @abstractmethod
-    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+    async def get(
+        self, bucket: BucketNames, hashed_filename: str
+    ) -> BucketObject | None:
         """Get the object with the given ID from the object store."""
 
     @abstractmethod
-    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+    async def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
         """Delete the object with the given ID from the object store."""
 
 
@@ -66,7 +68,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         self.config = config
 
     @staticmethod
-    def validate_object_name(object_name: str) -> bool:
+    async def validate_object_name(object_name: str) -> bool:
         """Check if the object name is valid."""
 
         allowed_symbols = {"-", ".", "_"}
@@ -82,7 +84,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             )
         )
 
-    def get_object_filesystem_filename(self, fn: str) -> str:
+    async def get_object_filesystem_filename(self, fn: str) -> str:
         """Hash the filename to create a unique identifier for the object.
 
         Args:
@@ -92,7 +94,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
 
     @override
-    def check(self) -> None:
+    async def check(self) -> None:
         """Check if the local object store is healthy."""
 
         logger.debug("Ensuring existence of local object store directories.")
@@ -103,7 +105,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             subdir.mkdir(parents=True, exist_ok=True)
 
     @override
-    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+    async def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         """Store the object in the local object store.
 
         Args:
@@ -113,11 +115,11 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         """
 
         logger.debug("Putting object into local object store.")
-        if not self.validate_object_name(fn):
+        if not await self.validate_object_name(fn):
             logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
-        hashed_filename = self.get_object_filesystem_filename(fn)
+        hashed_filename = await self.get_object_filesystem_filename(fn)
         new_file_dir = self.config.filepath / bucket.value / hashed_filename[:2]
         new_file_dir.mkdir(parents=True, exist_ok=True)
         new_fp = new_file_dir / hashed_filename
@@ -138,7 +140,9 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+    async def get(
+        self, bucket: BucketNames, hashed_filename: str
+    ) -> BucketObject | None:
         """Retrieve an object from the local object store.
 
         Args:
@@ -152,7 +156,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         )
         if not object_fp.exists():
             logger.warning("File does not exist: %s", object_fp)
-            raise FileNotFoundError(f"File {object_fp} does not exist.")
+            return None
 
         data = object_fp.read_bytes()
 
@@ -163,7 +167,7 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+    async def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
         """Remove an object from the local object store.
 
         Args:
@@ -203,7 +207,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @staticmethod
-    def validate_object_name(object_name: str) -> bool:
+    async def validate_object_name(object_name: str) -> bool:
         """Check if the object name is valid.
 
         Args:
@@ -224,7 +228,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def check(self) -> None:
+    async def check(self) -> None:
         """Check if the MinIO object store is healthy."""
 
         logger.debug("Ensuring existence of MinIO buckets.")
@@ -235,7 +239,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
                 self.client.make_bucket(bucket.value)
 
     @override
-    def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+    async def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
         """Upload an object to the MinIO object store.
 
         Args:
@@ -245,7 +249,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         """
 
         logger.debug("Putting object into MinIO object store.")
-        if not self.validate_object_name(fn):
+        if not await self.validate_object_name(fn):
             logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
@@ -265,7 +269,9 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def get(self, bucket: BucketNames, hashed_filename: str) -> BucketObject:
+    async def get(
+        self, bucket: BucketNames, hashed_filename: str
+    ) -> BucketObject | None:
         """Retrieve an object from the MinIO object store.
 
         Args:
@@ -298,7 +304,7 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
         )
 
     @override
-    def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+    async def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
         """Remove an object from the MinIO object store.
 
         Args:
@@ -315,7 +321,9 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
             raise FileNotFoundError(f"File {hashed_filename} does not exist.") from e
 
 
-def get_object_store_handler(conf: ObjectStoreAdapterConfig) -> ObjectStoreAdapter:
+async def get_object_store_handler(
+    conf: ObjectStoreAdapterConfig,
+) -> ObjectStoreAdapter:
     """Get the appropriate object store adapter based on the configuration.
 
     Args:

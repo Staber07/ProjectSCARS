@@ -18,7 +18,7 @@ crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID
 oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
 
 
-def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
+async def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
     """Get a user from the database.
 
     Args:
@@ -41,7 +41,7 @@ def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
     )
 
 
-def get_role(role_id: int, session: Session) -> Role | None:
+async def get_role(role_id: int, session: Session) -> Role | None:
     """Get a role by ID.
 
     Args:
@@ -56,7 +56,9 @@ def get_role(role_id: int, session: Session) -> Role | None:
     return session.get(Role, role_id)
 
 
-def get_user_role(user_id: str, session: Session, by_id: bool = True) -> Role | None:
+async def get_user_role(
+    user_id: str, session: Session, by_id: bool = True
+) -> Role | None:
     """Get the role of a user.
 
     Args:
@@ -89,7 +91,7 @@ def get_user_role(user_id: str, session: Session, by_id: bool = True) -> Role | 
     ).first()
 
 
-def authenticate_user(
+async def authenticate_user(
     username: str, plaintext_password: str, session: Session
 ) -> User | None:
     """Find the user in the database and verify their password.
@@ -105,7 +107,7 @@ def authenticate_user(
     """
 
     logger.debug("Attempting to authenticate user `%s`", username)
-    found_user: User | None = get_user(username, session, False)
+    found_user: User | None = await get_user(username, session, False)
 
     if not found_user:
         logger.debug("Authentication failed: %s (user not found)", username)
@@ -120,7 +122,7 @@ def authenticate_user(
     return found_user
 
 
-def create_access_token(
+async def create_access_token(
     user_id: str, expiration_td: timedelta, refresh: bool = False
 ) -> str:
     """Create a JWE access token for the user, valid for +<expiration_td>.
@@ -157,7 +159,7 @@ def create_access_token(
     return access_token
 
 
-async def verify_access_token(
+def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
 ) -> DecodedJWTToken | None:
     """Get the current user from the JWE token.
@@ -256,7 +258,7 @@ async def verify_user_permission(
             detail="Invalid JWT token",
         )
 
-    user_role = get_user_role(token.id, session)
+    user_role = await get_user_role(token.id, session)
     if user_role is None:
         logger.warning("User role not found for user ID: %s", token.id)
         raise HTTPException(

@@ -22,7 +22,7 @@ from centralserver.internals.models import (
 logger = LoggerFactory().get_logger(__name__)
 
 
-def validate_username(username: str) -> bool:
+async def validate_username(username: str) -> bool:
     """Check if the username is valid.
 
     Args:
@@ -39,7 +39,7 @@ def validate_username(username: str) -> bool:
     )
 
 
-def validate_password(password: str) -> bool:
+async def validate_password(password: str) -> tuple[bool, str | None]:
     """Make sure that the password is a valid password.
 
     Args:
@@ -49,20 +49,22 @@ def validate_password(password: str) -> bool:
         True if the password is valid, False otherwise.
     """
 
-    # Password requirements:
-    # - Minimum length of 8 characters
-    # - At least one digit
-    # - At least one lowercase letter
-    # - At least one uppercase letter
-    return (
-        len(password) >= 8
-        and any(c.isdigit() for c in password)
-        and any(c.islower() for c in password)
-        and any(c.isupper() for c in password)
-    )
+    if len(password) < 8:
+        return (False, "Password must be at least 8 characters long.")
+
+    if not any(c.isdigit() for c in password):
+        return (False, "Password must contain at least one digit.")
+
+    if not any(c.islower() for c in password):
+        return (False, "Password must contain at least one lowercase letter.")
+
+    if not any(c.isupper() for c in password):
+        return (False, "Password must contain at least one uppercase letter.")
+
+    return (True, None)
 
 
-def create_user(
+async def create_user(
     new_user: NewUserRequest,
     session: Session,
 ) -> User:
@@ -88,7 +90,7 @@ def create_user(
             detail="Username already exists",
         )
 
-    if not validate_username(new_user.username):
+    if not await validate_username(new_user.username):
         logger.warning(
             "Failed to create user: %s (invalid username)", new_user.username
         )
@@ -97,13 +99,14 @@ def create_user(
             detail="Invalid username",
         )
 
-    if not validate_password(new_user.password):
+    password_is_valid, password_err = await validate_password(new_user.password)
+    if not password_is_valid:
         logger.warning(
-            "Failed to create user: %s (invalid password format)", new_user.username
+            "Failed to create user: %s (%s)", new_user.username, password_err
         )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid password format",
+            detail=f"Invalid password format ({password_err})",
         )
 
     # user = User(**new_user.model_dump())
@@ -120,7 +123,7 @@ def create_user(
     return user
 
 
-def update_user_avatar(
+async def update_user_avatar(
     target_user: str, img: bytes | None, session: Session
 ) -> UserPublic:
     """Update the user's avatar in the database.
@@ -143,21 +146,25 @@ def update_user_avatar(
             detail="User not found",
         )
 
-    object_store_manager = get_object_store_handler(app_config.object_store)
+    object_store_manager = await get_object_store_handler(app_config.object_store)
     if img is None:
         logger.debug("Deleting avatar for user: %s", target_user)
         if selected_user.avatarUrn is None:
             logger.warning("No avatar to delete for user: %s", target_user)
             raise ValueError("No avatar to delete.")
 
-        object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
+        await object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
         selected_user.avatarUrn = None
 
     else:
         logger.debug("Updating avatar for user: %s", target_user)
-        object = object_store_manager.put(BucketNames.AVATARS, selected_user.id, img)
+        object = await object_store_manager.put(
+            BucketNames.AVATARS, selected_user.id, img
+        )
         if selected_user.avatarUrn is not None:  # Delete old avatar if it exists
-            object_store_manager.delete(BucketNames.AVATARS, selected_user.avatarUrn)
+            await object_store_manager.delete(
+                BucketNames.AVATARS, selected_user.avatarUrn
+            )
 
         selected_user.avatarUrn = object.fn
 
@@ -169,7 +176,7 @@ def update_user_avatar(
     return UserPublic.model_validate(selected_user)
 
 
-def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
+async def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
     """Update the user's information in the database.
 
     Args:
@@ -207,7 +214,7 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
                 logger.debug("Username %s is available.", target_user.username)
 
         # Check username validity
-        if not validate_username(target_user.username):
+        if not await validate_username(target_user.username):
             logger.warning(
                 "Failed to update user: %s (invalid username)", target_user.username
             )
@@ -237,14 +244,15 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
 
     if target_user.password:  # Update password if provided
         logger.debug("Updating password for user: %s", target_user.id)
-        if not validate_password(target_user.password):  # Validate password
+        # Validate password
+        password_is_valid, password_err = await validate_password(target_user.password)
+        if not password_is_valid:
             logger.warning(
-                "Failed to update user: %s (invalid password format)",
-                target_user.username,
+                "Failed to update user: %s (%s)", target_user.username, password_err
             )
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid password format",
+                detail=f"Invalid password format ({password_err})",
             )
 
         # Set new password
@@ -277,7 +285,6 @@ def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
     return UserPublic.model_validate(selected_user)
 
 
-def get_user_avatar(fn: str) -> BucketObject:
-    return get_object_store_handler(app_config.object_store).get(
-        BucketNames.AVATARS, fn
-    )
+async def get_user_avatar(fn: str) -> BucketObject | None:
+    handler = await get_object_store_handler(app_config.object_store)
+    return await handler.get(BucketNames.AVATARS, fn)
