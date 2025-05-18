@@ -28,7 +28,6 @@ def _request_token(username: str, password: str) -> Response:
     return client.post("/api/v1/auth/token", data=creds)
 
 
-@pytest.mark.asyncio
 async def test_startup_sequence():
     """Test the startup sequence of the application."""
 
