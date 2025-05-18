@@ -1,6 +1,5 @@
 from typing import Any
 
-import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
 
@@ -112,6 +111,24 @@ def test_create_user_success():
         assert user[0] in [u["username"] for u in response.json()]
 
     assert response.status_code == 200
+
+
+def test_view_users_success():
+    """Test failing to view a user's info."""
+
+    login = _request_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/all", headers=headers)
+    assert response.status_code == 200
+
+
+def test_view_users_fail():
+    """Test failing to view a user's info."""
+
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/all", headers=headers)
+    assert response.status_code == 403
 
 
 def test_view_user_success():
@@ -887,6 +904,28 @@ def test_update_user_avatar():
     assert resp_data["avatarUrn"] is not None
 
 
+def test_update_user_avatar_no_permission():
+    login = _request_token("testuser2", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    ).json()
+
+    with open(
+        "./tests/sample_data/defaultImage.small_512_512_nofilter.jpg", "rb"
+    ) as file:
+        img = file.read()
+
+    response = client.patch(
+        "/api/v1/users/update/avatar",
+        params={"userId": user_info["id"]},
+        files={"img": ("avatar.jpg", img, "image/jpeg")},
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
 def test_get_user_avatar():
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -908,7 +947,59 @@ def test_get_user_avatar():
     assert response.content == img
 
 
-def test_delete_user_avatar():
+def test_get_user_avatar_no_current():
+    login = _request_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.get(
+        f"/api/v1/users/avatar/{user_info["avatarUrn"]}",
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+def test_get_user_avatar_fail():
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token("testuser1", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.get(
+        f"/api/v1/users/avatar/{user_info["avatarUrn"]}",
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
+def test_delete_user_avatar_no_permission():
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token(Database.default_user, Database.default_password)
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.delete(
+        "/api/v1/users/update/avatar",
+        params={"userId": user_info["id"]},
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
+def test_delete_user_avatar_success():
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
