@@ -114,7 +114,7 @@ def test_create_user_success():
 
 
 def test_view_users_success():
-    """Test failing to view a user's info."""
+    """Test viewing all users' info successfully."""
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
