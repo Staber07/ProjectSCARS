@@ -16,14 +16,9 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import (
-    DecodedJWTToken,
-    JWTToken,
-    NewUserRequest,
-    Role,
-    User,
-    UserPublic,
-)
+from centralserver.internals.models.role import Role
+from centralserver.internals.models.token import DecodedJWTToken, JWTToken
+from centralserver.internals.models.user import User, UserCreate, UserPublic
 from centralserver.internals.user_handler import create_user
 
 logger = LoggerFactory().get_logger(__name__)
@@ -39,7 +34,7 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 @router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
 async def create_new_user(
-    new_user: NewUserRequest,
+    new_user: UserCreate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:

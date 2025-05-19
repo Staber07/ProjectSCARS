@@ -13,7 +13,7 @@ from centralserver.internals.adapters.config import (
     ObjectStoreAdapterConfig,
 )
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import BucketObject
+from centralserver.internals.models.object_store import BucketObject
 
 logger = LoggerFactory().get_logger(__name__)
 

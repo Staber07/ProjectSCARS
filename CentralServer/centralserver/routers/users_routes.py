@@ -13,12 +13,8 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import (
-    DecodedJWTToken,
-    User,
-    UserPublic,
-    UserUpdate,
-)
+from centralserver.internals.models.token import DecodedJWTToken
+from centralserver.internals.models.user import User, UserPublic, UserUpdate
 from centralserver.internals.permissions import DEFAULT_ROLES
 from centralserver.internals.user_handler import (
     get_user_avatar,
