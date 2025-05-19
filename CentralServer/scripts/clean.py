@@ -75,17 +75,25 @@ def main() -> int:
     # Attempt to clean the file object store.
     if config["object_store"]["type"] == "local":
         osrootpath: str = config["object_store"]["config"]["filepath"]
-        filenames = os.listdir(osrootpath)
-        osfilesremoved = False
-        for filename in filenames:
-            if filename not in {".gitignore", ".gitinclude"}:
-                filepath = Path(osrootpath, filename)
-                print(f"Removing {filepath}...")
-                shutil.rmtree(filepath) if filepath.is_dir() else filepath.unlink(True)
-                osfilesremoved = True
+        try:
+            filenames = os.listdir(osrootpath)
+            osfilesremoved = False
+            for filename in filenames:
+                if filename not in {".gitignore", ".gitinclude"}:
+                    filepath = Path(osrootpath, filename)
+                    print(f"Removing {filepath}...")
+                    (
+                        shutil.rmtree(filepath)
+                        if filepath.is_dir()
+                        else filepath.unlink(True)
+                    )
+                    osfilesremoved = True
 
-        if not osfilesremoved:
-            print("Object store is empty, skipping...")
+            if not osfilesremoved:
+                print("Object store is empty, skipping...")
+
+        except FileNotFoundError:
+            print(f"{osrootpath} does not exist, skipping...")
 
     elif config["object_store"]["type"] == "minio":
         # TODO: WIP
