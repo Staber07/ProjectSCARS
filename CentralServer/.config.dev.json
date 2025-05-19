@@ -1,7 +1,8 @@
 {
     "debug": {
         "enabled": true,
-        "logenv_optout": true
+        "logenv_optout": true,
+        "show_sql": true
     },
     "logging": {
         "filepath": "./logs/centralserver-dev.log",

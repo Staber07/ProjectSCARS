@@ -6,13 +6,14 @@ from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import UserCreate, Role, User
+from centralserver.internals.models import Role, User, UserCreate
 from centralserver.internals.user_handler import create_user
 
 logger = LoggerFactory().get_logger(__name__)
 engine = create_engine(
     app_config.database.sqlalchemy_uri,
     connect_args=app_config.database.connect_args,
+    echo=app_config.debug.show_sql,
 )
 
 

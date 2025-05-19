@@ -17,16 +17,23 @@ from centralserver.internals.adapters.config import (
 class Debug:
     """The debugging configuration."""
 
-    def __init__(self, enabled: bool | None = None, logenv_optout: bool | None = None):
+    def __init__(
+        self,
+        enabled: bool | None = None,
+        logenv_optout: bool | None = None,
+        show_sql: bool | None = None,
+    ):
         """Create a configuration object for debugging.
 
         Args:
             enabled: If True, enable debugging mode.
             logenv_optout: If True, disable logging environment variables.
+            show_sql: If True, print executed SQL statements.
         """
 
         self.enabled: bool = enabled or False
         self.logenv_optout: bool = logenv_optout or False
+        self.show_sql: bool = show_sql or False
 
 
 class Logging:
@@ -262,6 +269,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
         debug=Debug(
             enabled=debug_config.get("enabled", None),
             logenv_optout=debug_config.get("logenv_optout", None),
+            show_sql=debug_config.get("show_sql", None),
         ),
         logging=Logging(
             filepath=logging_config.get("filepath", None),
