@@ -5,12 +5,7 @@ from dataclasses import dataclass
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
-
-@dataclass(frozen=True)
-class DefaultRole:
-    id: int
-    description: str
-    modifiable: bool
+##### Access tokens #####
 
 
 class JWTToken(SQLModel):
@@ -28,6 +23,9 @@ class DecodedJWTToken(SQLModel):
     is_refresh_token: bool
 
 
+##### School models #####
+
+
 class School(SQLModel, table=True):
     """A model representing schools in the system."""
 
@@ -37,6 +35,16 @@ class School(SQLModel, table=True):
     name: str = Field(unique=True, description="The name of the school.")
 
     users: list["User"] = Relationship(back_populates="school")
+
+
+##### Role models #####
+
+
+@dataclass(frozen=True)
+class DefaultRole:
+    id: int
+    description: str
+    modifiable: bool
 
 
 class Role(SQLModel, table=True):
@@ -55,6 +63,9 @@ class Role(SQLModel, table=True):
     )
 
     users: list["User"] = Relationship(back_populates="role")
+
+
+##### User models #####
 
 
 class User(SQLModel, table=True):
@@ -174,12 +185,18 @@ class UserCreate(SQLModel):
     password: str
 
 
+##### Object store models #####
+
+
 class BucketObject(SQLModel):
     """A model representing an object in a bucket."""
 
     bucket: str
     fn: str
     obj: bytes
+
+
+##### Reports models #####
 
 
 class MonthlyReport(SQLModel, table=True):
@@ -190,14 +207,6 @@ class MonthlyReport(SQLModel, table=True):
     dailyFinancialReport: "DailyFinancialReport | None"
 
 
-class DailyFinancialReport(SQLModel):
-    """A model representing the daily sales and purchases report."""
-
-    entries: "list[DailyFinancialReportEntry]"
-    prepared_by: User
-    noted_by: User
-
-
 @dataclass
 class DailyFinancialReportEntry:
     day: int
@@ -205,15 +214,13 @@ class DailyFinancialReportEntry:
     purchases: float
 
 
-class LiquidationReportOperatingExpenses(SQLModel):
-    """A model representing the liquidation (Operating Expenses) reports."""
+class DailyFinancialReport(SQLModel):
+    """A model representing the daily sales and purchases report."""
 
-    month: datetime.datetime
-    teacher_in_charge: User
-    entries: "list[OperatingExpenseEntry]"
+    entries: list[DailyFinancialReportEntry]
     prepared_by: User
-    certified_by: tuple[User,User]
     noted_by: User
+
 
 @dataclass
 class OperatingExpenseEntry:
@@ -221,6 +228,17 @@ class OperatingExpenseEntry:
     particulars: str
     quantity: float  # NOTE: This is float because it could be a (for example) weight
     unit_price: float
+
+
+class LiquidationReportOperatingExpenses(SQLModel):
+    """A model representing the liquidation (Operating Expenses) reports."""
+
+    month: datetime.datetime
+    teacher_in_charge: User
+    entries: list[OperatingExpenseEntry]
+    prepared_by: User
+    certified_by: tuple[User, User]
+    noted_by: User
 
 
 class LiquidationReportAdministrativeExpenses(SQLModel):
@@ -257,3 +275,6 @@ class PayrollReport(SQLModel):
 
 class DisbursementVoucher(SQLModel):
     """A model representing the disbursement vouchers."""
+
+
+##################################################
