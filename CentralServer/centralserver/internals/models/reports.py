@@ -2,8 +2,6 @@ import datetime
 
 from sqlmodel import Field, Relationship, SQLModel
 
-from centralserver.internals.models.user import User
-
 
 class LiquidationReportAdministrativeExpenses(SQLModel):
     """A model representing the liquidation (Administrative Expenses) reports."""
