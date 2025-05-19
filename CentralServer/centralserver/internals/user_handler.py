@@ -13,7 +13,7 @@ from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models import (
     BucketObject,
-    NewUserRequest,
+    UserCreate,
     User,
     UserPublic,
     UserUpdate,
@@ -66,7 +66,7 @@ async def validate_password(password: str) -> tuple[bool, str | None]:
 
 
 async def create_user(
-    new_user: NewUserRequest,
+    new_user: UserCreate,
     session: Session,
 ) -> User:
     """Create a new user in the database.

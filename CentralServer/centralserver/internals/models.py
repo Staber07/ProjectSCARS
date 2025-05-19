@@ -14,7 +14,7 @@ class DefaultRole:
 
 
 class JWTToken(SQLModel):
-    """A model representing a JWT token."""
+    """A model representing an encoded JWT token."""
 
     uid: uuid.UUID
     access_token: str
@@ -47,7 +47,7 @@ class Role(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True, index=True)
     description: str = Field(
         unique=True,
-        description="Canteen Manager, Principal, Administrator, or Superintendent",
+        description="WebAdmin, Canteen Manager, Principal, Administrator, or Superintendent",
     )
     modifiable: bool = Field(
         default=False,
@@ -82,7 +82,7 @@ class User(SQLModel, table=True):
     nameLast: str | None = Field(default=None, description="The last name of the user.")
     avatarUrn: str | None = Field(
         default=None,
-        description="A link to the user's avatar within the file storage server.",
+        description="A link or identifier to the user's avatar within the file storage server.",
     )
     schoolId: int | None = Field(
         default=None,
@@ -166,7 +166,7 @@ class UserUpdate(SQLModel):
     finishedTutorials: str | None = None
 
 
-class NewUserRequest(SQLModel):
+class UserCreate(SQLModel):
     """A model used for creating new user accounts."""
 
     username: str
@@ -180,3 +180,80 @@ class BucketObject(SQLModel):
     bucket: str
     fn: str
     obj: bytes
+
+
+class MonthlyReport(SQLModel, table=True):
+    """A model representing a monthly report in the system."""
+
+    __tablename__: str = "reports"  # type: ignore
+
+    dailyFinancialReport: "DailyFinancialReport | None"
+
+
+class DailyFinancialReport(SQLModel):
+    """A model representing the daily sales and purchases report."""
+
+    entries: "list[DailyFinancialReportEntry]"
+    prepared_by: User
+    noted_by: User
+
+
+@dataclass
+class DailyFinancialReportEntry:
+    day: int
+    sales: float
+    purchases: float
+
+
+class LiquidationReportOperatingExpenses(SQLModel):
+    """A model representing the liquidation (Operating Expenses) reports."""
+
+    month: datetime.datetime
+    teacher_in_charge: User
+    entries: "list[OperatingExpenseEntry]"
+    prepared_by: User
+    certified_by: tuple[User,User]
+    noted_by: User
+
+@dataclass
+class OperatingExpenseEntry:
+    date: datetime.datetime
+    particulars: str
+    quantity: float  # NOTE: This is float because it could be a (for example) weight
+    unit_price: float
+
+
+class LiquidationReportAdministrativeExpenses(SQLModel):
+    """A model representing the liquidation (Administrative Expenses) reports."""
+
+
+class LiquidationReportRevolvingFund(SQLModel):
+    """A model representing the liquidation (Revolving Fund) reports."""
+
+
+class LiquidationReportSupplementaryFeedingFund(SQLModel):
+    """A model representing the liquidation (Supplementary Feeding Fund) reports."""
+
+
+class LiquidationReportClinicFund(SQLModel):
+    """A model representing the liquidation (Clinic Fund) reports."""
+
+
+class LiquidationReportSchoolOperationFund(SQLModel):
+    """A model representing the liquidation (School Operation Fund) reports."""
+
+
+class LiquidationReportFacultyAndStudentDevFund(SQLModel):
+    """A model representing the liquidation (Faculty and Student Development Fund) reports."""
+
+
+class LiquidationReportHEFund(SQLModel):
+    """A model representing the liquidation (HE Fund) reports."""
+
+
+class PayrollReport(SQLModel):
+    """A model representing the monthly payroll report."""
+
+
+class DisbursementVoucher(SQLModel):
+    """A model representing the disbursement vouchers."""

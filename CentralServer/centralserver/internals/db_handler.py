@@ -6,7 +6,7 @@ from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import NewUserRequest, Role, User
+from centralserver.internals.models import UserCreate, Role, User
 from centralserver.internals.user_handler import create_user
 
 logger = LoggerFactory().get_logger(__name__)
@@ -58,7 +58,7 @@ async def populate_db() -> bool:
         if not session.exec(select(User)).first():
             logger.warning("Creating default user")
             await create_user(
-                NewUserRequest(
+                UserCreate(
                     username=info.Database.default_user,
                     roleId=1,
                     password=info.Database.default_password,
