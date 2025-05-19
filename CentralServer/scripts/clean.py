@@ -6,9 +6,10 @@ Clean the database and file object store
 specified in the json file. (`config.json` by default).
 """
 
-import json
 import argparse
+import json
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -54,7 +55,7 @@ def main() -> int:
     if config["database"]["type"] == "sqlite":
         dbpath = Path(config["database"]["config"]["filepath"])
         try:
-            os.remove(dbpath)
+            dbpath.unlink(True)
             print(f"{dbpath} removed!")
 
         except FileNotFoundError:
@@ -80,7 +81,7 @@ def main() -> int:
             if filename not in {".gitignore", ".gitinclude"}:
                 filepath = Path(osrootpath, filename)
                 print(f"Removing {filepath}...")
-                filepath.rmdir() if filepath.is_dir() else filepath.unlink(True)
+                shutil.rmtree(filepath) if filepath.is_dir() else filepath.unlink(True)
                 osfilesremoved = True
 
         if not osfilesremoved:
