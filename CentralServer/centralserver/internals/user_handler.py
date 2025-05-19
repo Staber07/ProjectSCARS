@@ -11,13 +11,8 @@ from centralserver.internals.adapters.object_store import (
 from centralserver.internals.auth_handler import crypt_ctx
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import (
-    BucketObject,
-    UserCreate,
-    User,
-    UserPublic,
-    UserUpdate,
-)
+from centralserver.internals.models.object_store import BucketObject
+from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
 
 logger = LoggerFactory().get_logger(__name__)
 

@@ -1,6 +1,6 @@
 from typing import Final
 
-from centralserver.internals.models import DefaultRole
+from centralserver.internals.models.user import DefaultRole
 
 DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
     DefaultRole(id=1, description="Website Administrator", modifiable=False),

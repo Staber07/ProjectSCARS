@@ -11,7 +11,9 @@ from sqlmodel import Session, select
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import DecodedJWTToken, Role, User
+from centralserver.internals.models.role import Role
+from centralserver.internals.models.token import DecodedJWTToken
+from centralserver.internals.models.user import User
 
 logger = LoggerFactory().get_logger(__name__)
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID")

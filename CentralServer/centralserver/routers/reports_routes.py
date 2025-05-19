@@ -10,7 +10,7 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models import DecodedJWTToken
+from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
 
