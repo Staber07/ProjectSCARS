@@ -22,12 +22,17 @@ async def startup():
     await handler.check()
 
 
+async def shutdown():
+    logger.info("Shutting down the application...")
+
+
 app = FastAPI(
     debug=app_config.debug.enabled,
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
     root_path="/api",
     on_startup=[startup],
+    on_shutdown=[shutdown],
 )
 
 app.include_router(auth_routes.router)
