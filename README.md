@@ -382,13 +382,13 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
             <tr>
                 <td><a href="https://github.com/Kirito090504"><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></a></td>
                 <td><a href="https://github.com/Staber07"><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></a></td>
-                <td><a href="https://github.com/arabelaramos"><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/rruonan"><img src="https://github.com/rruonan.png" alt="rruonan user profile" width="100px" height="auto" /></a></td>
                 <td><a href="https://github.com/Chris1320"><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></a></td>
             </tr>
             <tr>
                 <td><p><b><a href="https://github.com/Kirito090504">Kirito090504</a></b></p></td>
                 <td><p><b><a href="https://github.com/Staber07">Staber07</a></b></p></td>
-                <td><p><b><a href="https://github.com/arabelaramos">arabelaramos</a></b></p></td>
+                <td><p><b><a href="https://github.com/rruonan">rruonan</a></b></p></td>
                 <td><p><b><a href="https://github.com/Chris1320">Chris1320</a></b></p></td>
             </tr>
             <tr>
