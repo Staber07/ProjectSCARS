@@ -35,3 +35,22 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
 
     return userAvatar;
 }
+
+export async function CentralServerUploadUserAvatar(file: File): Promise<UserPublicType> {
+    const formData = new FormData();
+    formData.append("img", file);
+
+    const centralServerResponse = await ky.patch(`${endpoint}/users/update/me/avatar`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        body: formData,
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to upload avatar: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const updatedUserData: UserPublicType = await centralServerResponse.json();
+    localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserData));
+    return updatedUserData;
+}
