@@ -1,9 +1,14 @@
 import datetime
 import uuid
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from centralserver.internals.models.role import Role
+    from centralserver.internals.models.school import School
 
 
 @dataclass(frozen=True)
@@ -11,50 +16,6 @@ class DefaultRole:
     id: int
     description: str
     modifiable: bool
-
-
-class JWTToken(SQLModel):
-    """A model representing a JWT token."""
-
-    uid: uuid.UUID
-    access_token: str
-    token_type: str
-
-
-class DecodedJWTToken(SQLModel):
-    """A model representing a decoded JWT token."""
-
-    id: str
-    is_refresh_token: bool
-
-
-class School(SQLModel, table=True):
-    """A model representing schools in the system."""
-
-    __tablename__: str = "schools"  # type: ignore
-
-    id: int | None = Field(primary_key=True, index=True)
-    name: str = Field(unique=True, description="The name of the school.")
-
-    users: list["User"] = Relationship(back_populates="school")
-
-
-class Role(SQLModel, table=True):
-    """A model representing user roles in the system."""
-
-    __tablename__: str = "roles"  # type: ignore
-
-    id: int | None = Field(default=None, primary_key=True, index=True)
-    description: str = Field(
-        unique=True,
-        description="Canteen Manager, Principal, Administrator, or Superintendent",
-    )
-    modifiable: bool = Field(
-        default=False,
-        description="Whether the role's characteristics can be modified.",
-    )
-
-    users: list["User"] = Relationship(back_populates="role")
 
 
 class User(SQLModel, table=True):
@@ -82,7 +43,7 @@ class User(SQLModel, table=True):
     nameLast: str | None = Field(default=None, description="The last name of the user.")
     avatarUrn: str | None = Field(
         default=None,
-        description="A link to the user's avatar within the file storage server.",
+        description="A link or identifier to the user's avatar within the file storage server.",
     )
     schoolId: int | None = Field(
         default=None,
@@ -125,10 +86,10 @@ class User(SQLModel, table=True):
         description="The last IP address the user logged in from.",
     )
 
-    school: School | None = Relationship(
+    school: Optional["School"] = Relationship(
         back_populates="users",
     )
-    role: Role = Relationship(back_populates="users")
+    role: "Role" = Relationship(back_populates="users")
 
 
 class UserPublic(SQLModel):
@@ -166,17 +127,9 @@ class UserUpdate(SQLModel):
     finishedTutorials: str | None = None
 
 
-class NewUserRequest(SQLModel):
+class UserCreate(SQLModel):
     """A model used for creating new user accounts."""
 
     username: str
     roleId: int
     password: str
-
-
-class BucketObject(SQLModel):
-    """A model representing an object in a bucket."""
-
-    bucket: str
-    fn: str
-    obj: bytes

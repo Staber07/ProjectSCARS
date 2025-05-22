@@ -6,14 +6,14 @@ from typing import Final
 class Program:
     """General program information."""
 
-    name: Final[str] = "Project SCARS Central Server"
+    name: Final[str] = "Bento Central Server"
     version: Final[tuple[int, int, int]] = (0, 3, 6)
 
 
 class Database:
     """Default user credentials in the database."""
 
-    default_user: Final[str] = "scars"
+    default_user: Final[str] = "bento"
     default_password: Final[str] = "ProjectSCARS1"
 
 

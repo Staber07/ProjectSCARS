@@ -2,8 +2,12 @@
     <a href="https://github.com/Chris1320/ProjectSCARS">
         <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/537fb4b6f6545be0758f956e4bd7ab447ff1fccc/WebClient/src/components/BENTOLogo.svg" alt="Bento Logo" width="15%" height="auto" />
     </a>
-    <h1>Bento</h1>
-    <a href="https://github.com/Chris1320/ProjectSCARS/tags"><img src="https://img.shields.io/github/v/tag/Chris1320/ProjectSCARS?sort=semver&filter=v*&style=flat&label=Version&color=22de67" alt="Latest Version" /></a>
+    <h1>
+        Bento
+        <a href="https://github.com/Chris1320/ProjectSCARS/tags">
+            <img src="https://img.shields.io/github/v/tag/Chris1320/ProjectSCARS?sort=semver&filter=v*&style=flat&label=&color=0a0a0a" alt="Latest Version" />
+        </a>
+    </h1>
     <a href="https://github.com/Chris1320/ProjectSCARS/commits"><img src="https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat" alt="GitHub Last Commit" /></a>
     <a href="https://github.com/Chris1320/ProjectSCARS/issues"><img src="https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat" alt="GitHub Issues or Pull Requests" /></a>
     <a href="https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style" alt="Linter Results" /></a>
@@ -18,12 +22,14 @@ the Philippines.
 
 > *Why Bento?*
 > 
-> "A bento is a Japanese-style single-portion take-out or home-packed meal,
-> often for lunch, typically including rice and packaged in a box with a lid.
-> The term bento is derived from the Chinese term biandang, which means
-> "convenient" or "convenience"."
+> > "A bento is a Japanese-style single-portion take-out or home-packed meal,
+> > often for lunch, typically including rice and packaged in a box with a lid.
+> > The term bento is derived from the Chinese term biandang, which means
+> > "convenient" or "convenience"."
+> > 
+> > \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
 > 
-> \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
+> BENTO also stands for **B**aliuag's **E**nhanced **N**etwork for School Canteen **T**racking **O**perations.
 
 | Component      | Open Issues                                                                                                                                                                                                                                                                                                            | Last Commit                                                                                                                                                                                                                  | Test Results                                                                                                                                                                                                                             | Code Coverage                                                                                                                                                                                                    |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -117,7 +123,7 @@ The hard requirements are as follows:
 > [!IMPORTANT]
 > The default credentials are:
 >
-> - username: `scars`
+> - username: `bento`
 > - password: `ProjectSCARS1`
 
 ###### Central Server Database Setup
@@ -376,13 +382,13 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
             <tr>
                 <td><a href="https://github.com/Kirito090504"><img src="https://github.com/Kirito090504.png" alt="Kirito090504 user profile" width="100px" height="auto" /></a></td>
                 <td><a href="https://github.com/Staber07"><img src="https://github.com/Staber07.png" alt="Staber07 user profile" width="100px" height="auto" /></a></td>
-                <td><a href="https://github.com/arabelaramos"><img src="https://github.com/arabelaramos.png" alt="arabelaramos user profile" width="100px" height="auto" /></a></td>
+                <td><a href="https://github.com/rruonan"><img src="https://github.com/rruonan.png" alt="rruonan user profile" width="100px" height="auto" /></a></td>
                 <td><a href="https://github.com/Chris1320"><img src="https://github.com/Chris1320.png" alt="Chris1320 user profile" width="100px" height="auto" /></a></td>
             </tr>
             <tr>
                 <td><p><b><a href="https://github.com/Kirito090504">Kirito090504</a></b></p></td>
                 <td><p><b><a href="https://github.com/Staber07">Staber07</a></b></p></td>
-                <td><p><b><a href="https://github.com/arabelaramos">arabelaramos</a></b></p></td>
+                <td><p><b><a href="https://github.com/rruonan">rruonan</a></b></p></td>
                 <td><p><b><a href="https://github.com/Chris1320">Chris1320</a></b></p></td>
             </tr>
             <tr>

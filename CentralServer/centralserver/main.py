@@ -13,11 +13,17 @@ logger = LoggerFactory(
     log_level="DEBUG" if app_config.debug.enabled else "WARN"
 ).get_logger(__name__)
 
-log_app_info(logger)
-_ = populate_db()  # Create the database if it doesn't exist
-get_object_store_handler(  # Set up object store if not yet ready
-    app_config.object_store
-).check()
+
+async def startup():
+    log_app_info(logger)
+    _ = await populate_db()  # Create the database if it doesn't exist
+    # Set up object store if not yet ready
+    handler = await get_object_store_handler(app_config.object_store)
+    await handler.check()
+
+
+async def shutdown():
+    logger.info("Shutting down the application...")
 
 
 app = FastAPI(
@@ -25,6 +31,8 @@ app = FastAPI(
     title=info.Program.name,
     version=".".join(map(str, info.Program.version)),
     root_path="/api",
+    on_startup=[startup],
+    on_shutdown=[shutdown],
 )
 
 app.include_router(auth_routes.router)

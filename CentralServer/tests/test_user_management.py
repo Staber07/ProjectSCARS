@@ -3,7 +3,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 from httpx import Response
 
-from centralserver import app
+from centralserver import app, startup
 from centralserver.info import Database
 
 TEST_USERS = {
@@ -25,6 +25,12 @@ def _request_token(username: str, password: str) -> Response:
     }
 
     return client.post("/api/v1/auth/token", data=creds)
+
+
+async def test_startup_sequence():
+    """Test the startup sequence of the application."""
+
+    await startup()
 
 
 def test_login_user_success():
@@ -100,11 +106,29 @@ def test_create_user_success():
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     for user in TEST_USERS.items():
         assert user[0] in [u["username"] for u in response.json()]
 
     assert response.status_code == 200
+
+
+def test_view_users_success():
+    """Test viewing all users' info successfully."""
+
+    login = _request_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/all", headers=headers)
+    assert response.status_code == 200
+
+
+def test_view_users_fail():
+    """Test failing to view a user's info."""
+
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = client.get("/api/v1/users/all", headers=headers)
+    assert response.status_code == 403
 
 
 def test_view_user_success():
@@ -112,12 +136,12 @@ def test_view_user_success():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/get/{user["id"]}",
+            f"/api/v1/users/{user["id"]}",
             headers=headers,
         )
         assert response2.status_code == 200
@@ -130,12 +154,12 @@ def test_view_user_fail():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser4", "Password123")
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/get/{user["id"]}",
+            f"/api/v1/users/{user["id"]}",
             headers=headers2,
         )
         assert response2.status_code == 403
@@ -146,10 +170,10 @@ def test_view_user_not_found():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/get", headers=headers)
+    response = client.get("/api/v1/users/all", headers=headers)
     assert response.status_code == 200
     response2 = client.get(
-        "/api/v1/users/get/non-existent-user-id",
+        "/api/v1/users/non-existent-user-id",
         headers=headers,
     )
     assert response2.status_code == 400
@@ -463,7 +487,7 @@ def test_self_profile_update_email_invalid():
     # TODO: More checks
 
 
-def test_self_profile_update_password_weak():
+def test_self_profile_update_password_short():
     login = _request_token("testuser3", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     myself = client.get(
@@ -478,7 +502,43 @@ def test_self_profile_update_password_weak():
         headers=headers,
     )
     assert response.status_code == 400
-    assert response.json()["detail"] == "Invalid password format"
+    assert response.json()["detail"].startswith("Invalid password format")
+
+
+def test_self_profile_update_password_alllcase():
+    login = _request_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={"id": resp_data["id"], "password": "weak_password"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Invalid password format")
+
+
+def test_self_profile_update_password_allucase():
+    login = _request_token("testuser3", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    myself = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    )
+    assert myself.status_code == 200
+    resp_data: dict[str, Any] = myself.json()
+    response = client.patch(
+        "/api/v1/users/me/update",
+        json={"id": resp_data["id"], "password": "WEAK_PASSWORD"},
+        headers=headers,
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"].startswith("Invalid password format")
 
 
 def test_self_profile_update_password_good():
@@ -573,7 +633,7 @@ def test_update_user_role_no_permission():
 
 
 def test_update_user_role_invalid_user():
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
         "/api/v1/users/update/role",
@@ -585,7 +645,7 @@ def test_update_user_role_invalid_user():
 
 
 def test_update_user_role_invalid_role():
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser3", "Password123")
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
@@ -727,7 +787,7 @@ def test_deactivate_user_last_superintendent():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     users = client.get(
-        "/api/v1/users/get",
+        "/api/v1/users/all",
         headers=headers,
     )
     deactivated_users: dict[str, Any] = {}
@@ -880,6 +940,28 @@ def test_update_user_avatar():
     assert resp_data["avatarUrn"] is not None
 
 
+def test_update_user_avatar_no_permission():
+    login = _request_token("testuser2", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers,
+    ).json()
+
+    with open(
+        "./tests/sample_data/defaultImage.small_512_512_nofilter.jpg", "rb"
+    ) as file:
+        img = file.read()
+
+    response = client.patch(
+        "/api/v1/users/update/avatar",
+        params={"userId": user_info["id"]},
+        files={"img": ("avatar.jpg", img, "image/jpeg")},
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
 def test_get_user_avatar():
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -901,7 +983,59 @@ def test_get_user_avatar():
     assert response.content == img
 
 
-def test_delete_user_avatar():
+def test_get_user_avatar_no_current():
+    login = _request_token(Database.default_user, Database.default_password)
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token("testuser3", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.get(
+        f"/api/v1/users/avatar/{user_info["avatarUrn"]}",
+        headers=headers,
+    )
+    assert response.status_code == 404
+
+
+def test_get_user_avatar_fail():
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token("testuser1", "Password123")
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.get(
+        f"/api/v1/users/avatar/{user_info["avatarUrn"]}",
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
+def test_delete_user_avatar_no_permission():
+    login = _request_token("testuser4", "Password123")
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    login2 = _request_token(Database.default_user, Database.default_password)
+    headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
+    user_info = client.get(
+        "/api/v1/users/me",
+        headers=headers2,
+    ).json()
+
+    response = client.delete(
+        "/api/v1/users/update/avatar",
+        params={"userId": user_info["id"]},
+        headers=headers,
+    )
+    assert response.status_code == 403
+
+
+def test_delete_user_avatar_success():
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
