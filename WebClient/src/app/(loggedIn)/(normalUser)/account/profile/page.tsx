@@ -16,7 +16,6 @@ export default function ProfilePage() {
     const [userInfo, setUserInfo] = useState<UserPublicType | null>(null)
     const [opened, { open, close }] = useDisclosure(false);
 
-    // TODO: Implement the file upload logic for uploading user avatars.
     const uploadAvatar = async (file: File | null) => {
         if (file === null) {
             console.debug("No file selected, skipping upload...");
@@ -120,7 +119,7 @@ export default function ProfilePage() {
                     >
                         <TextInput
                             label="Email"
-                            placeholder="brianfederin@gmail.com"
+                            value={userInfo?.email || ""}
                             size="sm"
                             disabled
                             w="100%"

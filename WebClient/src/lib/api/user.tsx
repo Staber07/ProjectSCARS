@@ -9,7 +9,7 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
 export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
     if (localStorage.getItem(LocalStorage.user_data) === null) {
-        console.debug("Getting user data first...")
+        console.debug("Getting user data first...");
         await CentralServerGetUserInfo(true);
     }
 
@@ -21,7 +21,10 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
 
     const userData: UserPublicType = JSON.parse(lsContent);
 
-    if (userData.avatarUrn === null) { return null; }
+    if (userData.avatarUrn === null) {
+        return null;
+    }
+    console.log(userData.avatarUrn);
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar/${userData.avatarUrn}`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
@@ -33,6 +36,7 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
 
     const userAvatar: Blob = await centralServerResponse.blob();
 
+    console.debug("Avatar response blob size:", userAvatar.size);
     return userAvatar;
 }
 
