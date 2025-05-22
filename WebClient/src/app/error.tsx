@@ -10,7 +10,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
                 <Center>
                     <Stack>
                         <Title>Uh oh!</Title>
-                        <Text>An unexpected error occured: {error.message}</Text>
+                        <Text>An unexpected error occurred: {error.message}</Text>
                         {error.digest && (
                             <Text style={{ fontSize: "xs", textEmphasis: "error" }}>
                                 Error digest: <Code>{error.digest}</Code>
