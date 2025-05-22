@@ -13,7 +13,7 @@ import {
   Paper,
   ThemeIcon,
 } from "@mantine/core";
-import { IconBrandGithub, IconSettings, IconTool, IconInfoCircle } from "@tabler/icons-react";
+import { IconBrandGithub, IconTool, IconInfoCircle } from "@tabler/icons-react";
 
 export default function SettingsPage() {
   return (
