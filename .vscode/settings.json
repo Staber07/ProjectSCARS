@@ -1,0 +1,12 @@
+{
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "${workspaceFolder:ProjectSCARS}/CentralServer/centralserver-dev.db",
+            "name": "centralserver-dev",
+            "group": "ProjectSCARS"
+        }
+    ]
+}
