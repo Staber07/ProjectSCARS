@@ -136,6 +136,67 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
         return self._connect_args
 
 
+class PostgreSQLDatabaseConfig(DatabaseAdapterConfig):
+    """The PostgreSQL database configuration."""
+
+    def __init__(
+        self,
+        username: str | None = None,
+        password: str | None = None,
+        host: str | None = None,
+        port: int | None = None,
+        database: str | None = None,
+        connect_args: dict[str, Any] | None = None,
+    ):
+        """Create a configuration object for the database.
+
+        Args:
+            username: The database username.
+            password: The database password.
+            host: The hostname of the database server.
+            port: The port number of the database server.
+            database: The database name.
+            connect_args: The connection arguments to use.
+        """
+
+        default_connect_args: dict[str, Any] = {}
+
+        self.username: str = username or "ProjectSCARS_DatabaseAdmin"
+        self.password: str = password or "ProjectSCARS_postgres143"
+        self.host: str = host or "localhost"
+        self.port: int = port or 5432
+        self.database: str = database or "ProjectSCARS_CentralServer"
+        self._connect_args = {**default_connect_args, **(connect_args or {})}
+
+    @property
+    @override
+    def info(self) -> dict[str, Any]:
+        """Get the name of the database adapter."""
+        return {
+            "name": "PostgreSQL",
+            "username": self.username,
+            "password_set": self.password != "",
+            "host": self.host,
+            "port": self.port,
+            "database": self.database,
+            "connect_args": self._connect_args,
+            "sqlalchemy_uri": self.sqlalchemy_uri,
+        }
+
+    @property
+    @override
+    def sqlalchemy_uri(self) -> str:
+        """Get the database URI for SQLAlchemy."""
+
+        proto = "postgresql+psycopg"
+        return f"{proto}://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}"
+
+    @property
+    @override
+    def connect_args(self) -> dict[str, Any]:
+        return self._connect_args
+
+
 ##### Object Store Adapter Configurations #####
 
 
