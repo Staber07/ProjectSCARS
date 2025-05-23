@@ -71,10 +71,8 @@ storing the submitted data of canteen managers.
 
 The hard requirements are as follows:
 
-- [Python](https://python.org/) 3.13
-- [uv](https://docs.astral.sh/uv/) 0.5.x
-- [Docker](https://docker.com/) or [Podman](https://podman.io/)
-  - [docker-compose](https://docs.docker.com/compose/) or [podman-compose](https://github.com/containers/podman-compose)
+- [Python](https://python.org/) 3.13.x
+- [uv](https://docs.astral.sh/uv/) >= 0.7.6
 
 ##### Central Server Development Setup
 

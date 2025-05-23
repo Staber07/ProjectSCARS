@@ -38,10 +38,8 @@ storing the submitted data of canteen managers.
 
 The hard requirements are as follows:
 
-- [Python](https://python.org/) 3.13
-- [uv](https://docs.astral.sh/uv/) 0.5.x
-- [Docker](https://docker.com/) or [Podman](https://podman.io/)
-  - [docker-compose](https://docs.docker.com/compose/) or [podman-compose](https://github.com/containers/podman-compose)
+- [Python](https://python.org/) 3.13.x
+- [uv](https://docs.astral.sh/uv/) >= 0.7.6
 
 ### Central Server Development Setup
 
@@ -90,7 +88,7 @@ The hard requirements are as follows:
 > [!IMPORTANT]
 > The default credentials are:
 >
-> - username: `scars`
+> - username: `bento`
 > - password: `ProjectSCARS1`
 
 #### Central Server Database Setup
@@ -292,10 +290,10 @@ containerized environment using Docker or Podman.
 The following environment variables are used by the central server
 to further configure its behavior. These variables are optional.
 
-| Environment Variable             | Value         | Description                                |
-| -------------------------------- | ------------- | ------------------------------------------ |
-| `CENTRAL_SERVER_CONFIG_FILE`     | ./config.json | The path of the configuration file to use. |
-| `CENTRAL_SERVER_CONFIG_ENCODING` | utf-8         | The encoding of the configuration file.    |
+| Environment Variable             | Value           | Description                                |
+| -------------------------------- | --------------- | ------------------------------------------ |
+| `CENTRAL_SERVER_CONFIG_FILE`     | `./config.json` | The path of the configuration file to use. |
+| `CENTRAL_SERVER_CONFIG_ENCODING` | `utf-8`         | The encoding of the configuration file.    |
 
 > [!TIP]
 > If you want to use a different configuration file, you can run the following:
