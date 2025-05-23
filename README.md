@@ -21,14 +21,14 @@ of Education (DepEd) Schools Division Office (SDO) of the City of Baliwag in
 the Philippines.
 
 > *Why Bento?*
-> 
+>
 > > "A bento is a Japanese-style single-portion take-out or home-packed meal,
 > > often for lunch, typically including rice and packaged in a box with a lid.
 > > The term bento is derived from the Chinese term biandang, which means
 > > "convenient" or "convenience"."
-> > 
+> >
 > > \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
-> 
+>
 > BENTO also stands for **B**aliuag's **E**nhanced **N**etwork for School Canteen **T**racking **O**perations.
 
 | Component      | Open Issues                                                                                                                                                                                                                                                                                                            | Last Commit                                                                                                                                                                                                                  | Test Results                                                                                                                                                                                                                             | Code Coverage                                                                                                                                                                                                    |
@@ -71,10 +71,8 @@ storing the submitted data of canteen managers.
 
 The hard requirements are as follows:
 
-- [Python](https://python.org/) 3.13
-- [uv](https://docs.astral.sh/uv/) 0.5.x
-- [Docker](https://docker.com/) or [Podman](https://podman.io/)
-  - [docker-compose](https://docs.docker.com/compose/) or [podman-compose](https://github.com/containers/podman-compose)
+- [Python](https://python.org/) 3.13.x
+- [uv](https://docs.astral.sh/uv/) >= 0.7.6
 
 ##### Central Server Development Setup
 
@@ -330,6 +328,21 @@ to further configure its behavior. These variables are optional.
 | `CENTRAL_SERVER_CONFIG_FILE`     | `./config.json` | The path of the configuration file to use. |
 | `CENTRAL_SERVER_CONFIG_ENCODING` | `utf-8`         | The encoding of the configuration file.    |
 
+> [!TIP]
+> If you want to use a different configuration file, you can run the following:
+>
+> For *Linux* users:
+>
+> ```bash
+> CENTRAL_SERVER_CONFIG_FILE=.config.dev.json uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
+> ```
+>
+> For *Windows* users:
+>
+> ```powershell
+> $env:CENTRAL_SERVER_CONFIG_FILE=".config.dev.json"; uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
+> ```
+
 #### Web Client
 
 The web client is written in TypeScript using the Next.js framework. It
@@ -369,7 +382,7 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0.
    ```
 
 > [!IMPORTANT]
-> Look at the _central server_ documentation for the default
+> Look at the *central server* documentation for the default
 > credentials.
 
 ---
