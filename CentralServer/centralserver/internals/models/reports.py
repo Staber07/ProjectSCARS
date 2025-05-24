@@ -3,58 +3,94 @@ import datetime
 from sqlmodel import Field, Relationship, SQLModel
 
 
-class LiquidationReportAdministrativeExpenses(SQLModel):
+class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     """A model representing the liquidation (Administrative Expenses) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportAdministrativeExpenses"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportRevolvingFund(SQLModel):
+class LiquidationReportRevolvingFund(SQLModel, table=True):
     """A model representing the liquidation (Revolving Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportRevolvingFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportSupplementaryFeedingFund(SQLModel):
+class LiquidationReportSupplementaryFeedingFund(SQLModel, table=True):
     """A model representing the liquidation (Supplementary Feeding Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportSupplementaryFeedingFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportClinicFund(SQLModel):
+class LiquidationReportClinicFund(SQLModel, table=True):
     """A model representing the liquidation (Clinic Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportClinicFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportSchoolOperationFund(SQLModel):
+class LiquidationReportSchoolOperationFund(SQLModel, table=True):
     """A model representing the liquidation (School Operation Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportSchoolOperationFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportFacultyAndStudentDevFund(SQLModel):
+class LiquidationReportFacultyAndStudentDevFund(SQLModel, table=True):
     """A model representing the liquidation (Faculty and Student Development Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportFacultyAndStudentDevFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class LiquidationReportHEFund(SQLModel):
+class LiquidationReportHEFund(SQLModel, table=True):
     """A model representing the liquidation (HE Fund) reports."""
 
-    # TODO: WIP
+    __tablename__: str = "LiquidationReportHEFund"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class PayrollReport(SQLModel):
+class PayrollReport(SQLModel, table=True):
     """A model representing the monthly payroll report."""
 
-    # TODO: WIP
+    __tablename__: str = "PayrollReports"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
-class DisbursementVoucher(SQLModel):
+class DisbursementVoucher(SQLModel, table=True):
     """A model representing the disbursement vouchers."""
 
-    # TODO: WIP
+    __tablename__: str = "DisbursementVouchers"  # type: ignore
+
+    parent: datetime.date = Field(  # TODO: WIP
+        primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
 
 
 class OperatingExpenseEntry(SQLModel, table=True):
