@@ -56,7 +56,7 @@ class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     entries: list[AdministrativeExpenseEntry] = Relationship(
         back_populates="parent_report")
     parent_report: "MonthlyReport" = Relationship(
-        back_populates="operatingExpensesReport")
+        back_populates="AdministrativeExpensesReport")
     
 
 
@@ -87,8 +87,8 @@ class RevolvingFundEntry(SQLModel, table=True):
         foreign_key="LiquidationReportingRevolvingFund.parent",
     )
     date: datetime.datetime
-    particulars: str
     receipt: str
+    particulars: str
     unit: str 
     quantity: float  
     unit_price: float
@@ -100,7 +100,7 @@ class RevolvingFundEntry(SQLModel, table=True):
 class LiquidationReportRevolvingFund(SQLModel, table=True):
     """A model representing the liquidation (Revolving Fund) reports."""
 
-    __tablename__: str = "LiquidationReportRevolvingFund"  # type: ignore
+    __tablename__: str = "LiquidationReportRevolvingFund"  
 
     parent: datetime.date = Field(  
         primary_key=True, index=True, foreign_key="monthlyReports.id"
@@ -109,33 +109,122 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
     preparedby: str = Field(foreign_key="users.id")
     teacherInCharge: str = Field(foreign_key="users.id")
     
-    entries: list[AdministrativeExpenseEntry] = Relationship(
+    entries: list[RevolvingFundEntry] = Relationship(
         back_populates="parent_report")
     parent_report: "MonthlyReport" = Relationship(
         back_populates="RevolvingFundReport")
 
 
+class SupplementaryFeedingFundCertifiedBy(SQLModel, table=True):
 
+    __tablename__: str = "SupplementaryFeedingFundCertifiedBy" 
 
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="SupplementaryFeedingFundCertifiedBy.parent",
+    )
+    user: str = Field(foreign_key="users.id")
+
+    parent_report: "LiquidationReportSupplementaryFeedingFund" = Relationship(
+        back_populates="certified_by"
+    )
+
+class SupplementaryFeedingFundEntry(SQLModel, table=True):
+
+    __tablename__: str = "SupplementaryFeedingFundEntry"  
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="LiquidationReportingSupplementaryFeedingFund.parent",
+    )
+    date: datetime.datetime
+    receipt: str
+    particulars: str
+    unit: str 
+    quantity: float  
+    unit_price: float
+
+    parent_report: "LiquidationReportSupplementaryFeedingFund" = Relationship(
+        back_populates="entries"
+    )
 
 class LiquidationReportSupplementaryFeedingFund(SQLModel, table=True):
-    """A model representing the liquidation (Supplementary Feeding Fund) reports."""
 
-    __tablename__: str = "LiquidationReportSupplementaryFeedingFund"  # type: ignore
+    __tablename__: str = "LiquidationReportSupplementaryFeedingFund"  
 
-    parent: datetime.date = Field(  # TODO: WIP
+    parent: datetime.date = Field(  
         primary_key=True, index=True, foreign_key="monthlyReports.id"
+    )
+    certified_by: list[SupplementaryFeedingFundCertifiedBy] = Relationship(
+        back_populates="parent_report"
+    )
+    notedby: str = Field(foreign_key="users.id")
+    preparedby: str = Field(foreign_key="users.id")
+    teacherInCharge: str = Field(foreign_key="users.id")
+    
+    entries: list[SupplementaryFeedingFundEntry] = Relationship(
+        back_populates="parent_report")
+    parent_report: "MonthlyReport" = Relationship(
+        back_populates="RevolvingFundReport")
+
+
+class ClinicFundCertifiedBy(SQLModel, table=True):
+
+    __tablename__: str = "ClinicFundCertifiedBy" 
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="ClinicFundCertifiedBy.parent",
+    )
+    user: str = Field(foreign_key="users.id")
+
+    parent_report: "LiquidationReportSupplementaryFeedingFund" = Relationship(
+        back_populates="certified_by"
+    )
+
+class ClinicFundEntry(SQLModel, table=True):
+
+    __tablename__: str = "ClinicFundEntry"  
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="LiquidationReportClinicFund.parent",
+    )
+    date: datetime.datetime
+    receipt: str
+    particulars: str
+    unit: str 
+    quantity: float  
+    unit_price: float
+
+    parent_report: "LiquidationReportClinicFund" = Relationship(
+        back_populates="entries"
     )
 
 
 class LiquidationReportClinicFund(SQLModel, table=True):
     """A model representing the liquidation (Clinic Fund) reports."""
 
-    __tablename__: str = "LiquidationReportClinicFund"  # type: ignore
+    __tablename__: str = "LiquidationReportClinicFund"  
 
-    parent: datetime.date = Field(  # TODO: WIP
+    parent: datetime.date = Field(  
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
+    certified_by: list[ClinicFundCertifiedBy] = Relationship(
+        back_populates="parent_report"
+    )
+    notedby: str = Field(foreign_key="users.id")
+    preparedby: str = Field(foreign_key="users.id")
+    teacherInCharge: str = Field(foreign_key="users.id")
+    
+    entries: list[AdministrativeExpenseEntry] = Relationship(
+        back_populates="parent_report")
+    parent_report: "MonthlyReport" = Relationship(
+        back_populates="AdministrativeExpensesReport")
 
 
 class LiquidationReportSchoolOperationFund(SQLModel, table=True):
