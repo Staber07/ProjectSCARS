@@ -15,4 +15,4 @@ services:
             - 8083:8080
 
 volumes:
-    project_scars-central_server_database:
+    project_scars-central_server_database-postgres:

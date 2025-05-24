@@ -19,4 +19,4 @@ services:
             - PMA_HOST=db
 
 volumes:
-    project_scars-central_server_database:
+    project_scars-central_server_database-mysql:
