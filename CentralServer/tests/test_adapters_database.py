@@ -3,8 +3,8 @@ from pathlib import Path
 
 from centralserver.internals.adapters.config import (
     MySQLDatabaseConfig,
-    SQLiteDatabaseConfig,
     PostgreSQLDatabaseConfig,
+    SQLiteDatabaseConfig,
 )
 
 
