@@ -130,6 +130,7 @@ The central server supports the following databases:
 
 - SQLite (default)
 - MySQL
+- PostgreSQL
 
 **Central Server SQLite Database**
 
