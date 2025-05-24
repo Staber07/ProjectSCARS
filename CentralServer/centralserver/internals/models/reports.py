@@ -2,6 +2,41 @@ import datetime
 
 from sqlmodel import Field, Relationship, SQLModel
 
+class AdministrativeExpensesCertifiedBy(SQLModel, table=True):
+    """A model representing the "Certified By" field in the operating expenses report."""
+
+    __tablename__: str = "AdministrativeExpensesCertifiedBy"  # type: ignore
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="AdministrativeExpensesCertifiedBy.parent",
+    )
+    user: str = Field(foreign_key="users.id")
+
+    parent_report: "LiquidationReportAdministrativeExpenses" = Relationship(
+        back_populates="certified_by"
+    )
+
+class AdministrativeExpenseEntry(SQLModel, table=True):
+    """A model representing an entry in the administrative expenses report."""
+
+    __tablename__: str = "AdministrativeExpenseEntry"  # type: ignore
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="LiquidationReportAdministrativeExpenses.parent",
+    )
+    date: datetime.datetime
+    particulars: str
+    unit: str  # currency (PHP), weight (kg), etc.
+    quantity: float  # NOTE: This is float because it could be a (for example) weight
+    unit_price: float
+
+    parent_report: "LiquidationReportOperatingExpenses" = Relationship(
+        back_populates="entries"
+    )
 
 class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     """A model representing the liquidation (Administrative Expenses) reports."""
@@ -11,6 +46,18 @@ class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     parent: datetime.date = Field(  # TODO: WIP
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
+    certified_by: list[AdministrativeExpensesCertifiedBy] = Relationship(
+        back_populates="parent_report"
+    )
+    notedby: str = Field(foreign_key="users.id")
+    preparedby: str = Field(foreign_key="users.id")
+    teacherInCharge: str = Field(foreign_key="users.id")
+    
+    entries: list[AdministrativeExpenseEntry] = Relationship(
+        back_populates="parent_report")
+    parent_report: "MonthlyReport" = Relationship(
+        back_populates="operatingExpensesReport")
+    
 
 
 class LiquidationReportRevolvingFund(SQLModel, table=True):
