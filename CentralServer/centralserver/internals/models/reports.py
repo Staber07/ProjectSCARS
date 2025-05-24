@@ -283,6 +283,8 @@ class LiquidationReportSchoolOperationFund(SQLModel, table=True):
         back_populates="SchoolOperationFundReport")
 
 
+
+
 class LiquidationReportFacultyAndStudentDevFund(SQLModel, table=True):
     """A model representing the liquidation (Faculty and Student Development Fund) reports."""
 
