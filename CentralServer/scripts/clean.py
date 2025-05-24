@@ -13,6 +13,9 @@ import shutil
 import sys
 from pathlib import Path
 
+from minio import Minio
+from sqlmodel import SQLModel, create_engine
+
 
 def main() -> int:
     """The main function of the script."""
@@ -32,12 +35,12 @@ def main() -> int:
     args = parser.parse_args()
     config_path = Path(args.config)
 
-    if not config_path.exists():
+    if not config_path.is_file():
         print("Path does not exist.")
         return 1
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
     except json.JSONDecodeError:
@@ -65,8 +68,42 @@ def main() -> int:
             print(f"Unable to remove {dbpath}. Please delete it manually.")
 
     elif config["database"]["type"] == "mysql":
-        # TODO: WIP
-        raise NotImplementedError("This option is not yet implemented.")
+        try:
+
+            db_url = (
+                "mysql+pymysql://{username}:{password}@{host}:{port}/{database}".format(
+                    username=config["database"]["config"]["username"],
+                    password=config["database"]["config"]["password"],
+                    host=config["database"]["config"]["host"],
+                    port=config["database"]["config"]["port"],
+                    database=config["database"]["config"]["database"],
+                )
+            )
+            engine = create_engine(db_url)
+            SQLModel.metadata.drop_all(engine)
+            print("All MySQL tables dropped successfully!")
+
+        except Exception as e:
+            print(f"Error dropping MySQL tables: {e}")
+            exit_code += 1
+
+    elif config["database"]["type"] == "postgres":
+        # FIXME: "All PostgreSQL tables dropped successfully!" but no tables are actually dropped.
+        try:
+            db_url = "postgresql+psycopg://{username}:{password}@{host}:{port}/{database}".format(
+                username=config["database"]["config"]["username"],
+                password=config["database"]["config"]["password"],
+                host=config["database"]["config"]["host"],
+                port=config["database"]["config"]["port"],
+                database=config["database"]["config"]["database"],
+            )
+            engine = create_engine(db_url)
+            SQLModel.metadata.drop_all(engine)
+            print("All PostgreSQL tables dropped successfully!")
+
+        except Exception as e:
+            print(f"Error dropping PostgreSQL tables: {e}")
+            exit_code += 1
 
     else:
         print(f"ERROR: Invalid configuration value: {config["database"]["type"]}")
@@ -96,8 +133,30 @@ def main() -> int:
             print(f"{osrootpath} does not exist, skipping...")
 
     elif config["object_store"]["type"] == "minio":
-        # TODO: WIP
-        raise NotImplementedError("This option is not yet implemented.")
+        # FIXME: SSLError(SSLError(1, '[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1028)')))
+        client = Minio(
+            config["object_store"]["config"]["endpoint"],
+            config["object_store"]["config"]["access_key"],
+            config["object_store"]["config"]["secret_key"],
+            config["object_store"]["config"]["secure"],
+        )
+        bucket_names = {"centralserver-avatars", "centralserver-reports"}
+        for bucket in bucket_names:
+            try:
+                try:
+                    objects = client.list_objects(bucket, recursive=True)
+                    for obj in objects:
+                        client.remove_object(bucket, obj.object_name)
+
+                    client.remove_bucket(bucket)
+
+                except Exception as e:
+                    print(f"Error cleaning bucket {bucket}: {e}")
+                    exit_code += 1
+
+            except Exception as e:
+                print(f"Error removing bucket {bucket}: {e}")
+                exit_code += 1
 
     else:
         print(f"ERROR: Invalid configuration value: {config["object_store"]["type"]}")

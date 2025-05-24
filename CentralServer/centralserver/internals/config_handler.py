@@ -10,6 +10,7 @@ from centralserver.internals.adapters.config import (
     MinIOObjectStoreAdapterConfig,
     MySQLDatabaseConfig,
     ObjectStoreAdapterConfig,
+    PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
 
@@ -226,6 +227,16 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 
         case "mysql":
             final_db_config = MySQLDatabaseConfig(
+                username=database_config.get("username", None),
+                password=database_config.get("password", None),
+                host=database_config.get("host", None),
+                port=database_config.get("port", None),
+                database=database_config.get("database", None),
+                connect_args=database_config.get("connect_args", None),
+            )
+
+        case "postgres":
+            final_db_config = PostgreSQLDatabaseConfig(
                 username=database_config.get("username", None),
                 password=database_config.get("password", None),
                 host=database_config.get("host", None),

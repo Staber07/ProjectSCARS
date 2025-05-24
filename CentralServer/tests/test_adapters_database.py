@@ -3,6 +3,7 @@ from pathlib import Path
 
 from centralserver.internals.adapters.config import (
     MySQLDatabaseConfig,
+    PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
 
@@ -45,4 +46,21 @@ def test_valid_mysql_config():
     assert (
         config.info["sqlalchemy_uri"]
         == "mysql+pymysql://sample_user:password123@192.168.0.252:3306/test_db"
+    )
+
+
+def test_valid_postgresql_config():
+    """Test the PostgreSQL database configuration."""
+
+    config = PostgreSQLDatabaseConfig(
+        host="192.168.0.252",
+        port=5432,
+        username="sample_user",
+        password="password123",
+        database="test_db",
+    )
+
+    assert (
+        config.info["sqlalchemy_uri"]
+        == "postgresql+psycopg://sample_user:password123@192.168.0.252:5432/test_db"
     )
