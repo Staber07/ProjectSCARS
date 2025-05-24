@@ -60,19 +60,19 @@ class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     
 
 
-class AdministrativeExpensesCertifiedBy(SQLModel, table=True):
+class RevolvingFundCertifiedBy(SQLModel, table=True):
     """A model representing the "Certified By" field in the operating expenses report."""
 
-    __tablename__: str = "AdministrativeExpensesCertifiedBy" 
+    __tablename__: str = "RevolvingFundCertifiedBy" 
 
     parent: datetime.date = Field(
         primary_key=True,
         index=True,
-        foreign_key="AdministrativeExpensesCertifiedBy.parent",
+        foreign_key="RevolvingFundCertifiedBy.parent",
     )
     user: str = Field(foreign_key="users.id")
 
-    parent_report: "LiquidationReportAdministrativeExpenses" = Relationship(
+    parent_report: "LiquidationReportRevolvingFund" = Relationship(
         back_populates="certified_by"
     )
 
@@ -113,6 +113,10 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
         back_populates="parent_report")
     parent_report: "MonthlyReport" = Relationship(
         back_populates="RevolvingFundReport")
+
+
+
+
 
 class LiquidationReportSupplementaryFeedingFund(SQLModel, table=True):
     """A model representing the liquidation (Supplementary Feeding Fund) reports."""
