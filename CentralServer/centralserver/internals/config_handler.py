@@ -6,11 +6,11 @@ from typing import Any
 from centralserver import info
 from centralserver.internals.adapters.config import (
     DatabaseAdapterConfig,
-    PostgreSQLDatabaseConfig,
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
     MySQLDatabaseConfig,
     ObjectStoreAdapterConfig,
+    PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
 
@@ -235,7 +235,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
                 connect_args=database_config.get("connect_args", None),
             )
 
-        case "postgresql":
+        case "postgres":
             final_db_config = PostgreSQLDatabaseConfig(
                 username=database_config.get("username", None),
                 password=database_config.get("password", None),
