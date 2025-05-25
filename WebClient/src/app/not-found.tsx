@@ -2,7 +2,7 @@
 
 import { animationConfig } from "@/lib/anim";
 import { Button, Center, Container, Stack, Text, Title } from "@mantine/core";
-import { IconError404, IconHome, IconReload } from "@tabler/icons-react";
+import { IconError404, IconHome, IconArrowBack } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 
@@ -17,8 +17,9 @@ export default function NotFound() {
                     <Text>The page you are looking for does not exist.</Text>
                     <Container style={{ display: "flex", gap: "1rem" }}>
                         <Button
+                            variant="light"
                             onClick={() => router.back()}
-                            rightSection={<IconReload />}
+                            leftSection={<IconArrowBack />}
                             component={motion.button}
                             transition={animationConfig.button.transition}
                             whileHover={animationConfig.button.whileHover}

@@ -38,6 +38,17 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                     )}
                     <Container style={{ display: "flex", gap: "1rem" }}>
                         <Button
+                            variant="light"
+                            onClick={() => router.back()}
+                            leftSection={<IconArrowBack />}
+                            component={motion.button}
+                            transition={animationConfig.button.transition}
+                            whileHover={animationConfig.button.whileHover}
+                            whileTap={animationConfig.button.whileTap}
+                        >
+                            Go Back
+                        </Button>
+                        <Button
                             onClick={() => reset()}
                             rightSection={<IconReload />}
                             component={motion.button}
@@ -46,16 +57,6 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                             whileTap={animationConfig.button.whileTap}
                         >
                             Try again
-                        </Button>
-                        <Button
-                            onClick={() => router.back()}
-                            rightSection={<IconArrowBack />}
-                            component={motion.button}
-                            transition={animationConfig.button.transition}
-                            whileHover={animationConfig.button.whileHover}
-                            whileTap={animationConfig.button.whileTap}
-                        >
-                            Go Back
                         </Button>
                     </Container>
                 </Stack>
