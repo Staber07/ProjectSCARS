@@ -121,6 +121,18 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.security.allow_credentials=}")
     logger.debug(f"{app_config.security.allow_methods=}")
     logger.debug(f"{app_config.security.allow_headers=}")
+
+    logger.debug(f"{app_config.mailing.enabled=}")
+    logger.debug(f"{app_config.mailing.server=}")
+    logger.debug(f"{app_config.mailing.port=}")
+    logger.debug(f"{app_config.mailing.from_address=}")
+    logger.debug(f"{app_config.mailing.username=}")
+    logger.debug(
+        f"app_config.mailing.password={'*' * 8}"
+        if app_config.mailing.password
+        else "app_config.mailing.password=None"
+    )
+
     logger.debug(
         "Environment Variables: opted out"
         if app_config.debug.logenv_optout

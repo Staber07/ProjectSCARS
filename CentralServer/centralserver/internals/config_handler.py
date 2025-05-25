@@ -162,6 +162,40 @@ class Security:
         self.allow_headers: list[str] = allow_headers or ["*"]
 
 
+class Mailing:
+    def __init__(
+        self,
+        enabled: bool | None = None,
+        server: str | None = None,
+        port: int | None = None,
+        from_address: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+    ) -> None:
+        """The mailing configuration.
+
+        Args:
+            enabled: Whether mailing is enabled. (Default: False)
+            server: The SMTP server to use for sending emails.
+            port: The port of the SMTP server.
+            from_address: The email address to use as the sender.
+            username: The username for the SMTP server.
+            password: The password for the SMTP server.
+        """
+
+        self.enabled: bool = enabled or False
+        self.server: str = server  # type: ignore
+        self.port: int = port or 587
+        self.from_address: str = from_address  # type: ignore
+        self.username: str = username  # type: ignore
+        self.password: str = password  # type: ignore
+
+        if self.enabled and (
+            not self.server or not self.port or not self.username or not self.password
+        ):
+            raise ValueError("Mailing is enabled, but required values are not set.")
+
+
 class AppConfig:
     """The main configuration object for the application."""
 
@@ -173,6 +207,7 @@ class AppConfig:
         object_store: ObjectStoreAdapterConfig | None = None,
         authentication: Authentication | None = None,
         security: Security | None = None,
+        mailing: Mailing | None = None,
     ):
         """Create a configuration object for the application.
 
@@ -184,6 +219,7 @@ class AppConfig:
             test_database: Test database configuration.
             authentication: Authentication configuration.
             security: Security configuration.
+            mailing: Mailing configuration.
         """
 
         self.debug: Debug = debug or Debug()
@@ -196,6 +232,7 @@ class AppConfig:
         )
         self.authentication: Authentication = authentication or Authentication()
         self.security: Security = security or Security()
+        self.mailing: Mailing = mailing or Mailing()
 
 
 def read_config(config: dict[str, Any]) -> AppConfig:
@@ -212,6 +249,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
     logging_config = config.get("logging", {})
     authentication_config = config.get("authentication", {})
     security_config = config.get("security", {})
+    mailing_config = config.get("mailing", {})
 
     # Determine database type and create the appropriate config object
     database: dict[str, Any] = config.get("database", {})
@@ -317,6 +355,14 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             allow_credentials=security_config.get("allow_credentials", None),
             allow_methods=security_config.get("allow_methods", None),
             allow_headers=security_config.get("allow_headers", None),
+        ),
+        mailing=Mailing(
+            enabled=mailing_config.get("enabled", None),
+            server=mailing_config.get("server", None),
+            port=mailing_config.get("port", None),
+            from_address=mailing_config.get("from_address", None),
+            username=mailing_config.get("username", None),
+            password=mailing_config.get("password", None),
         ),
     )
 
