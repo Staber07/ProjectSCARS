@@ -109,11 +109,16 @@ def main() -> int:
             engine = create_engine(db_url)
             with engine.connect() as connection:
                 # Disable triggers to avoid dependency issues
-                result = connection.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public';"))
+                result = connection.execute(
+                    text("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
+                )
                 tables = [row[0] for row in result]
                 for table in tables:
-                    connection.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER ALL;"))
+                    connection.execute(
+                        text(f"ALTER TABLE {table} DISABLE TRIGGER ALL;")
+                    )
                     connection.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+
             print("All PostgreSQL tables dropped successfully!")
 
         except Exception as e:
