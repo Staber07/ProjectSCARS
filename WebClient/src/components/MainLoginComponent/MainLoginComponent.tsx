@@ -1,78 +1,103 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-
+import { CentralServerGetUserInfo, CentralServerLogInUser } from "@/lib/api/auth";
+import { Program } from "@/lib/info";
+import { useAuth } from "@/lib/providers/auth";
 import {
+    Anchor,
     Button,
     Checkbox,
     Container,
+    Flex,
     Group,
+    Image,
     Paper,
     PasswordInput,
     Text,
     TextInput,
     Title,
-    Image,
-    Flex
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { notifications } from "@mantine/notifications";
 import { useDisclosure } from "@mantine/hooks";
-import { IconLogin } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
+import { IconCheck, IconLogin, IconX } from "@tabler/icons-react";
 import { motion, useAnimation } from "motion/react";
+import { useRouter } from "next/navigation";
 
-import { Program } from "@/lib/info";
-import { useAuth } from "@/lib/providers/auth";
-import {
-    CentralServerGetUserInfo,
-    CentralServerLogInUser,
-} from "@/lib/api/auth";
+import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
 
-import classes from "@/components/MainLoginComponent.module.css";
+interface LoginFormValues {
+    username: string;
+    password: string;
+    rememberMe: boolean;
+}
 
 /**
- * The component for the main login page.
+ * MainLoginComponent is the main login component for the application.
+ * @returns {React.ReactElement} The rendered component.
  */
 export function MainLoginComponent(): React.ReactElement {
     const router = useRouter();
     const auth = useAuth();
-    const form = useForm({
+    const logoControls = useAnimation();
+    const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const form = useForm<LoginFormValues>({
         mode: "uncontrolled",
         initialValues: { username: "", password: "", rememberMe: false },
     });
-    const [buttonLoading, buttonStateHandler] = useDisclosure(false);
-    const logoControls = useAnimation();
 
-    /// Login function
-    const loginUser = async (values: {
-        username: string;
-        password: string;
-        rememberMe: boolean;
-    }) => {
+    /**
+     * Handles the login process for the user.
+     * @param {LoginFormValues} values - The values from the login form.
+     * @return {Promise<void>} A promise that resolves when the login is complete.
+     */
+    const loginUser = async (values: LoginFormValues): Promise<void> => {
         console.debug("Logging in user", {
             username: values.username,
             rememberMe: values.rememberMe,
         });
-        buttonStateHandler.open()
+        buttonStateHandler.open();
+        // make sure the user has entered both username and password.
+        if (!values.username || !values.password) {
+            notifications.show({
+                title: "Login failed",
+                message: "Please enter both username and password.",
+                color: "red",
+                icon: <IconX />,
+            });
+            buttonStateHandler.close();
+            return;
+        }
+
         try {
-            const tokens = await CentralServerLogInUser(
-                values.username,
-                values.password,
-            );
+            const tokens = await CentralServerLogInUser(values.username, values.password);
             auth.login(tokens);
             await CentralServerGetUserInfo(true);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
                 title: "Login successful",
                 message: "You are now logged in.",
+                color: "green",
+                icon: <IconCheck />,
             });
             router.push("/");
         } catch (error) {
-            console.error("Error logging in:", error);
-            notifications.show({
-                title: "Login failed",
-                message: `${error}`,
-            });
+            if (error instanceof Error && error.message.includes("status code 401")) {
+                notifications.show({
+                    title: "Login failed",
+                    message: "Please check your username and password.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else {
+                console.error("Error logging in:", error);
+                notifications.show({
+                    title: "Login failed",
+                    message: `${error}`,
+                    color: "red",
+                    icon: <IconX />,
+                });
+            }
             buttonStateHandler.close();
         }
     };
@@ -81,13 +106,7 @@ export function MainLoginComponent(): React.ReactElement {
     return (
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
             <Title ta="center" className={classes.title}>
-                <Flex
-                    mih={50}
-                    justify="center"
-                    align="center"
-                    direction="row"
-                    wrap="wrap"
-                >
+                <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
                     <Image
                         src="/assets/BENTOLogo.svg"
                         alt="BENTO Logo"
@@ -116,24 +135,25 @@ export function MainLoginComponent(): React.ReactElement {
                         placeholder="Your username"
                         key={form.key("username")}
                         {...form.getInputProps("username")}
-                        required
                     />
                     <PasswordInput
                         label="Password"
                         placeholder="Your password"
                         key={form.key("password")}
                         {...form.getInputProps("password")}
-                        required
                         mt="md"
                     />
                     <Group justify="space-between" mt="lg">
-                        <Checkbox
-                            label="Remember me"
-                            {...form.getInputProps("rememberMe", { type: "checkbox" })}
-                        />
-                        {/* <Anchor component="button" size="sm"> */}
-                        {/*   Forgot password? */}
-                        {/* </Anchor> */}
+                        <Checkbox label="Remember me" {...form.getInputProps("rememberMe", { type: "checkbox" })} />
+                        <Anchor
+                            onClick={() => {
+                                router.push("/forgotPassword");
+                            }}
+                            component="button"
+                            size="sm"
+                        >
+                            Forgot password?
+                        </Anchor>
                     </Group>
                     <Button
                         id="login-button"
