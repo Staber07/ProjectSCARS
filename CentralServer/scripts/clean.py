@@ -13,6 +13,9 @@ import shutil
 import sys
 from pathlib import Path
 
+from minio import Minio
+from sqlmodel import create_engine, text
+
 
 def main() -> int:
     """The main function of the script."""
@@ -37,7 +40,7 @@ def main() -> int:
         return 1
 
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
     except json.JSONDecodeError:
@@ -65,8 +68,61 @@ def main() -> int:
             print(f"Unable to remove {dbpath}. Please delete it manually.")
 
     elif config["database"]["type"] == "mysql":
-        # TODO: WIP
-        raise NotImplementedError("This option is not yet implemented.")
+        try:
+
+            db_url = (
+                f"mysql+pymysql://{config['database']['config']['username']}:"
+                f"{config['database']['config']['password']}@"
+                f"{config['database']['config']['host']}:"
+                f"{config['database']['config']['port']}/"
+                f"{config['database']['config']['database']}"
+            )
+            # Connect to the specified MySQL database and drop all tables
+            engine = create_engine(db_url)
+            with engine.connect() as connection:
+                # Disable foreign key checks to avoid dependency issues
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+                result = connection.execute(text("SHOW TABLES;"))
+                tables = [row[0] for row in result]
+                for table in tables:
+                    connection.execute(text(f"DROP TABLE IF EXISTS `{table}`;"))
+
+                # Re-enable foreign key checks
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+
+            print("All MySQL tables dropped successfully!")
+
+        except Exception as e:
+            print(f"Error dropping MySQL tables: {e}")
+            exit_code += 1
+
+    elif config["database"]["type"] == "postgres":
+        # FIXME: "All PostgreSQL tables dropped successfully!" but no tables are actually dropped.
+        try:
+            db_url = (
+                f"postgresql+psycopg://{config['database']['config']['username']}:"
+                f"{config['database']['config']['password']}@"
+                f"{config['database']['config']['host']}:"
+                f"{config['database']['config']['port']}/"
+                f"{config['database']['config']['database']}"
+            )
+            engine = create_engine(db_url)
+            with engine.connect() as connection:
+                # Disable foreign key checks to avoid dependency issues
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+                result = connection.execute(text("SHOW TABLES;"))
+                tables = [row[0] for row in result]
+                for table in tables:
+                    connection.execute(text(f"DROP TABLE IF EXISTS `{table}`;"))
+
+                # Re-enable foreign key checks
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+
+            print("All PostgreSQL tables dropped successfully!")
+
+        except Exception as e:
+            print(f"Error dropping PostgreSQL tables: {e}")
+            exit_code += 1
 
     else:
         print(f"ERROR: Invalid configuration value: {config["database"]["type"]}")
@@ -82,11 +138,12 @@ def main() -> int:
                 if filename not in {".gitignore", ".gitinclude"}:
                     filepath = Path(osrootpath, filename)
                     print(f"Removing {filepath}...")
-                    (
+                    if filepath.is_dir():
                         shutil.rmtree(filepath)
-                        if filepath.is_dir()
-                        else filepath.unlink(True)
-                    )
+
+                    else:
+                        filepath.unlink(True)
+
                     osfilesremoved = True
 
             if not osfilesremoved:
@@ -96,8 +153,25 @@ def main() -> int:
             print(f"{osrootpath} does not exist, skipping...")
 
     elif config["object_store"]["type"] == "minio":
-        # TODO: WIP
-        raise NotImplementedError("This option is not yet implemented.")
+        client = Minio(
+            config["object_store"]["config"]["endpoint"],
+            access_key=config["object_store"]["config"]["access_key"],
+            secret_key=config["object_store"]["config"]["secret_key"],
+            secure=config["object_store"]["config"]["secure"],
+        )
+        buckets = {"centralserver-avatars", "centralserver-reports"}
+        for bucket in buckets:
+            try:
+                if client.bucket_exists(bucket):
+                    print(f"Removing bucket {bucket}...")
+                    client.remove_bucket(bucket)
+
+                else:
+                    print(f"Bucket {bucket} does not exist, skipping...")
+
+            except Exception as e:
+                print(f"Error removing bucket {bucket}: {e}")
+                exit_code += 1
 
     else:
         print(f"ERROR: Invalid configuration value: {config["object_store"]["type"]}")
