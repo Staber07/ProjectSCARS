@@ -114,7 +114,6 @@ def main() -> int:
                 for table in tables:
                     connection.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER ALL;"))
                     connection.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
-                    connection.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER ALL;"))
             print("All PostgreSQL tables dropped successfully!")
 
         except Exception as e:
