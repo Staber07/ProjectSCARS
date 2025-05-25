@@ -1,14 +1,13 @@
 "use client";
 
+import { LoadingComponent } from "@/components/LoadingComponent";
+import { AuthProvider, useAuth } from "@/lib/providers/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-import { useAuth, AuthProvider } from "@/lib/providers/auth";
-
-import { LoadingComponent } from "@/components/LoadingComponent";
-
 /**
- * Wrapper for the entire page to enable the use of the AuthProvider.
+ * Root page component.
+ * @returns {JSX.Element} The rendered component.
  */
 export default function RootPage() {
     console.debug("Rendering RootPage");
@@ -20,21 +19,17 @@ export default function RootPage() {
 }
 
 /**
- * Shows the main content of the page if the user is authenticated.
- * Otherwise, redirect user to the login page.
- *
- * @returns The main content of the page.
+ * RootContent component that performs the authentication check and redirects.
+ * @returns {JSX.Element} The rendered component.
  */
 function RootContent() {
     const { isAuthenticated } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        console.debug("RootContent useEffect started", { isAuthenticated });
-        router.push(isAuthenticated ? "/dashboard" : "/login");
+        router.replace(isAuthenticated ? "/dashboard" : "/login");
     }, [isAuthenticated, router]);
 
     console.debug("Rendering RootContent", { isAuthenticated });
-    // Show loading component while navigating
     return <LoadingComponent withBorder={false} />;
 }
