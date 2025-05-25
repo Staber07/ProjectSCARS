@@ -4,6 +4,7 @@ import { animationConfig } from "@/lib/anim";
 import { Button, Center, Code, Container, Stack, Text, Title } from "@mantine/core";
 import { IconArrowBack, IconPlugConnectedX, IconReload } from "@tabler/icons-react";
 import { motion } from "motion/react";
+import { useRouter } from "next/navigation";
 
 interface ErrorPageProps {
     error: Error & { digest?: string }; // The error object can include a digest for debugging
@@ -17,6 +18,7 @@ interface ErrorPageProps {
  * @return {JSX.Element} The rendered ErrorPage component.
  */
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
+    const router = useRouter();
     return (
         <Container>
             <Center style={{ height: "100vh" }}>
@@ -46,7 +48,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
                             Try again
                         </Button>
                         <Button
-                            onClick={() => window.history.back()}
+                            onClick={() => router.back()}
                             rightSection={<IconArrowBack />}
                             component={motion.button}
                             transition={animationConfig.button.transition}

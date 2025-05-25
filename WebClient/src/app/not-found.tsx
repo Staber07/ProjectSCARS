@@ -1,21 +1,39 @@
 "use client";
 
-import { Button, Text, Title, Center, Stack, Container } from "@mantine/core";
-import Link from "next/link";
+import { animationConfig } from "@/lib/anim";
+import { Button, Center, Container, Stack, Text, Title } from "@mantine/core";
+import { IconError404, IconHome, IconReload } from "@tabler/icons-react";
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 
 export default function NotFound() {
     const router = useRouter();
-
     return (
-        <Container style={{ paddingTop: "150px" }}>
-            <Center>
-                <Stack>
+        <Container>
+            <Center style={{ height: "100vh" }}>
+                <Stack align="center">
+                    <IconError404 size={128} />
                     <Title>Page Not Found</Title>
                     <Text>The page you are looking for does not exist.</Text>
                     <Container style={{ display: "flex", gap: "1rem" }}>
-                        <Button onClick={() => router.back()}>Go Back</Button>
-                        <Button component={Link} href="/">
+                        <Button
+                            onClick={() => router.back()}
+                            rightSection={<IconReload />}
+                            component={motion.button}
+                            transition={animationConfig.button.transition}
+                            whileHover={animationConfig.button.whileHover}
+                            whileTap={animationConfig.button.whileTap}
+                        >
+                            Go Back
+                        </Button>
+                        <Button
+                            onClick={() => router.push("/")}
+                            rightSection={<IconHome />}
+                            component={motion.button}
+                            transition={animationConfig.button.transition}
+                            whileHover={animationConfig.button.whileHover}
+                            whileTap={animationConfig.button.whileTap}
+                        >
                             Go Home
                         </Button>
                     </Container>
