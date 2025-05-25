@@ -2,8 +2,9 @@ import datetime
 
 from sqlmodel import Field, Relationship, SQLModel
 
+
+"""A model representing the liquidation (Administrative Expenses) reports."""
 class AdministrativeExpensesCertifiedBy(SQLModel, table=True):
-    """A model representing the "Certified By" field in the operating expenses report."""
 
     __tablename__: str = "AdministrativeExpensesCertifiedBy"  
 
@@ -19,7 +20,6 @@ class AdministrativeExpensesCertifiedBy(SQLModel, table=True):
     )
 
 class AdministrativeExpenseEntry(SQLModel, table=True):
-    """A model representing an entry in the administrative expenses report."""
 
     __tablename__: str = "AdministrativeExpenseEntry"  
 
@@ -39,7 +39,6 @@ class AdministrativeExpenseEntry(SQLModel, table=True):
     )
 
 class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
-    """A model representing the liquidation (Administrative Expenses) reports."""
 
     __tablename__: str = "LiquidationReportAdministrativeExpenses" 
 
@@ -58,7 +57,8 @@ class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     parent_report: "MonthlyReport" = Relationship(
         back_populates="AdministrativeExpensesReport")
     
-
+    
+"""A model representing the liquidation (Revolving Fund) reports."""
 
 class RevolvingFundCertifiedBy(SQLModel, table=True):
     """A model representing the "Certified By" field in the operating expenses report."""
@@ -115,6 +115,8 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
         back_populates="RevolvingFundReport")
 
 
+"""A model representing the liquidation (Supplementary Feeding Fund) reports."""
+
 class SupplementaryFeedingFundCertifiedBy(SQLModel, table=True):
 
     __tablename__: str = "SupplementaryFeedingFundCertifiedBy" 
@@ -169,6 +171,8 @@ class LiquidationReportSupplementaryFeedingFund(SQLModel, table=True):
     parent_report: "MonthlyReport" = Relationship(
         back_populates="RevolvingFundReport")
 
+
+"""A model representing the liquidation (Clinic Fund) reports."""
 
 class ClinicFundCertifiedBy(SQLModel, table=True):
 
@@ -227,6 +231,8 @@ class LiquidationReportClinicFund(SQLModel, table=True):
         back_populates="ClinicFundReport")
 
 
+"""A model representing the liquidation (School Operation Fund) reports."""
+
 class SchoolOperationFundCertifiedBy(SQLModel, table=True):
 
     __tablename__: str = "SchoolOperationFundCertifiedBy" 
@@ -283,28 +289,119 @@ class LiquidationReportSchoolOperationFund(SQLModel, table=True):
         back_populates="SchoolOperationFundReport")
 
 
+""""A model representing the liquidation (Faculty and Student Development Fund) reports."""
 
+class FacultyAndStudentDevFundAuditedBy(SQLModel, table=True):
+
+    __tablename__: str = "FacultyAndStudentDevFundAuditedBy" 
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="FacultyAndStudentDevFundAuditedBy.parent",
+    )
+    user: str = Field(foreign_key="users.id")
+
+    parent_report: "LiquidationReportFacultyAndStudentDevFund" = Relationship(
+        back_populates="audited_by"
+    )
+
+class FacultyAndStudentDevFundEntry(SQLModel, table=True):
+
+    __tablename__: str = "FacultyAndStudentDevFundEntry"  
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="LiquidationReportFacultyAndStudentDevFund.parent",
+    )
+    date: datetime.datetime
+    receipt: str
+    particulars: str
+    unit: str 
+    quantity: float  
+    unit_price: float
+
+    parent_report: "LiquidationReportFacultyAndStudentDevFund" = Relationship(
+        back_populates="entries"
+    )
 
 class LiquidationReportFacultyAndStudentDevFund(SQLModel, table=True):
-    """A model representing the liquidation (Faculty and Student Development Fund) reports."""
 
     __tablename__: str = "LiquidationReportFacultyAndStudentDevFund"  # type: ignore
 
     parent: datetime.date = Field(  # TODO: WIP
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
+    audited_by: list[FacultyAndStudentDevFundAuditedBy] = Relationship(
+        back_populates="parent_report"
+    )
+    notedby: str = Field(foreign_key="users.id")
+    preparedby: str = Field(foreign_key="users.id")
+    teacherInCharge: str = Field(foreign_key="users.id") 
+    
+    entries: list[FacultyAndStudentDevFundEntry] = Relationship(
+        back_populates="parent_report")
+    parent_report: "MonthlyReport" = Relationship(
+        back_populates="FacultyAndStudentDevFundReport")
 
+
+"""A model representing the liquidation (HE Fund) reports."""
+
+class HEFundCertifiedBy(SQLModel, table=True):
+
+    __tablename__: str = "HEFundCertifiedBy" 
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="HEFundCertifiedBy.parent",
+    )
+    user: str = Field(foreign_key="users.id")
+
+    parent_report: "LiquidationReportHEFund" = Relationship(
+        back_populates="certified_by"
+    )
+
+class HEFundEntry(SQLModel, table=True):
+
+    __tablename__: str = "HEFundEntry"  
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="LiquidationReportHEFund.parent",
+    )
+    date: datetime.datetime
+    receipt: str
+    particulars: str
+    unit: str 
+    quantity: float  
+    unit_price: float
+
+    parent_report: "LiquidationReportHEFund" = Relationship(
+        back_populates="entries"
+    )
 
 class LiquidationReportHEFund(SQLModel, table=True):
-    """A model representing the liquidation (HE Fund) reports."""
 
     __tablename__: str = "LiquidationReportHEFund"  # type: ignore
 
     parent: datetime.date = Field(  # TODO: WIP
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
-
-
+    certified_by: list[HEFundCertifiedBy] = Relationship(
+        back_populates="parent_report"
+    )
+    notedby: str = Field(foreign_key="users.id")
+    preparedby: str = Field(foreign_key="users.id")
+    teacherInCharge: str = Field(foreign_key="users.id")
+    
+    entries: list[HEFundEntry] = Relationship(
+        back_populates="parent_report")
+    parent_report: "MonthlyReport" = Relationship(
+        back_populates="HEFundReport")
+    
 class PayrollReport(SQLModel, table=True):
     """A model representing the monthly payroll report."""
 
