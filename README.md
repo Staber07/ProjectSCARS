@@ -398,6 +398,19 @@ to further configure its behavior. These variables are optional.
 > $env:CENTRAL_SERVER_CONFIG_FILE=".config.dev.json"; uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
 > ```
 
+###### Resetting Central Server Data
+
+While contributing to the project, you might have to start your database and object store from scratch.
+Because of this, you can run `scripts/clean.py` to reset them.
+
+```bash
+# Clean the database and object store configured in config.json:
+uv run ./scripts/clean.py
+
+# Clean the database and object store configured in another config file:
+uv run ./scripts/clean.py --config CONFIG_FILEPATH
+```
+
 #### Web Client
 
 The web client is written in TypeScript using the Next.js framework. It

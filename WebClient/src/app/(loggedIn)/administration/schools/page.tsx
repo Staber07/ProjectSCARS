@@ -12,8 +12,8 @@ import {
   Button,
   rem,
 } from "@mantine/core";
-import { IconEdit, IconSearch, IconTrash, IconDownload } from "@tabler/icons-react";
-import {  useMemo, useState } from "react";
+import { IconEdit, IconSearch, IconTrash, IconDownload, IconChevronUp, IconChevronDown } from "@tabler/icons-react";
+import { useMemo, useState } from "react";
 
 const SchoolsData = () => {
   const schools = [
@@ -32,18 +32,50 @@ const SchoolsData = () => {
   }));
 };
 
+type SortKey = "school" | "netIncome";
+type SortDirection = "asc" | "desc";
+
 export default function SchoolsPage() {
   const [search, setSearch] = useState("");
   const [data] = useState(SchoolsData());
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<number[]>([]);
   const [page, setPage] = useState(1);
+  const [sortKey, setSortKey] = useState<SortKey>("school");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
   const rowsPerPage = 10;
 
-  const filteredData = useMemo(
-    () => data.filter((row) => row.school.toLowerCase().includes(search.toLowerCase())),
-    [search, data]
-  );
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDirection("asc");
+    }
+  };
+
+  const filteredData = useMemo(() => {
+    let result = data.filter((row) =>
+      row.school.toLowerCase().includes(search.toLowerCase())
+    );
+    result = [...result].sort((a, b) => {
+      if (sortKey === "school") {
+        if (sortDirection === "asc") {
+          return a.school.localeCompare(b.school);
+        } else {
+          return b.school.localeCompare(a.school);
+        }
+      } else if (sortKey === "netIncome") {
+        if (sortDirection === "asc") {
+          return a.netIncome - b.netIncome;
+        } else {
+          return b.netIncome - a.netIncome;
+        }
+      }
+      return 0;
+    });
+    return result;
+  }, [search, data, sortKey, sortDirection]);
 
   const paginatedData = useMemo(
     () => filteredData.slice((page - 1) * rowsPerPage, page * rowsPerPage),
@@ -115,16 +147,36 @@ export default function SchoolsPage() {
 
       <ScrollArea style={{ marginTop: rem(20) }}>
         <Table stickyHeader stickyHeaderOffset={60} verticalSpacing="sm" highlightOnHover withTableBorder>
-          
-            <Table.Tr>
-              {editMode && <Table.Th></Table.Th>}
-              <Table.Th>Schools</Table.Th>
-              <Table.Th>Address</Table.Th>
-              <Table.Th>Net Income</Table.Th>
-              <Table.Th>Net Profit</Table.Th>
-              <Table.Th>Gross Profit</Table.Th>
-            </Table.Tr>
-          
+          <Table.Tr>
+            {editMode && <Table.Th></Table.Th>}
+            <Table.Th
+              style={{ cursor: "pointer" }}
+              onClick={() => handleSort("school")}
+            >
+              Schools{" "}
+              {sortKey === "school" &&
+                (sortDirection === "asc" ? (
+                  <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
+                ) : (
+                  <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
+                ))}
+            </Table.Th>
+            <Table.Th>Address</Table.Th>
+            <Table.Th
+              style={{ cursor: "pointer" }}
+              onClick={() => handleSort("netIncome")}
+            >
+              Net Income{" "}
+              {sortKey === "netIncome" &&
+                (sortDirection === "asc" ? (
+                  <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
+                ) : (
+                  <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
+                ))}
+            </Table.Th>
+            <Table.Th>Net Profit</Table.Th>
+            <Table.Th>Gross Profit</Table.Th>
+          </Table.Tr>
           <Table.Tbody>
             {paginatedData.map((row) => (
               <Table.Tr key={row.id}>
