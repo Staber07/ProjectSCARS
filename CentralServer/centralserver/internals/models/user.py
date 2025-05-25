@@ -64,6 +64,14 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user is required to update their information.",
     )
+    recoveryToken: str | None = Field(
+        default=None,
+        description="A token used for account recovery, if applicable.",
+    )
+    recoveryTokenExpires: datetime.datetime | None = Field(
+        default=None,
+        description="The expiration time for the recovery token.",
+    )
     finishedTutorials: str = Field(
         default_factory=str,
         description="A list of onboarding tutorials the user has completed.",
@@ -133,3 +141,10 @@ class UserCreate(SQLModel):
     username: str
     roleId: int
     password: str
+
+
+class UserRecover(SQLModel):
+    """A model used for recovering a user account."""
+
+    username: str
+    email: EmailStr

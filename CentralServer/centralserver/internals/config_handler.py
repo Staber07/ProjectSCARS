@@ -37,6 +37,22 @@ class Debug:
         self.show_sql: bool = show_sql or False
 
 
+class Connection:
+    """The connection configuration."""
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+    ):
+        """Create a configuration object for the connection.
+
+        Args:
+            base_url: The base URL for the connection. (Default: None)
+        """
+
+        self.base_url: str = base_url or "http://localhost:8080"
+
+
 class Logging:
     """The logging configuration."""
 
@@ -85,6 +101,7 @@ class Authentication:
         encoding: str | None = None,
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
+        recovery_token_expire_minutes: int | None = None,
     ):
         """Create a configuration object for authentication.
 
@@ -97,6 +114,7 @@ class Authentication:
             encoding: The encoding to use when decoding encrypted data.
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
+            recovery_token_expire_minutes: How long the recovery token is valid in minutes.
         """
 
         if (
@@ -137,6 +155,7 @@ class Authentication:
         self.encoding: str = encoding or "utf-8"
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
+        self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
 
 
 class Security:
@@ -202,6 +221,7 @@ class AppConfig:
     def __init__(
         self,
         debug: Debug | None = None,
+        connection: Connection | None = None,
         logging: Logging | None = None,
         database: DatabaseAdapterConfig | None = None,
         object_store: ObjectStoreAdapterConfig | None = None,
@@ -213,6 +233,7 @@ class AppConfig:
 
         Args:
             debug: Debugging configuration.
+            connection: Connection configuration.
             logging: Logging configuration.
             database: Database configuration.
             object_store: Object store configuration.
@@ -223,6 +244,7 @@ class AppConfig:
         """
 
         self.debug: Debug = debug or Debug()
+        self.connection: Connection = connection or Connection()
         self.logging: Logging = logging or Logging()
         # By default, use SQLite for the database.
         self.database: DatabaseAdapterConfig = database or SQLiteDatabaseConfig()
@@ -246,6 +268,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
     """
 
     debug_config = config.get("debug", {})
+    connection_config = config.get("connection", {})
     logging_config = config.get("logging", {})
     authentication_config = config.get("authentication", {})
     security_config = config.get("security", {})
@@ -320,6 +343,9 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             logenv_optout=debug_config.get("logenv_optout", None),
             show_sql=debug_config.get("show_sql", None),
         ),
+        connection=Connection(
+            base_url=connection_config.get("base_url", None),
+        ),
         logging=Logging(
             filepath=logging_config.get("filepath", None),
             max_bytes=logging_config.get("max_bytes", None),
@@ -348,6 +374,9 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             ),
             refresh_token_expire_minutes=authentication_config.get(
                 "refresh_token_expire_minutes", None
+            ),
+            recovery_token_expire_minutes=authentication_config.get(
+                "recovery_token_expire_minutes", None
             ),
         ),
         security=Security(
