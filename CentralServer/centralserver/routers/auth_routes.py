@@ -163,7 +163,7 @@ async def request_password_recovery(
     session.commit()
     session.refresh(user)
     recovery_link = (
-        f"{app_config.connection.base_url}/recovery/reset?token={user.recoveryToken}"
+        f"{app_config.connection.base_url}/resetPassword?token={user.recoveryToken}"
     )
     logger.debug("Generated recovery link for user %s: %s", username, recovery_link)
 
