@@ -35,7 +35,7 @@ def main() -> int:
     args = parser.parse_args()
     config_path = Path(args.config)
 
-    if not config_path.exists():
+    if not config_path.is_file():
         print("Path does not exist.")
         return 1
 

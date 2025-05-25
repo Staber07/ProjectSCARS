@@ -1,22 +1,22 @@
 services:
-  db:
-    image: docker.io/library/mysql:9.3.0
-    restart: always
-    ports:
-      - 3306:3306
-    volumes:
-      - project_scars-central_server_database:/var/lib/mysql
-    env_file:
-      - .env
+    db:
+        image: docker.io/library/mysql:9.3.0
+        restart: always
+        ports:
+            - 3306:3306
+        volumes:
+            - project_scars-central_server_database-mysql:/var/lib/mysql
+        env_file:
+            - .env
 
-  phpmyadmin:
-    image: docker.io/library/phpmyadmin:5.2.2
-    restart: always
-    ports:
-      - 8083:80
-    environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOST=db
+    phpmyadmin:
+        image: docker.io/library/phpmyadmin:5.2.2
+        restart: always
+        ports:
+            - 8083:80
+        environment:
+            - PMA_ARBITRARY=1
+            - PMA_HOST=db
 
 volumes:
-  project_scars-central_server_database:
+    project_scars-central_server_database-mysql:
