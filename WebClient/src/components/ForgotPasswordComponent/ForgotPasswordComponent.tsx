@@ -66,7 +66,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        await CentralServerRequestPasswordRecovery(values.email, values.username);
+        response = await CentralServerRequestPasswordRecovery(values.email, values.username);
         requestSentHandler.open();
         notifications.show({
             title: "Account recovery email request sent",

@@ -105,9 +105,10 @@ export async function CentralServerRequestPasswordRecovery(email: string, userna
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        throw new Error(errorMessage);
+        return centralServerResponse.json();
     }
     console.debug("Password recovery request sent successfully");
+    return centralServerResponse.json();
 }
 
 export async function CentralServerResetPassword(token: string, new_password: string): Promise<void> {
@@ -122,7 +123,7 @@ export async function CentralServerResetPassword(token: string, new_password: st
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to reset password: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        throw new Error(errorMessage);
+        return centralServerResponse.json();
     }
     console.debug("Password reset successfully");
     return centralServerResponse.json();
