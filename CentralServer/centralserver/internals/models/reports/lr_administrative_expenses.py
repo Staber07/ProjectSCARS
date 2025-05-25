@@ -23,7 +23,7 @@ class LiquidationReportAdministrativeExpenses(SQLModel, table=True):
     teacherInCharge: str = Field(foreign_key="users.id")
 
     parent_report: "MonthlyReport" = Relationship(
-        back_populates="AdministrativeExpensesReport"
+        back_populates="administrative_expenses_report"
     )
     certified_by: list["AdministrativeExpensesCertifiedBy"] = Relationship(
         back_populates="parent_report"

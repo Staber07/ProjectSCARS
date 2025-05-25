@@ -23,7 +23,7 @@ class LiquidationReportOperatingExpenses(SQLModel, table=True):
     notedBy: str = Field(foreign_key="users.id")
 
     parent_report: "MonthlyReport" = Relationship(
-        back_populates="operatingExpensesReport"
+        back_populates="operating_expenses_report"
     )
     certified_by: list["OperatingExpensesCertifiedBy"] = Relationship(
         back_populates="parent_report"

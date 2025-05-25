@@ -20,6 +20,9 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
     teacherInCharge: str = Field(foreign_key="users.id")
 
     entries: list["RevolvingFundEntry"] = Relationship(back_populates="parent_report")
+    certified_by: list["RevolvingFundCertifiedBy"] = Relationship(
+        back_populates="parent_report"
+    )
     parent_report: "MonthlyReport" = Relationship(
         back_populates="revolving_fund_report"
     )

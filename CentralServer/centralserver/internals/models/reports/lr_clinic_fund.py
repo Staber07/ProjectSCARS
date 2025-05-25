@@ -27,7 +27,7 @@ class LiquidationReportClinicFund(SQLModel, table=True):
         back_populates="parent_report"
     )
     entries: list["LiquidationReportClinicFundEntry"] = Relationship(
-        back_populates="parent"
+        back_populates="parent_report"
     )
 
 
