@@ -146,7 +146,8 @@ export function MainLoginComponent(): React.ReactElement {
                     <Group justify="space-between" mt="lg">
                         <Checkbox label="Remember me" {...form.getInputProps("rememberMe", { type: "checkbox" })} />
                         <Anchor
-                            onClick={() => {
+                            onClick={(e) => {
+                                e.preventDefault();
                                 router.push("/forgotPassword");
                             }}
                             component="button"
