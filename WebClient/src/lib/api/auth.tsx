@@ -25,10 +25,7 @@ export function GetAccessTokenHeader(): string {
  *
  * Returns the access token and type of the user.
  */
-export async function CentralServerLogInUser(
-    username: string,
-    password: string,
-): Promise<TokenType> {
+export async function CentralServerLogInUser(username: string, password: string): Promise<TokenType> {
     const loginFormData = new URLSearchParams();
     loginFormData.set("grant_type", "password");
     loginFormData.set("username", username);
@@ -44,17 +41,15 @@ export async function CentralServerLogInUser(
         throw new Error(errorMessage);
     }
 
-    const responseData: { access_token: string, token_type: string } = await centralServerResponse.json();
+    const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
     console.debug("Access and refresh tokens received");
     return {
         token: responseData["access_token"],
         type: responseData["token_type"],
-    }
+    };
 }
 
-export async function CentralServerGetUserInfo(
-    refresh: boolean = false,
-): Promise<UserPublicType> {
+export async function CentralServerGetUserInfo(refresh: boolean = false): Promise<UserPublicType> {
     let userData: UserPublicType;
     if (refresh || localStorage.getItem(LocalStorage.user_data) === null) {
         console.debug("Fetching user data from central server");
@@ -96,4 +91,21 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
     const updatedUserInfo: UserPublicType = await centralServerResponse.json();
     localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserInfo));
     return updatedUserInfo;
+}
+
+export async function CentralServerRequestPasswordRecovery(email: string, username: string): Promise<void> {
+    console.debug("Requesting password recovery email for user", { email, username });
+
+    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
+        searchParams: {
+            username: username,
+            email: email,
+        },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    console.debug("Password recovery request sent successfully");
 }

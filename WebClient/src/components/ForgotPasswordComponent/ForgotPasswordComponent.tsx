@@ -10,6 +10,7 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/ForgotPasswordComponent/ForgotPasswordComponent.module.css";
+import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
 
 interface ForgotPasswordValues {
     username: string;
@@ -65,6 +66,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
+        await CentralServerRequestPasswordRecovery(values.email, values.username);
         requestSentHandler.open();
         notifications.show({
             title: "Account recovery email request sent",
