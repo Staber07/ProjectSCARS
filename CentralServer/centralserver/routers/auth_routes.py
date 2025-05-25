@@ -1,6 +1,5 @@
 import datetime
 import uuid
-from datetime import timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -20,7 +19,11 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic
-from centralserver.internals.user_handler import create_user
+from centralserver.internals.user_handler import (
+    create_user,
+    validate_password,
+    crypt_ctx,
+)
 from centralserver import info
 from centralserver.internals.mail_handler import send_mail
 
@@ -113,7 +116,9 @@ async def request_access_token(
         uid=uuid.uuid4(),
         access_token=await create_access_token(
             user.id,
-            timedelta(minutes=app_config.authentication.access_token_expire_minutes),
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
             False,
         ),
         token_type="bearer",
@@ -152,7 +157,9 @@ async def request_password_recovery(
     user.recoveryToken = str(uuid.uuid4())
     user.recoveryTokenExpires = datetime.datetime.now(
         datetime.timezone.utc
-    ) + timedelta(minutes=app_config.authentication.recovery_token_expire_minutes)
+    ) + datetime.timedelta(
+        minutes=app_config.authentication.recovery_token_expire_minutes
+    )
     session.commit()
     session.refresh(user)
     recovery_link = (
@@ -215,14 +222,23 @@ async def reset_password(
             detail="Invalid or missing recovery token or user.",
         )
 
-    # FIXME
+    password_is_valid, password_err = await validate_password(new_password)
+    if not password_is_valid:
+        logger.warning(
+            "Failed to reset password for user: %s (%s)", user.username, password_err
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid password format ({password_err})",
+        )
+
     logger.debug(
         "%s < %s",
-        user.recoveryTokenExpires.astimezone(datetime.timezone.utc),
+        user.recoveryTokenExpires.replace(tzinfo=datetime.timezone.utc),
         datetime.datetime.now(datetime.timezone.utc),
     )
-    if user.recoveryTokenExpires.astimezone(
-        datetime.timezone.utc
+    if user.recoveryTokenExpires.replace(
+        tzinfo=datetime.timezone.utc
     ) < datetime.datetime.now(datetime.timezone.utc):
         logger.warning("Invalid or expired recovery token: %s", token)
         raise HTTPException(
@@ -230,7 +246,7 @@ async def reset_password(
             detail="Expired recovery token.",
         )
 
-    user.password = new_password
+    user.password = crypt_ctx.hash(new_password)
     user.recoveryToken = None
     user.recoveryTokenExpires = None
     session.commit()

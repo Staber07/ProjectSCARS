@@ -1,5 +1,4 @@
 import smtplib
-import ssl
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
@@ -74,10 +73,11 @@ def send_mail(
                 message.attach(attachment)
 
         # Send the email
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(
-            app_config.mailing.server, app_config.mailing.port, context=context
-        ) as server:
+        with smtplib.SMTP(app_config.mailing.server, app_config.mailing.port) as server:
+            server.connect(app_config.mailing.server, app_config.mailing.port)
+            server.ehlo()
+            server.starttls()  # Upgrade the connection to a secure encrypted SSL/TLS connection
+            server.ehlo()
             server.login(app_config.mailing.username, app_config.mailing.password)
             server.sendmail(
                 from_addr=app_config.mailing.from_address,
