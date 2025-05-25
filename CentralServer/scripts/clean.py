@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 from minio import Minio
-from sqlmodel import SQLModel, create_engine
+from sqlmodel import create_engine, text
 
 
 def main() -> int:
@@ -71,16 +71,25 @@ def main() -> int:
         try:
 
             db_url = (
-                "mysql+pymysql://{username}:{password}@{host}:{port}/{database}".format(
-                    username=config["database"]["config"]["username"],
-                    password=config["database"]["config"]["password"],
-                    host=config["database"]["config"]["host"],
-                    port=config["database"]["config"]["port"],
-                    database=config["database"]["config"]["database"],
-                )
+                f"mysql+pymysql://{config['database']['config']['username']}:"
+                f"{config['database']['config']['password']}@"
+                f"{config['database']['config']['host']}:"
+                f"{config['database']['config']['port']}/"
+                f"{config['database']['config']['database']}"
             )
+            # Connect to the specified MySQL database and drop all tables
             engine = create_engine(db_url)
-            SQLModel.metadata.drop_all(engine)
+            with engine.connect() as connection:
+                # Disable foreign key checks to avoid dependency issues
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 0;"))
+                result = connection.execute(text("SHOW TABLES;"))
+                tables = [row[0] for row in result]
+                for table in tables:
+                    connection.execute(text(f"DROP TABLE IF EXISTS `{table}`;"))
+
+                # Re-enable foreign key checks
+                connection.execute(text("SET FOREIGN_KEY_CHECKS = 1;"))
+
             print("All MySQL tables dropped successfully!")
 
         except Exception as e:
@@ -90,15 +99,26 @@ def main() -> int:
     elif config["database"]["type"] == "postgres":
         # FIXME: "All PostgreSQL tables dropped successfully!" but no tables are actually dropped.
         try:
-            db_url = "postgresql+psycopg://{username}:{password}@{host}:{port}/{database}".format(
-                username=config["database"]["config"]["username"],
-                password=config["database"]["config"]["password"],
-                host=config["database"]["config"]["host"],
-                port=config["database"]["config"]["port"],
-                database=config["database"]["config"]["database"],
+            db_url = (
+                f"postgresql+psycopg://{config['database']['config']['username']}:"
+                f"{config['database']['config']['password']}@"
+                f"{config['database']['config']['host']}:"
+                f"{config['database']['config']['port']}/"
+                f"{config['database']['config']['database']}"
             )
             engine = create_engine(db_url)
-            SQLModel.metadata.drop_all(engine)
+            with engine.connect() as connection:
+                # Disable triggers to avoid dependency issues
+                result = connection.execute(
+                    text("SELECT tablename FROM pg_tables WHERE schemaname = 'public';")
+                )
+                tables = [row[0] for row in result]
+                for table in tables:
+                    connection.execute(
+                        text(f"ALTER TABLE {table} DISABLE TRIGGER ALL;")
+                    )
+                    connection.execute(text(f"DROP TABLE IF EXISTS {table} CASCADE;"))
+
             print("All PostgreSQL tables dropped successfully!")
 
         except Exception as e:
@@ -119,11 +139,12 @@ def main() -> int:
                 if filename not in {".gitignore", ".gitinclude"}:
                     filepath = Path(osrootpath, filename)
                     print(f"Removing {filepath}...")
-                    (
+                    if filepath.is_dir():
                         shutil.rmtree(filepath)
-                        if filepath.is_dir()
-                        else filepath.unlink(True)
-                    )
+
+                    else:
+                        filepath.unlink(True)
+
                     osfilesremoved = True
 
             if not osfilesremoved:
@@ -133,26 +154,21 @@ def main() -> int:
             print(f"{osrootpath} does not exist, skipping...")
 
     elif config["object_store"]["type"] == "minio":
-        # FIXME: SSLError(SSLError(1, '[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1028)')))
         client = Minio(
             config["object_store"]["config"]["endpoint"],
-            config["object_store"]["config"]["access_key"],
-            config["object_store"]["config"]["secret_key"],
-            config["object_store"]["config"]["secure"],
+            access_key=config["object_store"]["config"]["access_key"],
+            secret_key=config["object_store"]["config"]["secret_key"],
+            secure=config["object_store"]["config"]["secure"],
         )
-        bucket_names = {"centralserver-avatars", "centralserver-reports"}
-        for bucket in bucket_names:
+        buckets = {"centralserver-avatars", "centralserver-reports"}
+        for bucket in buckets:
             try:
-                try:
-                    objects = client.list_objects(bucket, recursive=True)
-                    for obj in objects:
-                        client.remove_object(bucket, obj.object_name)
-
+                if client.bucket_exists(bucket):
+                    print(f"Removing bucket {bucket}...")
                     client.remove_bucket(bucket)
 
-                except Exception as e:
-                    print(f"Error cleaning bucket {bucket}: {e}")
-                    exit_code += 1
+                else:
+                    print(f"Bucket {bucket} does not exist, skipping...")
 
             except Exception as e:
                 print(f"Error removing bucket {bucket}: {e}")
