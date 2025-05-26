@@ -10,7 +10,7 @@ type LoadingComponentProps = {
 /**
  * Display a loading screen with a rotating logo and a message.
  * @param {LoadingComponentProps} props - The properties for the loading component.
- * @return {React.FC<LoadingComponentProps>} The loading component.
+ * @returns {JSX.Element} The loading component.
  */
 export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = null, withBorder = true }) => {
     console.debug("Returning LoadingComponent", { message });
