@@ -16,3 +16,19 @@ export const LocalStorage = {
     refresh_token: "rt",
     user_data: "ud",
 };
+
+export const randomLoadingMessages: string[] = [
+    "Balancing the school canteen budget...",
+    "Sharpening pencils and double-checking decimals...",
+    "Making sure every peso finds its desk...",
+    "Reviewing receipts with a magnifying glass...",
+    "Organizing ledgers for learning...",
+    "Counting coins...",
+    "Preparing your financial report card...",
+    "Ensuring every cent is in its seat...",
+    "Counting coins and balancing books...",
+    "Crunching numbers for your school’s success...",
+    "Reviewing receipts and sharpening pencils...",
+    "Auditing the piggy bank...",
+    "Making sure every cent is accounted for...",
+];
