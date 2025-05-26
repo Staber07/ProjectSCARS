@@ -29,8 +29,8 @@ class DisbursementVoucher(SQLModel, table=True):
 
     check_no: Optional[str] = None
     bank_name_and_account_no: Optional[str] = None
-    ada_no: Optional[str] = None
-    jev_no: Optional[str] = None
+    ada_no: Optional[str] = None #Advice to Debit Account Number
+    jev_no: Optional[str] = None #Journal Entry Voucher Number
 
     certified_by: list["DisbursementVoucherCertifiedBy"] = Relationship(
         back_populates="parent_report"
