@@ -39,7 +39,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
             <body>
                 <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
                     {children}
-                    <Notifications />
+                    <Notifications limit={5} autoClose={5000} />
                 </MantineProvider>
             </body>
         </html>
