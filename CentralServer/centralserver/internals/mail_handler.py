@@ -101,5 +101,5 @@ def send_mail(
     except smtplib.SMTPException as e:
         logger.error("Failed to send email: %s", e)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=W0718
         logger.error("An unexpected error occurred while sending email: %s", e)
