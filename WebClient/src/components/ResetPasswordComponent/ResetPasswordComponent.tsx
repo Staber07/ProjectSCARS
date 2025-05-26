@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { CentralServerResetPassword } from "@/lib/api/auth";
 import { Button, Container, Paper, PasswordInput, Text } from "@mantine/core";
@@ -9,7 +10,7 @@ import { notifications } from "@mantine/notifications";
 import { IconArrowBackUp, IconCheck, IconSend, IconX } from "@tabler/icons-react";
 import { motion, useAnimation } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import classes from "@/components/ResetPasswordComponent/ResetPasswordComponent.module.css";
 
@@ -18,10 +19,9 @@ interface ResetPasswordValues {
 }
 
 /**
- * A component that allows users to reset their password.
- * @returns {React.ReactElement} The rendered component.
+ * The actual component that uses useSearchParams
  */
-export function ResetPasswordComponent(): React.ReactElement {
+function ResetPasswordContent(): React.ReactElement {
     const router = useRouter();
     const logoControls = useAnimation();
     const [requestSent, requestSentHandler] = useDisclosure(false);
@@ -85,7 +85,7 @@ export function ResetPasswordComponent(): React.ReactElement {
                 buttonStateHandler.close();
                 setTimeout(() => {
                     router.push("/login");
-                }, 5000); // Delay to allow the notification to be shown
+                }, 5000);
             }
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 400")) {
@@ -180,5 +180,17 @@ export function ResetPasswordComponent(): React.ReactElement {
                 </Container>
             )}
         </div>
+    );
+}
+
+/**
+ * A component that allows users to reset their password.
+ * @returns {React.ReactElement} The rendered component.
+ */
+export function ResetPasswordComponent(): React.ReactElement {
+    return (
+        <Suspense fallback={<LoadingComponent message="Please wait..." />}>
+            <ResetPasswordContent />
+        </Suspense>
     );
 }
