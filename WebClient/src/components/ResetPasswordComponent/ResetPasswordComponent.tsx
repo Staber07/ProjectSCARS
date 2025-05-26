@@ -90,7 +90,7 @@ export function ResetPasswordComponent(): React.ReactElement {
         }
     };
 
-    useEffect(() => {\
+    useEffect(() => {
         console.debug("ResetPasswordComponent mounted, extracting token from search params...");
         setToken(searchParams?.get("token"));
     }, []);
