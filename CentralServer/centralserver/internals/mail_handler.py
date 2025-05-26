@@ -1,9 +1,12 @@
+import datetime
+import hashlib
 import smtplib
 from email import encoders
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from centralserver import info
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 
@@ -60,9 +63,16 @@ def send_mail(
         message["Subject"] = subject
         message["From"] = app_config.mailing.from_address
         message["To"] = to_address
+        message["Reply-To"] = app_config.mailing.from_address
+        message["Return-Path"] = app_config.mailing.from_address
+        message["Message-ID"] = (
+            f"<{hashlib.sha256(f'{to_address}{subject}{text}'.encode()).hexdigest()}@{app_config.mailing.from_address.split('@')[1]}>"
+        )
+        message["Date"] = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S %z")
+        message["X-Mailer"] = info.Program.name
 
-        plain_content = MIMEText(text, "plain")
-        html_content = MIMEText(html, "html") if html else None
+        plain_content = MIMEText(text, "plain", "utf-8")
+        html_content = MIMEText(html, "html", "utf-8") if html else None
 
         message.attach(plain_content)
         if html_content:
@@ -74,10 +84,7 @@ def send_mail(
 
         # Send the email
         with smtplib.SMTP(app_config.mailing.server, app_config.mailing.port) as server:
-            server.connect(app_config.mailing.server, app_config.mailing.port)
-            server.ehlo()
             server.starttls()  # Upgrade the connection to a secure encrypted SSL/TLS connection
-            server.ehlo()
             server.login(app_config.mailing.username, app_config.mailing.password)
             server.sendmail(
                 from_addr=app_config.mailing.from_address,
