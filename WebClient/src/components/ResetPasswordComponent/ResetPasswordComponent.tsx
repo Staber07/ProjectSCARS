@@ -41,7 +41,6 @@ export function ResetPasswordComponent(): React.ReactElement {
     const resetPassword = async (values: ResetPasswordValues): Promise<void> => {
         console.debug("Resetting password");
         buttonStateHandler.open();
-
         if (!values.new_password) {
             notifications.show({
                 title: "Password reset failed",
@@ -86,14 +85,12 @@ export function ResetPasswordComponent(): React.ReactElement {
             setTimeout(() => {
                 router.push("/login");
             }, 5000); // Delay to allow the notification to be shown
-            requestSentHandler.close();
         }
     };
 
     useEffect(() => {
-        console.debug("ResetPasswordComponent mounted, extracting token from search params...");
         setToken(searchParams?.get("token"));
-    }, []);
+    }, [searchParams]);
 
     console.debug("Returning ForgotPasswordComponent");
     return (

@@ -143,7 +143,8 @@ export function ForgotPasswordComponent(): React.ReactElement {
                             Recovery link sent!
                         </Text>
                         <Text size="sm" ta="center" mt={10}>
-                            Please check your email for the recovery link.
+                            If you entered your account details correctly, an email will be sent to you. Please check
+                            your email for the recovery link and follow the instructions to reset your password.
                         </Text>
                         <Button
                             variant="light"

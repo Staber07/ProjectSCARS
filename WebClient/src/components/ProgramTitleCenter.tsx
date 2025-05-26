@@ -3,6 +3,7 @@
 import { Title, Flex, Image, Text } from "@mantine/core";
 import { AnimationControls, motion } from "motion/react";
 import { Program } from "@/lib/info";
+import Link from "next/link";
 
 interface ProgramTitleCenterProps {
     classes: { readonly [key: string]: string };
@@ -34,7 +35,9 @@ export function ProgramTitleCenter({ classes, logoControls }: ProgramTitleCenter
                         dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
                         animate={logoControls}
                     />
-                    {Program.name}
+                    <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
+                        {Program.name}
+                    </Link>
                 </Flex>
             </Title>
             <Text c="dimmed" size="sm" ta="center" mt={5}>

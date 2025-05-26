@@ -121,7 +121,7 @@ export async function CentralServerResetPassword(
     console.debug("Resetting password for user with token", { token });
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
         json: {
-            token: token,
+            recovery_token: token,
             new_password: new_password,
         },
     });
