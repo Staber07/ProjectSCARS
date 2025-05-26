@@ -109,23 +109,25 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
  * Request a password recovery email from the central server.
  * @param {string} email - The email address of the user.
  * @param {string} username - The username of the user.
- * @return {Promise<ServerMessageType | null>} A promise that resolves to the server message type or null if the request failed.
+ * @return {Promise<ServerMessageType>} A promise that resolves to the server message type or null if the request failed.
  */
 export async function CentralServerRequestPasswordRecovery(
     email: string,
     username: string
-): Promise<ServerMessageType | null> {
+): Promise<ServerMessageType> {
     console.debug("Requesting password recovery email for user", { email, username });
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
         searchParams: {
             username: username,
             email: email,
         },
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        return null;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        return { message: errorResponse?.detail || errorMessage };
     }
     console.debug("Password recovery request sent successfully");
     const result: ServerMessageType = await centralServerResponse.json();

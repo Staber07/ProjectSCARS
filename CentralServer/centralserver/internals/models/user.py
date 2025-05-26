@@ -30,7 +30,9 @@ class User(SQLModel, table=True):
         description="The unique identifier for the user.",
     )
 
-    username: str = Field(unique=True, description="The username of the user.")
+    username: str = Field(
+        unique=True, index=True, description="The username of the user."
+    )
     email: EmailStr | None = Field(
         default=None, unique=True, description="The email address of the user."
     )
