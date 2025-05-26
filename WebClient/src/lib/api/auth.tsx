@@ -109,7 +109,7 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
  * Request a password recovery email from the central server.
  * @param {string} email - The email address of the user.
  * @param {string} username - The username of the user.
- * @return {Promise<ServerMessageType>} A promise that resolves to the server message type or null if the request failed.
+ * @return {Promise<ServerMessageType>} A promise that resolves to the server message type.
  */
 export async function CentralServerRequestPasswordRecovery(
     email: string,
