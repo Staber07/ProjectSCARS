@@ -7,6 +7,7 @@ from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select
 
+from centralserver import info
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
@@ -16,21 +17,20 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.mail_handler import send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import (
     User,
     UserCreate,
-    UserPublic,
     UserPasswordResetRequest,
+    UserPublic,
 )
 from centralserver.internals.user_handler import (
     create_user,
-    validate_password,
     crypt_ctx,
+    validate_password,
 )
-from centralserver import info
-from centralserver.internals.mail_handler import send_mail
 
 logger = LoggerFactory().get_logger(__name__)
 

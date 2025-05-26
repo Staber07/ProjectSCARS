@@ -2,8 +2,7 @@
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
-import { Program } from "@/lib/info";
-import { Button, Container, Flex, Image, Paper, Text, TextInput, Title } from "@mantine/core";
+import { Button, Container, Paper, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
