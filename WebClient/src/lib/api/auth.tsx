@@ -1,7 +1,7 @@
 import ky from "ky";
 
 import { Connections, LocalStorage } from "@/lib/info";
-import { TokenType, UserPublicType } from "@/lib/types";
+import { ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -93,9 +93,11 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
     return updatedUserInfo;
 }
 
-export async function CentralServerRequestPasswordRecovery(email: string, username: string): Promise<void> {
+export async function CentralServerRequestPasswordRecovery(
+    email: string,
+    username: string
+): Promise<ServerMessageType | null> {
     console.debug("Requesting password recovery email for user", { email, username });
-
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
         searchParams: {
             username: username,
@@ -105,15 +107,18 @@ export async function CentralServerRequestPasswordRecovery(email: string, userna
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        return centralServerResponse.json();
+        return null;
     }
     console.debug("Password recovery request sent successfully");
-    return centralServerResponse.json();
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
 }
 
-export async function CentralServerResetPassword(token: string, new_password: string): Promise<void> {
+export async function CentralServerResetPassword(
+    token: string,
+    new_password: string
+): Promise<ServerMessageType | null> {
     console.debug("Resetting password for user with token", { token });
-
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
         json: {
             token: token,
@@ -123,8 +128,9 @@ export async function CentralServerResetPassword(token: string, new_password: st
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to reset password: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        return centralServerResponse.json();
+        return null;
     }
     console.debug("Password reset successfully");
-    return centralServerResponse.json();
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
 }

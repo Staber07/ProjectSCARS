@@ -1,5 +1,7 @@
 "use client";
 
+import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
+import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
 import { Program } from "@/lib/info";
 import { Button, Container, Flex, Image, Paper, Text, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -10,7 +12,6 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/ForgotPasswordComponent/ForgotPasswordComponent.module.css";
-import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
 
 interface ForgotPasswordValues {
     username: string;
@@ -18,7 +19,7 @@ interface ForgotPasswordValues {
 }
 
 /**
- * MainLoginComponent is the main login component for the application.
+ * ForgotPasswordComponent is the component for handling password recovery requests.
  * @returns {React.ReactElement} The rendered component.
  */
 export function ForgotPasswordComponent(): React.ReactElement {
@@ -32,22 +33,22 @@ export function ForgotPasswordComponent(): React.ReactElement {
     });
 
     /**
-     * Handles the login process for the user.
-     * @param {ForgotPasswordValues} values - The values from the login form.
-     * @return {Promise<void>} A promise that resolves when the login is complete.
+     * Handles the sending of the recovery link to the user's email.
+     * @param {ForgotPasswordValues} values - The values from the forgot password form.
+     * @return {Promise<void>} A promise that resolves when the recovery link is sent.
      */
     const sendRecoveryLink = async (values: ForgotPasswordValues): Promise<void> => {
-        console.debug("Logging in user", {
+        console.debug("Sending recovery email for user", {
             username: values.username,
             email: values.email,
         });
         buttonStateHandler.open();
 
-        // make sure the user has entered both username and password.
+        // make sure the user has entered both username and email.
         if (!values.username || !values.email) {
             notifications.show({
                 title: "Account recovery failed",
-                message: "Please enter both username and password.",
+                message: "Please enter both username and email.",
                 color: "red",
                 icon: <IconX />,
             });
@@ -66,15 +67,26 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        response = await CentralServerRequestPasswordRecovery(values.email, values.username);
-        requestSentHandler.open();
-        notifications.show({
-            title: "Account recovery email request sent",
-            message: "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
-            color: "green",
-            icon: <IconMail />,
-        });
-        buttonStateHandler.close();
+        const response = await CentralServerRequestPasswordRecovery(values.email, values.username);
+        if (response?.message == "ok") {
+            requestSentHandler.open();
+            notifications.show({
+                title: "Account recovery email request sent",
+                message:
+                    "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
+                color: "green",
+                icon: <IconMail />,
+            });
+            buttonStateHandler.close();
+        } else {
+            notifications.show({
+                title: "Account recovery failed",
+                message: "An error occurred while sending the recovery email. Please try again.",
+                color: "red",
+                icon: <IconX />,
+            });
+            buttonStateHandler.close();
+        }
     };
 
     console.debug("Returning ForgotPasswordComponent");
@@ -83,29 +95,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             {/* Before the request is sent, show the form */}
             {!requestSent && (
                 <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-                    <Title ta="center" className={classes.title}>
-                        <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
-                            <Image
-                                src="/assets/BENTOLogo.svg"
-                                alt="BENTO Logo"
-                                radius="md"
-                                h={70}
-                                w="auto"
-                                fit="contain"
-                                style={{ marginRight: "10px" }}
-                                component={motion.img}
-                                whileTap={{ scale: 0.95 }}
-                                drag
-                                dragElastic={{ top: 0.25, left: 0.25, right: 0, bottom: 0 }}
-                                dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                                animate={logoControls}
-                            />
-                            {Program.name}
-                        </Flex>
-                    </Title>
-                    <Text c="dimmed" size="sm" ta="center" mt={5}>
-                        {Program.description}
-                    </Text>
+                    <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <form onSubmit={form.onSubmit(sendRecoveryLink)}>
                             <TextInput
@@ -147,25 +137,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             {/* After the request is sent, show the confirmation message */}
             {requestSent && (
                 <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-                    <Title ta="center" className={classes.title}>
-                        <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
-                            <Image
-                                src="/assets/BENTOLogo.svg"
-                                alt="BENTO Logo"
-                                radius="md"
-                                h={70}
-                                w="auto"
-                                fit="contain"
-                                style={{ marginRight: "10px" }}
-                                component={motion.img}
-                                whileTap={{ scale: 0.95 }}
-                            />
-                            {Program.name}
-                        </Flex>
-                    </Title>
-                    <Text c="dimmed" size="sm" ta="center" mt={5}>
-                        {Program.description}
-                    </Text>
+                    <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <Text size="lg" ta="center">
                             Recovery link sent!

@@ -1,25 +1,24 @@
 "use client";
 
-import { Program } from "@/lib/info";
-import { Button, Container, Flex, Image, Paper, PasswordInput, Text, TextInput, Title } from "@mantine/core";
+import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
+import { CentralServerResetPassword } from "@/lib/api/auth";
+import { Button, Container, Paper, PasswordInput, Text } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconArrowBackUp, IconCheck, IconMail, IconSend, IconX } from "@tabler/icons-react";
+import { IconArrowBackUp, IconCheck, IconSend, IconX } from "@tabler/icons-react";
 import { motion, useAnimation } from "motion/react";
-import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import classes from "@/components/ResetPasswordComponent/ResetPasswordComponent.module.css";
-import { CentralServerResetPassword } from "@/lib/api/auth";
-import { useEffect, useState } from "react";
 
 interface ResetPasswordValues {
     new_password: string;
 }
 
 /**
- * MainLoginComponent is the main login component for the application.
+ * A component that allows users to reset their password.
  * @returns {React.ReactElement} The rendered component.
  */
 export function ResetPasswordComponent(): React.ReactElement {
@@ -35,9 +34,9 @@ export function ResetPasswordComponent(): React.ReactElement {
     });
 
     /**
-     * Handles the login process for the user.
-     * @param {ResetPasswordValues} values - The values from the login form.
-     * @return {Promise<void>} A promise that resolves when the login is complete.
+     * Handles the password reset process.
+     * @param {ResetPasswordValues} values - The values from the reset password form.
+     * @return {Promise<void>} A promise that resolves when the password is reset.
      */
     const resetPassword = async (values: ResetPasswordValues): Promise<void> => {
         console.debug("Resetting password");
@@ -66,7 +65,7 @@ export function ResetPasswordComponent(): React.ReactElement {
         }
 
         const response = await CentralServerResetPassword(token, values.new_password);
-        if (response.status !== 200) {
+        if (response == null || response.message !== "Password reset successful.") {
             notifications.show({
                 title: "Password reset failed",
                 message: "An error occurred while resetting your password. Please try again.",
@@ -84,15 +83,16 @@ export function ResetPasswordComponent(): React.ReactElement {
                 icon: <IconCheck />,
             });
             buttonStateHandler.close();
-            requestSentHandler.close();
             setTimeout(() => {
                 router.push("/login");
             }, 5000); // Delay to allow the notification to be shown
+            requestSentHandler.close();
         }
     };
 
-    useEffect(() => {
-        setToken(searchParams.get("token"));
+    useEffect(() => {\
+        console.debug("ResetPasswordComponent mounted, extracting token from search params...");
+        setToken(searchParams?.get("token"));
     }, []);
 
     console.debug("Returning ForgotPasswordComponent");
@@ -101,29 +101,7 @@ export function ResetPasswordComponent(): React.ReactElement {
             {/* Before the request is sent, show the form */}
             {!requestSent && (
                 <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-                    <Title ta="center" className={classes.title}>
-                        <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
-                            <Image
-                                src="/assets/BENTOLogo.svg"
-                                alt="BENTO Logo"
-                                radius="md"
-                                h={70}
-                                w="auto"
-                                fit="contain"
-                                style={{ marginRight: "10px" }}
-                                component={motion.img}
-                                whileTap={{ scale: 0.95 }}
-                                drag
-                                dragElastic={{ top: 0.25, left: 0.25, right: 0, bottom: 0 }}
-                                dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                                animate={logoControls}
-                            />
-                            {Program.name}
-                        </Flex>
-                    </Title>
-                    <Text c="dimmed" size="sm" ta="center" mt={5}>
-                        {Program.description}
-                    </Text>
+                    <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <form onSubmit={form.onSubmit(resetPassword)}>
                             <PasswordInput
@@ -159,25 +137,7 @@ export function ResetPasswordComponent(): React.ReactElement {
             {/* After the request is sent, show the confirmation message */}
             {requestSent && (
                 <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-                    <Title ta="center" className={classes.title}>
-                        <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
-                            <Image
-                                src="/assets/BENTOLogo.svg"
-                                alt="BENTO Logo"
-                                radius="md"
-                                h={70}
-                                w="auto"
-                                fit="contain"
-                                style={{ marginRight: "10px" }}
-                                component={motion.img}
-                                whileTap={{ scale: 0.95 }}
-                            />
-                            {Program.name}
-                        </Flex>
-                    </Title>
-                    <Text c="dimmed" size="sm" ta="center" mt={5}>
-                        {Program.description}
-                    </Text>
+                    <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <Text size="lg" ta="center">
                             You have successfully reset your password! Please log in with your new password.

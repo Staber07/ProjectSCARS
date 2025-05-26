@@ -1,22 +1,9 @@
 "use client";
 
+import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { CentralServerGetUserInfo, CentralServerLogInUser } from "@/lib/api/auth";
-import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
-import {
-    Anchor,
-    Button,
-    Checkbox,
-    Container,
-    Flex,
-    Group,
-    Image,
-    Paper,
-    PasswordInput,
-    Text,
-    TextInput,
-    Title,
-} from "@mantine/core";
+import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -105,29 +92,7 @@ export function MainLoginComponent(): React.ReactElement {
     console.debug("Returning MainLoginComponent");
     return (
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
-            <Title ta="center" className={classes.title}>
-                <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
-                    <Image
-                        src="/assets/BENTOLogo.svg"
-                        alt="BENTO Logo"
-                        radius="md"
-                        h={70}
-                        w="auto"
-                        fit="contain"
-                        style={{ marginRight: "10px" }}
-                        component={motion.img}
-                        whileTap={{ scale: 0.95 }}
-                        drag
-                        dragElastic={{ top: 0.25, left: 0.25, right: 0, bottom: 0 }}
-                        dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                        animate={logoControls}
-                    />
-                    {Program.name}
-                </Flex>
-            </Title>
-            <Text c="dimmed" size="sm" ta="center" mt={5}>
-                {Program.description}
-            </Text>
+            <ProgramTitleCenter classes={classes} logoControls={logoControls} />
             <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                 <form onSubmit={form.onSubmit(loginUser)}>
                     <TextInput
