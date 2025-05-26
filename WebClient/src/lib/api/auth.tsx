@@ -5,6 +5,10 @@ import { ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
+/**
+ * Get the access token header for authenticated requests.
+ * @returns {string} The access token header in the format "Bearer <token>".
+ */
 export function GetAccessTokenHeader(): string {
     console.debug("Getting access token header");
     const storedToken = localStorage.getItem(LocalStorage.access_token);
@@ -18,12 +22,10 @@ export function GetAccessTokenHeader(): string {
 }
 
 /**
- * Log the user in to the central server.
- *
- * username: The username of the user.
- * password: The password of the user.
- *
- * Returns the access token and type of the user.
+ * Log the user in to the central server using username and password.
+ * @param {string} username - The username of the user.
+ * @param {string} password - The password of the user.
+ * @return {Promise<TokenType>} A promise that resolves to the access token and token type.
  */
 export async function CentralServerLogInUser(username: string, password: string): Promise<TokenType> {
     const loginFormData = new URLSearchParams();
@@ -49,6 +51,11 @@ export async function CentralServerLogInUser(username: string, password: string)
     };
 }
 
+/**
+ * Fetch the user information from the central server.
+ * @param {boolean} refresh - Whether to force a refresh of the user data.
+ * @return {Promise<UserPublicType>} A promise that resolves to the user data.
+ */
 export async function CentralServerGetUserInfo(refresh: boolean = false): Promise<UserPublicType> {
     let userData: UserPublicType;
     if (refresh || localStorage.getItem(LocalStorage.user_data) === null) {
@@ -77,6 +84,11 @@ export async function CentralServerGetUserInfo(refresh: boolean = false): Promis
     return userData;
 }
 
+/**
+ * Update the user information on the central server.
+ * @param {UserPublicType} newUserInfo - The new user information to update.
+ * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
+ */
 export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
     console.debug("Updating user info");
     const centralServerResponse = await ky.put(`${endpoint}/users/me/update`, {
@@ -93,6 +105,12 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
     return updatedUserInfo;
 }
 
+/**
+ * Request a password recovery email from the central server.
+ * @param {string} email - The email address of the user.
+ * @param {string} username - The username of the user.
+ * @return {Promise<ServerMessageType | null>} A promise that resolves to the server message type or null if the request failed.
+ */
 export async function CentralServerRequestPasswordRecovery(
     email: string,
     username: string
@@ -114,6 +132,12 @@ export async function CentralServerRequestPasswordRecovery(
     return result;
 }
 
+/**
+ * Reset the user's password using a recovery token received via email.
+ * @param {string} token - The recovery token sent to the user's email.
+ * @param {string} new_password - The new password to set for the user.
+ * @return {Promise<ServerMessageType>} A promise that resolves to the server message type indicating success or failure.
+ */
 export async function CentralServerResetPassword(token: string, new_password: string): Promise<ServerMessageType> {
     console.debug("Resetting password for user with token", { token });
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
