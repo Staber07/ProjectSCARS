@@ -4,18 +4,18 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 import { useAuth, AuthProvider } from "@/lib/providers/auth";
-import { MainLoginComponent } from "@/components/MainLoginComponent";
+import { MainLoginComponent } from "@/components/MainLoginComponent/MainLoginComponent";
 
 /**
  * Wrapper for the entire page to enable the use of the AuthProvider.
  */
 export default function LoginPage() {
-  console.debug("Rendering LoginPage");
-  return (
-      <AuthProvider>
-        <LoginContent />
-      </AuthProvider>
-  );
+    console.debug("Rendering LoginPage");
+    return (
+        <AuthProvider>
+            <LoginContent />
+        </AuthProvider>
+    );
 }
 
 /**
@@ -24,16 +24,16 @@ export default function LoginPage() {
  * @returns The login page content if not authenticated, otherwise redirects to the home page.
  */
 function LoginContent() {
-  const { isAuthenticated } = useAuth();
-  const router = useRouter();
+    const { isAuthenticated } = useAuth();
+    const router = useRouter();
 
-  useEffect(() => {
-    console.debug("LoginContent useEffect started", { isAuthenticated });
-    if (isAuthenticated) {
-      router.push("/");
-    }
-  }, [isAuthenticated, router]);
+    useEffect(() => {
+        console.debug("LoginContent useEffect started", { isAuthenticated });
+        if (isAuthenticated) {
+            router.push("/");
+        }
+    }, [isAuthenticated, router]);
 
-  console.debug("Rendering LoginContent", { isAuthenticated });
-  return <MainLoginComponent />;
+    console.debug("Rendering LoginContent", { isAuthenticated });
+    return <MainLoginComponent />;
 }

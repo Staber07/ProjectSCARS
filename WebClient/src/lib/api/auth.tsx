@@ -1,10 +1,14 @@
 import ky from "ky";
 
 import { Connections, LocalStorage } from "@/lib/info";
-import { TokenType, UserPublicType } from "@/lib/types";
+import { ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
+/**
+ * Get the access token header for authenticated requests.
+ * @returns {string} The access token header in the format "Bearer <token>".
+ */
 export function GetAccessTokenHeader(): string {
     console.debug("Getting access token header");
     const storedToken = localStorage.getItem(LocalStorage.access_token);
@@ -18,17 +22,12 @@ export function GetAccessTokenHeader(): string {
 }
 
 /**
- * Log the user in to the central server.
- *
- * username: The username of the user.
- * password: The password of the user.
- *
- * Returns the access token and type of the user.
+ * Log the user in to the central server using username and password.
+ * @param {string} username - The username of the user.
+ * @param {string} password - The password of the user.
+ * @return {Promise<TokenType>} A promise that resolves to the access token and token type.
  */
-export async function CentralServerLogInUser(
-    username: string,
-    password: string,
-): Promise<TokenType> {
+export async function CentralServerLogInUser(username: string, password: string): Promise<TokenType> {
     const loginFormData = new URLSearchParams();
     loginFormData.set("grant_type", "password");
     loginFormData.set("username", username);
@@ -44,17 +43,20 @@ export async function CentralServerLogInUser(
         throw new Error(errorMessage);
     }
 
-    const responseData: { access_token: string, token_type: string } = await centralServerResponse.json();
+    const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
     console.debug("Access and refresh tokens received");
     return {
         token: responseData["access_token"],
         type: responseData["token_type"],
-    }
+    };
 }
 
-export async function CentralServerGetUserInfo(
-    refresh: boolean = false,
-): Promise<UserPublicType> {
+/**
+ * Fetch the user information from the central server.
+ * @param {boolean} refresh - Whether to force a refresh of the user data.
+ * @return {Promise<UserPublicType>} A promise that resolves to the user data.
+ */
+export async function CentralServerGetUserInfo(refresh: boolean = false): Promise<UserPublicType> {
     let userData: UserPublicType;
     if (refresh || localStorage.getItem(LocalStorage.user_data) === null) {
         console.debug("Fetching user data from central server");
@@ -82,6 +84,11 @@ export async function CentralServerGetUserInfo(
     return userData;
 }
 
+/**
+ * Update the user information on the central server.
+ * @param {UserPublicType} newUserInfo - The new user information to update.
+ * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
+ */
 export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
     console.debug("Updating user info");
     const centralServerResponse = await ky.put(`${endpoint}/users/me/update`, {
@@ -96,4 +103,57 @@ export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): 
     const updatedUserInfo: UserPublicType = await centralServerResponse.json();
     localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserInfo));
     return updatedUserInfo;
+}
+
+/**
+ * Request a password recovery email from the central server.
+ * @param {string} email - The email address of the user.
+ * @param {string} username - The username of the user.
+ * @return {Promise<ServerMessageType | null>} A promise that resolves to the server message type or null if the request failed.
+ */
+export async function CentralServerRequestPasswordRecovery(
+    email: string,
+    username: string
+): Promise<ServerMessageType | null> {
+    console.debug("Requesting password recovery email for user", { email, username });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
+        searchParams: {
+            username: username,
+            email: email,
+        },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        return null;
+    }
+    console.debug("Password recovery request sent successfully");
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
+}
+
+/**
+ * Reset the user's password using a recovery token received via email.
+ * @param {string} token - The recovery token sent to the user's email.
+ * @param {string} new_password - The new password to set for the user.
+ * @return {Promise<ServerMessageType>} A promise that resolves to the server message type indicating success or failure.
+ */
+export async function CentralServerResetPassword(token: string, new_password: string): Promise<ServerMessageType> {
+    console.debug("Resetting password for user with token", { token });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
+        json: {
+            recovery_token: token,
+            new_password: new_password,
+        },
+        throwHttpErrors: false,
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to reset password: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        return { message: errorResponse?.detail || errorMessage };
+    }
+    console.debug("Password reset successfully");
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
 }

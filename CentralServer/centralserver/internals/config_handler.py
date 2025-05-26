@@ -37,6 +37,22 @@ class Debug:
         self.show_sql: bool = show_sql or False
 
 
+class Connection:
+    """The connection configuration."""
+
+    def __init__(
+        self,
+        base_url: str | None = None,
+    ):
+        """Create a configuration object for the connection.
+
+        Args:
+            base_url: The base URL for the connection. (Default: None)
+        """
+
+        self.base_url: str = base_url or "http://localhost:8080"
+
+
 class Logging:
     """The logging configuration."""
 
@@ -85,6 +101,7 @@ class Authentication:
         encoding: str | None = None,
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
+        recovery_token_expire_minutes: int | None = None,
     ):
         """Create a configuration object for authentication.
 
@@ -97,6 +114,7 @@ class Authentication:
             encoding: The encoding to use when decoding encrypted data.
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
+            recovery_token_expire_minutes: How long the recovery token is valid in minutes.
         """
 
         if (
@@ -137,6 +155,7 @@ class Authentication:
         self.encoding: str = encoding or "utf-8"
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
+        self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
 
 
 class Security:
@@ -162,31 +181,70 @@ class Security:
         self.allow_headers: list[str] = allow_headers or ["*"]
 
 
+class Mailing:
+    def __init__(
+        self,
+        enabled: bool | None = None,
+        server: str | None = None,
+        port: int | None = None,
+        from_address: str | None = None,
+        username: str | None = None,
+        password: str | None = None,
+    ) -> None:
+        """The mailing configuration.
+
+        Args:
+            enabled: Whether mailing is enabled. (Default: False)
+            server: The SMTP server to use for sending emails.
+            port: The port of the SMTP server.
+            from_address: The email address to use as the sender.
+            username: The username for the SMTP server.
+            password: The password for the SMTP server.
+        """
+
+        self.enabled: bool = enabled or False
+        self.server: str = server  # type: ignore
+        self.port: int = port or 587
+        self.from_address: str = from_address  # type: ignore
+        self.username: str = username  # type: ignore
+        self.password: str = password  # type: ignore
+
+        if self.enabled and (
+            not self.server or not self.port or not self.username or not self.password
+        ):
+            raise ValueError("Mailing is enabled, but required values are not set.")
+
+
 class AppConfig:
     """The main configuration object for the application."""
 
     def __init__(
         self,
         debug: Debug | None = None,
+        connection: Connection | None = None,
         logging: Logging | None = None,
         database: DatabaseAdapterConfig | None = None,
         object_store: ObjectStoreAdapterConfig | None = None,
         authentication: Authentication | None = None,
         security: Security | None = None,
+        mailing: Mailing | None = None,
     ):
         """Create a configuration object for the application.
 
         Args:
             debug: Debugging configuration.
+            connection: Connection configuration.
             logging: Logging configuration.
             database: Database configuration.
             object_store: Object store configuration.
             test_database: Test database configuration.
             authentication: Authentication configuration.
             security: Security configuration.
+            mailing: Mailing configuration.
         """
 
         self.debug: Debug = debug or Debug()
+        self.connection: Connection = connection or Connection()
         self.logging: Logging = logging or Logging()
         # By default, use SQLite for the database.
         self.database: DatabaseAdapterConfig = database or SQLiteDatabaseConfig()
@@ -196,6 +254,7 @@ class AppConfig:
         )
         self.authentication: Authentication = authentication or Authentication()
         self.security: Security = security or Security()
+        self.mailing: Mailing = mailing or Mailing()
 
 
 def read_config(config: dict[str, Any]) -> AppConfig:
@@ -209,9 +268,11 @@ def read_config(config: dict[str, Any]) -> AppConfig:
     """
 
     debug_config = config.get("debug", {})
+    connection_config = config.get("connection", {})
     logging_config = config.get("logging", {})
     authentication_config = config.get("authentication", {})
     security_config = config.get("security", {})
+    mailing_config = config.get("mailing", {})
 
     # Determine database type and create the appropriate config object
     database: dict[str, Any] = config.get("database", {})
@@ -282,6 +343,9 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             logenv_optout=debug_config.get("logenv_optout", None),
             show_sql=debug_config.get("show_sql", None),
         ),
+        connection=Connection(
+            base_url=connection_config.get("base_url", None),
+        ),
         logging=Logging(
             filepath=logging_config.get("filepath", None),
             max_bytes=logging_config.get("max_bytes", None),
@@ -311,12 +375,23 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             refresh_token_expire_minutes=authentication_config.get(
                 "refresh_token_expire_minutes", None
             ),
+            recovery_token_expire_minutes=authentication_config.get(
+                "recovery_token_expire_minutes", None
+            ),
         ),
         security=Security(
             allow_origins=security_config.get("allow_origins", None),
             allow_credentials=security_config.get("allow_credentials", None),
             allow_methods=security_config.get("allow_methods", None),
             allow_headers=security_config.get("allow_headers", None),
+        ),
+        mailing=Mailing(
+            enabled=mailing_config.get("enabled", None),
+            server=mailing_config.get("server", None),
+            port=mailing_config.get("port", None),
+            from_address=mailing_config.get("from_address", None),
+            username=mailing_config.get("username", None),
+            password=mailing_config.get("password", None),
         ),
     )
 

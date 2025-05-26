@@ -1,15 +1,18 @@
 import ky from "ky";
 
+import { CentralServerGetUserInfo, GetAccessTokenHeader } from "@/lib/api/auth";
 import { Connections, LocalStorage } from "@/lib/info";
 import { UserPublicType } from "@/lib/types";
-import { CentralServerGetUserInfo } from "@/lib/api/auth";
-import { GetAccessTokenHeader } from "@/lib/api/auth";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
+/**
+ * Fetch the user avatar from the central server.
+ * @returns {Promise<Blob | null>} A promise that resolves to the user avatar as a Blob, or null if no avatar is set.
+ */
 export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
     if (localStorage.getItem(LocalStorage.user_data) === null) {
-        console.debug("Getting user data first...")
+        console.debug("Getting user data first...");
         await CentralServerGetUserInfo(true);
     }
 
@@ -21,7 +24,9 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
 
     const userData: UserPublicType = JSON.parse(lsContent);
 
-    if (userData.avatarUrn === null) { return null; }
+    if (userData.avatarUrn === null) {
+        return null;
+    }
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar/${userData.avatarUrn}`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
@@ -31,7 +36,5 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
         throw new Error(errorMessage);
     }
 
-    const userAvatar: Blob = await centralServerResponse.blob();
-
-    return userAvatar;
+    return await centralServerResponse.blob();
 }

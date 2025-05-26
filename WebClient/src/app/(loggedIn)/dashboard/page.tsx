@@ -5,11 +5,11 @@ import { Avatar, Container, Group, Title } from "@mantine/core";
 import { CentralServerGetUserInfo } from "@/lib/api/auth";
 import { UserPublicType } from "@/lib/types";
 import { CentralServerGetUserAvatar } from "@/lib/api/user";
-import { LoadingComponent } from "@/components/LoadingComponent";
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 
 export default function DashboardPage() {
-    const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null)
+    const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
     const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const fetchUserInfo = async () => {
@@ -23,10 +23,10 @@ export default function DashboardPage() {
         fetchUserInfo();
         const getUserInfo = async () => {
             console.debug("Getting user info...");
-            const _userInfo = await CentralServerGetUserInfo()
-            setUserInfo(_userInfo)
+            const _userInfo = await CentralServerGetUserInfo();
+            setUserInfo(_userInfo);
             console.debug("Getting user avatar...");
-            const userAvatarImage = await CentralServerGetUserAvatar()
+            const userAvatarImage = await CentralServerGetUserAvatar();
             if (userAvatarImage !== null) {
                 console.debug("Setting avatar blob URL...");
                 setAvatarBlobUrl((prevUrl) => {
@@ -68,12 +68,13 @@ export default function DashboardPage() {
                     color="#258ce6"
                     src={avatarBlobUrl ? avatarBlobUrl : undefined}
                 />
-                {
-                    userInfo?.nameFirst
-                        ? <Title>Welcome, {userInfo.nameFirst}!</Title>
-                        : userInfo?.username
-                            ? <Title>Welcome, {userInfo.username}!</Title>
-                            : <Title>Welcome!</Title>}
+                {userInfo?.nameFirst ? (
+                    <Title>Welcome, {userInfo.nameFirst}!</Title>
+                ) : userInfo?.username ? (
+                    <Title>Welcome, {userInfo.username}!</Title>
+                ) : (
+                    <Title>Welcome!</Title>
+                )}
             </Group>
         </Container>
     );
