@@ -365,6 +365,38 @@ to further configure its behavior. These variables are optional.
 > $env:CENTRAL_SERVER_CONFIG_FILE=".config.dev.json"; uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
 > ```
 
+#### Central Server SMTP Connection
+
+To enable email notifications, password resets, and other email-related
+functionality, you have to connect the central server to an SMTP server.
+
+**Gmail SMTP Connection**
+
+The most basic approach is to use Gmail as the SMTP server. Just follow
+the instructions in the link below to create an *app password*:
+
+[https://support.google.com/accounts/answer/185833](https://support.google.com/accounts/answer/185833?hl=en)
+
+This is a 16-character-long string, grouped by 4 characters and separated by spaces.
+Remove the spaces and you will get your app password.
+After you have successfully created an app password, update your
+configuration file:
+
+```jsonc
+{
+    /* ... */
+   "mailing": {
+        "enabled": true,
+        "server": "smtp.gmail.com",
+        "port": 587,
+        "from_address": "your_username@gmail.com",
+        "username": "your_username@gmail.com",
+        "password": "your-app-password"
+    }
+    /* ... */
+}
+```
+
 #### Resetting Central Server Data
 
 While contributing to the project, you might have to start your database and object store from scratch.

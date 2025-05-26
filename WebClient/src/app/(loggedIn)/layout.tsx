@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { AppShell, ScrollArea } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { OnboardingTour, OnboardingTourStep } from '@gfazioli/mantine-onboarding-tour';
+import { OnboardingTour, OnboardingTourStep } from "@gfazioli/mantine-onboarding-tour";
 
 import { AuthProvider, useAuth } from "@/lib/providers/auth";
 import { Navbar } from "@/components/Navbar";
@@ -12,11 +12,7 @@ import { CentralServerGetUserInfo, CentralServerUpdateUserInfo } from "@/lib/api
 import { Program } from "@/lib/info";
 import { notifications } from "@mantine/notifications";
 
-export default function LoggedInLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export default function LoggedInLayout({ children }: { children: React.ReactNode }) {
     console.debug("Rendering LoggedInLayout");
     return (
         <AuthProvider>
@@ -31,19 +27,14 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const [opened] = useDisclosure();
     const [onboardingStarted, { open: startOnboarding, close: stopOnboarding }] = useDisclosure(false, {
-        onOpen: () => { console.debug("Onboarding tour started") },
-        onClose: () => { console.debug("Onboarding tour ended") },
+        onOpen: () => {
+            console.debug("Onboarding tour started");
+        },
+        onClose: () => {
+            console.debug("Onboarding tour ended");
+        },
     });
-    const fetchUserInfo = async () => {
-        console.debug("Fetching user information");
-        const userInfo = await CentralServerGetUserInfo();
-        setUserRole(userInfo.roleId);
-        const finishedTutorials: string[] = userInfo.finishedTutorials.split(",");
-        if (!finishedTutorials.includes("dbob")) {
-            console.debug("Starting onboarding tour");
-            startOnboarding();
-        }
-    };
+
     const updateOnboardingStatus = async () => {
         console.debug("Updating onboarding status");
         stopOnboarding();
@@ -62,7 +53,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
             console.error("Error updating user info", error);
             notifications.show({ title: "Error", message: "Error updating user info" });
         }
-    }
+    };
 
     const onboardingSteps: OnboardingTourStep[] = [
         {
@@ -92,14 +83,23 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
         },
     ];
 
-
     useEffect(() => {
+        const fetchUserInfo = async () => {
+            console.debug("Fetching user information");
+            const userInfo = await CentralServerGetUserInfo();
+            setUserRole(userInfo.roleId);
+            const finishedTutorials: string[] = userInfo.finishedTutorials.split(",");
+            if (!finishedTutorials.includes("dbob")) {
+                console.debug("Starting onboarding tour");
+                startOnboarding();
+            }
+        };
         console.debug("LoggedInContent useEffect started", { isAuthenticated });
         if (!isAuthenticated) {
             router.push("/");
         }
         fetchUserInfo();
-    }, [isAuthenticated, router]);
+    }, [isAuthenticated, router, startOnboarding]);
 
     console.debug("Rendering LoggedInContent", { isAuthenticated });
     return (

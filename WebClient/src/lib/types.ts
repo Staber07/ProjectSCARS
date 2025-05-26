@@ -23,3 +23,7 @@ export type UserPublicType = {
     lastLoggedInTime?: Date | null;
     lastLoggedInIp?: string | null;
 };
+
+export type ServerMessageType = {
+    message: string;
+};

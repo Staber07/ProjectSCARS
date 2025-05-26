@@ -1,12 +1,13 @@
 import datetime
 import uuid
-from datetime import timedelta
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from pydantic import EmailStr
 from sqlmodel import Session, select
 
+from centralserver import info
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
@@ -16,10 +17,20 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.mail_handler import send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
-from centralserver.internals.models.user import User, UserCreate, UserPublic
-from centralserver.internals.user_handler import create_user
+from centralserver.internals.models.user import (
+    User,
+    UserCreate,
+    UserPasswordResetRequest,
+    UserPublic,
+)
+from centralserver.internals.user_handler import (
+    create_user,
+    crypt_ctx,
+    validate_password,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -110,11 +121,146 @@ async def request_access_token(
         uid=uuid.uuid4(),
         access_token=await create_access_token(
             user.id,
-            timedelta(minutes=app_config.authentication.access_token_expire_minutes),
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
             False,
         ),
         token_type="bearer",
     )
+
+
+@router.post("/recovery/request")
+async def request_password_recovery(
+    username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
+) -> dict[Literal["message"], Literal["ok"]]:
+    """Request a password recovery for a user.
+
+    Args:
+        username: The username of the user.
+        email: The email address of the user.
+        session: The database session.
+    """
+
+    logger.info("Requesting password recovery for user: %s", username)
+    user = session.exec(
+        select(User).where(User.username == username, User.email == email)
+    ).first()
+
+    if not user:
+        logger.warning("User not found for password recovery: %s", username)
+        return {"message": "ok"}
+
+    if not user.email:
+        logger.warning(
+            "User %s does not have an email address set for password recovery.",
+            username,
+        )
+        return {"message": "ok"}
+
+    # Generate a recovery token and set its expiration time
+    user.recoveryToken = str(uuid.uuid4())
+    user.recoveryTokenExpires = datetime.datetime.now(
+        datetime.timezone.utc
+    ) + datetime.timedelta(
+        minutes=app_config.authentication.recovery_token_expire_minutes
+    )
+    session.commit()
+    session.refresh(user)
+    recovery_link = (
+        f"{app_config.connection.base_url}/resetPassword?token={user.recoveryToken}"
+    )
+    logger.debug("Generated recovery link for user %s: %s", username, recovery_link)
+
+    send_mail(
+        to_address=user.email,
+        subject=f"{info.Program.name} | Password Recovery Request",
+        text=f"""\
+Hello {user.nameFirst or user.username},
+You have requested a password recovery for your account on {info.Program.name}.
+Please click the link below and follow the instructions to reset your password:
+
+        {recovery_link}
+
+This link will expire in {app_config.authentication.recovery_token_expire_minutes} minutes.
+If you did not request this, please ignore this email.
+""",
+        html=f"""\
+<p>Hello {user.nameFirst or user.username},</p>
+<p>You have requested a password recovery for your account on {info.Program.name}.</p>
+<p>Please click the link below and follow the instructions to reset your password:</p>
+        <a href="{recovery_link}" align="center">
+            Reset Password
+        </a>
+<p>This link will expire in {app_config.authentication.recovery_token_expire_minutes} minutes.</p>
+<p>If you did not request this, please ignore this email.</p>
+""",
+    )
+
+    return {"message": "ok"}
+
+
+@router.post("/recovery/reset")
+async def reset_password(
+    data: UserPasswordResetRequest,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Reset a user's password using a recovery token.
+
+    Args:
+        token: The recovery token.
+        new_password: The new password for the user.
+        session: The database session.
+
+    Returns:
+        A message indicating the success of the operation.
+    """
+
+    logger.info("Resetting password for token: %s", data.recovery_token)
+    user = session.exec(
+        select(User).where(User.recoveryToken == data.recovery_token)
+    ).first()
+
+    if not user or not user.recoveryToken or not user.recoveryTokenExpires:
+        logger.warning(
+            "Invalid or missing recovery token or user: %s", data.recovery_token
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing recovery token or user.",
+        )
+
+    password_is_valid, password_err = await validate_password(data.new_password)
+    if not password_is_valid:
+        logger.warning(
+            "Failed to reset password for user: %s (%s)", user.username, password_err
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid password format ({password_err})",
+        )
+
+    logger.debug(
+        "%s < %s",
+        user.recoveryTokenExpires.replace(tzinfo=datetime.timezone.utc),
+        datetime.datetime.now(datetime.timezone.utc),
+    )
+    if user.recoveryTokenExpires.replace(
+        tzinfo=datetime.timezone.utc
+    ) < datetime.datetime.now(datetime.timezone.utc):
+        logger.warning("Invalid or expired recovery token: %s", data.recovery_token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expired recovery token.",
+        )
+
+    user.password = crypt_ctx.hash(data.new_password)
+    user.recoveryToken = None
+    user.recoveryTokenExpires = None
+    session.commit()
+    session.refresh(user)
+    logger.info("Password reset successful for user: %s", user.username)
+    return {"message": "Password reset successful."}
 
 
 @router.get("/roles", response_model=list[Role])

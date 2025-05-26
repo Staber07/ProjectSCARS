@@ -7,6 +7,20 @@
             "database": "${workspaceFolder:ProjectSCARS}/CentralServer/centralserver-dev.db",
             "name": "centralserver-dev",
             "group": "ProjectSCARS"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "centralserver-pytest",
+            "group": "ProjectSCARS",
+            "database": "${workspaceFolder:ProjectSCARS}/CentralServer/tests/data/test.db"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "centralserver",
+            "group": "ProjectSCARS",
+            "database": "${workspaceFolder:ProjectSCARS}/CentralServer/centralserver.db"
         }
     ]
 }
