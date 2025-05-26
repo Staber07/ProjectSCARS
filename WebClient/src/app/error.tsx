@@ -2,7 +2,7 @@
 
 import { animationConfig } from "@/lib/anim";
 import { Button, Center, Code, Container, Stack, Text, Title } from "@mantine/core";
-import { IconArrowBack, IconPlugConnectedX, IconReload } from "@tabler/icons-react";
+import { IconArrowBack, IconMoodSadSquint, IconReload } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 
@@ -23,7 +23,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         <Container>
             <Center style={{ height: "100vh" }}>
                 <Stack align="center">
-                    <IconPlugConnectedX size={128} />
+                    <IconMoodSadSquint size={128} />
                     <Title order={1} style={{ textAlign: "center" }}>
                         Uh oh!
                     </Title>
