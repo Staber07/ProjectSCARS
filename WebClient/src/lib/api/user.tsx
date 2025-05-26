@@ -24,7 +24,7 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
     if (userData.avatarUrn === null) {
         return null;
     }
-    console.log(userData.avatarUrn);
+    console.debug(userData.avatarUrn);
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar/${userData.avatarUrn}`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
