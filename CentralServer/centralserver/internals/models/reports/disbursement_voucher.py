@@ -13,14 +13,15 @@ class DisbursementVoucher(SQLModel, table=True):
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
-    notedBy: str = Field(foreign_key="users.id")
-    preparedBy: str = Field(foreign_key="users.id")
-    teacherInCharge: str = Field(foreign_key="users.id")
+    Payee: str = Field(foreign_key="users.id")
 
     certified_by: list["DisbursementVoucherCertifiedBy"] = Relationship(
         back_populates="parent_report" 
     )
     entries: list["DisbursementVoucherEntry"] = Relationship(
+        back_populates="parent_report"
+    )
+    accounting_entries: list["DisbursementVoucherAccountingEntry"] = Relationship(
         back_populates="parent_report"
     )
     parent_report: "MonthlyReport" = Relationship(
@@ -59,4 +60,21 @@ class DisbursementVoucherEntry(SQLModel, table=True):
 
     parent_report: "DisbursementVoucher" = Relationship(
         back_populates="entries"
+    )
+
+class DisbursementVoucherAccountingEntry(SQLModel, table=True):
+    __tablename__: str = "DisbursementVoucherAccountingEntry"
+
+    parent: datetime.date = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="DisbursementVoucher.parent"
+    )
+    uacs_code: str
+    account_title: str
+    debit: float
+    credit: float
+
+    parent_report: "DisbursementVoucher" = Relationship(
+        back_populates="accounting_entries"
     )
