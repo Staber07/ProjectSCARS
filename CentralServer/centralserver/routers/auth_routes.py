@@ -18,7 +18,12 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
-from centralserver.internals.models.user import User, UserCreate, UserPublic
+from centralserver.internals.models.user import (
+    User,
+    UserCreate,
+    UserPublic,
+    UserPasswordResetRequest,
+)
 from centralserver.internals.user_handler import (
     create_user,
     validate_password,
@@ -173,7 +178,7 @@ async def request_password_recovery(
         text=f"""\
 Hello {user.nameFirst or user.username},
 You have requested a password recovery for your account on {info.Program.name}.
-Please follow the instructions below to reset your password:
+Please click the link below and follow the instructions to reset your password:
 
         {recovery_link}
 
@@ -183,7 +188,7 @@ If you did not request this, please ignore this email.
         html=f"""\
 <p>Hello {user.nameFirst or user.username},</p>
 <p>You have requested a password recovery for your account on {info.Program.name}.</p>
-<p>Please follow the instructions below to reset your password:</p>
+<p>Please click the link below and follow the instructions to reset your password:</p>
         <a href="{recovery_link}" align="center">
             Reset Password
         </a>
@@ -197,8 +202,7 @@ If you did not request this, please ignore this email.
 
 @router.post("/recovery/reset")
 async def reset_password(
-    token: str,
-    new_password: str,
+    data: UserPasswordResetRequest,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> dict[str, str]:
     """Reset a user's password using a recovery token.
@@ -212,17 +216,21 @@ async def reset_password(
         A message indicating the success of the operation.
     """
 
-    logger.info("Resetting password for token: %s", token)
-    user = session.exec(select(User).where(User.recoveryToken == token)).first()
+    logger.info("Resetting password for token: %s", data.recovery_token)
+    user = session.exec(
+        select(User).where(User.recoveryToken == data.recovery_token)
+    ).first()
 
     if not user or not user.recoveryToken or not user.recoveryTokenExpires:
-        logger.warning("Invalid or missing recovery token or user: %s", token)
+        logger.warning(
+            "Invalid or missing recovery token or user: %s", data.recovery_token
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or missing recovery token or user.",
         )
 
-    password_is_valid, password_err = await validate_password(new_password)
+    password_is_valid, password_err = await validate_password(data.new_password)
     if not password_is_valid:
         logger.warning(
             "Failed to reset password for user: %s (%s)", user.username, password_err
@@ -240,13 +248,13 @@ async def reset_password(
     if user.recoveryTokenExpires.replace(
         tzinfo=datetime.timezone.utc
     ) < datetime.datetime.now(datetime.timezone.utc):
-        logger.warning("Invalid or expired recovery token: %s", token)
+        logger.warning("Invalid or expired recovery token: %s", data.recovery_token)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Expired recovery token.",
         )
 
-    user.password = crypt_ctx.hash(new_password)
+    user.password = crypt_ctx.hash(data.new_password)
     user.recoveryToken = None
     user.recoveryTokenExpires = None
     session.commit()

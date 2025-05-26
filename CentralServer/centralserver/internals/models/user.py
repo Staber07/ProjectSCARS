@@ -148,3 +148,10 @@ class UserRecover(SQLModel):
 
     username: str
     email: EmailStr
+
+
+class UserPasswordResetRequest(SQLModel):
+    """A model used for resetting a user's password."""
+
+    new_password: str
+    recovery_token: str
