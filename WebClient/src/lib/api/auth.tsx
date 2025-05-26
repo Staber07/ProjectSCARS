@@ -114,21 +114,20 @@ export async function CentralServerRequestPasswordRecovery(
     return result;
 }
 
-export async function CentralServerResetPassword(
-    token: string,
-    new_password: string
-): Promise<ServerMessageType | null> {
+export async function CentralServerResetPassword(token: string, new_password: string): Promise<ServerMessageType> {
     console.debug("Resetting password for user with token", { token });
     const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
         json: {
             recovery_token: token,
             new_password: new_password,
         },
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to reset password: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
         console.error(errorMessage);
-        return null;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        return { message: errorResponse?.detail || errorMessage };
     }
     console.debug("Password reset successfully");
     const result: ServerMessageType = await centralServerResponse.json();

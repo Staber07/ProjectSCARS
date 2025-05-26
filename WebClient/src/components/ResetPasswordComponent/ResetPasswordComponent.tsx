@@ -63,28 +63,49 @@ export function ResetPasswordComponent(): React.ReactElement {
             return;
         }
 
-        const response = await CentralServerResetPassword(token, values.new_password);
-        if (response == null || response.message !== "Password reset successful.") {
-            notifications.show({
-                title: "Password reset failed",
-                message: "An error occurred while resetting your password. Please try again.",
-                color: "red",
-                icon: <IconX />,
-            });
+        try {
+            const response = await CentralServerResetPassword(token, values.new_password);
+            if (response == null || response.message !== "Password reset successful.") {
+                notifications.show({
+                    title: "Password reset failed",
+                    message: response.message,
+                    color: "red",
+                    icon: <IconX />,
+                });
+                buttonStateHandler.close();
+                return;
+            } else {
+                requestSentHandler.open();
+                notifications.show({
+                    title: "Password reset successfully",
+                    message: "Please log in with your new password.",
+                    color: "green",
+                    icon: <IconCheck />,
+                });
+                buttonStateHandler.close();
+                setTimeout(() => {
+                    router.push("/login");
+                }, 5000); // Delay to allow the notification to be shown
+            }
+        } catch (error) {
+            if (error instanceof Error && error.message.includes("status code 400")) {
+                notifications.show({
+                    title: "Password reset failed",
+                    message: error.message,
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else {
+                console.error("Error resetting password:", error);
+                notifications.show({
+                    title: "Password reset failed",
+                    message: `An error occurred while resetting your password: ${error}`,
+                    color: "red",
+                    icon: <IconX />,
+                });
+            }
             buttonStateHandler.close();
             return;
-        } else {
-            requestSentHandler.open();
-            notifications.show({
-                title: "Password reset successfully",
-                message: "Please log in with your new password.",
-                color: "green",
-                icon: <IconCheck />,
-            });
-            buttonStateHandler.close();
-            setTimeout(() => {
-                router.push("/login");
-            }, 5000); // Delay to allow the notification to be shown
         }
     };
 
@@ -125,7 +146,7 @@ export function ResetPasswordComponent(): React.ReactElement {
                                 </Button>
                             </Container>
                             <Text size="xs" mt="xs" c="dimmed" style={{ textAlign: "center" }}>
-                                Enter your new password.
+                                Enter your new password and click "Reset Password" to update your account information.
                             </Text>
                         </form>
                     </Paper>
@@ -137,7 +158,10 @@ export function ResetPasswordComponent(): React.ReactElement {
                     <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <Text size="lg" ta="center">
-                            You have successfully reset your password! Please log in with your new password.
+                            Password Reset!
+                        </Text>
+                        <Text size="sm" ta="center" mt={10}>
+                            You have successfully reset your password. Please log in with your new account details.
                         </Text>
                         <Button
                             variant="light"
@@ -146,7 +170,6 @@ export function ResetPasswordComponent(): React.ReactElement {
                             mt="xl"
                             leftSection={<IconArrowBackUp />}
                             onClick={() => {
-                                requestSentHandler.close();
                                 router.push("/login");
                             }}
                         >

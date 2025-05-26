@@ -153,7 +153,6 @@ export function ForgotPasswordComponent(): React.ReactElement {
                             mt="xl"
                             leftSection={<IconArrowBackUp />}
                             onClick={() => {
-                                requestSentHandler.close();
                                 router.push("/login");
                             }}
                         >
