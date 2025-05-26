@@ -5,6 +5,9 @@ from sqlmodel import Field, Relationship, SQLModel
 from centralserver.internals.models.reports.daily_financial_report import (
     DailyFinancialReport,
 )
+from centralserver.internals.models.reports.disbursement_voucher import (
+    DisbursementVoucher,
+)
 from centralserver.internals.models.reports.lr_administrative_expenses import (
     LiquidationReportAdministrativeExpenses,
 )
@@ -26,9 +29,6 @@ from centralserver.internals.models.reports.lr_school_operation_fund import (
 )
 from centralserver.internals.models.reports.lr_supplementary_feeding_fund import (
     LiquidationReportSupplementaryFeedingFund,
-)
-from centralserver.internals.models.reports.disbursement_voucher import (
-    DisbursementVoucher,
 )
 
 
@@ -98,8 +98,8 @@ class MonthlyReport(SQLModel, table=True):
     revolving_fund_report: LiquidationReportRevolvingFund | None = Relationship(
         back_populates="parent_report"
     )
-    disbursement_voucher_report: DisbursementVoucher | None = (
-        Relationship(back_populates="parent_report")
+    disbursement_voucher_report: DisbursementVoucher | None = Relationship(
+        back_populates="parent_report"
     )
 
 
