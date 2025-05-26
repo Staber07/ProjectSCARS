@@ -1,5 +1,6 @@
 import datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
@@ -7,30 +8,35 @@ if TYPE_CHECKING:
 
 
 class DisbursementVoucher(SQLModel, table=True):
-    __tablename__ = "disbursementVouchers"
+    """A model representing the disbursement voucher reports.
+
+    Document Name: Disbursement Voucher
+    """
+
+    __tablename__ = "disbursementVouchers"  # type: ignore
 
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
 
     payee: str = Field(foreign_key="users.id")
-    tin_or_employee_no: Optional[str] = None
-    responsibility_center: Optional[str] = None
+    tinOrEmployeeNo: str | None = None
+    responsibilityCenter: str | None = None
 
-    amount_gross: float
-    amount_tax: Optional[float] = 0.0
-    amount_net: float
+    amountGross: float
+    amountTax: float = 0.0
+    amountNet: float
 
-    amount_due: float
+    amountDue: float
 
-    certified_cash_available: bool = False
-    certified_supporting_docs_complete: bool = False
-    certified_subject_to_debit_account: bool = False
+    certifiedCashAvailable: bool = False
+    certifiedSupportingDocsComplete: bool = False
+    certifiedSubjectToDebitAccount: bool = False
 
-    check_no: Optional[str] = None
-    bank_name_and_account_no: Optional[str] = None
-    ada_no: Optional[str] = None #Advice to Debit Account Number
-    jev_no: Optional[str] = None #Journal Entry Voucher Number
+    checkNo: str | None = None
+    bankNameAndAccountNo: str | None = None
+    adaNo: str | None = None  # Advice to Debit Account Number
+    jevNo: str | None = None  # Journal Entry Voucher Number
 
     certified_by: list["DisbursementVoucherCertifiedBy"] = Relationship(
         back_populates="parent_report"
@@ -41,52 +47,47 @@ class DisbursementVoucher(SQLModel, table=True):
     accounting_entries: list["DisbursementVoucherAccountingEntry"] = Relationship(
         back_populates="parent_report"
     )
-
     parent_report: "MonthlyReport" = Relationship(
         back_populates="disbursement_voucher_report"
     )
 
 
 class DisbursementVoucherCertifiedBy(SQLModel, table=True):
-    __tablename__ = "DisbursementVoucherCertifiedBy"
+    __tablename__ = "disbursementVoucherCertifiedBy"  # type: ignore
 
     parent: datetime.date = Field(
-        primary_key=True, index=True, foreign_key="DisbursementVoucher.parent"
+        primary_key=True, index=True, foreign_key="disbursementVouchers.parent"
     )
     user: str = Field(foreign_key="users.id")
-    role: Optional[str] = None  # e.g. Principal, Accountant, Cashier
+    role: str | None = None  # e.g. Principal, Accountant, Cashier
 
-    parent_report: DisbursementVoucher = Relationship(
-        back_populates="certified_by"
-    )
+    parent_report: DisbursementVoucher = Relationship(back_populates="certified_by")
 
 
 class DisbursementVoucherEntry(SQLModel, table=True):
-    __tablename__ = "DisbursementVoucherEntry"
+    __tablename__ = "disbursementVoucherEntries"  # type: ignore
 
     parent: datetime.date = Field(
-        primary_key=True, index=True, foreign_key="DisbursementVoucher.parent"
+        primary_key=True, index=True, foreign_key="disbursementVouchers.parent"
     )
     date: datetime.datetime
     receipt: str
     particulars: str
     unit: str
     quantity: float
-    unit_price: float
+    unitPrice: float
 
-    parent_report: DisbursementVoucher = Relationship(
-        back_populates="entries"
-    )
+    parent_report: DisbursementVoucher = Relationship(back_populates="entries")
 
 
 class DisbursementVoucherAccountingEntry(SQLModel, table=True):
-    __tablename__ = "DisbursementVoucherAccountingEntry"
+    __tablename__ = "disbursementVoucherAccountingEntries"  # type: ignore
 
     parent: datetime.date = Field(
-        primary_key=True, index=True, foreign_key="DisbursementVoucher.parent"
+        primary_key=True, index=True, foreign_key="disbursementVouchers.parent"
     )
     uacs_code: str
-    account_title: str
+    accountTitle: str
     debit: float
     credit: float
 
