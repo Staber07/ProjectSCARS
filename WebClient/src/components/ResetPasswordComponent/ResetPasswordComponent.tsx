@@ -146,7 +146,8 @@ export function ResetPasswordComponent(): React.ReactElement {
                                 </Button>
                             </Container>
                             <Text size="xs" mt="xs" c="dimmed" style={{ textAlign: "center" }}>
-                                Enter your new password and click "Reset Password" to update your account information.
+                                Enter your new password and click &quot;Reset Password&quot; to update your account
+                                information.
                             </Text>
                         </form>
                     </Paper>
