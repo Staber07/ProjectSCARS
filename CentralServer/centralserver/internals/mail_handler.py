@@ -59,6 +59,7 @@ def send_mail(
         return
 
     try:
+
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = app_config.mailing.from_address
@@ -66,7 +67,12 @@ def send_mail(
         message["Reply-To"] = app_config.mailing.from_address
         message["Return-Path"] = app_config.mailing.from_address
         message["Message-ID"] = (
-            f"<{hashlib.sha256(f'{to_address}{subject}{text}'.encode()).hexdigest()}@{app_config.mailing.from_address.split('@')[1]}>"
+            "<{message_hash}@{domain}>".format(  # pylint: disable=C0209
+                message_hash=hashlib.sha256(
+                    f"{to_address}{subject}{text}".encode()
+                ).hexdigest(),
+                domain=app_config.mailing.from_address.split("@")[1],
+            )
         )
         message["Date"] = datetime.datetime.now().strftime("%a, %d %b %Y %H:%M:%S %z")
         message["X-Mailer"] = info.Program.name
