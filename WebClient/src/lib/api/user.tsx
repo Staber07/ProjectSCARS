@@ -37,6 +37,9 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
         throw new Error(errorMessage);
     }
 
+    const userAvatar: Blob = await centralServerResponse.blob();
+    console.debug("Avatar response blob size:", userAvatar.size);
+    return userAvatar;
 }
 
 export async function CentralServerUploadUserAvatar(file: File): Promise<UserPublicType> {
