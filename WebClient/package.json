@@ -13,7 +13,7 @@
         "coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@gfazioli/mantine-onboarding-tour": "^2.0.0",
+        "@gfazioli/mantine-onboarding-tour": "^2.0.1",
         "@mantine/charts": "^8.0.1",
         "@mantine/core": "^8.0.1",
         "@mantine/dates": "^8.0.1",
@@ -32,7 +32,7 @@
         "@tiptap/starter-kit": "^2.12.0",
         "dayjs": "^1.11.13",
         "ky": "^1.8.1",
-        "motion": "^12.12.2",
+        "motion": "^12.14.0",
         "next": "15.3.2",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
