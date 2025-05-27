@@ -74,6 +74,18 @@ class User(SQLModel, table=True):
         default=None,
         description="The expiration time for the recovery token.",
     )
+    failedLoginAttempts: int = Field(
+        default=0,
+        description="The number of failed login attempts by the user.",
+    )
+    failedLoginTime: datetime.datetime | None = Field(
+        default=None,
+        description="The timestamp of the last failed login attempt.",
+    )
+    failedLoginIp: str | None = Field(
+        default=None,
+        description="The IP address from which the last failed login attempt was made.",
+    )
     finishedTutorials: str = Field(
         default_factory=str,
         description="A list of onboarding tutorials the user has completed.",

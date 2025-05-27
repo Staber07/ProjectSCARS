@@ -101,15 +101,20 @@ async def request_access_token(
     """
 
     logger.info("Requesting access token for user: %s", data.username)
-    user: User | None = await authenticate_user(data.username, data.password, session)
+    user: User | tuple[int, str] = await authenticate_user(
+        data.username,
+        data.password,
+        request.client.host if request.client else None,
+        session,
+    )
 
-    if not user:
+    if isinstance(user, tuple):
         logger.warning(
-            "Failed to authenticate user: %s (Invalid credentials)", data.username
+            "Failed to authenticate user %s: %s (%s)", data.username, user[1], user[0]
         )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            status_code=user[0],
+            detail=user[1],
         )
 
     user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+import datetime
 from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException, status
@@ -8,9 +8,11 @@ from jose.exceptions import JWEError
 from passlib.context import CryptContext
 from sqlmodel import Session, select
 
+from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.mail_handler import send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
@@ -94,18 +96,20 @@ async def get_user_role(
 
 
 async def authenticate_user(
-    username: str, plaintext_password: str, session: Session
-) -> User | None:
+    username: str, plaintext_password: str, login_ip: str | None, session: Session
+) -> User | tuple[int, str]:
     """Find the user in the database and verify their password.
 
     Args:
         username: The username of the user to authenticate.
         plaintext_password: The plaintext password to verify.
+        login_ip: The IP address of the user attempting to log in.
         session: The database session to use.
 
     Returns:
         A User object if the user is found and the password is
-        correct, None otherwise.
+        correct. If the user is not found or the password is incorrect,
+        returns a tuple with an HTTP status code and an error message.
     """
 
     logger.debug("Attempting to authenticate user `%s`", username)
@@ -113,19 +117,136 @@ async def authenticate_user(
 
     if not found_user:
         logger.debug("Authentication failed: %s (user not found)", username)
-        return None
+        return (status.HTTP_401_UNAUTHORIZED, "User not found.")
+
+    # Check if the user is locked out.
+    if (
+        found_user.failedLoginAttempts
+        >= app_config.security.failed_login_lockout_attempts
+    ):
+        if not found_user.failedLoginTime:
+            logger.warning(
+                "User %s is locked out but has no failed login time.",
+                username,
+                app_config.security.failed_login_lockout_minutes,
+            )
+            found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
+            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+                app_config.security.failed_login_lockout_minutes
+            )
+            session.commit()
+            session.refresh(found_user)
+            return (
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+            )
+
+        # Check if the lockout period has expired.
+        if found_user.failedLoginTime.replace(
+            tzinfo=datetime.timezone.utc
+        ) + datetime.timedelta(
+            minutes=app_config.security.failed_login_lockout_minutes
+        ) > datetime.datetime.now(
+            datetime.timezone.utc
+        ):
+            logger.info(
+                "Authentication failed: %s (user locked out due to too many failed attempts)",
+                username,
+            )
+            logger.debug(
+                "User %s is locked out until %s",
+                username,
+                found_user.failedLoginTime,
+            )
+            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+                minutes=app_config.security.failed_login_lockout_minutes
+            )
+            return (
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+            )
+
+        else:
+            logger.info(
+                "User %s is no longer locked out, resetting failed login attempts",
+                username,
+            )
+            found_user.failedLoginAttempts = 0
+            found_user.failedLoginTime = None
+            found_user.failedLoginIp = None
+            session.commit()
+            session.refresh(found_user)
 
     if not crypt_ctx.verify(plaintext_password, found_user.password):
         logger.debug("Authentication failed: %s (invalid password)", username)
-        return None
+        logger.debug(
+            "User %s has %d failed login attempts",
+            username,
+            found_user.failedLoginAttempts,
+        )
+        found_user.failedLoginAttempts += 1
+        found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
+        found_user.failedLoginIp = login_ip
+        session.commit()
+        session.refresh(found_user)
 
+        if found_user.email:
+            if (
+                found_user.failedLoginAttempts
+                == app_config.security.failed_login_notify_attempts
+            ):
+                send_mail(
+                    found_user.email,
+                    f"{info.Program.name} | Someone is trying to access your account",
+                    f"""\
+Hello {found_user.nameFirst or found_user.username},
+
+Someone has attempted to log in to your account on {info.Program.name}.
+Please check your account activity and change your password if you did not initiate this login.
+
+Login attempts: {found_user.failedLoginAttempts}
+Last login attempt time: {found_user.failedLoginTime}
+Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}
+
+If you continue to experience issues, please contact support.
+""",
+                    f"""\
+<p>Hello {found_user.nameFirst or found_user.username},</p>
+
+<p>Someone has attempted to log in to your account on {info.Program.name}.</p>
+<p>Please check your account activity and change your password if you did not initiate this login.</p>
+
+<ul>
+    <li>Login attempts: {found_user.failedLoginAttempts}</li>
+    <li>Last login attempt time: {found_user.failedLoginTime}</li>
+    <li>Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}</li>
+</ul>
+
+<p>If you continue to experience issues, please contact support.</p>
+""",
+                )
+
+        tries_remaining = (
+            app_config.security.failed_login_lockout_attempts
+            - found_user.failedLoginAttempts
+        )
+        return (
+            status.HTTP_401_UNAUTHORIZED,
+            f"Invalid credentials. {tries_remaining} attempts remaining before lockout.",
+        )
+
+    found_user.failedLoginAttempts = 0
+    found_user.failedLoginTime = None
+    found_user.failedLoginIp = None
+    session.commit()
+    session.refresh(found_user)
     logger.debug("Authentication successful: %s", username)
     logger.debug("Returning user information for user id: %s", found_user.id)
     return found_user
 
 
 async def create_access_token(
-    user_id: str, expiration_td: timedelta, refresh: bool = False
+    user_id: str, expiration_td: datetime.timedelta, refresh: bool = False
 ) -> str:
     """Create a JWE access token for the user, valid for +<expiration_td>.
 
@@ -142,7 +263,7 @@ async def create_access_token(
     token_data: dict[str, Any] = {
         "sub": user_id,
         "is_refresh": refresh,
-        "exp": datetime.now(timezone.utc) + expiration_td,
+        "exp": datetime.datetime.now(datetime.timezone.utc) + expiration_td,
     }
 
     access_token = jwe.encrypt(
@@ -208,9 +329,9 @@ def verify_access_token(
                 detail="Failed to validate user.",
             )
 
-        if datetime.fromtimestamp(payload["exp"], timezone.utc) < datetime.now(
-            timezone.utc
-        ):
+        if datetime.datetime.fromtimestamp(
+            payload["exp"], datetime.timezone.utc
+        ) < datetime.datetime.now(datetime.timezone.utc):
             logger.warning("JWT is expired")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

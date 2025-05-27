@@ -86,6 +86,9 @@ def log_app_info(logger: logging.Logger):
 
     logger.debug(f"{app_config.debug.enabled=}")
     logger.debug(f"{app_config.debug.logenv_optout=}")
+    logger.debug(f"{app_config.debug.show_sql=}")
+
+    logger.debug(f"{app_config.connection.base_url=}")
 
     logger.debug(f"{app_config.logging.filepath=}")
     logger.debug(f"{app_config.logging.max_bytes=}")
@@ -117,10 +120,15 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.authentication.encryption_algorithm=}")
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
+    logger.debug(f"{app_config.authentication.recovery_token_expire_minutes=}")
+
     logger.debug(f"{app_config.security.allow_origins=}")
     logger.debug(f"{app_config.security.allow_credentials=}")
     logger.debug(f"{app_config.security.allow_methods=}")
     logger.debug(f"{app_config.security.allow_headers=}")
+    logger.debug(f"{app_config.security.failed_login_lockout_attempts=}")
+    logger.debug(f"{app_config.security.failed_login_notify_attempts=}")
+    logger.debug(f"{app_config.security.failed_login_lockout_minutes=}")
 
     logger.debug(f"{app_config.mailing.enabled=}")
     logger.debug(f"{app_config.mailing.server=}")
