@@ -273,7 +273,7 @@ async def delete_user_avatar_endpoint(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User does not have an avatar set.",
         )
-    
+
 
 @router.patch("/update/me/avatar")
 async def update_self_user_avatar_endpoint(
