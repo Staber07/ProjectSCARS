@@ -14,6 +14,7 @@ import {
 } from "@mantine/core";
 import { IconEdit, IconSearch, IconTrash, IconDownload, IconChevronUp, IconChevronDown } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const SchoolsData = () => {
   const schools = [
@@ -43,7 +44,12 @@ export default function SchoolsPage() {
   const [page, setPage] = useState(1);
   const [sortKey, setSortKey] = useState<SortKey>("school");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const router = useRouter();
   const rowsPerPage = 10;
+
+  const handleRowClick = (id: number) => {
+      router.push(`/administration/schools/school-profile/${id}`);
+  };
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -146,40 +152,47 @@ export default function SchoolsPage() {
       )}
 
       <ScrollArea style={{ marginTop: rem(20) }}>
-        <Table stickyHeader stickyHeaderOffset={60} verticalSpacing="sm" highlightOnHover withTableBorder>
-          <Table.Tr>
-            {editMode && <Table.Th></Table.Th>}
-            <Table.Th
-              style={{ cursor: "pointer" }}
-              onClick={() => handleSort("school")}
-            >
-              Schools{" "}
-              {sortKey === "school" &&
-                (sortDirection === "asc" ? (
-                  <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
-                ) : (
-                  <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
-                ))}
-            </Table.Th>
-            <Table.Th>Address</Table.Th>
-            <Table.Th
-              style={{ cursor: "pointer" }}
-              onClick={() => handleSort("netIncome")}
-            >
-              Net Income{" "}
-              {sortKey === "netIncome" &&
-                (sortDirection === "asc" ? (
-                  <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
-                ) : (
-                  <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
-                ))}
-            </Table.Th>
-            <Table.Th>Net Profit</Table.Th>
-            <Table.Th>Gross Profit</Table.Th>
-          </Table.Tr>
+        <Table stickyHeader stickyHeaderOffset={0} verticalSpacing="sm" highlightOnHover withTableBorder>
+          <Table.Thead>
+            <Table.Tr>
+              {editMode && <Table.Th></Table.Th>}
+              <Table.Th
+                style={{ cursor: "pointer" }}
+                onClick={() => handleSort("school")}
+              >
+                Schools{" "}
+                {sortKey === "school" &&
+                  (sortDirection === "asc" ? (
+                    <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
+                  ) : (
+                    <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
+                  ))}
+              </Table.Th>
+              <Table.Th>Address</Table.Th>
+              <Table.Th
+                style={{ cursor: "pointer" }}
+                onClick={() => handleSort("netIncome")}
+              >
+                Net Income{" "}
+                {sortKey === "netIncome" &&
+                  (sortDirection === "asc" ? (
+                    <IconChevronUp size={14} style={{ verticalAlign: "middle" }} />
+                  ) : (
+                    <IconChevronDown size={14} style={{ verticalAlign: "middle" }} />
+                  ))}
+              </Table.Th>
+              <Table.Th>Net Profit</Table.Th>
+              <Table.Th>Gross Profit</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+
           <Table.Tbody>
             {paginatedData.map((row) => (
-              <Table.Tr key={row.id}>
+              <Table.Tr
+                key={row.id}
+                onDoubleClick={() => handleRowClick(row.id)}
+                style={{ cursor: "pointer" }}
+              >
                 {editMode && (
                   <Table.Td>
                     <Checkbox
