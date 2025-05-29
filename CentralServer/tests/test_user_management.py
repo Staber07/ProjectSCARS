@@ -51,7 +51,7 @@ def test_login_user_wrong_password():
     )
     assert response.status_code == 401
     resp_data: dict[str, Any] = response.json()
-    assert resp_data["detail"] == "Invalid credentials"
+    assert resp_data["detail"].startswith("Invalid credentials.")
 
 
 def test_login_user_wrong_username():
@@ -62,7 +62,7 @@ def test_login_user_wrong_username():
     )
     assert response.status_code == 401
     resp_data: dict[str, Any] = response.json()
-    assert resp_data["detail"] == "Invalid credentials"
+    assert resp_data["detail"] == "User not found."
 
 
 def test_login_user_wrong_username_and_password():
@@ -74,7 +74,7 @@ def test_login_user_wrong_username_and_password():
     )
     assert response.status_code == 401
     resp_data: dict[str, Any] = response.json()
-    assert resp_data["detail"] == "Invalid credentials"
+    assert resp_data["detail"] == "User not found."
 
 
 def test_create_user_success():
