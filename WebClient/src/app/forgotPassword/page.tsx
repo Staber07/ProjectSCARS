@@ -1,5 +1,4 @@
 import { ForgotPasswordComponent } from "@/components/ForgotPasswordComponent/ForgotPasswordComponent";
-import { AuthProvider } from "@/lib/providers/auth";
 
 /**
  * Forgot password page component.
@@ -7,9 +6,5 @@ import { AuthProvider } from "@/lib/providers/auth";
  */
 export default function ForgotPasswordPage() {
     console.debug("Rendering ForgotPasswordPage");
-    return (
-        <AuthProvider>
-            <ForgotPasswordComponent />
-        </AuthProvider>
-    );
+    return <ForgotPasswordComponent />;
 }

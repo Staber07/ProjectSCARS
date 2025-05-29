@@ -165,6 +165,9 @@ class Security:
         allow_credentials: bool | None = None,
         allow_methods: list[str] | None = None,
         allow_headers: list[str] | None = None,
+        failed_login_notify_attempts: int | None = None,
+        failed_login_lockout_attempts: int | None = None,
+        failed_login_lockout_minutes: int | None = None,
     ):
         """The security configuration.
 
@@ -173,12 +176,18 @@ class Security:
             allow_credentials: Whether to allow credentials to be sent.
             allow_methods: Which methods are allowed.
             allow_headers: Which headers are allowed.
+            failed_login_notify_attempts: The number of failed login attempts before notifying the user.
+            failed_login_lockout_attempts: The number of failed login attempts before locking the user out.
+            failed_login_lockout_minutes: The number of minutes to lock the user out after failed login attempts.
         """
 
         self.allow_origins: list[str] = allow_origins or ["*"]
         self.allow_credentials: bool = allow_credentials or True
         self.allow_methods: list[str] = allow_methods or ["*"]
         self.allow_headers: list[str] = allow_headers or ["*"]
+        self.failed_login_notify_attempts: int = failed_login_notify_attempts or 2
+        self.failed_login_lockout_attempts: int = failed_login_lockout_attempts or 5
+        self.failed_login_lockout_minutes: int = failed_login_lockout_minutes or 15
 
 
 class Mailing:
@@ -384,6 +393,15 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             allow_credentials=security_config.get("allow_credentials", None),
             allow_methods=security_config.get("allow_methods", None),
             allow_headers=security_config.get("allow_headers", None),
+            failed_login_lockout_attempts=security_config.get(
+                "failed_login_lockout_attempts", None
+            ),
+            failed_login_notify_attempts=security_config.get(
+                "failed_login_notify_attempts", None
+            ),
+            failed_login_lockout_minutes=security_config.get(
+                "failed_login_lockout_minutes", None
+            ),
         ),
         mailing=Mailing(
             enabled=mailing_config.get("enabled", None),

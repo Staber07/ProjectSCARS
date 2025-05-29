@@ -94,7 +94,20 @@ export function MainLoginComponent(): React.ReactElement {
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
             <ProgramTitleCenter classes={classes} logoControls={logoControls} />
             <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-                <form onSubmit={form.onSubmit(loginUser)}>
+                <form
+                    onSubmit={form.onSubmit(loginUser)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            e.preventDefault();
+                            // except when forgot password is focused
+                            if (document.activeElement?.id === "forgot-password") {
+                                document.getElementById("forgot-password")?.click();
+                                return;
+                            }
+                            form.onSubmit(loginUser)();
+                        }
+                    }}
+                >
                     <TextInput
                         label="Username"
                         placeholder="Your username"
@@ -111,6 +124,7 @@ export function MainLoginComponent(): React.ReactElement {
                     <Group justify="space-between" mt="lg">
                         <Checkbox label="Remember me" {...form.getInputProps("rememberMe", { type: "checkbox" })} />
                         <Anchor
+                            id="forgot-password"
                             onClick={(e) => {
                                 e.preventDefault();
                                 router.push("/forgotPassword");

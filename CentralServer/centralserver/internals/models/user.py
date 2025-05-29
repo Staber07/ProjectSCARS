@@ -30,7 +30,9 @@ class User(SQLModel, table=True):
         description="The unique identifier for the user.",
     )
 
-    username: str = Field(unique=True, description="The username of the user.")
+    username: str = Field(
+        unique=True, index=True, description="The username of the user."
+    )
     email: EmailStr | None = Field(
         default=None, unique=True, description="The email address of the user."
     )
@@ -71,6 +73,18 @@ class User(SQLModel, table=True):
     recoveryTokenExpires: datetime.datetime | None = Field(
         default=None,
         description="The expiration time for the recovery token.",
+    )
+    failedLoginAttempts: int = Field(
+        default=0,
+        description="The number of failed login attempts by the user.",
+    )
+    failedLoginTime: datetime.datetime | None = Field(
+        default=None,
+        description="The timestamp of the last failed login attempt.",
+    )
+    failedLoginIp: str | None = Field(
+        default=None,
+        description="The IP address from which the last failed login attempt was made.",
     )
     finishedTutorials: str = Field(
         default_factory=str,

@@ -101,15 +101,20 @@ async def request_access_token(
     """
 
     logger.info("Requesting access token for user: %s", data.username)
-    user: User | None = await authenticate_user(data.username, data.password, session)
+    user: User | tuple[int, str] = await authenticate_user(
+        data.username,
+        data.password,
+        request.client.host if request.client else None,
+        session,
+    )
 
-    if not user:
+    if isinstance(user, tuple):
         logger.warning(
-            "Failed to authenticate user: %s (Invalid credentials)", data.username
+            "Failed to authenticate user %s: %s (%s)", data.username, user[1], user[0]
         )
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            status_code=user[0],
+            detail=user[1],
         )
 
     user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
@@ -133,7 +138,7 @@ async def request_access_token(
 @router.post("/recovery/request")
 async def request_password_recovery(
     username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
-) -> dict[Literal["message"], Literal["ok"]]:
+) -> dict[Literal["message"], str]:
     """Request a password recovery for a user.
 
     Args:
@@ -143,9 +148,7 @@ async def request_password_recovery(
     """
 
     logger.info("Requesting password recovery for user: %s", username)
-    user = session.exec(
-        select(User).where(User.username == username, User.email == email)
-    ).first()
+    user = session.exec(select(User).where(User.username == username)).first()
 
     if not user:
         logger.warning("User not found for password recovery: %s", username)
@@ -156,7 +159,22 @@ async def request_password_recovery(
             "User %s does not have an email address set for password recovery.",
             username,
         )
-        return {"message": "ok"}
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user does not have an email address set for password recovery.",
+        )
+
+    if user.email != email:
+        logger.warning(
+            "Email mismatch for user %s: provided %s, expected %s",
+            username,
+            email,
+            user.email,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email does not match the user's email address.",
+        )
 
     # Generate a recovery token and set its expiration time
     user.recoveryToken = str(uuid.uuid4())

@@ -6,7 +6,7 @@ import { Button, Container, Paper, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconArrowBackUp, IconMail, IconSend, IconX } from "@tabler/icons-react";
+import { IconArrowBackUp, IconMail, IconMailCancel, IconSend, IconSendOff, IconX } from "@tabler/icons-react";
 import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
@@ -67,7 +67,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
         }
 
         const response = await CentralServerRequestPasswordRecovery(values.email, values.username);
-        if (response?.message == "ok") {
+        if (response?.message === "ok") {
             requestSentHandler.open();
             notifications.show({
                 title: "Account recovery email request sent",
@@ -75,6 +75,22 @@ export function ForgotPasswordComponent(): React.ReactElement {
                     "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
                 color: "green",
                 icon: <IconMail />,
+            });
+            buttonStateHandler.close();
+        } else if (response?.message === "The user does not have an email address set for password recovery.") {
+            notifications.show({
+                title: "Account recovery failed",
+                message: "No recovery email found for the provided username.",
+                color: "red",
+                icon: <IconMailCancel />,
+            });
+            buttonStateHandler.close();
+        } else if (response?.message === "Email does not match the user's email address.") {
+            notifications.show({
+                title: "Account recovery failed",
+                message: "The provided email does not match the user's email address.",
+                color: "red",
+                icon: <IconSendOff />,
             });
             buttonStateHandler.close();
         } else {
@@ -154,6 +170,10 @@ export function ForgotPasswordComponent(): React.ReactElement {
                             onClick={() => {
                                 router.push("/login");
                             }}
+                            component={motion.button}
+                            transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
                         >
                             Back to Login
                         </Button>
