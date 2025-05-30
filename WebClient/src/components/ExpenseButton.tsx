@@ -32,43 +32,43 @@ export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseBut
         label: 'Operating Expenses',
         icon: IconSettingsDollar,
         color: theme.colors.blue[6],
-        path: '/reports/liquidation-report', // '/reports/operating-expense'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'Administrative Expenses',
         icon: IconUsers,
         color: theme.colors.pink[6],
-        path: '/reports/liquidation-report', // '/reports/administrative-expense'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'Supplementary Feeding Fund',
         icon: IconBowl,
         color: theme.colors.cyan[6],
-        path: '/reports/liquidation-report', // '/reports/supplementary-feeding-fund'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'Clinic Fund',
         icon: IconHeartbeat,
         color: theme.colors.red[6],
-        path: '/reports/liquidation-report', // '/reports/clinic-fund'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'Faculty and Student Development Fund',
         icon: IconCalendarEvent,
         color: theme.colors.grape[6],
-        path: '/reports/liquidation-report', // '/reports/faculty-student-dev-fund'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'HE Fund',
         icon: IconCooker,
         color: theme.colors.yellow[6],
-        path: '/reports/liquidation-report', // '/reports/he-fund'
+        path: '/reports/liquidation-report',
     },
     {
         label: 'Revolving Fund',
         icon: IconMoneybag,
         color: theme.colors.green[6],
-        path: '/reports/liquidation-report', // '/reports/revolving-fund'
+        path: '/reports/liquidation-report',
     },
     ];
 
