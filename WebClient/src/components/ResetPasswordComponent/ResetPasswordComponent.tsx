@@ -3,7 +3,7 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { ResetPassword } from "@/lib/api/auth";
-import { Box, Button, Container, Paper, PasswordInput, Popover, Progress, Text } from "@mantine/core";
+import { Box, Button, Container, Paper, PasswordInput, Popover, Progress, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -66,8 +66,9 @@ function ResetPasswordContent(): React.ReactElement {
     const [pwValue, setPwValue] = useState("");
     const [pwConfValue, setPwConfValue] = useState("");
     const [popoverOpened, setPopoverOpened] = useState(false);
+    const [pwVisible, { toggle: pwVisibilityToggle }] = useDisclosure(false);
     const form = useForm<ResetPasswordValues>({
-        mode: "uncontrolled",
+        mode: "controlled",
         initialValues: { new_password: "" },
     });
     const checks = requirements.map((requirement, index) => (
@@ -186,18 +187,25 @@ function ResetPasswordContent(): React.ReactElement {
                                             mt="md"
                                             onChange={(event) => {
                                                 setPwValue(event.currentTarget.value);
+                                                form.setFieldValue("new_password", event.currentTarget.value);
                                             }}
+                                            onVisibilityChange={pwVisibilityToggle}
                                         />
-                                        <PasswordInput
+                                        <TextInput
                                             withAsterisk
+                                            type={pwVisible ? "text" : "password"}
                                             label="Confirm Password"
                                             value={pwConfValue}
                                             placeholder="Confirm your new password"
                                             mt="md"
                                             onChange={(event) => {
                                                 setPwConfValue(event.currentTarget.value);
-                                                form.setFieldValue("new_password", event.currentTarget.value);
                                             }}
+                                            error={
+                                                pwValue !== pwConfValue && pwConfValue.length > 0
+                                                    ? "Passwords do not match"
+                                                    : null
+                                            }
                                         />
                                     </div>
                                 </Popover.Target>
