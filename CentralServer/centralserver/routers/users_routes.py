@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
+from minio.error import S3Error
 
 from centralserver.internals.auth_handler import (
     get_role,
@@ -161,12 +162,20 @@ async def get_user_avatar_endpoint(
             ),
         )
 
-    bucket_object = await get_user_avatar(fn)
-    if bucket_object is None:
+    try:
+        bucket_object = await get_user_avatar(fn)
+        if bucket_object is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found.",
+            )
+
+    except S3Error as e:
+        logger.error("Error fetching user avatar: %s", e)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Avatar not found.",
-        )
+        ) from e
 
     return StreamingResponse(BytesIO(bucket_object.obj), media_type="image/*")
 
