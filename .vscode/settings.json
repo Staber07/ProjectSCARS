@@ -21,6 +21,20 @@
             "name": "centralserver",
             "group": "ProjectSCARS",
             "database": "${workspaceFolder:ProjectSCARS}/CentralServer/centralserver.db"
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MySQL",
+            "name": "centralserver-mysql",
+            "group": "ProjectSCARS",
+            "database": "ProjectSCARS_CentralServer",
+            "username": "ProjectSCARS_DatabaseAdmin"
         }
     ]
 }
