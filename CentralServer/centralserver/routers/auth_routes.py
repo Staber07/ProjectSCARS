@@ -61,7 +61,7 @@ async def create_new_user(
         A newly created user object.
     """
 
-    if not await verify_user_permission("users:global:create", session, token):
+    if not await verify_user_permission("users:create", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create a user.",
