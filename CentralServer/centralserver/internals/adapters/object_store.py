@@ -8,6 +8,7 @@ from typing import Final, override
 from minio import Minio
 
 from centralserver.internals.adapters.config import (
+    GarageObjectStoreAdapterConfig,
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
     ObjectStoreAdapterConfig,
@@ -321,6 +322,142 @@ class MinIOObjectStoreAdapter(ObjectStoreAdapter):
             raise FileNotFoundError(f"File {hashed_filename} does not exist.") from e
 
 
+class GarageObjectStoreAdapter(ObjectStoreAdapter):
+    """Use Garage as the central server's object store."""
+
+    def __init__(self, config: GarageObjectStoreAdapterConfig):
+        """Initialize the Garage object store adapter.
+
+        Args:
+            config: The configuration for the Garage object store.
+        """
+
+        self.config = config
+
+        logger.debug("Initializing Garage object store adapter.")
+        self.client = Minio(
+            config.endpoint,
+            access_key=config.access_key,
+            secret_key=config.secret_key,
+            secure=config.secure,
+            region="garage",  # Garage uses a specific region
+        )
+
+    @staticmethod
+    async def validate_object_name(object_name: str) -> bool:
+        """Check if the object name is valid.
+
+        Args:
+            object_name: The name of the object to validate.
+        """
+
+        allowed_symbols = {"-", ".", "_"}
+        # NOTE: Object name requirements:
+        # - Must be between 3 and 255 characters long.
+        # - Must be alphanumeric or one of the following characters: - . _
+        # - Must not start or end with symbols.
+        return (
+            3 <= len(object_name) <= 255
+            and all(c.isalnum() or c in allowed_symbols for c in object_name)
+            and not (
+                object_name[0] in allowed_symbols or object_name[-1] in allowed_symbols
+            )
+        )
+
+    @override
+    async def check(self) -> None:
+        """Check if the Garage object store is healthy."""
+
+        logger.debug("Ensuring existence of Garage buckets.")
+        for bucket in BucketNames:
+            logger.debug("Ensuring existence of bucket: %s", bucket.value)
+            if not self.client.bucket_exists(bucket.value):
+                logger.debug("Creating bucket: %s", bucket.value)
+                self.client.make_bucket(bucket.value)
+
+    @override
+    async def put(self, bucket: BucketNames, fn: str, obj: bytes) -> BucketObject:
+        """Upload an object to the Garage object store.
+
+        Args:
+            bucket: The name of the bucket to put the object into.
+            fn: The name of the file in the object store.
+            obj: The object to put into the object store.
+        """
+
+        logger.debug("Putting object into Garage object store.")
+        if not await self.validate_object_name(fn):
+            logger.warning("Invalid object name: %s", fn)
+            raise ValueError(f"Invalid object name: {fn}")
+
+        length = len(obj)
+        logger.debug("Object length: %d", length)
+        self.client.put_object(
+            bucket_name=bucket.value,
+            object_name=fn,
+            data=BytesIO(obj),
+            length=length,
+        )
+
+        return BucketObject(
+            bucket=bucket.value,
+            fn=fn,
+            obj=obj,
+        )
+
+    @override
+    async def get(
+        self, bucket: BucketNames, hashed_filename: str
+    ) -> BucketObject | None:
+        """Retrieve an object from the Garage object store.
+
+        Args:
+            bucket: The name of the bucket to get the object from.
+            hashed_filename: The hashed filename of the object to retrieve.
+        """
+
+        logger.debug("Getting object from Garage object store.")
+        response = None
+        try:
+            logger.debug("Retrieving object: %s", hashed_filename)
+            response = self.client.get_object(
+                bucket_name=bucket.value, object_name=hashed_filename
+            )
+            logger.debug("Object retrieved successfully. Reading...")
+            response_data = response.read()
+
+        finally:
+            if response is not None:
+                logger.debug("Closing Garage response.")
+                # Close the response to release the connection
+                # and avoid resource leaks.
+                response.close()  # WARN: Why are these not implemented according to source?
+                response.release_conn()
+
+        return BucketObject(
+            bucket=bucket.value,
+            fn=hashed_filename,
+            obj=response_data,
+        )
+
+    @override
+    async def delete(self, bucket: BucketNames, hashed_filename: str) -> None:
+        """Remove an object from the Garage object store.
+
+        Args:
+            bucket: The name of the bucket to delete the object from.
+            hashed_filename: The hashed filename of the object to delete.
+        """
+
+        logger.debug("Deleting object from Garage object store.")
+        try:
+            self.client.remove_object(bucket.value, hashed_filename)
+
+        except Exception as e:
+            logger.warning("File does not exist: %s", hashed_filename)
+            raise FileNotFoundError(f"File {hashed_filename} does not exist.") from e
+
+
 async def get_object_store_handler(
     conf: ObjectStoreAdapterConfig,
 ) -> ObjectStoreAdapter:
@@ -340,6 +477,10 @@ async def get_object_store_handler(
     elif isinstance(conf, MinIOObjectStoreAdapterConfig):
         logger.debug("Using MinIO object store adapter.")
         return MinIOObjectStoreAdapter(conf)
+
+    elif isinstance(conf, GarageObjectStoreAdapterConfig):
+        logger.debug("Using Garage object store adapter.")
+        return GarageObjectStoreAdapter(conf)
 
     else:
         logger.error("Invalid object store configuration.")

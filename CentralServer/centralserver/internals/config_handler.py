@@ -12,6 +12,7 @@ from centralserver.internals.adapters.config import (
     ObjectStoreAdapterConfig,
     PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
+    GarageObjectStoreAdapterConfig,
 )
 
 
@@ -334,6 +335,14 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 
         case "minio":
             final_object_store_config = MinIOObjectStoreAdapterConfig(
+                access_key=object_store_config.get("access_key", None),
+                secret_key=object_store_config.get("secret_key", None),
+                endpoint=object_store_config.get("endpoint", None),
+                secure=object_store_config.get("secure", None),
+            )
+
+        case "garage":
+            final_object_store_config = GarageObjectStoreAdapterConfig(
                 access_key=object_store_config.get("access_key", None),
                 secret_key=object_store_config.get("secret_key", None),
                 endpoint=object_store_config.get("endpoint", None),

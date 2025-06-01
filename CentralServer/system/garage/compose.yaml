@@ -1,29 +1,33 @@
 services:
-  centralserver-garage:
-    image: docker.io/dxflrs/garage:v2.0.0-rc1
-    ports:
-      - "3900:3900"
-      - "3901:3901"
-      - "3902:3902"
-      - "3903:3903"
-    volumes:
-      - ./garage.toml:/etc/garage.toml
-      - centralserver-garage_meta:/var/lib/garage/meta
-      - centralserver-garage_data:/var/lib/garage/data
-    restart: unless-stopped
-    env_file:
-      - .env
+    centralserver-garage:
+        image: docker.io/dxflrs/garage:v2.0.0-rc1
+        ports:
+            - "3900:3900"
+            - "3901:3901"
+            - "3902:3902"
+            - "3903:3903"
+        volumes:
+            - ./garage.toml:/etc/garage.toml
+            - centralserver-garage_meta:/var/lib/garage/meta
+            - centralserver-garage_data:/var/lib/garage/data
+        restart: unless-stopped
+        env_file:
+            - .env
 
-  centralserver-s3manager:
-    image: docker.io/cloudlena/s3manager:v0.5.0
-    ports:
-      - "8084:8084"
-    restart: unless-stopped
-    env_file:
-      - .env
-    depends_on:
-      - centralserver-garage
+    centralserver-s3manager:
+        image: docker.io/khairul169/garage-webui:1.0.9
+        ports:
+            - "8084:8084"
+        volumes:
+            - ./garage.toml:/etc/garage.toml:ro
+        restart: unless-stopped
+        environment:
+            PORT: 8084
+            API_BASE_URL: "http://centralserver-garage:3903"
+            S3_ENDPOINT_URL: "http://centralserver-garage:3900"
+        depends_on:
+            - centralserver-garage
 
 volumes:
-  centralserver-garage_data:
-  centralserver-garage_meta:
+    centralserver-garage_data:
+    centralserver-garage_meta:
