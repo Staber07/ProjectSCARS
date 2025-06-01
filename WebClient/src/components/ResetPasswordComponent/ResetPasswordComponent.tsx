@@ -196,6 +196,7 @@ function ResetPasswordContent(): React.ReactElement {
                                             mt="md"
                                             onChange={(event) => {
                                                 setPwConfValue(event.currentTarget.value);
+                                                form.setFieldValue("new_password", event.currentTarget.value);
                                             }}
                                         />
                                     </div>
