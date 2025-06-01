@@ -3,8 +3,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
-from sqlmodel import Session, select
 from minio.error import S3Error
+from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
     get_role,
