@@ -28,8 +28,9 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
         return null;
     }
 
-    const centralServerResponse = await ky.get(`${endpoint}/users/avatar/${userData.avatarUrn}`, {
+    const centralServerResponse = await ky.get(`${endpoint}/users/avatar`, {
         headers: { Authorization: GetAccessTokenHeader() },
+        searchParams: { fn: userData.avatarUrn ? userData.avatarUrn : "" },
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to get avatar: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
@@ -42,12 +43,13 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
     return userAvatar;
 }
 
-export async function CentralServerUploadUserAvatar(file: File): Promise<UserPublicType> {
+export async function CentralServerUploadUserAvatar(user_id: string, file: File): Promise<UserPublicType> {
     const formData = new FormData();
     formData.append("img", file);
 
-    const centralServerResponse = await ky.patch(`${endpoint}/users/update/me/avatar`, {
+    const centralServerResponse = await ky.patch(`${endpoint}/users/avatar`, {
         headers: { Authorization: GetAccessTokenHeader() },
+        searchParams: { user_id: user_id },
         body: formData,
     });
     if (!centralServerResponse.ok) {

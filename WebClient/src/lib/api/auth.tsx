@@ -91,7 +91,7 @@ export async function CentralServerGetUserInfo(refresh: boolean = false): Promis
  */
 export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
     console.debug("Updating user info");
-    const centralServerResponse = await ky.put(`${endpoint}/users/me/update`, {
+    const centralServerResponse = await ky.put(`${endpoint}/users/`, {
         headers: { Authorization: GetAccessTokenHeader() },
         json: newUserInfo,
     });
