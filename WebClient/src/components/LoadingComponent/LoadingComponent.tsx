@@ -1,6 +1,6 @@
+import { randomLoadingMessages } from "@/lib/info";
 import { Center, Container, Image, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
-import { randomLoadingMessages } from "@/lib/info";
 
 type LoadingComponentProps = {
     message?: string; // The message to display below the title
