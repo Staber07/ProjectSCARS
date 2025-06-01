@@ -10,27 +10,10 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
  * Fetch the user avatar from the central server.
  * @returns {Promise<Blob | null>} A promise that resolves to the user avatar as a Blob, or null if no avatar is set.
  */
-export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
-    if (localStorage.getItem(LocalStorage.user_data) === null) {
-        console.debug("Getting user data first...");
-        await CentralServerGetUserInfo(true);
-    }
-
-    const lsContent = localStorage.getItem(LocalStorage.user_data);
-    if (lsContent === null) {
-        console.error("User data is still not set.");
-        throw new Error("User data is still not set.");
-    }
-
-    const userData: UserPublicType = JSON.parse(lsContent);
-
-    if (userData.avatarUrn === null) {
-        return null;
-    }
-
+export async function CentralServerGetUserAvatar(fn: string): Promise<Blob | null> {
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar`, {
         headers: { Authorization: GetAccessTokenHeader() },
-        searchParams: { fn: userData.avatarUrn ? userData.avatarUrn : "" },
+        searchParams: { fn: fn },
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to get avatar: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
@@ -43,6 +26,11 @@ export async function CentralServerGetUserAvatar(): Promise<Blob | null> {
     return userAvatar;
 }
 
+/**
+ * Fetch the user information from the central server.
+ * @param {string} user_id - The ID of the user to fetch.
+ * @return {Promise<UserPublicType>} A promise that resolves to the user information.
+ */
 export async function CentralServerUploadUserAvatar(user_id: string, file: File): Promise<UserPublicType> {
     const formData = new FormData();
     formData.append("img", file);
@@ -61,4 +49,42 @@ export async function CentralServerUploadUserAvatar(user_id: string, file: File)
     const updatedUserData: UserPublicType = await centralServerResponse.json();
     localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserData));
     return updatedUserData;
+}
+
+/**
+ * Fetch the user information from the central server.
+ * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
+ */
+export async function CentralServerGetAllUsers(): Promise<UserPublicType[]> {
+    const centralServerResponse = await ky.get(`${endpoint}/users`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to get all users: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const users: UserPublicType[] = await centralServerResponse.json();
+    return users;
+}
+
+/**
+ * Update the user information on the central server.
+ * @param {UserPublicType} newUserInfo - The new user information to update.
+ * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
+ */
+export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
+    console.debug("Updating user info");
+    const centralServerResponse = await ky.put(`${endpoint}/users/`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        json: newUserInfo,
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to update user info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    const updatedUserInfo: UserPublicType = await centralServerResponse.json();
+    return updatedUserInfo;
 }

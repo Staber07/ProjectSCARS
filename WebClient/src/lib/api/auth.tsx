@@ -85,27 +85,6 @@ export async function CentralServerGetUserInfo(refresh: boolean = false): Promis
 }
 
 /**
- * Update the user information on the central server.
- * @param {UserPublicType} newUserInfo - The new user information to update.
- * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
- */
-export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
-    console.debug("Updating user info");
-    const centralServerResponse = await ky.put(`${endpoint}/users/`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-        json: newUserInfo,
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to update user info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
-    const updatedUserInfo: UserPublicType = await centralServerResponse.json();
-    localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserInfo));
-    return updatedUserInfo;
-}
-
-/**
  * Request a password recovery email from the central server.
  * @param {string} email - The email address of the user.
  * @param {string} username - The username of the user.
