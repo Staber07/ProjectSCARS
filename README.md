@@ -477,11 +477,6 @@ you can follow the steps below:
    }
    ```
 
-   > [!question]
-   > In the example output above, the *Key ID* is `GKc753b23e83e344f8a8b2c5df` and the *Secret Key* is `d5330c821cb7e4254c8e948ffd0488c6c95fdbee0b3f8adaa286fa5e933248e0`.
-   >
-   > **Keep these values as a secret!**
-
 ###### Central Server Environment Variables
 
 The following environment variables are used by the central server
