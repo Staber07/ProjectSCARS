@@ -6,13 +6,13 @@ from typing import Any
 from centralserver import info
 from centralserver.internals.adapters.config import (
     DatabaseAdapterConfig,
+    GarageObjectStoreAdapterConfig,
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
     MySQLDatabaseConfig,
     ObjectStoreAdapterConfig,
     PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
-    GarageObjectStoreAdapterConfig,
 )
 
 
