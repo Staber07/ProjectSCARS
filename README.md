@@ -432,8 +432,7 @@ you can follow the steps below:
    podman exec -ti CONTAINER_NAME /garage layout apply --version 1
    ```
 
-7. If successful, you should be able to access the web UI dashboard at `http://localhost:8084`.
-8. Now, you will have to generate an API key using Garage's CLI application for the central server. Run the following:
+7. Now, you will have to generate an API key using Garage's CLI application for the central server. Run the following:
 
    ```bash
    docker exec -ti CONTAINER_NAME /garage key create centralserver-app-key
@@ -457,7 +456,7 @@ you can follow the steps below:
    Permissions  ID  Global aliases  Local aliases
    ```
 
-9. From the output of the previous step, copy the **Key ID** and the **Secret Key**. Edit `./CentralServer/config.json` and adjust the `object_store` to match the following structure:
+8. From the output of the previous step, copy the **Key ID** and the **Secret Key**. Edit `./CentralServer/config.json` and adjust the `object_store` to match the following structure:
 
    ```jsonc
    {
