@@ -240,6 +240,23 @@ def test_configreader_sqlite_minio():
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
 
 
+def test_configreader_sqlite_garage():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "sqlite"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "garage"
+    confdata["object_store"]["config"] = {
+        "access_key": "GKb92bd72e1ae26740d62fbb83",
+        "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
+
+
 def test_configreader_mysql_local():
     with open("./config.pytest.json", "r") as f:
         confdata = json.load(f)
@@ -269,6 +286,71 @@ def test_configreader_mysql_minio():
     appconfig = config_handler.read_config(confdata)
     assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
+
+
+def test_configreader_mysql_garage():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "mysql"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "garage"
+    confdata["object_store"]["config"] = {
+        "access_key": "GKb92bd72e1ae26740d62fbb83",
+        "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
+
+
+def test_configreader_postgresql_local():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "postgres"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "local"
+    confdata["object_store"]["config"] = {}  # Use default config
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
+
+
+def test_configreader_postgresql_minio():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "postgres"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "minio"
+    confdata["object_store"]["config"] = {
+        "access_key": "bf51e071508becb67bf2263c9f60403f",
+        "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
+
+
+def test_configreader_postgresql_garage():
+    with open("./config.pytest.json", "r") as f:
+        confdata = json.load(f)
+
+    confdata["database"]["type"] = "postgres"
+    confdata["database"]["config"] = {}  # Use default config
+    confdata["object_store"]["type"] = "garage"
+    confdata["object_store"]["config"] = {
+        "access_key": "GKb92bd72e1ae26740d62fbb83",
+        "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
+    }
+
+    appconfig = config_handler.read_config(confdata)
+    assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
+    assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
 
 
 def test_configreader_no_objectstore():

@@ -242,7 +242,7 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
             access_key: The access key for MinIO. (required)
             secret_key: The secret key for MinIO. (required)
             endpoint: The URL of the MinIO server. (default: localhost:9000)
-            secure: Use secure (TLS) connection. (default: False).
+            secure: Use secure (TLS) connection. (default: False)
         """
 
         if access_key is None or secret_key is None:
@@ -258,6 +258,45 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     def info(self) -> dict[str, Any]:
         return {
             "name": "MinIO",
+            "access_key_set": self.access_key != "",
+            "secret_key_set": self.secret_key != "",
+            "endpoint": self.endpoint,
+            "secure": self.secure,
+        }
+
+
+class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
+    """Adapter configuration for Garage."""
+
+    def __init__(
+        self,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+        endpoint: str | None = None,
+        secure: bool | None = None,
+    ):
+        """Configuration for Garage object store adapter.
+
+        Args:
+            access_key: The access key for Garage. (required)
+            secret_key: The secret key for Garage. (required)
+            endpoint: The URL of the Garage server. (default: localhost:3900)
+            secure: Use secure (TLS) connection. (default: False)
+        """
+
+        if access_key is None or secret_key is None:
+            raise ValueError("The access key and secret key are required.")
+
+        self.access_key: str = access_key
+        self.secret_key: str = secret_key
+        self.endpoint: str = endpoint or "localhost:3900"
+        self.secure: bool = secure or False
+
+    @property
+    @override
+    def info(self) -> dict[str, Any]:
+        return {
+            "name": "Garage",
             "access_key_set": self.access_key != "",
             "secret_key_set": self.secret_key != "",
             "endpoint": self.endpoint,
