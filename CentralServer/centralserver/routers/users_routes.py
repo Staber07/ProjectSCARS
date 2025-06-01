@@ -130,7 +130,7 @@ async def get_user_avatar_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> StreamingResponse:
-    """Get the user's profile picture. This is used only when the object store is set to `local`.
+    """Get the user's profile picture.
 
     Args:
         fn: The name of the user's avatar.
