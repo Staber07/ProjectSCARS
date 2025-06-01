@@ -1,6 +1,6 @@
 import ky from "ky";
 
-import { CentralServerGetUserInfo, GetAccessTokenHeader } from "@/lib/api/auth";
+import { GetAccessTokenHeader } from "@/lib/api/auth";
 import { Connections, LocalStorage } from "@/lib/info";
 import { UserPublicType } from "@/lib/types";
 
@@ -10,7 +10,7 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
  * Fetch the user avatar from the central server.
  * @returns {Promise<Blob | null>} A promise that resolves to the user avatar as a Blob, or null if no avatar is set.
  */
-export async function CentralServerGetUserAvatar(fn: string): Promise<Blob | null> {
+export async function GetUserAvatar(fn: string): Promise<Blob | null> {
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar`, {
         headers: { Authorization: GetAccessTokenHeader() },
         searchParams: { fn: fn },
@@ -31,7 +31,7 @@ export async function CentralServerGetUserAvatar(fn: string): Promise<Blob | nul
  * @param {string} user_id - The ID of the user to fetch.
  * @return {Promise<UserPublicType>} A promise that resolves to the user information.
  */
-export async function CentralServerUploadUserAvatar(user_id: string, file: File): Promise<UserPublicType> {
+export async function UploadUserAvatar(user_id: string, file: File): Promise<UserPublicType> {
     const formData = new FormData();
     formData.append("img", file);
 
@@ -55,7 +55,7 @@ export async function CentralServerUploadUserAvatar(user_id: string, file: File)
  * Fetch the user information from the central server.
  * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
  */
-export async function CentralServerGetAllUsers(): Promise<UserPublicType[]> {
+export async function GetAllUsers(): Promise<UserPublicType[]> {
     const centralServerResponse = await ky.get(`${endpoint}/users`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
@@ -74,9 +74,9 @@ export async function CentralServerGetAllUsers(): Promise<UserPublicType[]> {
  * @param {UserPublicType} newUserInfo - The new user information to update.
  * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
  */
-export async function CentralServerUpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
+export async function UpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
     console.debug("Updating user info");
-    const centralServerResponse = await ky.put(`${endpoint}/users/`, {
+    const centralServerResponse = await ky.put(`${endpoint}/users`, {
         headers: { Authorization: GetAccessTokenHeader() },
         json: newUserInfo,
     });
