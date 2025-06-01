@@ -33,9 +33,57 @@ PERMISSIONS: Final[dict[str, str]] = {
 }
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
-    1: [],  # Website Administrator
-    2: [],  # Superintendent
-    3: [],  # Administrator
-    4: [],  # Principal
-    5: [],  # Canteen Manager
+    1: [
+        "users:create",
+        "users:global:modify",
+        "users:global:modify:username",
+        "users:global:modify:email",
+        "users:global:modify:name",
+        "users:global:modify:avatar",
+        "users:global:read",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+        "roles:global:read",
+    ],  # Website Administrator
+    2: [
+        "users:global:read",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+        "roles:global:read",
+    ],  # Superintendent
+    3: [
+        "users:global:read",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+        "roles:global:read",
+    ],  # Administrator
+    4: [
+        "users:self:modify",
+        "users:self:modify:email",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+    ],  # Principal
+    5: [
+        "users:self:modify",
+        "users:self:modify:email",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+    ],  # Canteen Manager
 }
