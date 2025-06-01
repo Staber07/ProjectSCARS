@@ -453,6 +453,6 @@ def __read_config_file(
 
 # The global configuration object for the application.
 app_config = __read_config_file(
-    os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath),
+    os.getenv("CENTRAL_SERVER_CONFIG_FILE", str(info.Configuration.default_filepath)),
     os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
 )
