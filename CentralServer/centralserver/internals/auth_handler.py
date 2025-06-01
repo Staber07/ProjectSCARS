@@ -12,7 +12,7 @@ from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.mail_handler import send_mail
+from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
@@ -202,34 +202,26 @@ async def authenticate_user(
                 == app_config.security.failed_login_notify_attempts
             ):
                 send_mail(
-                    found_user.email,
-                    f"{info.Program.name} | Someone is trying to access your account",
-                    f"""\
-Hello {found_user.nameFirst or found_user.username},
-
-Someone has attempted to log in to your account on {info.Program.name}.
-Please check your account activity and change your password if you did not initiate this login.
-
-Login attempts: {found_user.failedLoginAttempts}
-Last login attempt time: {found_user.lastFailedLoginTime}
-Last login attempt IP: {found_user.lastFailedLoginIp or 'Unknown'}
-
-If you continue to experience issues, please contact support.
-""",
-                    f"""\
-<p>Hello {found_user.nameFirst or found_user.username},</p>
-
-<p>Someone has attempted to log in to your account on {info.Program.name}.</p>
-<p>Please check your account activity and change your password if you did not initiate this login.</p>
-
-<ul>
-    <li>Login attempts: {found_user.failedLoginAttempts}</li>
-    <li>Last login attempt time: {found_user.lastFailedLoginTime}</li>
-    <li>Last login attempt IP: {found_user.lastFailedLoginIp or 'Unknown'}</li>
-</ul>
-
-<p>If you continue to experience issues, please contact support.</p>
-""",
+                    to_address=found_user.email,
+                    subject=f"{info.Program.name} | Someone is trying to access your account",
+                    text=get_template("unusual_login.txt").format(
+                        name=found_user.nameFirst or found_user.username,
+                        app_name=info.Program.name,
+                        failed_login_attempts=found_user.failedLoginAttempts,
+                        last_failed_login_time=found_user.lastFailedLoginTime.strftime(
+                            "%d %B %Y %I:%M:%S %p"
+                        ),
+                        last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
+                    ),
+                    html=get_template("unusual_login.html").format(
+                        name=found_user.nameFirst or found_user.username,
+                        app_name=info.Program.name,
+                        failed_login_attempts=found_user.failedLoginAttempts,
+                        last_failed_login_time=found_user.lastFailedLoginTime.strftime(
+                            "%d %B %Y %I:%M:%S %p"
+                        ),
+                        last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
+                    ),
                 )
 
         tries_remaining = (
