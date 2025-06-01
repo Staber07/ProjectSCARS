@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Avatar, Container, Group, Title } from "@mantine/core";
-import { CentralServerGetUserInfo } from "@/lib/api/auth";
-import { UserPublicType } from "@/lib/types";
-import { CentralServerGetUserAvatar } from "@/lib/api/user";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
+import { GetUserInfo } from "@/lib/api/auth";
+import { GetUserAvatar } from "@/lib/api/user";
+import { UserPublicType } from "@/lib/types";
+import { Avatar, Container, Group, Title } from "@mantine/core";
+import { useEffect, useState } from "react";
 
 export default function DashboardPage() {
     const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const fetchUserInfo = async () => {
         console.debug("Fetching user info");
-        setUserInfo(await CentralServerGetUserInfo());
+        setUserInfo(await GetUserInfo());
         setIsLoading(false);
     };
 
@@ -23,10 +23,10 @@ export default function DashboardPage() {
         fetchUserInfo();
         const getUserInfo = async () => {
             console.debug("Getting user info...");
-            const _userInfo = await CentralServerGetUserInfo();
+            const _userInfo = await GetUserInfo();
             setUserInfo(_userInfo);
             console.debug("Getting user avatar...");
-            const userAvatarImage = await CentralServerGetUserAvatar();
+            const userAvatarImage = await GetUserAvatar(_userInfo.id);
             if (userAvatarImage !== null) {
                 console.debug("Setting avatar blob URL...");
                 setAvatarBlobUrl((prevUrl) => {
