@@ -12,20 +12,6 @@ services:
             - centralserver-garage_data:/var/lib/garage/data
         restart: unless-stopped
 
-    centralserver-s3manager:
-        image: docker.io/khairul169/garage-webui:1.0.9
-        ports:
-            - "8084:8084"
-        volumes:
-            - ./garage.toml:/etc/garage.toml:ro
-        restart: unless-stopped
-        environment:
-            PORT: 8084
-            API_BASE_URL: "http://centralserver-garage:3903"
-            S3_ENDPOINT_URL: "http://centralserver-garage:3900"
-        depends_on:
-            - centralserver-garage
-
 volumes:
     centralserver-garage_data:
     centralserver-garage_meta:
