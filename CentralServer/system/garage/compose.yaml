@@ -11,8 +11,6 @@ services:
             - centralserver-garage_meta:/var/lib/garage/meta
             - centralserver-garage_data:/var/lib/garage/data
         restart: unless-stopped
-        env_file:
-            - .env
 
     centralserver-s3manager:
         image: docker.io/khairul169/garage-webui:1.0.9

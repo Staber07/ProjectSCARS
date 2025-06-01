@@ -380,12 +380,10 @@ that can be used with the central server. It is similar to MinIO,
 but it is designed to be lightweight and easy to use. To use Garage,
 you can follow the steps below:
 
-1. Create a `.env` and `garage.toml` file in `./CentralServer/system/garage/` using
-   the example files.
+1. Create a `garage.toml` file in `./CentralServer/system/garage/` using the example file.
 
    ```bash
    cd ./system/garage/
-   cp .env.example .env
    cp garage.example.toml garage.toml
    ```
 
@@ -411,11 +409,10 @@ you can follow the steps below:
    docker exec -ti CONTAINER_NAME /garage status
    ```
 
-5. If successful, you should be able to access the web UI dashboard at `http://localhost:8084`.
-6. Next, you will have to create a cluster layout.
+5. Next, you will have to create a cluster layout.
 
-   > [!question]
-   > Creating a cluster layout for a Garage deployment means informing Garage of the disk space available on each node of the cluster as well as the zone (e.g. datacenter) each machine is located in.
+> [!question]
+> Creating a cluster layout for a Garage deployment means informing Garage of the disk space available on each node of the cluster as well as the zone (e.g. datacenter) each machine is located in.
 
    ```bash
    docker exec -ti CONTAINER_NAME /garage layout assign -z ph1 -c 5G NODE_ID
@@ -423,18 +420,19 @@ you can follow the steps below:
 
    This command will...
 
-   - Set the zone of the node to *ph1* (`-z ph1`)
-   - Set the capacity of the node to *5G* (`-c 5G`)
+- Set the zone of the node to *ph1* (`-z ph1`)
+- Set the capacity of the node to *5G* (`-c 5G`)
 
    You will have to adjust the values to your needs. `NODE_ID` is the ID shown in the `garage status` command (first column).
 
-7. Now that you have set the layout of the cluster, you will now have to *commit* the changes. Run the following command to do so:
+6. Now that you have set the layout of the cluster, you will now have to *commit* the changes. Run the following command to do so:
 
    ```bash
    # Set the current layout as the first version of the configuration
    podman exec -ti CONTAINER_NAME /garage layout apply --version 1
    ```
 
+7. If successful, you should be able to access the web UI dashboard at `http://localhost:8084`.
 8. Now, you will have to generate an API key using Garage's CLI application for the central server. Run the following:
 
    ```bash
@@ -446,14 +444,14 @@ you can follow the steps below:
 
    ```plaintext
    ==== ACCESS KEY INFORMATION ====
-   Key ID:              GKc753b23e83e344f8a8b2c5df
+   Key ID:              GK**********************eb
    Key name:            centralserver-app-key
-   Secret key:          d5330c821cb7e4254c8e948ffd0488c6c95fdbee0b3f8adaa286fa5e933248e0
-   Created:             2025-06-01 14:25:22.464 +00:00
+   Secret key:          63************************************************************12
+   Created:             2025-06-01 16:17:23.884 +00:00
    Validity:            valid
    Expiration:          never
 
-   Can create buckets:  true
+   Can create buckets:  false
 
    ==== BUCKETS FOR THIS KEY ====
    Permissions  ID  Global aliases  Local aliases
