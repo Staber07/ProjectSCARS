@@ -129,14 +129,15 @@ async def authenticate_user(
         found_user.failedLoginAttempts
         >= app_config.security.failed_login_lockout_attempts
     ):
-        if not found_user.failedLoginTime:
+        if not found_user.lastFailedLoginTime:
             logger.warning(
                 "User %s is locked out but has no failed login time.",
                 username,
-                app_config.security.failed_login_lockout_minutes,
             )
-            found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
-            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+            found_user.lastFailedLoginTime = datetime.datetime.now(
+                datetime.timezone.utc
+            )
+            locked_out_until = found_user.lastFailedLoginTime + datetime.timedelta(
                 app_config.security.failed_login_lockout_minutes
             )
             session.commit()
@@ -147,7 +148,7 @@ async def authenticate_user(
             )
 
         # Check if the lockout period has expired.
-        if found_user.failedLoginTime.replace(
+        if found_user.lastFailedLoginTime.replace(
             tzinfo=datetime.timezone.utc
         ) + datetime.timedelta(
             minutes=app_config.security.failed_login_lockout_minutes
@@ -161,9 +162,9 @@ async def authenticate_user(
             logger.debug(
                 "User %s is locked out until %s",
                 username,
-                found_user.failedLoginTime,
+                found_user.lastFailedLoginTime,
             )
-            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+            locked_out_until = found_user.lastFailedLoginTime + datetime.timedelta(
                 minutes=app_config.security.failed_login_lockout_minutes
             )
             return (
@@ -177,8 +178,8 @@ async def authenticate_user(
                 username,
             )
             found_user.failedLoginAttempts = 0
-            found_user.failedLoginTime = None
-            found_user.failedLoginIp = None
+            found_user.lastFailedLoginTime = None
+            found_user.lastFailedLoginIp = None
             session.commit()
             session.refresh(found_user)
 
@@ -190,8 +191,8 @@ async def authenticate_user(
             found_user.failedLoginAttempts,
         )
         found_user.failedLoginAttempts += 1
-        found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
-        found_user.failedLoginIp = login_ip
+        found_user.lastFailedLoginTime = datetime.datetime.now(datetime.timezone.utc)
+        found_user.lastFailedLoginIp = login_ip
         session.commit()
         session.refresh(found_user)
 
@@ -210,8 +211,8 @@ Someone has attempted to log in to your account on {info.Program.name}.
 Please check your account activity and change your password if you did not initiate this login.
 
 Login attempts: {found_user.failedLoginAttempts}
-Last login attempt time: {found_user.failedLoginTime}
-Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}
+Last login attempt time: {found_user.lastFailedLoginTime}
+Last login attempt IP: {found_user.lastFailedLoginIp or 'Unknown'}
 
 If you continue to experience issues, please contact support.
 """,
@@ -223,8 +224,8 @@ If you continue to experience issues, please contact support.
 
 <ul>
     <li>Login attempts: {found_user.failedLoginAttempts}</li>
-    <li>Last login attempt time: {found_user.failedLoginTime}</li>
-    <li>Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}</li>
+    <li>Last login attempt time: {found_user.lastFailedLoginTime}</li>
+    <li>Last login attempt IP: {found_user.lastFailedLoginIp or 'Unknown'}</li>
 </ul>
 
 <p>If you continue to experience issues, please contact support.</p>
@@ -241,8 +242,8 @@ If you continue to experience issues, please contact support.
         )
 
     found_user.failedLoginAttempts = 0
-    found_user.failedLoginTime = None
-    found_user.failedLoginIp = None
+    found_user.lastFailedLoginTime = None
+    found_user.lastFailedLoginIp = None
     session.commit()
     session.refresh(found_user)
     logger.debug("Authentication successful: %s", username)
@@ -361,7 +362,7 @@ def verify_access_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Failed to validate user.",
-        )
+        ) from e
 
 
 async def verify_user_permission(

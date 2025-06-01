@@ -76,6 +76,13 @@ export function MainLoginComponent(): React.ReactElement {
                     color: "red",
                     icon: <IconX />,
                 });
+            } else if (error instanceof Error && error.message.includes("status code 429")) {
+                notifications.show({
+                    title: "Login failed",
+                    message: "Too many attempts, please try again later.",
+                    color: "red",
+                    icon: <IconX />,
+                });
             } else {
                 console.error("Error logging in:", error);
                 notifications.show({
