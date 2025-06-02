@@ -1,5 +1,6 @@
 "use client";
 
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import {
   ActionIcon,
   Button,
@@ -26,7 +27,7 @@ import {
   IconCalendar,
 } from "@tabler/icons-react";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const categoryLabels = {
@@ -75,7 +76,7 @@ interface ExpenseDetails {
   total: number;
 }
 
-export default function LiquidationReportPage() {
+export function LiquidationReportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const category = searchParams.get('category');
@@ -356,4 +357,12 @@ export default function LiquidationReportPage() {
       </Group>
     </Stack>
   );
+}
+
+export default function LiquidationReportPage(): React.ReactElement {
+    return (
+        <Suspense fallback={<LoadingComponent message="Please wait..." />}>
+            <LiquidationReportContent />
+        </Suspense>
+    );
 }
