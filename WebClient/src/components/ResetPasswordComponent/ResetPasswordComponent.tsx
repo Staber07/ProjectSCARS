@@ -166,57 +166,39 @@ function ResetPasswordContent(): React.ReactElement {
                     <ProgramTitleCenter classes={classes} logoControls={logoControls} />
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <form onSubmit={form.onSubmit(resetPassword)}>
-                            <Popover
-                                opened={popoverOpened}
-                                position="right"
-                                width="target"
-                                transitionProps={{ transition: "pop" }}
-                            >
-                                <Popover.Target>
-                                    <div
-                                        onFocusCapture={() => setPopoverOpened(true)}
-                                        onBlurCapture={() => setPopoverOpened(false)}
-                                    >
-                                        <PasswordInput
-                                            withAsterisk
-                                            label="New Password"
-                                            value={pwValue}
-                                            placeholder="Your new password"
-                                            key={form.key("new_password")}
-                                            {...form.getInputProps("new_password")}
-                                            mt="md"
-                                            onChange={(event) => {
-                                                setPwValue(event.currentTarget.value);
-                                                form.setFieldValue("new_password", event.currentTarget.value);
-                                            }}
-                                            onVisibilityChange={pwVisibilityToggle}
-                                        />
-                                        <TextInput
-                                            withAsterisk
-                                            type={pwVisible ? "text" : "password"}
-                                            label="Confirm Password"
-                                            value={pwConfValue}
-                                            placeholder="Confirm your new password"
-                                            mt="md"
-                                            onChange={(event) => {
-                                                setPwConfValue(event.currentTarget.value);
-                                            }}
-                                            error={
-                                                pwValue !== pwConfValue && pwConfValue.length > 0
-                                                    ? "Passwords do not match"
-                                                    : null
-                                            }
-                                        />
-                                    </div>
-                                </Popover.Target>
-                                <Popover.Dropdown>
-                                    <Text size="sm" mb={5} c="dimmed">
-                                        Please choose a strong but memorable password.
-                                    </Text>
-                                    <Progress color={meterColor} value={pwStrength} size={5} mb="xs" />
-                                    {checks}
-                                </Popover.Dropdown>
-                            </Popover>
+                            <PasswordInput
+                                withAsterisk
+                                label="New Password"
+                                value={pwValue}
+                                placeholder="Your new password"
+                                key={form.key("new_password")}
+                                {...form.getInputProps("new_password")}
+                                mt="md"
+                                onChange={(event) => {
+                                    setPwValue(event.currentTarget.value);
+                                    form.setFieldValue("new_password", event.currentTarget.value);
+                                }}
+                                onVisibilityChange={pwVisibilityToggle}
+                            />
+                            <TextInput
+                                withAsterisk
+                                type={pwVisible ? "text" : "password"}
+                                label="Confirm Password"
+                                value={pwConfValue}
+                                placeholder="Confirm your new password"
+                                mt="md"
+                                onChange={(event) => {
+                                    setPwConfValue(event.currentTarget.value);
+                                }}
+                                error={
+                                    pwValue !== pwConfValue && pwConfValue.length > 0 ? "Passwords do not match" : null
+                                }
+                            />
+                            <Text size="sm" mb={5} c="dimmed" pt={25}>
+                                Please choose a strong but memorable password.
+                            </Text>
+                            <Progress color={meterColor} value={pwStrength} size={5} mb="xs" />
+                            {checks}
                             <Container style={{ display: "flex", gap: "1rem" }}>
                                 <Button
                                     id="reset-password-button"
