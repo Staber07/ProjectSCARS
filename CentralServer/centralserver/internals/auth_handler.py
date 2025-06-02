@@ -282,7 +282,7 @@ async def create_access_token(
 
 def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
-) -> DecodedJWTToken | None:
+) -> DecodedJWTToken:
     """Get the current user from the JWE token.
 
     Args:
