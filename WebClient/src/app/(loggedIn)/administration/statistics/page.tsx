@@ -15,19 +15,30 @@ import classes from './Stats.module.css';
 
 import { getNetdata } from './NetSalesdata';
 import { getGrossdata } from './GrossProfitdata';
-import { getCostOfSalesData } from './CostOfSalesData';
-import { ExpenseBreakdownData } from './ExpenseBreakdownData';
-import { NetIncomeData } from './NetIncomeData';
-import { UtilizationData } from './UtilizationData';
-import { ProfitMarginData } from './ProfitMarginData';
-import { CostToSalesData } from './CostToSalesData';
-import { ExpenseToIncomeData } from './ExpenseToIncomeData';
-import { MonthlySummaryData } from './MonthlySummaryData';
-import { YearlyComparisonData } from './YearlyComparisonData';
-import { BestMonthData } from './BestMonthData';
+import { getCostOfSalesData } from './CostofSalesData';
+import { getExpensesBreakdownData } from './ExpensesBreakdownData';
+import { getNetIncomeData } from './NetIncomeData';
+import { getUtilizationData } from './UtilizationData';
+import { getProfitMarginData } from './ProfitMarginData';
+import { getCostToSalesData } from './CostToSalesData';
+import { getExpenseToIncomeData } from './ExpenseToIncomeData';
+import { getMonthlySummaryData } from './MonthlySummaryData';
+import { getYearlyComparisonData } from './YearlyComparisonData';
+import { getBestMonthData } from './BestMonthData';
 
 const Netdata = getNetdata();
 const Grossdata = getGrossdata();
+const CostOfSalesData = getCostOfSalesData();
+const ExpenseBreakdownData = getExpensesBreakdownData();
+const NetIncomeData = getNetIncomeData(); 
+const UtilizationData = getUtilizationData();
+const ProfitMarginData = getProfitMarginData();
+const CostToSalesData = getCostToSalesData();
+const ExpenseToIncomeData = getExpenseToIncomeData();
+const MonthlySummaryData = getMonthlySummaryData();
+const YearlyComparisonData = getYearlyComparisonData();
+const BestMonthData = getBestMonthData();
+
 
 
 const icons = {
