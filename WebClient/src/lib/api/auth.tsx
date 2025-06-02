@@ -56,33 +56,17 @@ export async function LoginUser(username: string, password: string): Promise<Tok
  * @param {boolean} refresh - Whether to force a refresh of the user data.
  * @return {Promise<UserPublicType>} A promise that resolves to the user data.
  */
-export async function GetUserInfo(refresh: boolean = false): Promise<UserPublicType> {
-    let userData: UserPublicType;
-    if (refresh || localStorage.getItem(LocalStorage.user_data) === null) {
-        console.debug("Fetching user data from central server");
-        const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
-            headers: { Authorization: GetAccessTokenHeader() },
-        });
-        if (!centralServerResponse.ok) {
-            const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-            console.error(errorMessage);
-            throw new Error(errorMessage);
-        }
-
-        userData = await centralServerResponse.json();
-        localStorage.setItem(LocalStorage.user_data, JSON.stringify(userData));
-    } else {
-        // Use cached user data from local storage
-        console.debug("Fetching user data from local storage");
-        const lsContent = localStorage.getItem(LocalStorage.user_data);
-        if (lsContent === null) {
-            console.error("User data is not set. Getting it from the server...");
-            return GetUserInfo((refresh = true));
-        }
-        userData = JSON.parse(lsContent);
+export async function GetUserInfo(): Promise<UserPublicType> {
+    const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
     }
 
-    return userData;
+    return await centralServerResponse.json();
 }
 
 /**

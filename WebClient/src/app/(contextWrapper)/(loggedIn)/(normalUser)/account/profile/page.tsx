@@ -23,11 +23,10 @@ import { useDisclosure } from "@mantine/hooks";
 
 import { GetUserInfo } from "@/lib/api/auth";
 import { GetUserAvatar, UploadUserAvatar } from "@/lib/api/user";
-import { UserPublicType } from "@/lib/types";
+import { useUser } from "@/lib/providers/user";
 
 export default function ProfilePage() {
-    const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
-    const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
+    const userCtx = useUser();
     const [opened, { open, close }] = useDisclosure(false);
 
     const uploadAvatar = async (file: File | null) => {
@@ -35,56 +34,15 @@ export default function ProfilePage() {
             console.debug("No file selected, skipping upload...");
             return;
         }
-        if (userInfo === null) {
-            console.debug("User info is null, cannot upload avatar.");
+        if (userCtx.userInfo === null) {
+            console.error("User info is null, cannot upload avatar.");
             return;
         }
         console.debug("Uploading avatar...");
-        const updatedUserInfo = await UploadUserAvatar(userInfo?.id, file);
-        setUserInfo(updatedUserInfo);
+        const updatedUserInfo = await UploadUserAvatar(userCtx.userInfo.id, file);
+        userCtx.updateUserInfo(updatedUserInfo, file);
         console.debug("Avatar uploaded successfully.");
-
-        setAvatarBlobUrl((prevUrl) => {
-            if (prevUrl) {
-                URL.revokeObjectURL(prevUrl);
-            }
-            return URL.createObjectURL(file);
-        });
-        console.debug("Avatar blob URL set successfully.");
     };
-
-    useEffect(() => {
-        console.debug("ProfilePage useEffect started");
-        const getUserInfo = async () => {
-            console.debug("Getting user info...");
-            const _userInfo = await GetUserInfo();
-            setUserInfo(_userInfo);
-            console.debug("Getting user avatar...");
-            const userAvatarImage = await GetUserAvatar(_userInfo.id);
-            if (userAvatarImage !== null) {
-                console.debug("Setting avatar blob URL...");
-                setAvatarBlobUrl((prevUrl) => {
-                    if (prevUrl) {
-                        URL.revokeObjectURL(prevUrl);
-                    }
-                    return URL.createObjectURL(userAvatarImage);
-                });
-            } else {
-                console.debug("User avatar is null, skipping....");
-            }
-        };
-        getUserInfo();
-
-        return () => {
-            console.debug("Cleaning up avatar blob URL...");
-            setAvatarBlobUrl((prevUrl) => {
-                if (prevUrl) {
-                    URL.revokeObjectURL(prevUrl);
-                }
-                return null;
-            });
-        };
-    }, []);
 
     console.debug("Rendering ProfilePage");
 
@@ -102,17 +60,17 @@ export default function ProfilePage() {
                             radius="lg"
                             size={100}
                             color="#258ce6"
-                            src={avatarBlobUrl ? avatarBlobUrl : undefined}
+                            src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
                         />
                         <Stack gap={0}>
                             <Text size="sm" c="dimmed">
-                                {userInfo?.roleId}
+                                {userCtx.userInfo?.roleId}
                             </Text>
                             <Text fw={600} size="lg">
-                                {userInfo?.nameFirst}
+                                {userCtx.userInfo?.nameFirst}
                             </Text>
                             <Text size="sm" c="dimmed">
-                                {userInfo?.username}
+                                {userCtx.userInfo?.username}
                             </Text>
                         </Stack>
                     </Group>
@@ -135,7 +93,7 @@ export default function ProfilePage() {
                     <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                         <TextInput
                             label="Email"
-                            value={userInfo?.email || ""}
+                            value={userCtx.userInfo?.email || ""}
                             size="sm"
                             disabled
                             w="100%"

@@ -4,7 +4,8 @@ import { createContext, ReactNode, useContext, useState } from "react";
 interface UserContextType {
     userInfo: UserPublicType | null;
     userAvatar: Blob | null;
-    updateUserInfo: (userInfo: UserPublicType) => void;
+    userAvatarUrl: string | null;
+    updateUserInfo: (userInfo: UserPublicType, userAvatar?: Blob | null) => void;
     clearUserInfo: () => void;
 }
 
@@ -17,6 +18,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: UserProviderProps): ReactNode {
     const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
     const [userAvatar, setUserAvatar] = useState<Blob | null>(null);
+    const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
     /**
      * Update the user information and optionally the user avatar.
@@ -28,6 +30,12 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
         setUserInfo(userInfo);
         if (userAvatar) {
             setUserAvatar(userAvatar);
+            setUserAvatarUrl((prevUrl) => {
+                if (prevUrl) {
+                    URL.revokeObjectURL(prevUrl);
+                }
+                return URL.createObjectURL(userAvatar);
+            });
         }
     };
 
@@ -40,7 +48,7 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     };
 
     return (
-        <UserContext.Provider value={{ userInfo, userAvatar, updateUserInfo, clearUserInfo }}>
+        <UserContext.Provider value={{ userInfo, userAvatar, userAvatarUrl, updateUserInfo, clearUserInfo }}>
             {children}
         </UserContext.Provider>
     );
@@ -55,7 +63,7 @@ export function useUser(): UserContextType {
     console.debug("useUser called");
     const ctx = useContext(UserContext);
     if (!ctx) {
-        const errorMessage = "useUser must be used within an UserProvider";
+        const errorMessage = "useUser must be used within a UserProvider";
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
