@@ -35,3 +35,11 @@ export const randomLoadingMessages: string[] = [
     "Auditing the piggy bank...",
     "Making sure every cent is accounted for...",
 ];
+
+export const roles: Record<number, string> = {
+    1: "Website Administrator",
+    2: "Superintendent",
+    3: "Administrator",
+    4: "Principal",
+    5: "Canteen Manager",
+};

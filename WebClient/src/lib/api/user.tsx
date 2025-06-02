@@ -10,7 +10,7 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
  * Fetch the user avatar from the central server.
  * @returns {Promise<Blob | null>} A promise that resolves to the user avatar as a Blob, or null if no avatar is set.
  */
-export async function GetUserAvatar(fn: string): Promise<Blob | null> {
+export async function GetUserAvatar(fn: string): Promise<Blob> {
     const centralServerResponse = await ky.get(`${endpoint}/users/avatar`, {
         headers: { Authorization: GetAccessTokenHeader() },
         searchParams: { fn: fn },
