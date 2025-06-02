@@ -1,4 +1,6 @@
-export const Netdata = [
+export function getNetdata(){
+
+return [
 {
     date: 'January',
     sales: 100,
@@ -16,3 +18,5 @@ export const Netdata = [
     sales: 800,
 }
 ]
+
+}
