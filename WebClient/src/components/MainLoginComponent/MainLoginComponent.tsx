@@ -1,6 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
+import { useUser } from "@/lib/providers/user";
 import { GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
@@ -12,6 +13,7 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
+import { GetUserAvatar } from "@/lib/api/user";
 
 interface LoginFormValues {
     username: string;
@@ -25,7 +27,8 @@ interface LoginFormValues {
  */
 export function MainLoginComponent(): React.ReactElement {
     const router = useRouter();
-    const auth = useAuth();
+    const authCtx = useAuth();
+    const userCtx = useUser();
     const logoControls = useAnimation();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const form = useForm<LoginFormValues>({
@@ -58,8 +61,20 @@ export function MainLoginComponent(): React.ReactElement {
 
         try {
             const tokens = await LoginUser(values.username, values.password);
-            auth.login(tokens);
-            await GetUserInfo(true);
+            authCtx.login(tokens);
+
+            const userInfo = await GetUserInfo();
+            console.debug("User info fetched successfully", { id: userInfo.id, username: userInfo.username });
+            let userAvatar: Blob | null = null;
+            if (userInfo.avatarUrn) {
+                userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                if (userAvatar) {
+                    console.debug("User avatar fetched successfully", { size: userAvatar.size });
+                } else {
+                    console.warn("No avatar found for user, using default avatar.");
+                }
+            }
+            userCtx.updateUserInfo(userInfo, userAvatar);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
                 title: "Login successful",
@@ -67,7 +82,7 @@ export function MainLoginComponent(): React.ReactElement {
                 color: "green",
                 icon: <IconCheck />,
             });
-            router.push("/");
+            router.push("/dashboard");
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 401")) {
                 notifications.show({

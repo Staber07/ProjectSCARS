@@ -1,12 +1,12 @@
 "use client";
 
 import { Navbar } from "@/components/Navbar";
-import { GetUserInfo } from "@/lib/api/auth";
-import { AuthProvider, useAuth } from "@/lib/providers/auth";
+import { useAuth } from "@/lib/providers/auth";
+import { useUser } from "@/lib/providers/user";
 import { AppShell, ScrollArea } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 /**
  * Layout component for logged-in users.
@@ -15,11 +15,7 @@ import { useEffect, useState } from "react";
  */
 export default function LoggedInLayout({ children }: { children: React.ReactNode }) {
     console.debug("Rendering LoggedInLayout");
-    return (
-        <AuthProvider>
-            <LoggedInContent>{children}</LoggedInContent>
-        </AuthProvider>
-    );
+    return <LoggedInContent>{children}</LoggedInContent>;
 }
 
 /**
@@ -28,25 +24,20 @@ export default function LoggedInLayout({ children }: { children: React.ReactNode
  * @param {React.ReactNode} props.children - The child components to render within the content area.
  */
 function LoggedInContent({ children }: { children: React.ReactNode }) {
-    const [userRole, setUserRole] = useState<number | null>(null);
+    const { userInfo, clearUserInfo } = useUser();
     const { isAuthenticated } = useAuth();
     const [opened] = useDisclosure();
     const router = useRouter();
 
-    useEffect(() => {
-        console.debug("LoggedInContent useEffect started", { isAuthenticated });
-        const fetchUserInfo = async () => {
-            console.debug("Fetching user information");
-            const userInfo = await GetUserInfo();
-            setUserRole(userInfo.roleId);
-        };
-        if (!isAuthenticated) {
-            router.push("/");
-        }
-        fetchUserInfo();
-    }, [isAuthenticated, router]);
-
     console.debug("Rendering LoggedInContent", { isAuthenticated });
+    useEffect(() => {
+        // If the user is not authenticated, redirect to the login page.
+        if (!isAuthenticated) {
+            console.debug("User is not authenticated, redirecting to login page");
+            clearUserInfo();
+            router.push("/login");
+        }
+    }, [clearUserInfo, isAuthenticated, router]);
     return (
         <AppShell
             navbar={{
@@ -58,7 +49,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
         >
             <AppShell.Navbar p="md">
                 <ScrollArea scrollbars="y">
-                    <Navbar enableAdminButtons={userRole === 1 || userRole === 2} />
+                    <Navbar enableAdminButtons={userInfo?.roleId === 1 || userInfo?.roleId === 2} />
                 </ScrollArea>
             </AppShell.Navbar>
             <AppShell.Main>{children}</AppShell.Main>
