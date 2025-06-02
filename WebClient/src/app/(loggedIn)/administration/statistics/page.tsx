@@ -15,7 +15,7 @@ import classes from './Stats.module.css';
 
 import { getNetdata } from './NetSalesdata';
 import { getGrossdata } from './GrossProfitdata';
-import { getCostOfSalesData } from './CostofSalesData';
+import { getCostOfSalesData } from './CostOfSalesData';
 import { getExpensesBreakdownData } from './ExpensesBreakdownData';
 import { getNetIncomeData } from './NetIncomeData';
 import { getUtilizationData } from './UtilizationData';
