@@ -20,7 +20,7 @@ import { getExpensesBreakdownData } from './ExpensesBreakdownData';
 import { getNetIncomeData } from './NetIncomeData';
 import { getUtilizationData } from './UtilizationData';
 import { getProfitMarginData } from './ProfitMarginData';
-import { getCostToSalesData } from './CostToSalesData';
+import { getCostToSalesData } from  './CostToSalesData';
 import { getExpenseToIncomeData } from './ExpenseToIncomeData';
 import { getMonthlySummaryData } from './MonthlySummaryData';
 import { getYearlyComparisonData } from './YearlyComparisonData';
@@ -88,6 +88,11 @@ export default function StatisticsPage() {
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card withBorder p="lg"><Title order={4}>Monthly Net Sales</Title>
           <LineChart h={300} data={Netdata} dataKey="date" series={[{ name: 'sales', color: 'indigo.6' }]} /></Card>
+        </Grid.Col>
+
+        <Grid.Col span={{ base: 12, md: 6 }}>
+          <Card withBorder p="lg"><Title order={4}>Monthly Net Sales</Title>
+          <LineChart h={300} data={Grossdata} dataKey="date" series={[{ name: 'sales', color: 'indigo.6' }]} /></Card>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 6 }}>
