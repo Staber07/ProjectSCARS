@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * @param {AuthProviderProps} props - The properties for the AuthProvider component.
  * @return {React.FC<AuthProviderProps>} The AuthProvider component.
  */
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
         if (typeof window === "undefined") {
             console.debug("Window is undefined");
@@ -54,7 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>;
-};
+}
 
 /**
  * Hook to access the authentication context.
