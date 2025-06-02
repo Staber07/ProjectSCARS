@@ -1,22 +1,21 @@
-export function getGrossdata(){
+export function getCostOfSalesData(){
 
 return [
-
 {
     date: 'January',
-    gross: 5,
+    sales: 100,
 },
 {
     date: 'February',
-    gross: 60,
+    sales: 300,
 },
 {
     date: 'March',
-    gross: 23,
+    sales: 500,
 },
 {
     date: 'April',
-    gross: 20,
+    sales: 800,
 }
 ]
 
