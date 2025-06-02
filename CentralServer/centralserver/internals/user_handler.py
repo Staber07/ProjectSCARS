@@ -8,10 +8,11 @@ from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
 )
-from centralserver.internals.auth_handler import crypt_ctx
+from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.object_store import BucketObject
+from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
 
 logger = LoggerFactory().get_logger(__name__)
@@ -120,13 +121,14 @@ async def create_user(
 
 
 async def update_user_avatar(
-    target_user: str, img: bytes | None, session: Session
+    target_user: str, img: bytes | None, token: DecodedJWTToken, session: Session
 ) -> UserPublic:
     """Update the user's avatar in the database.
 
     Args:
         target_user: The user to update.
         img: The new avatar image.
+        token: The decoded JWT token of the user making the request.
         session: The database session to use.
 
     Returns:
@@ -142,6 +144,20 @@ async def update_user_avatar(
             detail="User not found",
         )
 
+    updating_self = selected_user.id == token.id
+    if not await verify_user_permission(
+        "users:self:modify:avatar" if updating_self else "users:global:modify:avatar",
+        session=session,
+        token=token,
+    ):
+        logger.warning(
+            "Failed to update user: %s (permission denied: avatar)", target_user
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied: Cannot modify avatar.",
+        )
+
     object_store_manager = await get_object_store_handler(app_config.object_store)
     if img is None:
         logger.debug("Deleting avatar for user: %s", target_user)
@@ -154,7 +170,7 @@ async def update_user_avatar(
 
     else:
         logger.debug("Updating avatar for user: %s", target_user)
-        object = await object_store_manager.put(
+        bucket_object = await object_store_manager.put(
             BucketNames.AVATARS, selected_user.id, img
         )
         if selected_user.avatarUrn is not None:  # Delete old avatar if it exists
@@ -162,7 +178,7 @@ async def update_user_avatar(
                 BucketNames.AVATARS, selected_user.avatarUrn
             )
 
-        selected_user.avatarUrn = object.fn
+        selected_user.avatarUrn = bucket_object.fn
 
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
@@ -172,11 +188,14 @@ async def update_user_avatar(
     return UserPublic.model_validate(selected_user)
 
 
-async def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
+async def update_user_info(
+    target_user: UserUpdate, token: DecodedJWTToken, session: Session
+) -> UserPublic:
     """Update the user's information in the database.
 
     Args:
         target_user: The user to update with new info.
+        token: The decoded JWT token of the user making the request.
         session: The database session to use.
     """
 
@@ -189,7 +208,26 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
             detail="User not found",
         )
 
+    updating_self = selected_user.id == token.id
     if target_user.username:  # Update username if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:username"
+                if updating_self
+                else "users:global:modify:username"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: username)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify username.",
+            )
+
         logger.debug("Updating username for user: %s", target_user.id)
         # Check username availability
         if target_user.username != selected_user.username:
@@ -223,22 +261,91 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
         selected_user.username = target_user.username
 
     if target_user.email:  # Update email if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:email"
+                if updating_self
+                else "users:global:modify:email"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: email)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify email.",
+            )
         logger.debug("Updating email for user: %s", target_user.id)
         selected_user.email = target_user.email
 
     if target_user.nameFirst:  # Update first name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating first name for user: %s", target_user.id)
         selected_user.nameFirst = target_user.nameFirst
 
     if target_user.nameMiddle:  # Update middle name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating middle name for user: %s", target_user.id)
         selected_user.nameMiddle = target_user.nameMiddle
 
     if target_user.nameLast:  # Update last name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating last name for user: %s", target_user.id)
         selected_user.nameLast = target_user.nameLast
 
     if target_user.password:  # Update password if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:password"
+                if updating_self
+                else "users:global:modify:password"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: password)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify password.",
+            )
         logger.debug("Updating password for user: %s", target_user.id)
         # Validate password
         password_is_valid, password_err = await validate_password(target_user.password)

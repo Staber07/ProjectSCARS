@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
+from minio.error import S3Error
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
@@ -32,8 +33,6 @@ router = APIRouter(
 
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
-##### Normal user routes #####
-
 
 @router.get("/me", status_code=status.HTTP_200_OK, response_model=UserPublic)
 async def get_user_profile_endpoint(
@@ -50,61 +49,30 @@ async def get_user_profile_endpoint(
         The user's profile information.
     """
 
+    if not await verify_user_permission("users:self:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view your profile.",
+        )
+
     logger.debug("Fetching user profile for user ID: %s", token.id)
-    return UserPublic.model_validate(
-        session.exec(select(User).where(User.id == token.id)).one()
-    )
+    return UserPublic.model_validate(session.get(User, token.id))
 
 
-@router.patch("/me/update")
-async def update_user_profile_endpoint(
-    updated_user_info: UserUpdate,
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
-    """Update the logged-in user's profile information.
-
-    Args:
-        updated_user_info: The new user information.
-        token: The access token of the logged-in user.
-        session: The session to the database.
-
-    Returns:
-        The newly updated user information.
-
-    Raises:
-        HTTPException: Raised when the user does not have permission to update their profile.
-    """
-
-    if not await verify_user_permission("users:global:selfupdate", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update your profile.",
-        )
-
-    if token.id != updated_user_info.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only update your own profile. Use `/users/update` if you want to update another user's profile.",
-        )
-
-    logger.debug("user %s is updating their profile...", token.id)
-    return await update_user_info(updated_user_info, session)
-
-
-##### Admin user routes #####
-
-
-@router.get("/all", status_code=status.HTTP_200_OK, response_model=list[UserPublic])
+@router.get("/", status_code=status.HTTP_200_OK, response_model=list[UserPublic])
 async def get_all_users_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    limit: int = 25,
+    offset: int = 0,
 ) -> list[UserPublic]:
     """Get all users and their information.
 
     Args:
         token: The access token of the logged-in user.
         session: The session to the database.
+        limit: The maximum number of users to return (default is 25).
+        offset: The number of users to skip (default is 0).
 
     Returns:
         A list of users and their information.
@@ -118,20 +86,21 @@ async def get_all_users_endpoint(
 
     logger.debug("user %s fetching all user info", token.id)
     return [
-        UserPublic.model_validate(user) for user in session.exec(select(User)).all()
+        UserPublic.model_validate(user)
+        for user in session.exec(select(User).limit(limit).offset(offset)).all()
     ]
 
 
-@router.get("/{userId}", response_model=UserPublic)
+@router.get("/", status_code=status.HTTP_200_OK, response_model=UserPublic)
 async def get_user_endpoint(
-    userId: str,
+    user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Get the information of a specific user.
 
     Args:
-        userId: The ID of the user to fetch.
+        user_id: The ID of the user to fetch.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -142,11 +111,11 @@ async def get_user_endpoint(
     if not await verify_user_permission("users:global:read", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view users.",
+            detail="You do not have permission to view users' information.",
         )
 
-    logger.debug("user %s fetching all user info", token.id)
-    selected_user = session.get(User, userId)
+    logger.debug("user %s fetching user info of %s", token.id, user_id)
+    selected_user = session.get(User, user_id)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -156,7 +125,7 @@ async def get_user_endpoint(
     return UserPublic.model_validate(selected_user)
 
 
-@router.get("/avatar/{fn}")
+@router.get("/avatar", status_code=status.HTTP_200_OK, response_class=StreamingResponse)
 async def get_user_avatar_endpoint(
     fn: str,
     token: logged_in_dep,
@@ -173,23 +142,45 @@ async def get_user_avatar_endpoint(
         The user's avatar image.
     """
 
-    if not await verify_user_permission("users:global:read", session, token):
+    user = await get_user(token.id, session=session, by_id=True)
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view users.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
         )
 
-    bucket_object = await get_user_avatar(fn)
-    if bucket_object is None:
+    if not await verify_user_permission(
+        "users:self:read" if user.avatarUrn == fn else "users:global:read",
+        session,
+        token,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You do not have permission to view your profile."
+                if user.avatarUrn == fn
+                else "You do not have permission to view other users' information."
+            ),
+        )
+
+    try:
+        bucket_object = await get_user_avatar(fn)
+        if bucket_object is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found.",
+            )
+
+    except S3Error as e:
+        logger.error("Error fetching user avatar: %s", e)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Avatar not found.",
-        )
+        ) from e
 
     return StreamingResponse(BytesIO(bucket_object.obj), media_type="image/*")
 
 
-@router.patch("/update")
+@router.patch("/", status_code=status.HTTP_200_OK, response_model=UserPublic)
 async def update_user_endpoint(
     updated_user_info: UserUpdate,
     token: logged_in_dep,
@@ -202,21 +193,32 @@ async def update_user_endpoint(
         session: The session to the database.
     """
 
-    if not await verify_user_permission("users:global:modify", session, token):
+    updating_self = updated_user_info.id == token.id
+    if not await verify_user_permission(
+        ("users:self:modify" if updating_self else "users:global:modify"),
+        session,
+        token,
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update user profiles. Use `/me/update` to update your own profile.",
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update other user profiles."
+            ),
         )
 
     logger.debug(
         "user %s is updating user profile of %s...", token.id, updated_user_info.id
     )
-    return await update_user_info(updated_user_info, session)
+    return await update_user_info(
+        target_user=updated_user_info, token=token, session=session
+    )
 
 
-@router.patch("/update/avatar")
+@router.patch("/avatar", status_code=status.HTTP_200_OK, response_model=UserPublic)
 async def update_user_avatar_endpoint(
-    userId: str,
+    user_id: str,
     img: UploadFile,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -224,7 +226,7 @@ async def update_user_avatar_endpoint(
     """Update a user's avatar.
 
     Args:
-        userId: The ID of the user to update.
+        user_id: The ID of the user to update.
         img: The new avatar image.
         token: The access token of the logged-in user.
         session: The session to the database.
@@ -233,63 +235,37 @@ async def update_user_avatar_endpoint(
         The updated user information.
     """
 
-    if not await verify_user_permission("users:global:modify", session, token):
+    updating_self = user_id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify",
+        session,
+        token,
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update user profiles. Use `/me/update/avatar` to update your own profile.",
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update other user profiles."
+            ),
         )
 
-    logger.debug("user %s is updating user profile of %s...", token.id, userId)
-    return await update_user_avatar(userId, await img.read(), session)
+    logger.debug("user %s is updating user profile of %s...", token.id, user_id)
+    return await update_user_avatar(user_id, await img.read(), token, session)
 
 
-@router.delete("/update/avatar")
+@router.delete("/avatar", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user_avatar_endpoint(
-    userId: str,
+    user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ):
     """Delete a user's avatar.
 
     Args:
-        userId: The ID of the user to update.
+        user_id: The ID of the user to update.
         token: The access token of the logged-in user.
         session: The session to the database.
-    """
-
-    if not await verify_user_permission("users:global:modify", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update user profiles. Use `/me/update/avatar` to update your own profile.",
-        )
-
-    logger.debug("user %s is deleting user avatar of %s...", token.id, userId)
-    try:
-        return await update_user_avatar(userId, None, session)
-
-    except ValueError as e:
-        logger.warning(f"Error deleting user avatar: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User does not have an avatar set.",
-        )
-
-
-@router.patch("/update/me/avatar")
-async def update_self_user_avatar_endpoint(
-    img: UploadFile,
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
-    """Update a user's avatar.
-
-    Args:
-        img: The new avatar image.
-        token: The access token of the logged-in user.
-        session: The session to the database.
-
-    Returns:
-        The updated user information.
     """
 
     if not await verify_user_permission("users:global:modify", session, token):
@@ -298,22 +274,30 @@ async def update_self_user_avatar_endpoint(
             detail="You do not have permission to update user profiles.",
         )
 
-    logger.debug("user %s is updating their user profile...", token.id)
-    return await update_user_avatar(token.id, await img.read(), session)
+    logger.debug("user %s is deleting user avatar of %s...", token.id, user_id)
+    try:
+        return await update_user_avatar(user_id, None, token, session)
+
+    except ValueError as e:
+        logger.warning("Error deleting user avatar: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User does not have an avatar set.",
+        ) from e
 
 
-@router.patch("/update/role")
+@router.patch("/role")  # TODO: merge with PATCH /
 async def update_user_role_endpoint(
-    userId: str,
-    roleId: int,
+    user_id: str,
+    role_id: int,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Update a user's role.
 
     Args:
-        userId: The ID of the user to update.
-        roleId: The ID of the new role to assign.
+        user_id: The ID of the user to update.
+        role_id: The ID of the new role to assign.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -324,15 +308,15 @@ async def update_user_role_endpoint(
         HTTPException: Raised when the user does not have permission to update users' roles.
     """
 
-    logger.debug("User %s is updating user role of %s...", token.id, userId)
+    logger.debug("User %s is updating user role of %s...", token.id, user_id)
     if not await verify_user_permission("users:global:modify", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to update users' roles.",
         )
 
-    selected_user = await get_user(userId, session=session, by_id=True)
-    user_role = await get_role(roleId, session)
+    selected_user = await get_user(user_id, session=session, by_id=True)
+    user_role = await get_role(role_id, session)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -361,22 +345,22 @@ async def update_user_role_endpoint(
             )
 
     logger.debug("Setting user %s role to %s", selected_user.id, user_role.id)
-    selected_user.roleId = roleId
+    selected_user.roleId = role_id
     session.commit()
     session.refresh(selected_user)
     return UserPublic.model_validate(selected_user)
 
 
-@router.patch("/update/deactivate")
+@router.patch("/deactivate")  # TODO: merge with PATCH /
 async def deactivate_user_endpoint(
-    userId: str,
+    user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Deactivate a user.
 
     Args:
-        userId: The ID of the user to deactivate.
+        user_id: The ID of the user to deactivate.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -393,7 +377,7 @@ async def deactivate_user_endpoint(
             detail="You do not have permission to deactivate users.",
         )
 
-    selected_user = session.get(User, userId)
+    selected_user = session.get(User, user_id)
 
     if not selected_user:
         raise HTTPException(
@@ -418,16 +402,16 @@ async def deactivate_user_endpoint(
     return UserPublic.model_validate(selected_user)
 
 
-@router.patch("/update/reactivate")
+@router.patch("/reactivate")  # TODO: merge with PATCH /
 async def reactivate_user_endpoint(
-    userId: str,
+    user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Reactivate a user.
 
     Args:
-        userId: The ID of the user to reactivate.
+        user_id: The ID of the user to reactivate.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -444,7 +428,7 @@ async def reactivate_user_endpoint(
             detail="You do not have permission to reactivate users.",
         )
 
-    selected_user = session.get(User, userId)
+    selected_user = session.get(User, user_id)
     if not selected_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -457,16 +441,16 @@ async def reactivate_user_endpoint(
     return UserPublic.model_validate(selected_user)
 
 
-@router.patch("/update/force")
+@router.patch("/force")  # TODO: merge with PATCH /
 async def force_update_user_endpoint(
-    userId: str,
+    user_id: str,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> UserPublic:
     """Force a user to update their profile information on login.
 
     Args:
-        userId: The ID of the user to force update.
+        user_id: The ID of the user to force update.
         token: The access token of the logged-in user.
         session: The session to the database.
 
@@ -483,7 +467,7 @@ async def force_update_user_endpoint(
             detail="You do not have permission to update user profiles.",
         )
 
-    selected_user = session.get(User, userId)
+    selected_user = session.get(User, user_id)
 
     if not selected_user:
         raise HTTPException(

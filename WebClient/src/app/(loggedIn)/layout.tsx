@@ -1,7 +1,7 @@
 "use client";
 
 import { Navbar } from "@/components/Navbar";
-import { CentralServerGetUserInfo } from "@/lib/api/auth";
+import { GetUserInfo } from "@/lib/api/auth";
 import { AuthProvider, useAuth } from "@/lib/providers/auth";
 import { AppShell, ScrollArea } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
@@ -37,7 +37,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
         console.debug("LoggedInContent useEffect started", { isAuthenticated });
         const fetchUserInfo = async () => {
             console.debug("Fetching user information");
-            const userInfo = await CentralServerGetUserInfo();
+            const userInfo = await GetUserInfo();
             setUserRole(userInfo.roleId);
         };
         if (!isAuthenticated) {

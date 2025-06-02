@@ -177,16 +177,16 @@ class Security:
             allow_credentials: Whether to allow credentials to be sent.
             allow_methods: Which methods are allowed.
             allow_headers: Which headers are allowed.
-            failed_login_notify_attempts: The number of failed login attempts before notifying the user.
-            failed_login_lockout_attempts: The number of failed login attempts before locking the user out.
-            failed_login_lockout_minutes: The number of minutes to lock the user out after failed login attempts.
+            failed_login_notify_attempts: Number of failed login attempts before notifying the user.
+            failed_login_lockout_attempts: Number of failed login attempts before locking the user out.
+            failed_login_lockout_minutes: Duration for which the user is locked out after too many failed login attempts.
         """
 
         self.allow_origins: list[str] = allow_origins or ["*"]
         self.allow_credentials: bool = allow_credentials or True
         self.allow_methods: list[str] = allow_methods or ["*"]
         self.allow_headers: list[str] = allow_headers or ["*"]
-        self.failed_login_notify_attempts: int = failed_login_notify_attempts or 2
+        self.failed_login_notify_attempts: int = failed_login_notify_attempts or 3
         self.failed_login_lockout_attempts: int = failed_login_lockout_attempts or 5
         self.failed_login_lockout_minutes: int = failed_login_lockout_minutes or 15
 
@@ -200,6 +200,8 @@ class Mailing:
         from_address: str | None = None,
         username: str | None = None,
         password: str | None = None,
+        templates_dir: str | None = None,
+        templates_encoding: str | None = None,
     ) -> None:
         """The mailing configuration.
 
@@ -210,6 +212,8 @@ class Mailing:
             from_address: The email address to use as the sender.
             username: The username for the SMTP server.
             password: The password for the SMTP server.
+            templates_dir: The directory containing email templates. (Default: "./templates/mail/")
+            templates_encoding: The encoding of the email templates. (Default: "utf-8")
         """
 
         self.enabled: bool = enabled or False
@@ -218,6 +222,10 @@ class Mailing:
         self.from_address: str = from_address  # type: ignore
         self.username: str = username  # type: ignore
         self.password: str = password  # type: ignore
+        self.templates_dir: str = templates_dir or os.path.join(
+            os.getcwd(), "templates", "mail"
+        )
+        self.templates_encoding: str = templates_encoding or "utf-8"
 
         if self.enabled and (
             not self.server or not self.port or not self.username or not self.password
@@ -419,6 +427,8 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             from_address=mailing_config.get("from_address", None),
             username=mailing_config.get("username", None),
             password=mailing_config.get("password", None),
+            templates_dir=mailing_config.get("templates_dir", None),
+            templates_encoding=mailing_config.get("templates_encoding", None),
         ),
     )
 
@@ -443,6 +453,6 @@ def __read_config_file(
 
 # The global configuration object for the application.
 app_config = __read_config_file(
-    os.getenv("CENTRAL_SERVER_CONFIG_FILE", info.Configuration.default_filepath),
+    os.getenv("CENTRAL_SERVER_CONFIG_FILE", str(info.Configuration.default_filepath)),
     os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
 )

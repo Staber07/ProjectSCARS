@@ -12,7 +12,7 @@ from centralserver import info
 from centralserver.internals import permissions
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.mail_handler import send_mail
+from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
@@ -99,6 +99,7 @@ async def authenticate_user(
     username: str, plaintext_password: str, login_ip: str | None, session: Session
 ) -> User | tuple[int, str]:
     """Find the user in the database and verify their password.
+    This function will not authenticate deactivated and locked out users.
 
     Args:
         username: The username of the user to authenticate.
@@ -119,19 +120,24 @@ async def authenticate_user(
         logger.debug("Authentication failed: %s (user not found)", username)
         return (status.HTTP_401_UNAUTHORIZED, "User not found.")
 
+    if found_user.deactivated:
+        logger.debug("User %s is deactivated", username)
+        return (status.HTTP_403_FORBIDDEN, "User is deactivated.")
+
     # Check if the user is locked out.
     if (
         found_user.failedLoginAttempts
         >= app_config.security.failed_login_lockout_attempts
     ):
-        if not found_user.failedLoginTime:
+        if not found_user.lastFailedLoginTime:
             logger.warning(
                 "User %s is locked out but has no failed login time.",
                 username,
-                app_config.security.failed_login_lockout_minutes,
             )
-            found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
-            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+            found_user.lastFailedLoginTime = datetime.datetime.now(
+                datetime.timezone.utc
+            )
+            locked_out_until = found_user.lastFailedLoginTime + datetime.timedelta(
                 app_config.security.failed_login_lockout_minutes
             )
             session.commit()
@@ -142,7 +148,7 @@ async def authenticate_user(
             )
 
         # Check if the lockout period has expired.
-        if found_user.failedLoginTime.replace(
+        if found_user.lastFailedLoginTime.replace(
             tzinfo=datetime.timezone.utc
         ) + datetime.timedelta(
             minutes=app_config.security.failed_login_lockout_minutes
@@ -156,9 +162,9 @@ async def authenticate_user(
             logger.debug(
                 "User %s is locked out until %s",
                 username,
-                found_user.failedLoginTime,
+                found_user.lastFailedLoginTime,
             )
-            locked_out_until = found_user.failedLoginTime + datetime.timedelta(
+            locked_out_until = found_user.lastFailedLoginTime + datetime.timedelta(
                 minutes=app_config.security.failed_login_lockout_minutes
             )
             return (
@@ -172,8 +178,8 @@ async def authenticate_user(
                 username,
             )
             found_user.failedLoginAttempts = 0
-            found_user.failedLoginTime = None
-            found_user.failedLoginIp = None
+            found_user.lastFailedLoginTime = None
+            found_user.lastFailedLoginIp = None
             session.commit()
             session.refresh(found_user)
 
@@ -185,8 +191,8 @@ async def authenticate_user(
             found_user.failedLoginAttempts,
         )
         found_user.failedLoginAttempts += 1
-        found_user.failedLoginTime = datetime.datetime.now(datetime.timezone.utc)
-        found_user.failedLoginIp = login_ip
+        found_user.lastFailedLoginTime = datetime.datetime.now(datetime.timezone.utc)
+        found_user.lastFailedLoginIp = login_ip
         session.commit()
         session.refresh(found_user)
 
@@ -196,34 +202,26 @@ async def authenticate_user(
                 == app_config.security.failed_login_notify_attempts
             ):
                 send_mail(
-                    found_user.email,
-                    f"{info.Program.name} | Someone is trying to access your account",
-                    f"""\
-Hello {found_user.nameFirst or found_user.username},
-
-Someone has attempted to log in to your account on {info.Program.name}.
-Please check your account activity and change your password if you did not initiate this login.
-
-Login attempts: {found_user.failedLoginAttempts}
-Last login attempt time: {found_user.failedLoginTime}
-Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}
-
-If you continue to experience issues, please contact support.
-""",
-                    f"""\
-<p>Hello {found_user.nameFirst or found_user.username},</p>
-
-<p>Someone has attempted to log in to your account on {info.Program.name}.</p>
-<p>Please check your account activity and change your password if you did not initiate this login.</p>
-
-<ul>
-    <li>Login attempts: {found_user.failedLoginAttempts}</li>
-    <li>Last login attempt time: {found_user.failedLoginTime}</li>
-    <li>Last login attempt IP: {found_user.failedLoginIp or 'Unknown'}</li>
-</ul>
-
-<p>If you continue to experience issues, please contact support.</p>
-""",
+                    to_address=found_user.email,
+                    subject=f"{info.Program.name} | Someone is trying to access your account",
+                    text=get_template("unusual_login.txt").format(
+                        name=found_user.nameFirst or found_user.username,
+                        app_name=info.Program.name,
+                        failed_login_attempts=found_user.failedLoginAttempts,
+                        last_failed_login_time=found_user.lastFailedLoginTime.strftime(
+                            "%d %B %Y %I:%M:%S %p"
+                        ),
+                        last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
+                    ),
+                    html=get_template("unusual_login.html").format(
+                        name=found_user.nameFirst or found_user.username,
+                        app_name=info.Program.name,
+                        failed_login_attempts=found_user.failedLoginAttempts,
+                        last_failed_login_time=found_user.lastFailedLoginTime.strftime(
+                            "%d %B %Y %I:%M:%S %p"
+                        ),
+                        last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
+                    ),
                 )
 
         tries_remaining = (
@@ -236,8 +234,8 @@ If you continue to experience issues, please contact support.
         )
 
     found_user.failedLoginAttempts = 0
-    found_user.failedLoginTime = None
-    found_user.failedLoginIp = None
+    found_user.lastFailedLoginTime = None
+    found_user.lastFailedLoginIp = None
     session.commit()
     session.refresh(found_user)
     logger.debug("Authentication successful: %s", username)
@@ -284,7 +282,7 @@ async def create_access_token(
 
 def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
-) -> DecodedJWTToken | None:
+) -> DecodedJWTToken:
     """Get the current user from the JWE token.
 
     Args:
@@ -356,7 +354,7 @@ def verify_access_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Failed to validate user.",
-        )
+        ) from e
 
 
 async def verify_user_permission(

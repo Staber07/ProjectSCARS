@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
+import { RequestPasswordRecovery } from "@/lib/api/auth";
 import { Button, Container, Paper, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -66,7 +66,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        const response = await CentralServerRequestPasswordRecovery(values.email, values.username);
+        const response = await RequestPasswordRecovery(values.email, values.username);
         if (response?.message === "ok") {
             requestSentHandler.open();
             notifications.show({
@@ -75,6 +75,14 @@ export function ForgotPasswordComponent(): React.ReactElement {
                     "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
                 color: "green",
                 icon: <IconMail />,
+            });
+            buttonStateHandler.close();
+        } else if (response?.message === "User not found.") {
+            notifications.show({
+                title: "Account recovery failed",
+                message: "The provided username does not exist.",
+                color: "red",
+                icon: <IconX />,
             });
             buttonStateHandler.close();
         } else if (response?.message === "The user does not have an email address set for password recovery.") {

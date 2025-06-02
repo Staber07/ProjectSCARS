@@ -78,11 +78,11 @@ class User(SQLModel, table=True):
         default=0,
         description="The number of failed login attempts by the user.",
     )
-    failedLoginTime: datetime.datetime | None = Field(
+    lastFailedLoginTime: datetime.datetime | None = Field(
         default=None,
         description="The timestamp of the last failed login attempt.",
     )
-    failedLoginIp: str | None = Field(
+    lastFailedLoginIp: str | None = Field(
         default=None,
         description="The IP address from which the last failed login attempt was made.",
     )

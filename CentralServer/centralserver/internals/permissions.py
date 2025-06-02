@@ -11,40 +11,79 @@ DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
 )
 
 PERMISSIONS: Final[dict[str, str]] = {
-    "users:global:create": "Create new users of any role.",
+    "users:create": "Create new users of any role.",
     "users:global:modify": "Modify any user's information.",
+    "users:global:modify:username": "Modify any user's username.",
+    "users:global:modify:email": "Modify any user's email address.",
+    "users:global:modify:name": "Modify any user's name.",
+    "users:global:modify:password": "Modify any user's password.",
+    "users:global:modify:avatar": "Modify any user's avatar.",
     "users:global:read": "View all users' information.",
-    "users:global:selfupdate": "Update their own information.",
+    "users:self:modify": "Modify their own user information.",
+    "users:self:modify:username": "Modify their own username.",
+    "users:self:modify:email": "Modify their own email address.",
+    "users:self:modify:name": "Modify their own name.",
+    "users:self:modify:password": "Modify their own password.",
+    "users:self:modify:avatar": "Modify their own avatar.",
+    "users:self:read": "View their own user information.",
     "roles:global:read": "View all user roles.",
+    #####
     "reports:local:write": "Submit daily reports and monthly expenses.",
     "reports:local:read": "View monthly reports of their assigned school.",
 }
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
-    1: [  # Website Administrator
-        "users:global:create",
+    1: [
+        "users:create",
         "users:global:modify",
+        "users:global:modify:username",
+        "users:global:modify:email",
+        "users:global:modify:name",
+        "users:global:modify:avatar",
         "users:global:read",
-        "users:global:selfupdate",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
         "roles:global:read",
-    ],
-    2: [  # Superintendent
-        "users:global:selfupdate",
-        "roles:global:read",
-    ],
-    3: [  # Administrator
-        "users:global:create",
-        "users:global:modify",
+    ],  # Website Administrator
+    2: [
         "users:global:read",
-        "users:global:selfupdate",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
         "roles:global:read",
-    ],
-    4: [  # Principal
-        "users:global:selfupdate",
-        "reports:local:read",
-    ],
-    5: [  # Canteen Manager
-        "users:global:selfupdate",
-        "reports:local:read",
-    ],
+    ],  # Superintendent
+    3: [
+        "users:global:read",
+        "users:self:modify",
+        "users:self:modify:username",
+        "users:self:modify:email",
+        "users:self:modify:name",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+        "roles:global:read",
+    ],  # Administrator
+    4: [
+        "users:self:modify",
+        "users:self:modify:email",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+    ],  # Principal
+    5: [
+        "users:self:modify",
+        "users:self:modify:email",
+        "users:self:modify:password",
+        "users:self:modify:avatar",
+        "users:self:read",
+    ],  # Canteen Manager
 }

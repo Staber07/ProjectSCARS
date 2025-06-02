@@ -2,18 +2,32 @@
 
 import { useEffect, useState } from "react";
 
-import { Box, Divider, Group, Flex, Stack, Space,
-         Avatar, Title, Text, TextInput, Modal,
-         Anchor, Button, FileButton, Switch } from "@mantine/core";
+import {
+    Box,
+    Divider,
+    Group,
+    Flex,
+    Stack,
+    Space,
+    Avatar,
+    Title,
+    Text,
+    TextInput,
+    Modal,
+    Anchor,
+    Button,
+    FileButton,
+    Switch,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
-import { CentralServerGetUserInfo } from "@/lib/api/auth";
-import { CentralServerGetUserAvatar, CentralServerUploadUserAvatar } from "@/lib/api/user";
+import { GetUserInfo } from "@/lib/api/auth";
+import { GetUserAvatar, UploadUserAvatar } from "@/lib/api/user";
 import { UserPublicType } from "@/lib/types";
 
 export default function ProfilePage() {
-    const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null)
-    const [userInfo, setUserInfo] = useState<UserPublicType | null>(null)
+    const [avatarBlobUrl, setAvatarBlobUrl] = useState<string | null>(null);
+    const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
     const [opened, { open, close }] = useDisclosure(false);
 
     const uploadAvatar = async (file: File | null) => {
@@ -21,8 +35,12 @@ export default function ProfilePage() {
             console.debug("No file selected, skipping upload...");
             return;
         }
+        if (userInfo === null) {
+            console.debug("User info is null, cannot upload avatar.");
+            return;
+        }
         console.debug("Uploading avatar...");
-        const updatedUserInfo = await CentralServerUploadUserAvatar(file);
+        const updatedUserInfo = await UploadUserAvatar(userInfo?.id, file);
         setUserInfo(updatedUserInfo);
         console.debug("Avatar uploaded successfully.");
 
@@ -33,16 +51,16 @@ export default function ProfilePage() {
             return URL.createObjectURL(file);
         });
         console.debug("Avatar blob URL set successfully.");
-    }
+    };
 
     useEffect(() => {
         console.debug("ProfilePage useEffect started");
         const getUserInfo = async () => {
             console.debug("Getting user info...");
-            const _userInfo = await CentralServerGetUserInfo()
-            setUserInfo(_userInfo)
+            const _userInfo = await GetUserInfo();
+            setUserInfo(_userInfo);
             console.debug("Getting user avatar...");
-            const userAvatarImage = await CentralServerGetUserAvatar()
+            const userAvatarImage = await GetUserAvatar(_userInfo.id);
             if (userAvatarImage !== null) {
                 console.debug("Setting avatar blob URL...");
                 setAvatarBlobUrl((prevUrl) => {
@@ -73,13 +91,11 @@ export default function ProfilePage() {
     return (
         <div>
             <Box mx="auto" p="lg">
-                <Title order={3} mb="sm">Profile</Title>
+                <Title order={3} mb="sm">
+                    Profile
+                </Title>
                 <Divider mb="lg" />
-                <Flex
-                    justify="space-between"
-                    align="flex-start"
-                    wrap="wrap" w="100%"
-                >
+                <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
                     <Group gap={20}>
                         <Avatar
                             variant="light"
@@ -89,34 +105,34 @@ export default function ProfilePage() {
                             src={avatarBlobUrl ? avatarBlobUrl : undefined}
                         />
                         <Stack gap={0}>
-                            <Text size="sm" c="dimmed">{userInfo?.roleId}</Text>
-                            <Text fw={600} size="lg">{userInfo?.nameFirst}</Text>
-                            <Text size="sm" c="dimmed">{userInfo?.username}</Text>
+                            <Text size="sm" c="dimmed">
+                                {userInfo?.roleId}
+                            </Text>
+                            <Text fw={600} size="lg">
+                                {userInfo?.nameFirst}
+                            </Text>
+                            <Text size="sm" c="dimmed">
+                                {userInfo?.username}
+                            </Text>
                         </Stack>
                     </Group>
 
-                    <FileButton
-                        onChange={uploadAvatar} accept="image/png,image/jpeg">
-                            {(props) => (
-                                <Button {...props} variant="outline" size="sm">
-                                    Edit Profile
-                                </Button>
-                            )}
+                    <FileButton onChange={uploadAvatar} accept="image/png,image/jpeg">
+                        {(props) => (
+                            <Button {...props} variant="outline" size="sm">
+                                Edit Profile
+                            </Button>
+                        )}
                     </FileButton>
                 </Flex>
 
                 <Divider my="lg" />
 
-                <Title order={4} mb="sm">Account Security</Title>
-                <Flex
-                    justify="space-between"
-                    align="end" w="100%"
-                    gap="lg"
-                >
-                    <Stack
-                        w="100%"
-                        style={{ flexGrow: 1, minWidth: 0 }}
-                    >
+                <Title order={4} mb="sm">
+                    Account Security
+                </Title>
+                <Flex justify="space-between" align="end" w="100%" gap="lg">
+                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                         <TextInput
                             label="Email"
                             value={userInfo?.email || ""}
@@ -133,7 +149,7 @@ export default function ProfilePage() {
                         size="sm"
                         style={{
                             height: 35,
-                            whiteSpace: 'nowrap',
+                            whiteSpace: "nowrap",
                             width: 165,
                             flexShrink: 0,
                         }}
@@ -144,15 +160,8 @@ export default function ProfilePage() {
 
                 <Space h="md" />
 
-                <Flex
-                    justify="space-between"
-                    align="end" w="100%"
-                    gap="lg"
-                >
-                    <Stack
-                        w="100%"
-                        style={{ flexGrow: 1, minWidth: 0 }}
-                    >
+                <Flex justify="space-between" align="end" w="100%" gap="lg">
+                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                         <TextInput
                             label="Password"
                             value="********"
@@ -164,17 +173,9 @@ export default function ProfilePage() {
                         />
                     </Stack>
 
-                    <Modal
-                        opened={opened} onClose={close}
-                        title="Update Password" centered
-                    >
+                    <Modal opened={opened} onClose={close} title="Update Password" centered>
                         <Stack>
-                            <TextInput
-                                label="Current Password"
-                                placeholder=""
-                                type="password"
-                                required
-                            />
+                            <TextInput label="Current Password" placeholder="" type="password" required />
                             <TextInput
                                 label="New Password"
                                 placeholder="At least 8 characters"
@@ -188,10 +189,7 @@ export default function ProfilePage() {
                                 required
                             />
 
-                            <Button
-                                variant="filled"
-                                color="blue"
-                            >
+                            <Button variant="filled" color="blue">
                                 Update Password
                             </Button>
 
@@ -200,7 +198,7 @@ export default function ProfilePage() {
                                 style={{
                                     color: "gray",
                                     textAlign: "center",
-                                    cursor: "pointer"
+                                    cursor: "pointer",
                                 }}
                             >
                                 Forgot your password?
@@ -213,9 +211,9 @@ export default function ProfilePage() {
                         size="sm"
                         style={{
                             height: 35,
-                            whiteSpace: 'nowrap',
+                            whiteSpace: "nowrap",
                             width: 165,
-                            flexShrink: 0
+                            flexShrink: 0,
                         }}
                         onClick={open}
                     >
@@ -225,19 +223,17 @@ export default function ProfilePage() {
 
                 <Space h="md" />
 
-                <Group
-                    justify="space-between"
-                    mt="md"
-                >
+                <Group justify="space-between" mt="md">
                     <Box>
-                        <Text fw={500} size="sm">2-Step Verification</Text>
+                        <Text fw={500} size="sm">
+                            2-Step Verification
+                        </Text>
                         <Text size="xs" c="dimmed">
                             Add an additional layer of security to your account during login.
                         </Text>
                     </Box>
 
                     <Switch />
-
                 </Group>
             </Box>
         </div>

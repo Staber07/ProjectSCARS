@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { CentralServerGetUserInfo, CentralServerLogInUser } from "@/lib/api/auth";
+import { GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -57,9 +57,9 @@ export function MainLoginComponent(): React.ReactElement {
         }
 
         try {
-            const tokens = await CentralServerLogInUser(values.username, values.password);
+            const tokens = await LoginUser(values.username, values.password);
             auth.login(tokens);
-            await CentralServerGetUserInfo(true);
+            await GetUserInfo(true);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
                 title: "Login successful",
@@ -73,6 +73,13 @@ export function MainLoginComponent(): React.ReactElement {
                 notifications.show({
                     title: "Login failed",
                     message: "Please check your username and password.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else if (error instanceof Error && error.message.includes("status code 429")) {
+                notifications.show({
+                    title: "Login failed",
+                    message: "Too many attempts, please try again later.",
                     color: "red",
                     icon: <IconX />,
                 });
