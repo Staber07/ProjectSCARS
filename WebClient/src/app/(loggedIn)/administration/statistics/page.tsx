@@ -29,9 +29,19 @@ import { getBestMonthData } from './BestMonthData';
 const Netdata = getNetdata();
 const Grossdata = getGrossdata();
 const CostOfSalesData = getCostOfSalesData();
-const ExpenseBreakdownData = getExpensesBreakdownData();
+const ExpenseBreakdownData = getExpensesBreakdownData().map(
+  (item: { name: string; value: number; color?: string }, idx: number) => ({
+    ...item,
+    color: item.color ?? [
+      'blue.6', 'red.6', 'green.6', 'yellow.6', 'orange.6', 'purple.6', 'cyan.6'
+    ][idx % 7],
+  })
+);
 const NetIncomeData = getNetIncomeData(); 
-const UtilizationData = getUtilizationData();
+const UtilizationData = getUtilizationData().map((item: { name: string; value: number; color?: string }) => ({
+  ...item,
+  color: item.color ?? 'blue.6',
+}));
 const ProfitMarginData = getProfitMarginData();
 const CostToSalesData = getCostToSalesData();
 const ExpenseToIncomeData = getExpenseToIncomeData();
@@ -54,6 +64,12 @@ const TopStats = [
   { title: 'Cost of Sales', icon: 'discount', value: '745', diff: 18 },
   { title: 'Net Income', icon: 'user', value: '188', diff: -30 },
 ] as const;
+
+interface PieChartCell {
+  name: string;
+  value: number;
+  color: string;
+}
 
 export default function StatisticsPage() {
   const stats = TopStats.map((stat) => {
@@ -97,12 +113,12 @@ export default function StatisticsPage() {
 
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card withBorder p="lg"><Title order={4}>Cost of Sales + Gross Profit</Title>
-          <BarChart h={300} data={CostOfSalesData} dataKey="month" series={[{ name: 'cost', color: 'red.6' }, { name: 'gross', color: 'green.6' }]} stacked /></Card>
+          <BarChart h={300} data={CostOfSalesData} dataKey="month" series={[{ name: 'cost', color: 'red.6' }, { name: 'gross', color: 'green.6' }]} /></Card>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card withBorder p="lg"><Title order={4}>Expenses Breakdown</Title>
-          <PieChart h={300} data={ExpenseBreakdownData} dataKey="category" valueKey="value" /></Card>
+          <PieChart h={300} data={ExpenseBreakdownData} /></Card>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 6 }}>
@@ -112,7 +128,7 @@ export default function StatisticsPage() {
 
         <Grid.Col span={{ base: 12, md: 6 }}>
           <Card withBorder p="lg"><Title order={4}>Utilization of Net Income</Title>
-          <PieChart h={300} data={UtilizationData} dataKey="type" valueKey="amount" donut /></Card>
+          <PieChart h={300} data={UtilizationData} /></Card>
         </Grid.Col>
       </Grid>
 
@@ -137,7 +153,8 @@ export default function StatisticsPage() {
 
       <Grid gutter="md">
         <Grid.Col span={12}>
-          <Card withBorder p="lg"><Title order={4}>Monthly Summary Table</Title><div>{/* You can replace this with Mantine DataTable or SimpleGrid Table */}</div></Card>
+          <Card withBorder p="lg"><Title order={4}>Monthly Summary Table</Title>
+          <div>{/* You can replace this with Mantine DataTable or SimpleGrid Table */}</div></Card>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 6 }}>
