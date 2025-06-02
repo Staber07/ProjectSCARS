@@ -51,6 +51,7 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
         setIsAuthenticated(false);
         localStorage.removeItem(LocalStorage.access_token);
         localStorage.removeItem(LocalStorage.user_data);
+        localStorage.removeItem(LocalStorage.user_avatar);
     };
 
     return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>;

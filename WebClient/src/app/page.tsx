@@ -11,6 +11,7 @@ export default function RootPage() {
     const router = useRouter();
 
     useEffect(() => {
+        // Always redirect to the login page
         router.replace("/login");
     }, [router]);
 

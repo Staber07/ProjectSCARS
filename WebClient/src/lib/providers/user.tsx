@@ -1,5 +1,6 @@
 import { UserPublicType } from "@/lib/types";
-import { createContext, ReactNode, useContext, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { LocalStorage } from "@/lib/info";
 
 interface UserContextType {
     userInfo: UserPublicType | null;
@@ -20,6 +21,34 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     const [userAvatar, setUserAvatar] = useState<Blob | null>(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
+    useEffect(() => {
+        const loadUserData = async () => {
+            const storedUserInfo = localStorage.getItem(LocalStorage.user_data);
+            const storedUserAvatar = localStorage.getItem(LocalStorage.user_avatar);
+            if (storedUserInfo) {
+                setUserInfo(JSON.parse(storedUserInfo));
+            }
+            if (storedUserAvatar) {
+                try {
+                    // Decode base64 data URL to blob
+                    const response = await fetch(storedUserAvatar);
+                    const avatarBlob = await response.blob();
+                    setUserAvatar(avatarBlob);
+                    setUserAvatarUrl((prevUrl) => {
+                        if (prevUrl) {
+                            URL.revokeObjectURL(prevUrl);
+                        }
+                        return URL.createObjectURL(avatarBlob);
+                    });
+                } catch (error) {
+                    console.error("Failed to decode user avatar:", error);
+                }
+            }
+        };
+
+        loadUserData();
+    }, []);
+
     /**
      * Update the user information and optionally the user avatar.
      * @param {UserPublicType} userInfo - The user information to set.
@@ -36,6 +65,13 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
                 }
                 return URL.createObjectURL(userAvatar);
             });
+
+            localStorage.setItem(LocalStorage.user_data, JSON.stringify(userInfo));
+            const reader = new FileReader();
+            reader.onload = () => {
+                localStorage.setItem(LocalStorage.user_avatar, reader.result as string);
+            };
+            reader.readAsDataURL(userAvatar);
         }
     };
 

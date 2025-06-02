@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
-import { useAuth } from "@/lib/providers/auth";
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { MainLoginComponent } from "@/components/MainLoginComponent/MainLoginComponent";
+import { useAuth } from "@/lib/providers/auth";
+import { useDisclosure } from "@mantine/hooks";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export function LoginContent() {
+export default function LoginContent() {
+    const [isLoading, handlers] = useDisclosure(true);
     const { isAuthenticated } = useAuth();
     const router = useRouter();
 
@@ -14,17 +16,16 @@ export function LoginContent() {
     useEffect(() => {
         console.debug("LoginContent useEffect started", { isAuthenticated });
         if (isAuthenticated) {
+            // If the user is authenticated, redirect to the dashboard
             router.push("/dashboard");
         }
-    }, [isAuthenticated, router]);
+        handlers.close();
+    }, [isAuthenticated, router, handlers]);
 
     console.debug("Rendering LoginContent", { isAuthenticated });
-    return <MainLoginComponent />;
-}
-
-/**
- * Wrapper for the entire page to enable the use of the AuthProvider.
- */
-export default function LoginPage() {
-    return <LoginContent />;
+    return (
+        <>
+            {isLoading && <LoadingComponent withBorder={false} />} {!isLoading && <MainLoginComponent />}
+        </>
+    );
 }
