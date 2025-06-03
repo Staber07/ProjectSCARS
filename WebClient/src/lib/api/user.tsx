@@ -76,7 +76,7 @@ export async function GetAllUsers(): Promise<UserPublicType[]> {
  */
 export async function UpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
     console.debug("Updating user info");
-    const centralServerResponse = await ky.put(`${endpoint}/users`, {
+    const centralServerResponse = await ky.patch(`${endpoint}/users`, {
         headers: { Authorization: GetAccessTokenHeader() },
         json: newUserInfo,
     });
