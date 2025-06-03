@@ -28,11 +28,13 @@ import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
+    const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
+    const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
+
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editUser, setEditUser] = useState<UserPublicType | null>(null);
-    const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
 
     const handleSearch = () => {};
     const handleEdit = (index: number) => {
@@ -60,9 +62,12 @@ export default function UsersPage(): JSX.Element {
     };
 
     const fetchUserAvatar = (avatarUrn: string): string | undefined => {
-        if (avatars.has(avatarUrn)) {
+        if (avatarsRequested.has(avatarUrn) && avatars.has(avatarUrn)) {
             return avatars.get(avatarUrn);
+        } else if (avatarsRequested.has(avatarUrn)) {
+            return undefined; // Avatar is requested but not yet available
         }
+        setAvatarsRequested((prev) => new Set(prev).add(avatarUrn));
         GetUserAvatar(avatarUrn)
             .then((blob) => {
                 const url = URL.createObjectURL(blob);
