@@ -1,8 +1,9 @@
 "use client";
 
 import { GetAllUsers, GetUserAvatar } from "@/lib/api/user";
+import { GetAllRoles } from "@/lib/api/auth";
 import { roles } from "@/lib/info";
-import { UserPublicType } from "@/lib/types";
+import { RoleType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -10,16 +11,16 @@ import {
     Checkbox,
     Flex,
     Group,
-    Text,
-    TextInput as MantineInput,
     Modal,
     Pagination,
+    Select,
     Table,
     TableTbody,
     TableTd,
     TableTh,
     TableThead,
     TableTr,
+    Text,
     TextInput,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
@@ -30,17 +31,22 @@ export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
+    const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editUser, setEditUser] = useState<UserPublicType | null>(null);
 
+    const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
+    const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
+
     const handleSearch = () => {};
-    const handleEdit = (index: number) => {
+    const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
-        setEditUser(users[index]);
+        setEditUser(user);
     };
+
     const handleSave = () => {
         if (editIndex !== null && editUser) {
             const updated = [...users];
@@ -50,6 +56,7 @@ export default function UsersPage(): JSX.Element {
             setEditUser(null);
         }
     };
+
     const toggleSelected = (index: number) => {
         const updated = new Set(selected);
         if (updated.has(index)) updated.delete(index);
@@ -59,6 +66,11 @@ export default function UsersPage(): JSX.Element {
 
     const fetchUsers = async () => {
         setUsers(await GetAllUsers());
+    };
+
+    const fetchRoles = async () => {
+        const rolesData = await GetAllRoles();
+        setAvailableRoles(rolesData);
     };
 
     const fetchUserAvatar = (avatarUrn: string): string | undefined => {
@@ -87,15 +99,31 @@ export default function UsersPage(): JSX.Element {
     };
 
     useEffect(() => {
+        fetchRoles().catch((error) => {
+            console.error("Failed to fetch roles:", error);
+            if (!fetchRolesErrorShown) {
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to fetch roles. Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+                setAvailableRoles([]);
+                setFetchRolesErrorShown(true);
+            }
+        });
         fetchUsers().catch((error) => {
             console.error("Failed to fetch users:", error);
-            notifications.show({
-                title: "Error",
-                message: "Failed to fetch users. Please try again later.",
-                color: "red",
-                icon: <IconUserExclamation />,
-            });
-            setUsers([]);
+            if (!fetchUsersErrorShown) {
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to fetch users. Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+                setUsers([]);
+                setFetchUsersErrorShown(true);
+            }
         });
     }, []);
 
@@ -167,7 +195,7 @@ export default function UsersPage(): JSX.Element {
                                 )}
                             </TableTd>
                             <TableTd>
-                                <ActionIcon variant="light" onClick={() => handleEdit(index)}>
+                                <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
                                     <IconEdit size={16} />
                                 </ActionIcon>
                             </TableTd>
@@ -183,35 +211,44 @@ export default function UsersPage(): JSX.Element {
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
                 {editUser && (
                     <Flex direction="column" gap="md">
-                        <MantineInput
+                        <TextInput
+                            disabled
+                            label="Username"
+                            value={editUser.username ? editUser.username : ""}
+                            onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
+                        />
+                        <TextInput
                             label="First Name"
-                            value={editUser.firstName}
-                            onChange={(e) => setEditUser({ ...editUser, firstName: e.currentTarget.value })}
+                            value={editUser.nameFirst ? editUser.nameFirst : ""}
+                            onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
                         />
-                        <MantineInput
+                        <TextInput
                             label="Middle Name"
-                            value={editUser.middleName}
-                            onChange={(e) => setEditUser({ ...editUser, middleName: e.currentTarget.value })}
+                            value={editUser.nameMiddle ? editUser.nameMiddle : ""}
+                            onChange={(e) => setEditUser({ ...editUser, nameMiddle: e.currentTarget.value })}
                         />
-                        <MantineInput
+                        <TextInput
                             label="Last Name"
-                            value={editUser.lastName}
-                            onChange={(e) => setEditUser({ ...editUser, lastName: e.currentTarget.value })}
+                            value={editUser.nameLast ? editUser.nameLast : ""}
+                            onChange={(e) => setEditUser({ ...editUser, nameLast: e.currentTarget.value })}
                         />
-                        <MantineInput
+                        <TextInput
                             label="Email"
-                            value={editUser.email}
+                            value={editUser.email ? editUser.email : ""}
                             onChange={(e) => setEditUser({ ...editUser, email: e.currentTarget.value })}
                         />
-                        <MantineInput
-                            label="Contact Number"
-                            value={editUser.contactNumber}
-                            onChange={(e) => setEditUser({ ...editUser, contactNumber: e.currentTarget.value })}
-                        />
-                        <MantineInput
-                            label="Address"
-                            value={editUser.address}
-                            onChange={(e) => setEditUser({ ...editUser, address: e.currentTarget.value })}
+                        <Select
+                            label="Role"
+                            placeholder="Role"
+                            data={availableRoles.map((role) => role.description)}
+                            value={editUser.roleId ? roles[editUser.roleId] : undefined}
+                            onChange={(value) => {
+                                const role = availableRoles.find((role) => role.description === value);
+                                const selectedRoleId = role?.id;
+                                setEditUser(
+                                    value ? { ...editUser, roleId: selectedRoleId ?? editUser.roleId } : editUser
+                                );
+                            }}
                         />
                         <Button onClick={handleSave}>Save</Button>
                     </Flex>

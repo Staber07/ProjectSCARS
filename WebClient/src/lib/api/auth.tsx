@@ -1,7 +1,7 @@
 import ky from "ky";
 
 import { Connections, LocalStorage } from "@/lib/info";
-import { ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
+import { RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -119,4 +119,22 @@ export async function ResetPassword(token: string, new_password: string): Promis
     console.debug("Password reset successfully");
     const result: ServerMessageType = await centralServerResponse.json();
     return result;
+}
+
+/**
+ * Fetch all roles from the central server.
+ * @return {Promise<RoleType[]>} A promise that resolves to an array of roles.
+ */
+export async function GetAllRoles(): Promise<RoleType[]> {
+    const centralServerResponse = await ky.get(`${endpoint}/auth/roles`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to get all roles: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    const roles: RoleType[] = await centralServerResponse.json();
+    return roles;
 }
