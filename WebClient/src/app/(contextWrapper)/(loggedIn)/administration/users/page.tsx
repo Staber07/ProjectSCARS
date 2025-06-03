@@ -1,6 +1,6 @@
 "use client";
 
-import { GetAllUsers, GetUserAvatar } from "@/lib/api/user";
+import { GetAllUsers, GetUserAvatar, UpdateUserInfo } from "@/lib/api/user";
 import { GetAllRoles } from "@/lib/api/auth";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType } from "@/lib/types";
@@ -22,9 +22,18 @@ import {
     TableTr,
     Text,
     TextInput,
+    Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconEdit, IconSearch, IconUserExclamation } from "@tabler/icons-react";
+import {
+    IconCircleDashedCheck,
+    IconEdit,
+    IconLock,
+    IconPencilCheck,
+    IconSearch,
+    IconSendOff,
+    IconUserExclamation,
+} from "@tabler/icons-react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
@@ -45,16 +54,6 @@ export default function UsersPage(): JSX.Element {
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
-    };
-
-    const handleSave = () => {
-        if (editIndex !== null && editUser) {
-            const updated = [...users];
-            updated[editIndex] = editUser;
-            setUsers(updated);
-            setEditIndex(null);
-            setEditUser(null);
-        }
     };
 
     const toggleSelected = (index: number) => {
@@ -96,6 +95,37 @@ export default function UsersPage(): JSX.Element {
                 });
                 return undefined;
             });
+    };
+
+    const handleSave = () => {
+        if (editIndex !== null && editUser) {
+            UpdateUserInfo(editUser)
+                .then(() => {
+                    notifications.show({
+                        title: "Success",
+                        message: "User information updated successfully.",
+                        color: "green",
+                        icon: <IconPencilCheck />,
+                    });
+                    // Update the user in the list
+                    setUsers((prevUsers) => {
+                        const updatedUsers = [...prevUsers];
+                        updatedUsers[editIndex] = editUser;
+                        return updatedUsers;
+                    });
+                })
+                .catch((error) => {
+                    console.error("Failed to update user:", error);
+                    notifications.show({
+                        title: "Error",
+                        message: "Failed to update user information. Please try again later.",
+                        color: "red",
+                        icon: <IconSendOff />,
+                    });
+                });
+            setEditIndex(null);
+            setEditUser(null);
+        }
     };
 
     useEffect(() => {
@@ -211,12 +241,15 @@ export default function UsersPage(): JSX.Element {
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
                 {editUser && (
                     <Flex direction="column" gap="md">
-                        <TextInput
-                            disabled
-                            label="Username"
-                            value={editUser.username ? editUser.username : ""}
-                            onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
-                        />
+                        <Tooltip label="Username cannot be changed" withArrow>
+                            <TextInput // TODO: Make username editable if user has permission
+                                disabled
+                                label="Username"
+                                value={editUser.username ? editUser.username : ""}
+                                leftSection={<IconLock size={16} />}
+                                onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
+                            />
+                        </Tooltip>
                         <TextInput
                             label="First Name"
                             value={editUser.nameFirst ? editUser.nameFirst : ""}
@@ -235,6 +268,12 @@ export default function UsersPage(): JSX.Element {
                         <TextInput
                             label="Email"
                             value={editUser.email ? editUser.email : ""}
+                            leftSection={
+                                // TODO: Add email verification
+                                <Tooltip label="This email has been verified" withArrow>
+                                    <IconCircleDashedCheck size={16} color="green" />
+                                </Tooltip>
+                            }
                             onChange={(e) => setEditUser({ ...editUser, email: e.currentTarget.value })}
                         />
                         <Select
