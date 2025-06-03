@@ -31,7 +31,7 @@ const navbarContents = [
     {
         key: "statistics",
         link: "/statistics",
-        label: "Statistics",
+        label: "School Statistics",
         requiredPermission: null,
         disabledReason: null,
         icon: IconGraph,
@@ -39,23 +39,15 @@ const navbarContents = [
     {
         key: "reports",
         link: "/reports",
-        label: "Reports",
+        label: "School Reports",
         requiredPermission: null,
         disabledReason: null,
         icon: IconReport,
     },
     {
-        key: "profile",
-        link: "/account/profile",
-        label: "Profile",
-        requiredPermission: null,
-        disabledReason: null,
-        icon: IconUser,
-    },
-    {
         key: "adminStatistics",
         link: "/administration/statistics",
-        label: "Statistics",
+        label: "Statistics Management",
         requiredPermission: null,
         disabledReason: null,
         icon: IconGraph,
@@ -63,7 +55,7 @@ const navbarContents = [
     {
         key: "adminReports",
         link: "/administration/reports",
-        label: "Reports",
+        label: "Report Management",
         requiredPermission: null,
         disabledReason: null,
         icon: IconReport,
@@ -71,7 +63,7 @@ const navbarContents = [
     {
         key: "adminUsers",
         link: "/administration/users",
-        label: "Users",
+        label: "User Management",
         requiredPermission: "users:global:read",
         disabledReason: "You do not have permission to view the users list.",
         icon: IconUser,
@@ -79,7 +71,7 @@ const navbarContents = [
     {
         key: "adminSchools",
         link: "/administration/schools",
-        label: "Schools",
+        label: "School Management",
         requiredPermission: null,
         disabledReason: null,
         icon: IconBuilding,
@@ -87,10 +79,18 @@ const navbarContents = [
     {
         key: "adminSettings",
         link: "/administration/settings",
-        label: "Settings",
-        requiredPermission: null,
-        disabledReason: null,
+        label: "Site Management",
+        requiredPermission: "site:manage",
+        disabledReason: "You do not have permission to manage site settings.",
         icon: IconSettings,
+    },
+    {
+        key: "profile",
+        link: "/account/profile",
+        label: "Profile",
+        requiredPermission: "users:self:read",
+        disabledReason: "You do not have permission to view your profile.",
+        icon: IconUser,
     },
 ];
 

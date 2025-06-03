@@ -11,6 +11,7 @@ DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
 )
 
 PERMISSIONS: Final[dict[str, str]] = {
+    "site:manage": "Access and modify the website's settings and configurations.",
     "users:create": "Create new users of any role.",
     "users:global:modify": "Modify any user's information.",
     "users:global:modify:username": "Modify any user's username.",
@@ -33,7 +34,8 @@ PERMISSIONS: Final[dict[str, str]] = {
 }
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
-    1: [
+    1: [  # Website Administrator
+        "site:manage",
         "users:create",
         "users:global:modify",
         "users:global:modify:username",
@@ -49,8 +51,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:avatar",
         "users:self:read",
         "roles:global:read",
-    ],  # Website Administrator
-    2: [
+    ],
+    2: [  # Superintendent
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -60,8 +62,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:avatar",
         "users:self:read",
         "roles:global:read",
-    ],  # Superintendent
-    3: [
+    ],
+    3: [  # Administrator
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -71,19 +73,19 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:avatar",
         "users:self:read",
         "roles:global:read",
-    ],  # Administrator
-    4: [
+    ],
+    4: [  # Principal
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",
         "users:self:modify:avatar",
         "users:self:read",
-    ],  # Principal
-    5: [
+    ],
+    5: [  # Canteen Manager
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",
         "users:self:modify:avatar",
         "users:self:read",
-    ],  # Canteen Manager
+    ],
 }
