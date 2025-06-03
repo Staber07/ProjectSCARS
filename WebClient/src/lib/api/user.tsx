@@ -2,7 +2,7 @@ import ky from "ky";
 
 import { GetAccessTokenHeader } from "@/lib/api/auth";
 import { Connections, LocalStorage } from "@/lib/info";
-import { UserPublicType } from "@/lib/types";
+import { UserPublicType, UserUpdateType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -71,10 +71,10 @@ export async function GetAllUsers(): Promise<UserPublicType[]> {
 
 /**
  * Update the user information on the central server.
- * @param {UserPublicType} newUserInfo - The new user information to update.
+ * @param {UserUpdateType} newUserInfo - The new user information to update.
  * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
  */
-export async function UpdateUserInfo(newUserInfo: UserPublicType): Promise<UserPublicType> {
+export async function UpdateUserInfo(newUserInfo: UserUpdateType): Promise<UserPublicType> {
     console.debug("Updating user info");
     const centralServerResponse = await ky.patch(`${endpoint}/users`, {
         headers: { Authorization: GetAccessTokenHeader() },
@@ -87,4 +87,18 @@ export async function UpdateUserInfo(newUserInfo: UserPublicType): Promise<UserP
     }
     const updatedUserInfo: UserPublicType = await centralServerResponse.json();
     return updatedUserInfo;
+}
+
+export async function GetUsersQuantity(): Promise<number> {
+    const centralServerResponse = await ky.get(`${endpoint}/users/quantity`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to get users quantity: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const usersQuantity: number = await centralServerResponse.json();
+    return usersQuantity;
 }

@@ -1,4 +1,3 @@
-import hashlib
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -85,15 +84,6 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             )
         )
 
-    def get_object_filesystem_filename(self, fn: str) -> str:
-        """Hash the filename to create a unique identifier for the object.
-
-        Args:
-            fn: The filename to hash.
-        """
-
-        return hashlib.sha256(fn.encode(self._ENCODING)).hexdigest()
-
     @override
     async def check(self) -> None:
         """Check if the local object store is healthy."""
@@ -120,23 +110,22 @@ class LocalObjectStoreAdapter(ObjectStoreAdapter):
             logger.warning("Invalid object name: %s", fn)
             raise ValueError(f"Invalid object name: {fn}")
 
-        hashed_filename = self.get_object_filesystem_filename(fn)
-        new_file_dir = self.config.filepath / bucket.value / hashed_filename[:2]
+        new_file_dir = self.config.filepath / bucket.value / fn[:2]
         new_file_dir.mkdir(parents=True, exist_ok=True)
-        new_fp = new_file_dir / hashed_filename
+        new_fp = new_file_dir / fn
         if new_fp.exists():
             logger.warning("File already exists: %s", new_fp)
             raise FileExistsError("File already exists. Please use a different name.")
 
         with open(
-            self.config.filepath / bucket.value / hashed_filename[:2] / hashed_filename,
+            self.config.filepath / bucket.value / fn[:2] / fn,
             "wb",
         ) as f:
             f.write(obj)
 
         return BucketObject(
             bucket=bucket.value,
-            fn=hashed_filename,
+            fn=fn,
             obj=obj,
         )
 

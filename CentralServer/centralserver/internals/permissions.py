@@ -11,6 +11,10 @@ DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
 )
 
 PERMISSIONS: Final[dict[str, str]] = {
+    "notifications:global:archive": "Archive notifications owned by any user.",
+    "notifications:self:archive": "Archive their own notifications.",
+    "notifications:global:view": "View all notifications owned by any user.",
+    "notifications:self:view": "View their own notifications.",
     "site:manage": "Access and modify the website's settings and configurations.",
     "users:create": "Create new users of any role.",
     "users:global:modify": "Modify any user's information.",
@@ -19,6 +23,8 @@ PERMISSIONS: Final[dict[str, str]] = {
     "users:global:modify:name": "Modify any user's name.",
     "users:global:modify:password": "Modify any user's password.",
     "users:global:modify:avatar": "Modify any user's avatar.",
+    "users:global:forceupdate": "Force any user to update their information.",
+    "users:global:deactivate": "Deactivate any user account.",
     "users:global:read": "View all users' information.",
     "users:self:modify": "Modify their own user information.",
     "users:self:modify:username": "Modify their own username.",
@@ -26,6 +32,7 @@ PERMISSIONS: Final[dict[str, str]] = {
     "users:self:modify:name": "Modify their own name.",
     "users:self:modify:password": "Modify their own password.",
     "users:self:modify:avatar": "Modify their own avatar.",
+    "users:self:deactivate": "Deactivate their own user account.",
     "users:self:read": "View their own user information.",
     "roles:global:read": "View all user roles.",
     #####
@@ -35,6 +42,10 @@ PERMISSIONS: Final[dict[str, str]] = {
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     1: [  # Website Administrator
+        "notifications:global:archive",
+        "notifications:self:archive",
+        "notifications:global:view",
+        "notifications:self:view",
         "site:manage",
         "users:create",
         "users:global:modify",
@@ -42,6 +53,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:global:modify:email",
         "users:global:modify:name",
         "users:global:modify:avatar",
+        "users:global:forceupdate",
+        "users:global:deactivate",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -49,10 +62,13 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:name",
         "users:self:modify:password",
         "users:self:modify:avatar",
+        "users:self:deactivate",
         "users:self:read",
         "roles:global:read",
     ],
     2: [  # Superintendent
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -60,10 +76,13 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:name",
         "users:self:modify:password",
         "users:self:modify:avatar",
+        "users:global:deactivate",
         "users:self:read",
         "roles:global:read",
     ],
     3: [  # Administrator
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -75,6 +94,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "roles:global:read",
     ],
     4: [  # Principal
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",
@@ -82,6 +103,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:read",
     ],
     5: [  # Canteen Manager
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",

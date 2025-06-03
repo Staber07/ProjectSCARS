@@ -1,16 +1,20 @@
 "use client";
 
-import { GetAllUsers, GetUserAvatar, UpdateUserInfo } from "@/lib/api/user";
+import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { GetAllRoles } from "@/lib/api/auth";
 import { roles } from "@/lib/info";
-import { RoleType, UserPublicType } from "@/lib/types";
+import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
     Button,
+    Card,
+    Center,
     Checkbox,
+    FileButton,
     Flex,
     Group,
+    Image,
     Modal,
     Pagination,
     Select,
@@ -25,14 +29,18 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { motion } from "motion/react";
 import {
+    IconCheck,
     IconCircleDashedCheck,
     IconEdit,
     IconLock,
     IconPencilCheck,
     IconSearch,
     IconSendOff,
+    IconUser,
     IconUserExclamation,
+    IconX,
 } from "@tabler/icons-react";
 import { JSX, useEffect, useState } from "react";
 
@@ -46,6 +54,8 @@ export default function UsersPage(): JSX.Element {
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editUser, setEditUser] = useState<UserPublicType | null>(null);
+    const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
+    const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
@@ -54,6 +64,13 @@ export default function UsersPage(): JSX.Element {
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
+        if (user.avatarUrn) {
+            const avatarUrl = fetchUserAvatar(user.avatarUrn);
+            setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
+        } else {
+            setEditUserAvatar(null);
+            setEditUserAvatarUrl(null);
+        }
     };
 
     const toggleSelected = (index: number) => {
@@ -88,9 +105,23 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (editIndex !== null && editUser) {
-            UpdateUserInfo(editUser)
+            const newUserInfo: UserUpdateType = {
+                id: editUser.id,
+                username: editUser.username,
+                nameFirst: editUser.nameFirst,
+                nameMiddle: editUser.nameMiddle,
+                nameLast: editUser.nameLast,
+                email: editUser.email,
+                roleId: editUser.roleId,
+                schoolId: editUser.schoolId,
+                deactivated: editUser.deactivated,
+                forceUpdateInfo: editUser.forceUpdateInfo,
+                finishedTutorials: null,
+                password: null,
+            };
+            UpdateUserInfo(newUserInfo)
                 .then(() => {
                     notifications.show({
                         title: "Success",
@@ -114,9 +145,34 @@ export default function UsersPage(): JSX.Element {
                         icon: <IconSendOff />,
                     });
                 });
+            if (editUserAvatar) {
+                console.debug("Uploading avatar...");
+                const updatedUserInfo = await UploadUserAvatar(editUser.id, editUserAvatar);
+                setEditUser(updatedUserInfo);
+                if (updatedUserInfo.avatarUrn) {
+                    fetchUserAvatar(updatedUserInfo.avatarUrn);
+                }
+                console.debug("Avatar uploaded successfully.");
+            }
+
             setEditIndex(null);
             setEditUser(null);
+            setEditUserAvatar(null);
         }
+    };
+
+    const setAvatar = async (file: File | null) => {
+        if (file === null) {
+            console.debug("No file selected, skipping upload...");
+            return;
+        }
+        setEditUserAvatar(file);
+        setEditUserAvatarUrl((prevUrl) => {
+            if (prevUrl) {
+                URL.revokeObjectURL(prevUrl); // Clean up previous URL
+            }
+            return URL.createObjectURL(file); // Create a new URL for the selected file
+        });
     };
 
     useEffect(() => {
@@ -186,28 +242,42 @@ export default function UsersPage(): JSX.Element {
             <Table highlightOnHover stickyHeader stickyHeaderOffset={60}>
                 <TableThead>
                     <TableTr>
-                        <TableTh></TableTh>
+                        <TableTh></TableTh> {/* Checkbox and Avatar */}
                         <TableTh>Username</TableTh>
+                        <TableTh>Email</TableTh>
                         <TableTh>Name</TableTh>
+                        <TableTh>Assigned School</TableTh>
                         <TableTh>Role</TableTh>
-                        <TableTh>Email Address</TableTh>
+                        <TableTh></TableTh>
+                        <TableTh></TableTh>
                         <TableTh>Edit</TableTh>
                     </TableTr>
                 </TableThead>
                 <TableTbody>
                     {users.map((user, index) => (
                         <TableTr key={index} bg={selected.has(index) ? "gray.1" : undefined}>
-                            {/* Checkbox */}
+                            {/* Checkbox and Avatar */}
                             <TableTd>
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
                                     <Avatar
                                         radius="xl"
                                         src={user.avatarUrn ? fetchUserAvatar(user.avatarUrn) : undefined}
-                                    />
+                                    >
+                                        <IconUser />
+                                    </Avatar>
                                 </Group>
                             </TableTd>
                             <TableTd>{user.username}</TableTd>
+                            <TableTd>
+                                {user.email ? (
+                                    user.email
+                                ) : (
+                                    <Text size="sm" c="dimmed">
+                                        N/A
+                                    </Text>
+                                )}
+                            </TableTd>
                             <TableTd>
                                 {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
                                     <Text size="sm" c="dimmed">
@@ -223,15 +293,25 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            <TableTd>{roles[user.roleId]}</TableTd>
                             <TableTd>
-                                {user.email ? (
-                                    user.email
+                                {user.schoolId ? ( // TODO: Fetch school name by ID
+                                    user.schoolId
                                 ) : (
                                     <Text size="sm" c="dimmed">
                                         N/A
                                     </Text>
                                 )}
+                            </TableTd>
+                            <TableTd>{roles[user.roleId]}</TableTd>
+                            <TableTd>
+                                <Tooltip label="Deactivated" position="bottom" withArrow>
+                                    {user.deactivated ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                </Tooltip>
+                            </TableTd>
+                            <TableTd>
+                                <Tooltip label="Force Update Required" position="bottom" withArrow>
+                                    {user.forceUpdateInfo ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                </Tooltip>
                             </TableTd>
                             <TableTd>
                                 <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
@@ -250,6 +330,57 @@ export default function UsersPage(): JSX.Element {
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
                 {editUser && (
                     <Flex direction="column" gap="md">
+                        <Center>
+                            <Card
+                                shadow="sm"
+                                radius="xl"
+                                withBorder
+                                style={{ position: "relative", cursor: "pointer" }}
+                            >
+                                <FileButton onChange={setAvatar} accept="image/png,image/jpeg">
+                                    {(props) => (
+                                        <motion.div
+                                            whileHover={{ scale: 1.05 }}
+                                            style={{ position: "relative" }}
+                                            {...props}
+                                        >
+                                            {editUserAvatarUrl ? (
+                                                <Image
+                                                    id="edit-user-avatar"
+                                                    src={editUserAvatarUrl}
+                                                    alt="User Avatar"
+                                                    h={150}
+                                                    w={150}
+                                                    radius="xl"
+                                                />
+                                            ) : (
+                                                <IconUser size={150} color="gray" />
+                                            )}
+                                            <motion.div
+                                                initial={{ opacity: 0 }}
+                                                whileHover={{ opacity: 1 }}
+                                                style={{
+                                                    position: "absolute",
+                                                    top: 0,
+                                                    left: 0,
+                                                    right: 0,
+                                                    bottom: 0,
+                                                    backgroundColor: "rgba(0, 0, 0, 0.5)",
+                                                    borderRadius: "var(--mantine-radius-xl)",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    color: "white",
+                                                    fontWeight: 500,
+                                                }}
+                                            >
+                                                Edit Profile Picture
+                                            </motion.div>
+                                        </motion.div>
+                                    )}
+                                </FileButton>
+                            </Card>
+                        </Center>
                         <Tooltip label="Username cannot be changed" withArrow>
                             <TextInput // TODO: Make username editable if user has permission
                                 disabled
