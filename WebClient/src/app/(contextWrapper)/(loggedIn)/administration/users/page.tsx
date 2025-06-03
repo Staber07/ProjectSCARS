@@ -268,7 +268,7 @@ export default function UsersPage(): JSX.Element {
                         <TextInput
                             label="Email"
                             value={editUser.email ? editUser.email : ""}
-                            leftSection={
+                            rightSection={
                                 // TODO: Add email verification
                                 <Tooltip label="This email has been verified" withArrow>
                                     <IconCircleDashedCheck size={16} color="green" />
