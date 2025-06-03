@@ -63,15 +63,6 @@ export default function UsersPage(): JSX.Element {
         setSelected(updated);
     };
 
-    const fetchUsers = async () => {
-        setUsers(await GetAllUsers());
-    };
-
-    const fetchRoles = async () => {
-        const rolesData = await GetAllRoles();
-        setAvailableRoles(rolesData);
-    };
-
     const fetchUserAvatar = (avatarUrn: string): string | undefined => {
         if (avatarsRequested.has(avatarUrn) && avatars.has(avatarUrn)) {
             return avatars.get(avatarUrn);
@@ -129,32 +120,50 @@ export default function UsersPage(): JSX.Element {
     };
 
     useEffect(() => {
-        fetchRoles().catch((error) => {
-            console.error("Failed to fetch roles:", error);
-            if (!fetchRolesErrorShown) {
-                notifications.show({
-                    title: "Error",
-                    message: "Failed to fetch roles. Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
+        const fetchUsers = async () => {
+            await GetAllUsers()
+                .then((data) => {
+                    setUsers(data);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch users:", error);
+                    if (!fetchUsersErrorShown) {
+                        setFetchUsersErrorShown(true);
+                        notifications.show({
+                            id: "fetch-users-error",
+                            title: "Failed to fetch users list",
+                            message: "Please try again later.",
+                            color: "red",
+                            icon: <IconUserExclamation />,
+                        });
+                        setUsers([]);
+                    }
                 });
-                setAvailableRoles([]);
-                setFetchRolesErrorShown(true);
-            }
-        });
-        fetchUsers().catch((error) => {
-            console.error("Failed to fetch users:", error);
-            if (!fetchUsersErrorShown) {
-                notifications.show({
-                    title: "Error",
-                    message: "Failed to fetch users. Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
+        };
+
+        const fetchRoles = async () => {
+            await GetAllRoles()
+                .then((data) => {
+                    setAvailableRoles(data);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch roles:", error);
+                    if (!fetchRolesErrorShown) {
+                        setFetchRolesErrorShown(true);
+                        notifications.show({
+                            id: "fetch-roles-error",
+                            title: "Failed to fetch roles",
+                            message: "Please try again later.",
+                            color: "red",
+                            icon: <IconUserExclamation />,
+                        });
+                        setAvailableRoles([]);
+                    }
                 });
-                setUsers([]);
-                setFetchUsersErrorShown(true);
-            }
-        });
+        };
+
+        fetchRoles();
+        fetchUsers();
     }, [fetchRolesErrorShown, fetchUsersErrorShown]);
 
     console.debug("Rendering UsersPage");
@@ -284,6 +293,7 @@ export default function UsersPage(): JSX.Element {
                             onChange={(value) => {
                                 const role = availableRoles.find((role) => role.description === value);
                                 const selectedRoleId = role?.id;
+                                console.debug("Selected role ID:", selectedRoleId);
                                 setEditUser(
                                     value ? { ...editUser, roleId: selectedRoleId ?? editUser.roleId } : editUser
                                 );
