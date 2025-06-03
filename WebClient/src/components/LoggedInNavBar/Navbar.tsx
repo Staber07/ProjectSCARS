@@ -160,9 +160,10 @@ export const Navbar: React.FC = () => {
                 {links}
             </div>
             <div className={classes.footer}>
-                <a
+                <NavLink
                     href="#"
-                    className={classes.link}
+                    label="Logout"
+                    leftSection={<IconLogout className={classes.linkIcon} stroke={1.5} />}
                     onClick={(event) => {
                         event.preventDefault();
                         logout();
@@ -174,10 +175,7 @@ export const Navbar: React.FC = () => {
                         });
                         router.push("/");
                     }}
-                >
-                    <IconLogout className={classes.linkIcon} stroke={1.5} />
-                    <span>Logout</span>
-                </a>
+                />
             </div>
         </nav>
     );
