@@ -21,6 +21,7 @@ import { useDisclosure } from "@mantine/hooks";
 
 import { useUser } from "@/lib/providers/user";
 import { UploadUserAvatar } from "@/lib/api/user";
+import { roles } from "@/lib/info";
 
 export default function ProfilePage() {
     const userCtx = useUser();
@@ -61,13 +62,20 @@ export default function ProfilePage() {
                         />
                         <Stack gap={0}>
                             <Text size="sm" c="dimmed">
-                                {userCtx.userInfo?.roleId}
+                                {userCtx.userInfo ? roles[userCtx.userInfo?.roleId] : "Unknown Role"}
                             </Text>
                             <Text fw={600} size="lg">
-                                {userCtx.userInfo?.nameFirst}
+                                {userCtx.userInfo?.nameFirst}{" "}
+                                {userCtx.userInfo?.nameMiddle
+                                    ? userCtx.userInfo?.nameMiddle
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join(".") + ". "
+                                    : ""}
+                                {userCtx.userInfo?.nameLast}
                             </Text>
                             <Text size="sm" c="dimmed">
-                                {userCtx.userInfo?.username}
+                                @{userCtx.userInfo?.username}
                             </Text>
                         </Stack>
                     </Group>

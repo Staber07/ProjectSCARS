@@ -43,7 +43,7 @@ const UtilizationData = getUtilizationData().map((item: { name: string; value: n
 const ProfitMarginData = getProfitMarginData();
 const CostToSalesData = getCostToSalesData();
 const ExpenseToIncomeData = getExpenseToIncomeData();
-const MonthlySummaryData = getMonthlySummaryData();
+// const MonthlySummaryData = getMonthlySummaryData();
 const YearlyComparisonData = getYearlyComparisonData();
 const BestMonthData = getBestMonthData();
 

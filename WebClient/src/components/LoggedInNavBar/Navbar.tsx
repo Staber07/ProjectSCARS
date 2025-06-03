@@ -123,7 +123,7 @@ export const Navbar: React.FC = () => {
                             <NavLink
                                 href={item.link}
                                 label={item.label}
-                                leftSection={<item.icon className={classes.linkIcon} stroke={1.5} />}
+                                leftSection={<item.icon stroke={1.5} />}
                                 active={pathname === item.link}
                                 disabled={!permissionGranted}
                                 onClick={(event) => {
@@ -170,6 +170,7 @@ export const Navbar: React.FC = () => {
                         notifications.show({
                             title: "Logged Out",
                             message: "You are now logged out.",
+                            icon: <IconLogout stroke={1.5} />,
                         });
                         router.push("/");
                     }}
