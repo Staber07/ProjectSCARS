@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from enum import StrEnum
 from sqlmodel import Field, Relationship, SQLModel
+import uuid
 
 if TYPE_CHECKING:
     from centralserver.internals.models.user import User
@@ -21,14 +22,25 @@ class NotificationType(StrEnum):
     SECURITY = "security"
 
 
+class NotificationArchiveRequest(SQLModel):
+    """A model representing a request to archive a notification."""
+
+    notification_id: str
+
+
 class Notification(SQLModel, table=True):
     """A model representing a notification in the system."""
 
     __tablename__ = "notifications"  # type: ignore
 
-    id: datetime = Field(
-        default_factory=datetime.now,
+    id: str = Field(
+        default_factory=lambda: str(uuid.uuid4()),
         primary_key=True,
+        index=True,
+        description="The unique identifier for the notification.",
+    )
+    created: datetime = Field(
+        default_factory=datetime.now,
         index=True,
         description="The timestamp for when the notification was created.",
     )

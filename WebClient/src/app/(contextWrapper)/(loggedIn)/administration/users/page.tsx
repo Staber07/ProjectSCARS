@@ -55,6 +55,7 @@ export default function UsersPage(): JSX.Element {
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editUser, setEditUser] = useState<UserPublicType | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
+    const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
@@ -63,6 +64,10 @@ export default function UsersPage(): JSX.Element {
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
+        if (user.avatarUrn) {
+            const avatarUrl = fetchUserAvatar(user.avatarUrn);
+            setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
+        }
     };
 
     const toggleSelected = (index: number) => {
@@ -113,7 +118,6 @@ export default function UsersPage(): JSX.Element {
                 finishedTutorials: null,
                 password: null,
             };
-            console.debug("Updating user info:", newUserInfo);
             UpdateUserInfo(newUserInfo)
                 .then(() => {
                     notifications.show({
@@ -151,12 +155,6 @@ export default function UsersPage(): JSX.Element {
             setEditIndex(null);
             setEditUser(null);
             setEditUserAvatar(null);
-            notifications.show({
-                title: "Success",
-                message: "Changes has been saved successfully.",
-                color: "green",
-                icon: <IconCheck />,
-            });
         }
     };
 
@@ -166,11 +164,12 @@ export default function UsersPage(): JSX.Element {
             return;
         }
         setEditUserAvatar(file);
-        // update the src of the Image element with ID edit-user-avatar to reflect the new file immediately
-        const imageElement = document.getElementById("edit-user-avatar") as HTMLImageElement | null;
-        if (imageElement) {
-            imageElement.src = URL.createObjectURL(file);
-        }
+        setEditUserAvatarUrl((prevUrl) => {
+            if (prevUrl) {
+                URL.revokeObjectURL(prevUrl); // Clean up previous URL
+            }
+            return URL.createObjectURL(file); // Create a new URL for the selected file
+        });
     };
 
     useEffect(() => {
@@ -342,10 +341,10 @@ export default function UsersPage(): JSX.Element {
                                             style={{ position: "relative" }}
                                             {...props}
                                         >
-                                            {editUser.avatarUrn ? (
+                                            {editUserAvatarUrl ? (
                                                 <Image
                                                     id="edit-user-avatar"
-                                                    src={fetchUserAvatar(editUser.avatarUrn)}
+                                                    src={editUserAvatarUrl}
                                                     alt="User Avatar"
                                                     h={150}
                                                     w={150}

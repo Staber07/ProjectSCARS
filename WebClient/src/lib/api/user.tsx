@@ -88,3 +88,17 @@ export async function UpdateUserInfo(newUserInfo: UserUpdateType): Promise<UserP
     const updatedUserInfo: UserPublicType = await centralServerResponse.json();
     return updatedUserInfo;
 }
+
+export async function GetUsersQuantity(): Promise<number> {
+    const centralServerResponse = await ky.get(`${endpoint}/users/quantity`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to get users quantity: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const usersQuantity: number = await centralServerResponse.json();
+    return usersQuantity;
+}

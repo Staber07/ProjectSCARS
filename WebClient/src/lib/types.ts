@@ -49,3 +49,13 @@ export type RoleType = {
     description: string;
     modifiable: boolean;
 };
+
+export type NotificationType = {
+    id: string;
+    ownerId: string;
+    title: string;
+    content: string;
+    important: boolean;
+    type: string;
+    archived: boolean;
+};

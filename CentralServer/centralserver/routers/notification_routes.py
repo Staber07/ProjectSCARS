@@ -8,7 +8,10 @@ from centralserver.internals.auth_handler import verify_access_token
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.notification import Notification
+from centralserver.internals.models.notification import (
+    Notification,
+    NotificationArchiveRequest,
+)
 from centralserver.internals.notification_handler import (
     get_all_notifications as internals_get_all_notifications,
     get_notification as internals_get_notification,
@@ -32,64 +35,34 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 async def get_notification_quantity(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-    owner_id: str | None = None,
+    show_archived: bool = False,
 ) -> int:
     """Get the total number of notifications for the logged-in user.
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
-        owner_id: Optional; if provided, filters notifications by this owner ID.
+        show_archived: Whether to include archived notifications in the count.
 
     Returns:
         int: The total number of notifications.
     """
 
     logger.info("User %s is fetching notification quantity.", token.id)
-    if owner_id:
-        if token.id == owner_id:
-            if not await verify_user_permission(
-                "notifications:self:view", session, token
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have permission to view your own notifications.",
-                )
 
-            logger.debug("user %s fetching their own notifications quantity", token.id)
-            return session.exec(
-                select(func.count(Notification.id)).where(
-                    Notification.ownerId == owner_id
-                )
-            ).one()
-
-        else:
-            if not await verify_user_permission(
-                "notifications:global:view", session, token
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="You do not have permission to view other users' notifications.",
-                )
-
-            logger.debug(
-                "user %s fetching notifications quantity for user %s",
-                token.id,
-                owner_id,
-            )
-            return session.exec(
-                select(func.count(Notification.id)).where(
-                    Notification.ownerId == owner_id
-                )
-            ).one()
-
-    if not await verify_user_permission("notifications:global:view", session, token):
+    if not await verify_user_permission("notifications:self:view", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view other users' notifications.",
+            detail="You do not have permission to view your own notifications.",
         )
 
     logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(Notification.id))).one()
+    return (
+        session.exec(select(func.count(Notification.id))).one()
+        if show_archived
+        else session.exec(
+            select(func.count(Notification.id)).where(Notification.archived is False)
+        ).one()
+    )
 
 
 @router.get("/", response_model=list[Notification])
@@ -97,21 +70,21 @@ async def get_all_notifications(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> list[Notification]:
-    """
-    Get all notifications for the logged-in user.
+    """Get all notifications.
 
     Args:
         token: The decoded JWT token of the logged-in user.
+        session: The database session.
 
     Returns:
-        A list of notification titles.
+        A list of notification objects.
     """
+    logger.info("User %s is fetching all notifications.", token.id)
 
-    logger.info("User %s is fetching notifications.", token.id)
     if not await verify_user_permission("notifications:global:view", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view other users' notifications.",
+            detail="You do not have permission to view notifications.",
         )
 
     return await internals_get_all_notifications(session=session)
@@ -123,24 +96,22 @@ async def get_notification(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> Notification:
-    """
-    Get a specific notification by its ID.
+    """Get a specific notification by its ID.
 
     Args:
-        notification_id (str): The ID of the notification to retrieve.
-        token (DecodedJWTToken): The decoded JWT token of the logged-in user.
+        notification_id: The ID of the notification to retrieve.
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
 
     Returns:
-        Notification: The requested notification object.
+        The requested notification object.
     """
-
     logger.info("User %s is fetching notification %s.", token.id, notification_id)
 
     try:
         notification = await internals_get_notification(
             notification_id=notification_id, session=session
         )
-
     except NotificationNotFoundError as e:
         logger.warning(
             "Notification %s not found for user %s.", notification_id, token.id
@@ -150,41 +121,33 @@ async def get_notification(
             detail="Notification not found.",
         ) from e
 
-    if notification.ownerId == token.id:
-        logger.info(
-            "User %s is viewing their own notification %s.",
-            token.id,
-            notification_id,
+    # Check permissions based on ownership
+    permission = (
+        "notifications:self:view"
+        if notification.ownerId == token.id
+        else "notifications:global:view"
+    )
+
+    if not await verify_user_permission(permission, session, token):
+        detail = (
+            "You do not have permission to view your own notifications."
+            if notification.ownerId == token.id
+            else "You do not have permission to view this notification."
         )
-        if not await verify_user_permission("notifications:self:view", session, token):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to view your own notifications.",
-            )
-
-        return notification
-
-    else:
-        logger.info(
-            "User %s is viewing notification %s owned by user %s.",
-            token.id,
-            notification_id,
-            notification.ownerId,
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=detail,
         )
-        if not await verify_user_permission(
-            "notifications:global:view", session, token
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to view this notification.",
-            )
 
-        return notification
+    logger.debug(
+        "User %s successfully retrieved notification %s.", token.id, notification_id
+    )
+    return notification
 
 
 @router.post("/", response_model=Notification)
 async def archive_notification(
-    notification_id: str,
+    n: NotificationArchiveRequest,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> Notification:
@@ -198,16 +161,16 @@ async def archive_notification(
         Notification: The archived notification object.
     """
 
-    logger.info("User %s is archiving notification %s.", token.id, notification_id)
+    logger.info("User %s is archiving notification %s.", token.id, n.notification_id)
     try:
         selected_notification = await internals_get_notification(
-            notification_id=notification_id, session=session
+            notification_id=n.notification_id, session=session
         )
 
     except NotificationNotFoundError as e:
         logger.warning(
             "Notification %s not found for archiving by user %s.",
-            notification_id,
+            n.notification_id,
             token.id,
         )
         raise HTTPException(
@@ -231,11 +194,11 @@ async def archive_notification(
 
     try:
         archived_notification = await internals_archive_notification(
-            notification_id=notification_id, session=session
+            notification_id=n.notification_id, session=session
         )
         logger.info(
             "Notification %s archived successfully by user %s.",
-            notification_id,
+            n.notification_id,
             token.id,
         )
         return archived_notification
@@ -243,7 +206,7 @@ async def archive_notification(
     except NotificationNotFoundError as e:
         logger.warning(
             "Notification %s not found for archiving by user %s.",
-            notification_id,
+            n.notification_id,
             token.id,
         )
         raise HTTPException(
