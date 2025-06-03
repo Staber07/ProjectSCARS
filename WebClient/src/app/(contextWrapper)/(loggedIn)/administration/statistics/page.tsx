@@ -19,7 +19,7 @@ import { getCostToSalesData } from "./CostToSalesData";
 import { getExpensesBreakdownData } from "./ExpensesBreakdownData";
 import { getExpenseToIncomeData } from "./ExpenseToIncomeData";
 import { getGrossdata } from "./GrossProfitdata";
-import { getMonthlySummaryData } from "./MonthlySummaryData";
+// import { getMonthlySummaryData } from "./MonthlySummaryData";
 import { getNetIncomeData } from "./NetIncomeData";
 import { getNetdata } from "./NetSalesdata";
 import { getProfitMarginData } from "./ProfitMarginData";
