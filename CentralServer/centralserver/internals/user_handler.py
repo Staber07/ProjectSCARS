@@ -169,14 +169,16 @@ async def update_user_avatar(
         selected_user.avatarUrn = None
 
     else:
+        if selected_user.avatarUrn is not None:
+            logger.debug("Deleting old avatar for user: %s", target_user)
+            await object_store_manager.delete(
+                BucketNames.AVATARS, selected_user.avatarUrn
+            )
+
         logger.debug("Updating avatar for user: %s", target_user)
         bucket_object = await object_store_manager.put(
             BucketNames.AVATARS, selected_user.id, img
         )
-        if selected_user.avatarUrn is not None:  # Delete old avatar if it exists
-            await object_store_manager.delete(
-                BucketNames.AVATARS, selected_user.avatarUrn
-            )
 
         selected_user.avatarUrn = bucket_object.fn
 
@@ -361,6 +363,24 @@ async def update_user_info(
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
 
+    if target_user.deactivated is not None:
+        if not await verify_user_permission(
+            ("users:self:deactivate" if updating_self else "users:global:deactivate"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: deactivated status)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify deactivated status.",
+            )
+
+        logger.debug("Updating deactivated status for user: %s", target_user.id)
+        selected_user.deactivated = target_user.deactivated
+
     if (  # Update onboarding status if provided
         target_user.finishedTutorials is not None
     ):
@@ -379,6 +399,22 @@ async def update_user_info(
             len(target_user.finishedTutorials),
         )
         selected_user.finishedTutorials = target_user.finishedTutorials
+
+    if target_user.forceUpdateInfo is not None:
+        if not await verify_user_permission(
+            "users:global:forceupdate", session=session, token=token
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: force update)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot force update.",
+            )
+
+        logger.debug("Setting force update info for user: %s", target_user.id)
+        selected_user.forceUpdateInfo = target_user.forceUpdateInfo
 
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 

@@ -66,6 +66,10 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user is required to update their information.",
     )
+    emailVerified: bool = Field(
+        default=False,
+        description="Whether the user's email address has been verified.",
+    )
     recoveryToken: str | None = Field(
         default=None,
         description="A token used for account recovery, if applicable.",
@@ -129,6 +133,7 @@ class UserPublic(SQLModel):
     deactivated: bool
     finishedTutorials: str
     forceUpdateInfo: bool
+    emailVerified: bool
     dateCreated: datetime.datetime
     lastModified: datetime.datetime
     lastLoggedInTime: datetime.datetime | None
@@ -139,14 +144,20 @@ class UserUpdate(SQLModel):
     """A model used when updating user information."""
 
     id: str  # The ID of the user to be updated.
-    username: str | None = None
-    email: EmailStr | None = None
-    nameFirst: str | None = None
-    nameMiddle: str | None = None
-    nameLast: str | None = None
-    password: str | None = None
+    username: str | None
+    email: EmailStr | None
+    nameFirst: str | None
+    nameMiddle: str | None
+    nameLast: str | None
 
-    finishedTutorials: str | None = None
+    schoolId: int | None
+    roleId: int
+
+    deactivated: bool | None
+    finishedTutorials: str | None
+    forceUpdateInfo: bool | None
+
+    password: str | None
 
 
 class UserCreate(SQLModel):

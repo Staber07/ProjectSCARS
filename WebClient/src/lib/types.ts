@@ -24,6 +24,22 @@ export type UserPublicType = {
     lastLoggedInIp?: string | null;
 };
 
+/** A model used when updating user information. */
+export type UserUpdateType = {
+    id: string; // The ID of the user to be updated.
+    username: string;
+    email?: string | null;
+    nameFirst?: string | null;
+    nameMiddle?: string | null;
+    nameLast?: string | null;
+    schoolId?: number | null;
+    roleId: number;
+    deactivated?: boolean | null;
+    finishedTutorials?: string | null;
+    forceUpdateInfo?: boolean | null;
+    password?: string | null;
+};
+
 export type ServerMessageType = {
     message: string;
 };
