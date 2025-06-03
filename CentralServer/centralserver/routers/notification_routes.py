@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select, func
 
 from centralserver.internals.exceptions import NotificationNotFoundError
 from centralserver.internals.auth_handler import verify_access_token
@@ -26,6 +26,70 @@ router = APIRouter(
 )
 
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
+
+
+@router.get("/quantity", status_code=status.HTTP_200_OK, response_model=int)
+async def get_notification_quantity(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    owner_id: str | None = None,
+) -> int:
+    """Get the total number of notifications for the logged-in user.
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        owner_id: Optional; if provided, filters notifications by this owner ID.
+
+    Returns:
+        int: The total number of notifications.
+    """
+
+    logger.info("User %s is fetching notification quantity.", token.id)
+    if owner_id:
+        if token.id == owner_id:
+            if not await verify_user_permission(
+                "notifications:self:view", session, token
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have permission to view your own notifications.",
+                )
+
+            logger.debug("user %s fetching their own notifications quantity", token.id)
+            return session.exec(
+                select(func.count(Notification.id)).where(
+                    Notification.ownerId == owner_id
+                )
+            ).one()
+
+        else:
+            if not await verify_user_permission(
+                "notifications:global:view", session, token
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You do not have permission to view other users' notifications.",
+                )
+
+            logger.debug(
+                "user %s fetching notifications quantity for user %s",
+                token.id,
+                owner_id,
+            )
+            return session.exec(
+                select(func.count(Notification.id)).where(
+                    Notification.ownerId == owner_id
+                )
+            ).one()
+
+    if not await verify_user_permission("notifications:global:view", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view other users' notifications.",
+        )
+
+    logger.debug("user %s fetching users quantity", token.id)
+    return session.exec(select(func.count(Notification.id))).one()
 
 
 @router.get("/", response_model=list[Notification])

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from minio.error import S3Error
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 
 from centralserver.internals.auth_handler import (
     get_role,
@@ -32,6 +32,31 @@ router = APIRouter(
 )
 
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
+
+
+@router.get("/quantity", status_code=status.HTTP_200_OK, response_model=int)
+async def get_users_quantity_endpoint(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> int:
+    """Get the total number of users in the system.
+
+    Args:
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        The total number of users.
+    """
+
+    if not await verify_user_permission("users:global:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view users list.",
+        )
+
+    logger.debug("user %s fetching users quantity", token.id)
+    return session.exec(select(func.count(User.id))).one()
 
 
 @router.get(
