@@ -27,3 +27,9 @@ export type UserPublicType = {
 export type ServerMessageType = {
     message: string;
 };
+
+export type RoleType = {
+    id: number;
+    description: string;
+    modifiable: boolean;
+};

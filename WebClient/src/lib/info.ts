@@ -1,5 +1,3 @@
-import { use } from "react";
-
 // Used for exporting the program information and connection details into NavBar Component
 export const Program = {
     name: "BENTO",
@@ -17,6 +15,7 @@ export const LocalStorage = {
     access_token: "at",
     refresh_token: "rt",
     user_data: "ud",
+    user_permissions: "up",
     user_avatar: "ua",
 };
 
@@ -35,3 +34,11 @@ export const randomLoadingMessages: string[] = [
     "Auditing the piggy bank...",
     "Making sure every cent is accounted for...",
 ];
+
+export const roles: Record<number, string> = {
+    1: "Website Administrator",
+    2: "Superintendent",
+    3: "Administrator",
+    4: "Principal",
+    5: "Canteen Manager",
+};

@@ -106,7 +106,7 @@ def test_create_user_success():
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     for user in TEST_USERS.items():
         assert user[0] in [u["username"] for u in response.json()]
 
@@ -118,7 +118,7 @@ def test_view_users_success():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     assert response.status_code == 200
 
 
@@ -127,7 +127,7 @@ def test_view_users_fail():
 
     login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     assert response.status_code == 403
 
 
@@ -136,12 +136,13 @@ def test_view_user_success():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/{user["id"]}",
+            "/api/v1/users",
+            params={"user_id": user["id"]},
             headers=headers,
         )
         assert response2.status_code == 200
@@ -154,12 +155,13 @@ def test_view_user_fail():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     login2 = _request_token("testuser4", "Password123")
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     assert response.status_code == 200
 
     for user in response.json():
         response2 = client.get(
-            f"/api/v1/users/{user["id"]}",
+            "/api/v1/users",
+            params={"user_id": user["id"]},
             headers=headers2,
         )
         assert response2.status_code == 403
@@ -170,10 +172,11 @@ def test_view_user_not_found():
 
     login = _request_token(Database.default_user, Database.default_password)
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get("/api/v1/users/all", headers=headers)
+    response = client.get("/api/v1/users", headers=headers)
     assert response.status_code == 200
     response2 = client.get(
-        "/api/v1/users/non-existent-user-id",
+        "/api/v1/users",
+        params={"user_id": "non-existent-user-id"},
         headers=headers,
     )
     assert response2.status_code == 400
@@ -279,7 +282,7 @@ def test_update_user():
         headers=headers2,
     )
     response = client.patch(
-        "/api/v1/users/update",
+        "/api/v1/users",
         json={
             "id": testuser_info.json()["id"],
             "username": "testuser2_new",
@@ -290,7 +293,7 @@ def test_update_user():
     assert response.json()["username"] == "testuser2_new"
     # Revert the change
     response = client.patch(
-        "/api/v1/users/update",
+        "/api/v1/users",
         json={
             "id": testuser_info.json()["id"],
             "username": "testuser2",
@@ -305,7 +308,7 @@ def test_update_user_no_permission():
     login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
-        "/api/v1/users/update",
+        "/api/v1/users",
         json={
             "id": "somethingsomething",
         },
@@ -314,7 +317,7 @@ def test_update_user_no_permission():
     assert response.status_code == 403
     assert (
         response.json()["detail"]
-        == "You do not have permission to update user profiles. Use `/me/update` to update your own profile."
+        == "You do not have permission to update user profiles."
     )
 
 
@@ -357,7 +360,7 @@ def test_self_profile_update_name():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={
             "id": resp_data["id"],
             "nameFirst": "John",
@@ -385,7 +388,7 @@ def test_self_profile_update_username_unchanged():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={
             "id": resp_data["id"],
             "username": "testuser3",
@@ -411,7 +414,7 @@ def test_self_profile_update_username_taken():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={
             "id": resp_data["id"],
             "username": "testuser1",
@@ -432,7 +435,7 @@ def test_self_profile_update_username_invalid():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={
             "id": resp_data["id"],
             "username": "never gonna give you up",
@@ -453,7 +456,7 @@ def test_self_profile_update_email_valid():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users/",
         json={
             "id": resp_data["id"],
             "email": "testuser3@example.com",
@@ -476,7 +479,7 @@ def test_self_profile_update_email_invalid():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users/",
         json={
             "id": resp_data["id"],
             "email": "invalid_email",
@@ -497,7 +500,7 @@ def test_self_profile_update_password_short():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users/",
         json={"id": resp_data["id"], "password": "you"},
         headers=headers,
     )
@@ -515,7 +518,7 @@ def test_self_profile_update_password_alllcase():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users/",
         json={"id": resp_data["id"], "password": "weak_password"},
         headers=headers,
     )
@@ -533,7 +536,7 @@ def test_self_profile_update_password_allucase():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={"id": resp_data["id"], "password": "WEAK_PASSWORD"},
         headers=headers,
     )
@@ -551,14 +554,14 @@ def test_self_profile_update_password_good():
     assert myself.status_code == 200
     resp_data: dict[str, Any] = myself.json()
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={"id": resp_data["id"], "password": "Hunter123"},
         headers=headers,
     )
     assert response.status_code == 200
     # Return to original password
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={"id": resp_data["id"], "password": "Password123"},
         headers=headers,
     )
@@ -569,7 +572,7 @@ def test_self_profile_update_invalid_id():
     login = _request_token("testuser3", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
-        "/api/v1/users/me/update",
+        "/api/v1/users",
         json={
             "id": "INVALID",
             "nameFirst": "John",
@@ -578,10 +581,7 @@ def test_self_profile_update_invalid_id():
         headers=headers,
     )
     assert response.status_code == 403
-    assert (
-        response.json()["detail"]
-        == "You can only update your own profile. Use `/users/update` if you want to update another user's profile."
-    )
+    assert response.json()["detail"] == "You can only update your own profile."
 
 
 def test_view_all_roles():
@@ -621,7 +621,7 @@ def test_update_user_role_no_permission():
         headers=headers2,
     ).json()
     response = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info["id"], "roleId": 1},
         headers=headers,
     )
@@ -636,7 +636,7 @@ def test_update_user_role_invalid_user():
     login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": "blah", "roleId": 1},
         headers=headers,
     )
@@ -654,7 +654,7 @@ def test_update_user_role_invalid_role():
         headers=headers2,
     ).json()
     response = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info["id"], "roleId": 0},
         headers=headers,
     )
@@ -672,7 +672,7 @@ def test_update_user_role():
         headers=headers2,
     ).json()
     response = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info["id"], "roleId": 1},
         headers=headers,
     )
@@ -695,7 +695,7 @@ def test_update_user_role_last_superintendent():
         headers=headers2,
     ).json()
     response = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info["id"], "roleId": 3},
         headers=headers,
     )
@@ -713,7 +713,7 @@ def test_update_user_role_last_superintendent():
         headers=headers3,
     ).json()
     response2 = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info2["id"], "roleId": 4},
         headers=headers,
     )
@@ -728,7 +728,7 @@ def test_update_user_role_last_superintendent():
         headers=headers,
     ).json()
     response3 = client.patch(
-        "/api/v1/users/update/role",
+        "/api/v1/users/role",
         params={"userId": user_info3["id"], "roleId": 4},
         headers=headers,
     )
@@ -740,7 +740,7 @@ def test_deactivate_user_no_permission():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/deactivate",
+        "/api/v1/users/deactivate",
         params={"userId": "non-existent-user-id"},  # We don't need a real user ID here
         headers=headers,
     )
@@ -755,7 +755,7 @@ def test_deactivate_user_not_found():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/deactivate",
+        "/api/v1/users/deactivate",
         params={"userId": "non-existent-user-id"},
         headers=headers,
     )
@@ -775,7 +775,7 @@ def test_deactivate_user_success():
     ).json()
 
     response = client.patch(
-        "/api/v1/users/update/deactivate",
+        "/api/v1/users/deactivate",
         params={"userId": user_info["id"]},
         headers=headers,
     )
@@ -787,7 +787,7 @@ def test_deactivate_user_last_superintendent():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     users = client.get(
-        "/api/v1/users/all",
+        "/api/v1/users",
         headers=headers,
     )
     deactivated_users: dict[str, Any] = {}
@@ -797,7 +797,7 @@ def test_deactivate_user_last_superintendent():
     for user in users.json():
         if user["roleId"] == 1 and user["username"] != Database.default_user:
             response = client.patch(
-                "/api/v1/users/update/deactivate",
+                "/api/v1/users/deactivate",
                 params={"userId": user["id"]},
                 headers=headers,
             )
@@ -809,7 +809,7 @@ def test_deactivate_user_last_superintendent():
 
     assert self_user_id is not None
     response = client.patch(
-        "/api/v1/users/update/deactivate",
+        "/api/v1/users/deactivate",
         params={"userId": self_user_id},
         headers=headers,
     )
@@ -823,7 +823,7 @@ def test_reactivate_user_no_permission():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/reactivate",
+        "/api/v1/users/reactivate",
         params={"userId": "non-existent-user-id"},  # We don't need a real user ID here
         headers=headers,
     )
@@ -838,7 +838,7 @@ def test_reactivate_user_not_found():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/reactivate",
+        "/api/v1/users/reactivate",
         params={"userId": "non-existent-user-id"},
         headers=headers,
     )
@@ -858,7 +858,7 @@ def test_reactivate_user_success():
     ).json()
 
     response = client.patch(
-        "/api/v1/users/update/reactivate",
+        "/api/v1/users/reactivate",
         params={"userId": user_info["id"]},
         headers=headers,
     )
@@ -870,7 +870,7 @@ def test_force_update_user_info_no_permission():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/force",
+        "/api/v1/users/force",
         params={"userId": "non-existent-user-id"},  # We don't need a real user ID here
         headers=headers,
     )
@@ -886,7 +886,7 @@ def test_force_update_user_info_not_found():
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
 
     response = client.patch(
-        "/api/v1/users/update/reactivate",
+        "/api/v1/users/reactivate",
         params={"userId": "non-existent-user-id"},
         headers=headers,
     )
@@ -906,7 +906,7 @@ def test_force_update_user_info_success():
     ).json()
 
     response = client.patch(
-        "/api/v1/users/update/force",
+        "/api/v1/users/force",
         params={"userId": user_info["id"]},
         headers=headers,
     )
@@ -930,7 +930,7 @@ def test_update_user_avatar():
         img = file.read()
 
     response = client.patch(
-        "/api/v1/users/update/avatar",
+        "/api/v1/users/avatar",
         params={"userId": user_info["id"]},
         files={"img": ("avatar.jpg", img, "image/jpeg")},
         headers=headers,
@@ -954,7 +954,7 @@ def test_update_user_avatar_no_permission():
         img = file.read()
 
     response = client.patch(
-        "/api/v1/users/update/avatar",
+        "/api/v1/users/avatar",
         params={"userId": user_info["id"]},
         files={"img": ("avatar.jpg", img, "image/jpeg")},
         headers=headers,
@@ -1028,7 +1028,7 @@ def test_delete_user_avatar_no_permission():
     ).json()
 
     response = client.delete(
-        "/api/v1/users/update/avatar",
+        "/api/v1/users/avatar",
         params={"userId": user_info["id"]},
         headers=headers,
     )
@@ -1044,7 +1044,7 @@ def test_delete_user_avatar_success():
     ).json()
 
     response = client.delete(
-        "/api/v1/users/update/avatar",
+        "/api/v1/users/avatar",
         params={"userId": user_info["id"]},
         headers=headers,
     )
@@ -1064,7 +1064,7 @@ def test_delete_user_avatar_no_current():
     ).json()
 
     response = client.delete(
-        "/api/v1/users/update/avatar",
+        "/api/v1/users/avatar",
         params={"userId": user_info2["id"]},
         headers=headers,
     )

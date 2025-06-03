@@ -4,9 +4,10 @@ import { LocalStorage } from "@/lib/info";
 
 interface UserContextType {
     userInfo: UserPublicType | null;
+    userPermissions: string[] | null;
     userAvatar: Blob | null;
     userAvatarUrl: string | null;
-    updateUserInfo: (userInfo: UserPublicType, userAvatar?: Blob | null) => void;
+    updateUserInfo: (userInfo: UserPublicType, permissions: string[] | null, userAvatar?: Blob | null) => void;
     clearUserInfo: () => void;
 }
 
@@ -18,15 +19,20 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: UserProviderProps): ReactNode {
     const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
+    const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
     const [userAvatar, setUserAvatar] = useState<Blob | null>(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
 
     useEffect(() => {
         const loadUserData = async () => {
             const storedUserInfo = localStorage.getItem(LocalStorage.user_data);
+            const storedUserPermissions = localStorage.getItem(LocalStorage.user_permissions);
             const storedUserAvatar = localStorage.getItem(LocalStorage.user_avatar);
             if (storedUserInfo) {
                 setUserInfo(JSON.parse(storedUserInfo));
+            }
+            if (storedUserPermissions) {
+                setUserPermissions(JSON.parse(storedUserPermissions));
             }
             if (storedUserAvatar) {
                 try {
@@ -52,11 +58,23 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     /**
      * Update the user information and optionally the user avatar.
      * @param {UserPublicType} userInfo - The user information to set.
-     * @param {Blob | null}
+     * @param {string[]} permissions - The permissions of the user.
+     * @param {Blob | null} userAvatar - The user avatar to set, if available.
      */
-    const updateUserInfo = (userInfo: UserPublicType, userAvatar?: Blob | null) => {
-        console.debug("Setting user info", { userInfo, userAvatar });
+    const updateUserInfo = (userInfo: UserPublicType, permissions?: string[] | null, userAvatar?: Blob | null) => {
+        console.debug("Setting user info", { userInfo, permissions, userAvatar });
         setUserInfo(userInfo);
+        localStorage.setItem(LocalStorage.user_data, JSON.stringify(userInfo));
+
+        // Update permissions and avatar only if they are provided
+        if (permissions) {
+            setUserPermissions(permissions);
+            localStorage.setItem(LocalStorage.user_permissions, JSON.stringify(permissions));
+        } else {
+            setUserPermissions(null);
+            localStorage.removeItem(LocalStorage.user_permissions);
+        }
+
         if (userAvatar) {
             setUserAvatar(userAvatar);
             setUserAvatarUrl((prevUrl) => {
@@ -65,13 +83,15 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
                 }
                 return URL.createObjectURL(userAvatar);
             });
-
-            localStorage.setItem(LocalStorage.user_data, JSON.stringify(userInfo));
             const reader = new FileReader();
             reader.onload = () => {
                 localStorage.setItem(LocalStorage.user_avatar, reader.result as string);
             };
             reader.readAsDataURL(userAvatar);
+        } else {
+            setUserAvatar(null);
+            setUserAvatarUrl(null);
+            localStorage.removeItem(LocalStorage.user_avatar);
         }
     };
 
@@ -80,11 +100,21 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
      */
     const clearUserInfo = () => {
         setUserInfo(null);
+        setUserPermissions(null);
         setUserAvatar(null);
     };
 
     return (
-        <UserContext.Provider value={{ userInfo, userAvatar, userAvatarUrl, updateUserInfo, clearUserInfo }}>
+        <UserContext.Provider
+            value={{
+                userInfo,
+                userPermissions,
+                userAvatar,
+                userAvatarUrl,
+                updateUserInfo,
+                clearUserInfo,
+            }}
+        >
             {children}
         </UserContext.Provider>
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/LoggedInNavBar/Navbar";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import { AppShell, ScrollArea } from "@mantine/core";
@@ -24,7 +24,7 @@ export default function LoggedInLayout({ children }: { children: React.ReactNode
  * @param {React.ReactNode} props.children - The child components to render within the content area.
  */
 function LoggedInContent({ children }: { children: React.ReactNode }) {
-    const { userInfo, clearUserInfo } = useUser();
+    const { clearUserInfo } = useUser();
     const { isAuthenticated } = useAuth();
     const [opened] = useDisclosure();
     const router = useRouter();
@@ -49,7 +49,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
         >
             <AppShell.Navbar p="md">
                 <ScrollArea scrollbars="y">
-                    <Navbar enableAdminButtons={userInfo?.roleId === 1 || userInfo?.roleId === 2} />
+                    <Navbar />
                 </ScrollArea>
             </AppShell.Navbar>
             <AppShell.Main>{children}</AppShell.Main>
