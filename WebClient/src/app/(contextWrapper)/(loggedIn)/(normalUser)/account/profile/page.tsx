@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import {
     Box,
     Divider,
@@ -21,8 +19,6 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
-import { GetUserInfo } from "@/lib/api/auth";
-import { GetUserAvatar, UploadUserAvatar } from "@/lib/api/user";
 import { useUser } from "@/lib/providers/user";
 
 export default function ProfilePage() {

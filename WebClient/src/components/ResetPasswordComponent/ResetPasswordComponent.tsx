@@ -3,7 +3,7 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { ResetPassword } from "@/lib/api/auth";
-import { Box, Button, Container, Paper, PasswordInput, Popover, Progress, Text, TextInput } from "@mantine/core";
+import { Box, Button, Container, Paper, PasswordInput, Progress, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -65,7 +65,6 @@ function ResetPasswordContent(): React.ReactElement {
     const searchParams = useSearchParams();
     const [pwValue, setPwValue] = useState("");
     const [pwConfValue, setPwConfValue] = useState("");
-    const [popoverOpened, setPopoverOpened] = useState(false);
     const [pwVisible, { toggle: pwVisibilityToggle }] = useDisclosure(false);
     const form = useForm<ResetPasswordValues>({
         mode: "controlled",

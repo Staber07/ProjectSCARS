@@ -125,7 +125,7 @@ export default function UsersPage(): JSX.Element {
                 setFetchUsersErrorShown(true);
             }
         });
-    }, []);
+    }, [fetchRolesErrorShown, fetchUsersErrorShown]);
 
     console.debug("Rendering UsersPage");
     return (

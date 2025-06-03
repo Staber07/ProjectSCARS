@@ -1,5 +1,3 @@
-import { use } from "react";
-
 // Used for exporting the program information and connection details into NavBar Component
 export const Program = {
     name: "BENTO",
