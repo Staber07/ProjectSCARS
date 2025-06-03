@@ -16,7 +16,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserPublic, UserUpdate
-from centralserver.internals.permissions import DEFAULT_ROLES
+from centralserver.internals.permissions import DEFAULT_ROLES, ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
@@ -34,11 +34,13 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.get("/me", status_code=status.HTTP_200_OK, response_model=UserPublic)
+@router.get(
+    "/me", status_code=status.HTTP_200_OK, response_model=tuple[UserPublic, list[str]]
+)
 async def get_user_profile_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
+) -> tuple[UserPublic, list[str]]:
     """Get the logged-in user's profile information.
 
     Args:
@@ -46,7 +48,7 @@ async def get_user_profile_endpoint(
         session: The session to the database.
 
     Returns:
-        The user's profile information.
+        The user's profile information together with their permissions.
     """
 
     if not await verify_user_permission("users:self:read", session, token):
@@ -56,7 +58,14 @@ async def get_user_profile_endpoint(
         )
 
     logger.debug("Fetching user profile for user ID: %s", token.id)
-    return UserPublic.model_validate(session.get(User, token.id))
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    return (UserPublic.model_validate(user), ROLE_PERMISSIONS[user.roleId])
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_model=list[UserPublic])
