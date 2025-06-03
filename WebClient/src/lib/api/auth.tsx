@@ -56,7 +56,7 @@ export async function LoginUser(username: string, password: string): Promise<Tok
  * @param {boolean} refresh - Whether to force a refresh of the user data.
  * @return {Promise<UserPublicType>} A promise that resolves to the user data.
  */
-export async function GetUserInfo(): Promise<UserPublicType> {
+export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
@@ -66,7 +66,8 @@ export async function GetUserInfo(): Promise<UserPublicType> {
         throw new Error(errorMessage);
     }
 
-    return await centralServerResponse.json();
+    const [updatedUserInfo, roles]: [UserPublicType, string[]] = await centralServerResponse.json();
+    return [updatedUserInfo, roles];
 }
 
 /**

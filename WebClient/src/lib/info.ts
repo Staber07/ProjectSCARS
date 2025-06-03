@@ -15,6 +15,7 @@ export const LocalStorage = {
     access_token: "at",
     refresh_token: "rt",
     user_data: "ud",
+    user_permissions: "up",
     user_avatar: "ua",
 };
 

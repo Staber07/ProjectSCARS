@@ -63,7 +63,7 @@ export function MainLoginComponent(): React.ReactElement {
             const tokens = await LoginUser(values.username, values.password);
             authCtx.login(tokens);
 
-            const userInfo = await GetUserInfo();
+            const [userInfo, userPermissions] = await GetUserInfo();
             console.debug("User info fetched successfully", { id: userInfo.id, username: userInfo.username });
             let userAvatar: Blob | null = null;
             if (userInfo.avatarUrn) {
@@ -74,7 +74,7 @@ export function MainLoginComponent(): React.ReactElement {
                     console.warn("No avatar found for user, using default avatar.");
                 }
             }
-            userCtx.updateUserInfo(userInfo, userAvatar);
+            userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
                 title: "Login successful",

@@ -20,6 +20,7 @@ import {
 import { useDisclosure } from "@mantine/hooks";
 
 import { useUser } from "@/lib/providers/user";
+import { UploadUserAvatar } from "@/lib/api/user";
 
 export default function ProfilePage() {
     const userCtx = useUser();
@@ -36,7 +37,7 @@ export default function ProfilePage() {
         }
         console.debug("Uploading avatar...");
         const updatedUserInfo = await UploadUserAvatar(userCtx.userInfo.id, file);
-        userCtx.updateUserInfo(updatedUserInfo, file);
+        userCtx.updateUserInfo(updatedUserInfo, userCtx.userPermissions, file);
         console.debug("Avatar uploaded successfully.");
     };
 
