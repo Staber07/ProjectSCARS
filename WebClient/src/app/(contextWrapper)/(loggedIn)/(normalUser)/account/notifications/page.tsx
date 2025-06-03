@@ -118,6 +118,7 @@ export default function NotificationsPage() {
                 {loading && <LoadingComponent withBorder={false} />}
                 {!loading && (
                     <Table withTableBorder>
+                        {/* TODO: Show "No notifications" when empty */}
                         <Table.Tbody>{notificationsList}</Table.Tbody>
                     </Table>
                 )}

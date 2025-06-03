@@ -67,6 +67,9 @@ export default function UsersPage(): JSX.Element {
         if (user.avatarUrn) {
             const avatarUrl = fetchUserAvatar(user.avatarUrn);
             setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
+        } else {
+            setEditUserAvatar(null);
+            setEditUserAvatarUrl(null);
         }
     };
 

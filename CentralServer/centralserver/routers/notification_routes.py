@@ -60,6 +60,7 @@ async def get_notification_quantity(
         session.exec(select(func.count(Notification.id))).one()
         if show_archived
         else session.exec(
+            # FIXME: when show_archived is False, no item is returned
             select(func.count(Notification.id)).where(Notification.archived is False)
         ).one()
     )
