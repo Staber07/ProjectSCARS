@@ -18,7 +18,7 @@ class DisbursementVoucher(SQLModel, table=True):
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
- 
+
     payee: str = Field(foreign_key="users.id")
     tinOrEmployeeNo: str | None = None
     responsibilityCenter: str | None = None
@@ -70,7 +70,7 @@ class DisbursementVoucherEntry(SQLModel, table=True):
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="disbursementVouchers.parent"
     )
-    #to be edited for specific inputs based on the report requirements
+    # to be edited for specific inputs based on the report requirements
     date: datetime.datetime
     receipt: str
     particulars: str
