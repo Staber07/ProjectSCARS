@@ -11,9 +11,12 @@ from centralserver.internals.adapters.object_store import (
 from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
+from centralserver.info import Program
 from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
+from centralserver.internals.models.notification import NotificationType
+from centralserver.internals.notification_handler import push_notification
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -116,6 +119,15 @@ async def create_user(
     session.commit()
     session.refresh(user)
 
+    await push_notification(
+        owner_id=user.id,
+        title="Please add an email address",
+        content=f"Welcome to {Program.name}! Please add an email address to your account to receive important notifications.",
+        important=True,
+        notification_type=NotificationType.MAIL,
+        session=session,
+    )
+
     logger.info("User `%s` created.", new_user.username)
     return user
 
@@ -201,6 +213,7 @@ async def update_user_info(
         session: The database session to use.
     """
 
+    email_changed = False
     selected_user = session.get(User, target_user.id)
 
     if not selected_user:  # Check if user exists
@@ -281,6 +294,8 @@ async def update_user_info(
             )
         logger.debug("Updating email for user: %s", target_user.id)
         selected_user.email = target_user.email
+        selected_user.emailVerified = False  # Reset email verification status
+        email_changed = True
 
     if target_user.nameFirst:  # Update first name if provided
         if not await verify_user_permission(
@@ -420,6 +435,15 @@ async def update_user_info(
 
     session.commit()
     session.refresh(selected_user)
+    if email_changed:
+        await push_notification(
+            owner_id=selected_user.id,
+            title="Email address updated",
+            content="Your email address has been updated. Please verify it to receive notifications.",
+            important=True,
+            notification_type=NotificationType.MAIL,
+            session=session,
+        )
     logger.info("User info for `%s` updated.", selected_user.username)
     return UserPublic.model_validate(selected_user)
 

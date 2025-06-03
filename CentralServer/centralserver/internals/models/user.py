@@ -9,6 +9,7 @@ from sqlmodel import Field, Relationship, SQLModel
 if TYPE_CHECKING:
     from centralserver.internals.models.role import Role
     from centralserver.internals.models.school import School
+    from centralserver.internals.models.notification import Notification
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,14 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user's email address has been verified.",
     )
+    verificationToken: str | None = Field(
+        default=None,
+        description="A token used for email verification, if applicable.",
+    )
+    verificationTokenExpires: datetime.datetime | None = Field(
+        default=None,
+        description="The expiration time for the verification token.",
+    )
     recoveryToken: str | None = Field(
         default=None,
         description="A token used for account recovery, if applicable.",
@@ -116,6 +125,9 @@ class User(SQLModel, table=True):
         back_populates="users",
     )
     role: "Role" = Relationship(back_populates="users")
+    notifications: list["Notification"] = Relationship(
+        back_populates="owner",
+    )
 
 
 class UserPublic(SQLModel):

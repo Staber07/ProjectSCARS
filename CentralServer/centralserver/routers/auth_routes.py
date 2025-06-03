@@ -136,6 +136,152 @@ async def request_access_token(
     )
 
 
+@router.post("/email/request")
+async def request_verification_email(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Send a verification email to a user.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+
+    Returns:
+        A message indicating the success of the operation.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
+    """
+
+    logger.info("Verifying email with token: %s", token)
+    user = session.get(User, token.id)
+
+    if not user:
+        logger.warning("User not found for email verification: %s", token.id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated.",
+        )
+
+    if not user.email:
+        logger.warning(
+            "User %s does not have an email address set.",
+            user.username,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user does not have an email address set.",
+        )
+
+    session.commit()
+    session.refresh(user)
+
+    # Generate a verification token and set its expiration time
+    user.verificationToken = str(uuid.uuid4())
+    user.verificationTokenExpires = datetime.datetime.now(
+        datetime.timezone.utc
+    ) + datetime.timedelta(
+        # NOTE: Reusing recovery token expiration time for email verification
+        minutes=app_config.authentication.recovery_token_expire_minutes
+    )
+    session.commit()
+    session.refresh(user)
+    recovery_link = (
+        f"{app_config.connection.base_url}/email/verify?token={user.verificationToken}"
+    )
+    logger.debug(
+        "Generated verification link for user %s: %s", user.username, recovery_link
+    )
+    logger.info("Email verified successfully for user: %s", user.username)
+    try:
+        send_mail(
+            to_address=user.email,
+            subject=f"{info.Program.name} | Email Verification Request",
+            text=get_template("email_verification.txt").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                verification_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+            html=get_template("email_verification.html").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                verification_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+        )
+
+    except EmailTemplateNotFoundError as e:
+        logger.error("Template for email verification not found.")
+        logger.debug("User's email verification link: %s", recovery_link)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email. Please contact support.",
+        ) from e
+
+    return {"message": "Email verification sent successfully."}
+
+
+@router.get("/email/verify")
+async def verify_email(
+    token: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Verify a user's email address using a verification token.
+
+    Args:
+        token: The verification token.
+        session: The database session.
+
+    Returns:
+        A message indicating the success of the operation.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
+    """
+
+    logger.info("Verifying email with token: %s", token)
+    user = session.exec(select(User).where(User.verificationToken == token)).first()
+
+    if not user or not user.verificationToken or not user.verificationTokenExpires:
+        logger.warning("Invalid or missing verification token: %s", token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing verification token.",
+        )
+
+    if user.deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated.",
+        )
+
+    if user.verificationTokenExpires.replace(
+        tzinfo=datetime.timezone.utc
+    ) < datetime.datetime.now(datetime.timezone.utc):
+        logger.warning("Expired verification token: %s", token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expired verification token.",
+        )
+
+    user.emailVerified = True
+    user.verificationToken = None
+    user.verificationTokenExpires = None
+    session.commit()
+    session.refresh(user)
+    logger.info("Email verified successfully for user: %s", user.username)
+
+    return {"message": "Email verified successfully."}
+
+
 @router.post("/recovery/request")
 async def request_password_recovery(
     username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
@@ -178,6 +324,16 @@ async def request_password_recovery(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email does not match the user's email address.",
+        )
+
+    if user.emailVerified is False:
+        logger.warning(
+            "User %s has not verified their email address, cannot proceed with password recovery.",
+            username,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User's email address is not verified.",
         )
 
     # Generate a recovery token and set its expiration time

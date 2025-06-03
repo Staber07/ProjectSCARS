@@ -11,6 +11,10 @@ DEFAULT_ROLES: Final[tuple[DefaultRole, ...]] = (
 )
 
 PERMISSIONS: Final[dict[str, str]] = {
+    "notifications:global:archive": "Archive notifications owned by any user.",
+    "notifications:self:archive": "Archive their own notifications.",
+    "notifications:global:view": "View all notifications owned by any user.",
+    "notifications:self:view": "View their own notifications.",
     "site:manage": "Access and modify the website's settings and configurations.",
     "users:create": "Create new users of any role.",
     "users:global:modify": "Modify any user's information.",
@@ -38,6 +42,10 @@ PERMISSIONS: Final[dict[str, str]] = {
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     1: [  # Website Administrator
+        "notifications:global:archive",
+        "notifications:self:archive",
+        "notifications:global:view",
+        "notifications:self:view",
         "site:manage",
         "users:create",
         "users:global:modify",
@@ -59,6 +67,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "roles:global:read",
     ],
     2: [  # Superintendent
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -71,6 +81,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "roles:global:read",
     ],
     3: [  # Administrator
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
@@ -82,6 +94,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "roles:global:read",
     ],
     4: [  # Principal
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",
@@ -89,6 +103,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:read",
     ],
     5: [  # Canteen Manager
+        "notifications:self:archive",
+        "notifications:self:view",
         "users:self:modify",
         "users:self:modify:email",
         "users:self:modify:password",
