@@ -22,8 +22,14 @@ import { useDisclosure } from "@mantine/hooks";
 import { useUser } from "@/lib/providers/user";
 import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { VerifyUserEmail } from "@/lib/api/auth";
+import { notifications } from "@mantine/notifications";
+import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
 
 export default function ProfilePage() {
+    const searchParams = useSearchParams();
     const userCtx = useUser();
     const [opened, { open, close }] = useDisclosure(false);
 
@@ -44,6 +50,38 @@ export default function ProfilePage() {
 
     console.debug("Rendering ProfilePage");
 
+    useEffect(() => {
+        const emailVerificationToken = searchParams.get("emailVerificationToken");
+        if (emailVerificationToken) {
+            console.debug("Email verification token found:", emailVerificationToken);
+            VerifyUserEmail(emailVerificationToken)
+                .then(() => {
+                    notifications.show({
+                        title: "Your email has been verified",
+                        message: "Thank you for verifying your email address.",
+                        color: "green",
+                        icon: <IconMailOpened />,
+                    });
+                })
+                .catch((error) => {
+                    if (error instanceof Error) {
+                        notifications.show({
+                            title: "Email Verification Failed",
+                            message: `Failed to verify your email: ${error.message}`,
+                            color: "red",
+                            icon: <IconMailOff />,
+                        });
+                    } else {
+                        notifications.show({
+                            title: "Email Verification Failed",
+                            message: "An unknown error occurred while verifying your email. Please try again later.",
+                            color: "red",
+                            icon: <IconMailOff />,
+                        });
+                    }
+                });
+        }
+    }, [searchParams]);
     return (
         <div>
             <Box mx="auto" p="lg">

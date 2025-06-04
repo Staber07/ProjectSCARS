@@ -102,3 +102,17 @@ export async function GetUsersQuantity(): Promise<number> {
     const usersQuantity: number = await centralServerResponse.json();
     return usersQuantity;
 }
+
+export async function RemoveUserProfile(userId: string): Promise<void> {
+    const centralServerResponse = await ky.delete(`${endpoint}/users/avatar`, {
+        searchParams: { user_id: userId },
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to remove user profile: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    console.debug("User profile removed successfully");
+}

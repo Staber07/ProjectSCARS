@@ -18,6 +18,7 @@ export type UserPublicType = {
     deactivated: boolean;
     finishedTutorials: string;
     forceUpdateInfo: boolean;
+    emailVerified: boolean;
     dateCreated: Date;
     lastModified: Date;
     lastLoggedInTime?: Date | null;
