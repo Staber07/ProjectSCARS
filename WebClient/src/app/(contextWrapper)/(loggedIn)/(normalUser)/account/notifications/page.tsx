@@ -6,6 +6,7 @@ import { NotificationType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
+    Badge,
     Box,
     Card,
     Checkbox,
@@ -31,8 +32,12 @@ import {
     IconSearch,
     IconShieldLock,
 } from "@tabler/icons-react";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import React, { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
+dayjs.extend(relativeTime);
 const notificationIcons: Record<string, [React.ComponentType, string]> = {
     info: [IconInfoCircle, "blue"],
     warning: [IconInfoTriangle, "yellow"],
@@ -146,59 +151,119 @@ export default function NotificationsPage() {
                 />
             </Group>
 
-            <Checkbox
-                label="Select all"
-                checked={selectAll}
-                onChange={(event) => {
-                    const checked = event.currentTarget.checked;
-                    setSelectAll(checked);
-                    setSelected(checked ? new Set(filteredNotifications.map((n) => n.id)) : new Set());
-                }}
-                mb="sm"
-            />
+            <Group mb="sm" justify="space-between">
+                <Checkbox
+                    label="Select all"
+                    checked={selectAll}
+                    onChange={(event) => {
+                        const checked = event.currentTarget.checked;
+                        setSelectAll(checked);
+                        setSelected(checked ? new Set(filteredNotifications.map((n) => n.id)) : new Set());
+                    }}
+                    mb="sm"
+                />
+                <Group>
+                    <Text>
+                        {selected.size > 0
+                            ? selected.size == 1
+                                ? `Selected ${selected.size} notification`
+                                : `Selected ${selected.size} notifications`
+                            : ""}
+                    </Text>
+                    <ActionIcon
+                        variant="light"
+                        color="blue"
+                        onClick={() => {
+                            if (selected.size === 0) {
+                                notifications.show({
+                                    title: "No Notifications Selected",
+                                    message: "Please select at least one notification to archive.",
+                                    color: "yellow",
+                                    icon: <IconAlertCircle />,
+                                });
+                                return;
+                            }
+                            const ids = Array.from(selected);
+                            Promise.all(ids.map((id) => ArchiveNotification(id)))
+                                .then(() => {
+                                    notifications.show({
+                                        title: "Notifications Archived",
+                                        message: `Successfully archived ${ids.length} notifications.`,
+                                        color: "green",
+                                        icon: <IconCircleCheck />,
+                                    });
+                                    setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+                                    setSelected(new Set());
+                                })
+                                .catch((error) => {
+                                    notifications.show({
+                                        title: "Error Archiving Notifications",
+                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                        color: "red",
+                                        icon: <IconAlertCircle />,
+                                    });
+                                });
+                        }}
+                    >
+                        <IconMailOpened />
+                    </ActionIcon>
+                </Group>
+            </Group>
 
             <ScrollArea h={600}>
                 <Stack>
                     {loading && <LoadingComponent withBorder={false} />}
                     {!loading && filteredNotifications.length === 0 && <Text>No notifications found.</Text>}
                     {!loading &&
-                        filteredNotifications.map((n) => {
-                            const IconComponent = notificationIcons[n.type]?.[0] || IconInfoCircle;
-                            const color = notificationIcons[n.type]?.[1] || "gray";
-                            const isChecked = selected.has(n.id);
-                            return (
-                                <Card key={n.id} withBorder radius="md" p="md">
-                                    <Group align="flex-start">
-                                        <Checkbox
-                                            checked={isChecked}
-                                            onChange={(e) => {
-                                                const newSet = new Set(selected);
-                                                if (e.currentTarget.checked) newSet.add(n.id);
-                                                else newSet.delete(n.id);
-                                                setSelected(newSet);
-                                            }}
-                                        />
-                                        <Avatar color={color} radius="xl">
-                                            <IconComponent size={16} />
-                                        </Avatar>
-                                        <Stack gap={0} style={{ flex: 1 }}>
-                                            <Group justify="space-between">
-                                                <Text fw={500}>{n.title}</Text>
-                                                {/* <Badge>{n.createdAt ? dayjs(n.createdAt).format("MMM D, YYYY h:mm A") : "Unknown date"}</Badge> */}
-                                            </Group>
-                                            <Text size="sm" c="dimmed">
-                                                {n.content}
-                                            </Text>
-                                        </Stack>
-                                        <Tooltip label="Mark as Read" withArrow>
-                                            <ActionIcon variant="light" onClick={() => handleArchive(n.id)}>
-                                                <IconMailOpened />
-                                            </ActionIcon>
-                                        </Tooltip>
-                                    </Group>
-                                </Card>
-                            );
-                        })}
+                        filteredNotifications
+                            .slice()
+                            .reverse()
+                            .map((n) => {
+                                const IconComponent = notificationIcons[n.type]?.[0] || IconInfoCircle;
+                                const color = notificationIcons[n.type]?.[1] || "gray";
+                                const isChecked = selected.has(n.id);
+                                return (
+                                    <Card key={n.id} withBorder radius="md" p="md">
+                                        <Group align="flex-start">
+                                            <Checkbox
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                    const newSet = new Set(selected);
+                                                    if (e.currentTarget.checked) newSet.add(n.id);
+                                                    else newSet.delete(n.id);
+                                                    setSelected(newSet);
+                                                }}
+                                            />
+                                            <Avatar color={color} radius="xl">
+                                                <IconComponent />
+                                            </Avatar>
+                                            <Stack gap={0} style={{ flex: 1 }}>
+                                                <Group justify="space-between">
+                                                    <Text fw={500}>{n.title}</Text>
+                                                    <Badge>
+                                                        {n.created ? dayjs(n.created).fromNow() : "Unknown date"}
+                                                    </Badge>
+                                                </Group>
+                                                <Text size="sm" c="dimmed">
+                                                    {n.content}
+                                                </Text>
+                                            </Stack>
+                                            <Tooltip position="bottom" label="Mark as Read" withArrow>
+                                                <motion.div
+                                                    whileHover={{ scale: 1.1 }}
+                                                    whileTap={{ scale: 0.9 }}
+                                                    style={{ cursor: "pointer" }}
+                                                    onClick={() => handleArchive(n.id)}
+                                                >
+                                                    <ActionIcon variant="subtle">
+                                                        <IconMailOpened />
+                                                    </ActionIcon>
+                                                </motion.div>
+                                            </Tooltip>
+                                        </Group>
+                                    </Card>
+                                );
+                            })}
                 </Stack>
             </ScrollArea>
         </Box>

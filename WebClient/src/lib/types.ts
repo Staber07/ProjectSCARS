@@ -53,6 +53,7 @@ export type RoleType = {
 
 export type NotificationType = {
     id: string;
+    created: Date;
     ownerId: string;
     title: string;
     content: string;
