@@ -162,52 +162,53 @@ export default function NotificationsPage() {
                     }}
                     mb="sm"
                 />
-                <Group>
-                    <Text>
-                        {selected.size > 0
-                            ? selected.size == 1
+                {selected.size > 0 && (
+                    <Group>
+                        <Text>
+                            {selected.size == 1
                                 ? `Selected ${selected.size} notification`
-                                : `Selected ${selected.size} notifications`
-                            : ""}
-                    </Text>
-                    <ActionIcon
-                        variant="light"
-                        color="blue"
-                        onClick={() => {
-                            if (selected.size === 0) {
-                                notifications.show({
-                                    title: "No Notifications Selected",
-                                    message: "Please select at least one notification to archive.",
-                                    color: "yellow",
-                                    icon: <IconAlertCircle />,
-                                });
-                                return;
-                            }
-                            const ids = Array.from(selected);
-                            Promise.all(ids.map((id) => ArchiveNotification(id)))
-                                .then(() => {
+                                : `Selected ${selected.size} notifications`}
+                        </Text>
+                        <ActionIcon
+                            variant="light"
+                            color="blue"
+                            onClick={() => {
+                                if (selected.size === 0) {
                                     notifications.show({
-                                        title: "Notifications Archived",
-                                        message: `Successfully archived ${ids.length} notifications.`,
-                                        color: "green",
-                                        icon: <IconCircleCheck />,
-                                    });
-                                    setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
-                                    setSelected(new Set());
-                                })
-                                .catch((error) => {
-                                    notifications.show({
-                                        title: "Error Archiving Notifications",
-                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
-                                        color: "red",
+                                        title: "No Notifications Selected",
+                                        message: "Please select at least one notification to archive.",
+                                        color: "yellow",
                                         icon: <IconAlertCircle />,
                                     });
-                                });
-                        }}
-                    >
-                        <IconMailOpened />
-                    </ActionIcon>
-                </Group>
+                                    return;
+                                }
+                                const ids = Array.from(selected);
+                                Promise.all(ids.map((id) => ArchiveNotification(id)))
+                                    .then(() => {
+                                        notifications.show({
+                                            title: "Notifications Archived",
+                                            message: `Successfully archived ${ids.length} notifications.`,
+                                            color: "green",
+                                            icon: <IconCircleCheck />,
+                                        });
+                                        setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+                                        setSelected(new Set());
+                                    })
+                                    .catch((error) => {
+                                        notifications.show({
+                                            title: "Error Archiving Notifications",
+                                            message:
+                                                error instanceof Error ? error.message : "An unknown error occurred.",
+                                            color: "red",
+                                            icon: <IconAlertCircle />,
+                                        });
+                                    });
+                            }}
+                        >
+                            <IconMailOpened />
+                        </ActionIcon>
+                    </Group>
+                )}
             </Group>
 
             <ScrollArea h={600}>
@@ -240,9 +241,13 @@ export default function NotificationsPage() {
                                             <Stack gap={0} style={{ flex: 1 }}>
                                                 <Group justify="space-between">
                                                     <Text fw={500}>{n.title}</Text>
-                                                    <Badge>
-                                                        {n.created ? dayjs(n.created).fromNow() : "Unknown date"}
-                                                    </Badge>
+                                                    <Tooltip
+                                                        position="bottom"
+                                                        label={dayjs(n.created).format("YYYY-MM-DD HH:mm:ss")}
+                                                        withArrow
+                                                    >
+                                                        <Badge>{dayjs(n.created).fromNow()}</Badge>
+                                                    </Tooltip>
                                                 </Group>
                                                 <Text size="sm" c="dimmed">
                                                     {n.content}
