@@ -193,9 +193,7 @@ async def request_verification_email(
     )
     session.commit()
     session.refresh(user)
-    recovery_link = (
-        f"{app_config.connection.base_url}/email/verify?token={user.verificationToken}"
-    )
+    recovery_link = f"{app_config.connection.base_url}/account/profile?emailVerificationToken={user.verificationToken}"
     logger.debug(
         "Generated verification link for user %s: %s", user.username, recovery_link
     )
@@ -229,7 +227,7 @@ async def request_verification_email(
     return {"message": "Email verification sent successfully."}
 
 
-@router.get("/email/verify")
+@router.post("/email/verify")
 async def verify_email(
     token: str,
     session: Annotated[Session, Depends(get_db_session)],
