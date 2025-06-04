@@ -16,19 +16,22 @@ import {
   Title,
   Paper,
   Stack,
-  Badge,
   Divider,
+  ScrollArea,
 } from "@mantine/core";
+import { MonthPickerInput, DateInput } from "@mantine/dates";
 import {
   IconX,
   IconPlus,
   IconTrash,
   IconUpload,
   IconCalendar,
+  IconHistory,
 } from "@tabler/icons-react";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import dayjs from "dayjs";
 
 const categoryLabels = {
   "operating-expenses": "Operating Expenses",
@@ -40,38 +43,22 @@ const categoryLabels = {
   "revolving-fund": "Revolving Fund",
 };
 
-// Get months for the select dropdown
-const getMonthOptions = () => {
-  const months = [];
-  const currentDate = new Date();
-  for (let i = 0; i < 12; i++) {
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-    months.push({
-      value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`,
-      label: date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    });
-  }
-  return months;
-};
-
-// Get days for the current month
-const getDayOptions = (selectedMonth: string) => {
-  if (!selectedMonth) return [];
-  
-  const [year, month] = selectedMonth.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  
-  return Array.from({ length: daysInMonth }, (_, i) => ({
-    value: String(i + 1),
-    label: String(i + 1)
-  }));
-};
+const unitOptions = [
+  { value: 'pcs', label: 'pcs' },
+  { value: 'kg', label: 'kg' },
+  { value: 'gallons', label: 'gallons' },
+  { value: 'liters', label: 'liters' },
+  { value: 'boxes', label: 'boxes' },
+  { value: 'packs', label: 'packs' },
+  { value: 'bottles', label: 'bottles' },
+];
 
 interface ExpenseDetails {
   id: string;
-  day: string;
+  date: Date | null;
   item: string;
   quantity: number;
+  unit: string;
   amount: number;
   total: number;
 }
@@ -81,28 +68,19 @@ export function LiquidationReportContent() {
   const searchParams = useSearchParams();
   const category = searchParams.get('category');
   
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [reportPeriod, setReportPeriod] = useState<Date | null>(new Date());
   const [expenseItems, setExpenseItems] = useState<ExpenseDetails[]>([
     {
       id: '1',
-      day: '',
+      date: null,
       item: '',
       quantity: 1,
+      unit: 'pcs',
       amount: 0,
       total: 0
     }
   ]);
   const [attachments, setAttachments] = useState<File[]>([]);
-
-  const monthOptions = getMonthOptions();
-  const dayOptions = getDayOptions(selectedMonth);
-
-  // Set default month to current month
-  useEffect(() => {
-    const currentDate = new Date();
-    const currentMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-    setSelectedMonth(currentMonth);
-  }, []);
 
   const handleClose = () => {
     router.push('/reports');
@@ -111,9 +89,10 @@ export function LiquidationReportContent() {
   const addNewItem = () => {
     const newItem: ExpenseDetails = {
       id: Date.now().toString(),
-      day: '',
+      date: null,
       item: '',
       quantity: 1,
+      unit: 'pcs',
       amount: 0,
       total: 0
     };
@@ -129,7 +108,7 @@ export function LiquidationReportContent() {
   const updateItem = (
     id: string,
     field: keyof ExpenseDetails,
-    value: string | number
+    value: string | number | Date | null
   ) => {
     setExpenseItems(expenseItems.map(item => {
       if (item.id === id) {
@@ -162,12 +141,23 @@ export function LiquidationReportContent() {
     // TODO: Implement save functionality
     console.log('Saving liquidation report:', {
       category,
-      month: selectedMonth,
+      month: reportPeriod ? dayjs(reportPeriod).format('MMMM YYYY') : null,
       items: expenseItems,
       attachments,
       total: calculateTotalAmount()
     });
   };
+
+    const getDateRange = () => {
+    if (!reportPeriod) return { minDate: undefined, maxDate: undefined };
+    
+    const startOfMonth = dayjs(reportPeriod).startOf('month').toDate();
+    const endOfMonth = dayjs(reportPeriod).endOf('month').toDate();
+    
+    return { minDate: startOfMonth, maxDate: endOfMonth };
+  };
+
+  const { minDate, maxDate } = getDateRange();
 
   return (
     <Stack gap="lg">
@@ -175,13 +165,14 @@ export function LiquidationReportContent() {
       <Flex
         justify="space-between"
         align="center"
+        className="flex-col sm:flex-row gap-2"
       >
-        <div>
-          <Title order={2}>Liquidation Report</Title>
-          <Badge size="lg" variant="light" mt="xs">
-            {categoryLabels[category as keyof typeof categoryLabels]}
-          </Badge>
-        </div>
+        <Group>
+          <IconHistory size={28} />
+            <div>
+              <Title order={2}>{categoryLabels[category as keyof typeof categoryLabels]}</Title>
+            </div>
+        </Group>
         <ActionIcon
           variant="subtle"
           color="gray"
@@ -197,15 +188,24 @@ export function LiquidationReportContent() {
         <Group
           justify="space-between"
           align="center"
+          className="flex-col sm:flex-row gap-2"
         >
             <Text fw={500}>Report Period</Text>
-            <Select
+            <MonthPickerInput
               placeholder="Select month"
-              data={monthOptions}
-              value={selectedMonth}
-              onChange={(value) => setSelectedMonth(value || '')}
+              value={reportPeriod}
+              onChange={(value) => {
+                if (typeof value === "string") {
+                  setReportPeriod(value ? new Date(value) : null);
+                } else {
+                  setReportPeriod(value);
+                }
+              }}
               leftSection={<IconCalendar size={16} />}
-              w={200}
+              className="w-full sm:w-64"
+              valueFormat="MMMM YYYY"
+              clearable
+              type="default"
             />
         </Group>
       </Card>
@@ -214,7 +214,7 @@ export function LiquidationReportContent() {
       <Card withBorder>
         <Group
           justify="space-between"
-          align="center" mb="md"
+          align="center"
         >
             <Text fw={500}>Item Details</Text>
             <Button
@@ -226,73 +226,88 @@ export function LiquidationReportContent() {
             </Button>
         </Group>
 
-        <Table>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Day</Table.Th>
-              <Table.Th>Particulars</Table.Th>
-              <Table.Th>Quantity</Table.Th>
-              <Table.Th>Amount</Table.Th>
-              <Table.Th>Total</Table.Th>
-              <Table.Th style={{ width: 50 }}></Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {expenseItems.map((item) => (
-              <Table.Tr key={item.id}>
-                <Table.Td>
-                  <Select
-                    placeholder="Day"
-                    data={dayOptions}
-                    value={item.day}
-                    onChange={(value) => updateItem(item.id, 'day', value || '')}
-                    w={80}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <TextInput
-                    placeholder="Enter item description"
-                    value={item.item}
-                    onChange={(e) => updateItem(item.id, 'item', e.currentTarget.value)}
-                    w={300}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <NumberInput
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(value) => updateItem(item.id, 'quantity', value || 1)}
-                    min={1}
-                    w={80}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <NumberInput
-                    placeholder="0.00"
-                    value={item.amount}
-                    onChange={(value) => updateItem(item.id, 'amount', value || 0)}
-                    min={0}
-                    w={120}
-                    leftSection="₱"
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <Text fw={500}>₱{item.total.toFixed(2)}</Text>
-                </Table.Td>
-                <Table.Td>
-                  <ActionIcon
-                    color="red"
-                    variant="subtle"
-                    onClick={() => removeItem(item.id)}
-                    disabled={expenseItems.length === 1}
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
-                </Table.Td>
+        <ScrollArea offsetScrollbars className="overflow-x-auto">
+          <Table style={{ tableLayout: 'fixed', width: '100%' }}>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th style={{ width: 170 }}>Date</Table.Th>
+                <Table.Th style={{ width: 200 }}>Particulars</Table.Th>
+                <Table.Th style={{ width: 120 }}>Quantity</Table.Th>
+                <Table.Th style={{ width: 120 }}>Unit</Table.Th>
+                <Table.Th style={{ width: 130 }}>Amount</Table.Th>
+                <Table.Th style={{ width: 130 }}>Total</Table.Th>
+                <Table.Th style={{ width: 50 }}></Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody>
+              {expenseItems.map((item) => (
+                <Table.Tr key={item.id}>
+                  <Table.Td>
+                    <DateInput
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      placeholder="Select date"
+                      value={item.date}
+                      onChange={(date) => updateItem(item.id, 'date', date)}
+                      minDate={minDate}
+                      maxDate={maxDate}
+                      clearable
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <TextInput
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      placeholder="Enter item description"
+                      value={item.item}
+                      onChange={(e) => updateItem(item.id, 'item', e.currentTarget.value)}
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <NumberInput
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      placeholder="Qty"
+                      value={item.quantity}
+                      onChange={(value) => updateItem(item.id, 'quantity', value || 1)}
+                      min={1}
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <Select
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      placeholder="Unit"
+                      value={item.unit}
+                      onChange={(value) => updateItem(item.id, 'unit', value || 'pcs')}
+                      data={unitOptions}
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <NumberInput
+                      style={{ width: '100%', boxSizing: 'border-box' }}
+                      placeholder="0.00"
+                      value={item.amount}
+                      onChange={(value) => updateItem(item.id, 'amount', value || 0)}
+                      min={0}
+                      leftSection="₱"
+                      hideControls
+                    />
+                  </Table.Td>
+                  <Table.Td>
+                    <Text fw={500}>₱{item.total.toFixed(2)}</Text>
+                  </Table.Td>
+                  <Table.Td>
+                    <ActionIcon
+                      color="red"
+                      variant="subtle"
+                      onClick={() => removeItem(item.id)}
+                      disabled={expenseItems.length === 1}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        </ScrollArea>
 
         <Divider my="md" />
         
@@ -306,7 +321,7 @@ export function LiquidationReportContent() {
       {/* File Attachments */}
       <Card withBorder>
         <Stack gap="md">
-          <Text fw={500}>Attachments (Receipts)</Text>
+          <Text fw={500}>Attachments</Text>
           
           <FileInput
             placeholder="Upload receipts or images"
@@ -314,6 +329,7 @@ export function LiquidationReportContent() {
             multiple
             accept="image/*,.pdf"
             onChange={handleFileUpload}
+            className="w-full sm:w-96"
           />
 
           {attachments.length > 0 && (

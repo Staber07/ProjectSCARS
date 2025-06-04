@@ -27,7 +27,7 @@ export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseBut
         router.push(path);
     };
 
-    const menuItems = [
+    const expenseCategory = [
     {
         label: 'Operating Expenses',
         value: 'operating-expenses',
@@ -94,13 +94,13 @@ export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseBut
             </Menu.Target>
 
             <Menu.Dropdown>
-                {menuItems.map((item) => (
+                {expenseCategory.map((category) => (
                     <Menu.Item
-                        key={item.label}
-                        onClick={() => handleSelect(`${item.path}?category=${item.value}`)}
-                        leftSection={<item.icon size={16} color={item.color} stroke={1.5} />}
+                        key={category.label}
+                        onClick={() => handleSelect(`${category.path}?category=${category.value}`)}
+                        leftSection={<category.icon size={16} color={category.color} stroke={1.5} />}
                     >
-                        {item.label}
+                        {category.label}
                     </Menu.Item>
                 ))}
             </Menu.Dropdown>
