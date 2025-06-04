@@ -115,6 +115,7 @@ export default function NotificationsPage() {
       <Group justify="space-between" mb="sm">
         <SegmentedControl value={filter} onChange={setFilter} data={[{ label: "All", value: "all" }, { label: "Unread", value: "unread" }]} />
         <TextInput
+          style={{ width: 500 }}
           placeholder="Search notifications"
           leftSection={<IconSearch size={14} />}
           value={search}
