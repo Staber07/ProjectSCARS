@@ -110,7 +110,8 @@ export default function NotificationsPage() {
 
   return (
     <Box p="md">
-      <Title order={3} mb="md">Notifications</Title>
+      <Title order={1} mb="md">Notifications</Title>
+      <Divider my="md"/>
       <Group justify="space-between" mb="sm">
         <SegmentedControl value={filter} onChange={setFilter} data={[{ label: "All", value: "all" }, { label: "Unread", value: "unread" }]} />
         <TextInput
