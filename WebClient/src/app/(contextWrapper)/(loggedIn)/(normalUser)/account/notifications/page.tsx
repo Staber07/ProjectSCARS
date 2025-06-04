@@ -1,11 +1,20 @@
 "use client";
 
-import { Box, Divider, Group, Stack, Title, Text, Container, Table, ActionIcon, Tooltip } from "@mantine/core";
-
-import { ArchiveNotification, GetSelfNotifications } from "@/lib/api/notification";
-import React, { JSX, useEffect, useState } from "react";
-import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { NotificationType } from "@/lib/types";
+import {
+    ActionIcon,
+    Box,
+    Button,
+    Checkbox,
+    Container,
+    Divider,
+    Group,
+    Stack,
+    Table,
+    Text,
+    TextInput,
+    Title,
+    Tooltip,
+} from "@mantine/core";
 import {
     IconAlertCircle,
     IconCircleCheck,
@@ -13,9 +22,14 @@ import {
     IconInfoTriangle,
     IconMail,
     IconMailOpened,
+    IconSearch,
     IconShieldLock,
 } from "@tabler/icons-react";
-import { notifications } from "@mantine/notifications";
+import { useEffect, useState } from "react";
+import { ArchiveNotification, GetSelfNotifications } from "@/lib/api/notification";
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { notifications as mantineNotifications } from "@mantine/notifications";
+import { NotificationType } from "@/lib/types";
 
 const notificationIcons: Record<string, [React.ComponentType<any>, string]> = {
     info: [IconInfoCircle, "blue"],
@@ -27,100 +41,103 @@ const notificationIcons: Record<string, [React.ComponentType<any>, string]> = {
 };
 
 export default function NotificationsPage() {
-    console.debug("Rendering NotificationsPage");
     const [loading, setLoading] = useState(true);
-    const [notificationsList, setNotificationsList] = useState<JSX.Element[]>([]);
+    const [notificationsData, setNotificationsData] = useState<NotificationType[]>([]);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
                 const data = await GetSelfNotifications();
-                console.debug("Fetched notifications:", data);
-                setNotificationsList(
-                    data.map((notification: NotificationType) => {
-                        if (notification.archived) {
-                            return <></>;
-                        }
-
-                        const IconComponent = notificationIcons[notification.type]?.[0] || IconInfoCircle;
-                        const iconColor = notificationIcons[notification.type]?.[1] || "gray";
-
-                        return (
-                            <Table.Tr key={notification.id}>
-                                <Table.Td>
-                                    <Group>
-                                        <IconComponent size={24} color={iconColor} />
-                                        <Stack>
-                                            <Text size="lg">{notification.title}</Text>
-                                            <Text size="sm">{notification.content}</Text>
-                                        </Stack>
-                                    </Group>
-                                </Table.Td>
-                                <Table.Td>
-                                    <Tooltip label="Mark as Read" withArrow>
-                                        <ActionIcon
-                                            variant="light"
-                                            onClick={() => handleMarkAsRead(notification.id, iconColor, IconComponent)}
-                                        >
-                                            <IconMailOpened />
-                                        </ActionIcon>
-                                    </Tooltip>
-                                </Table.Td>
-                            </Table.Tr>
-                        );
-                    })
-                );
+                setNotificationsData(data.filter((n: NotificationType) => !n.archived));
             } catch (error) {
                 console.error("Failed to fetch notifications:", error);
             } finally {
                 setLoading(false);
             }
         };
-
-        const handleMarkAsRead = async (
-            notificationId: string,
-            iconColor: string,
-            IconComponent: React.ComponentType
-        ) => {
-            ArchiveNotification(notificationId)
-                .then(() => {
-                    setNotificationsList((prev) =>
-                        prev.filter((notificationElement) => notificationElement.key !== notificationId)
-                    );
-
-                    notifications.show({
-                        title: "Notification Archived",
-                        message: `The notification has been archived.`,
-                        color: iconColor,
-                        icon: <IconComponent />,
-                    });
-                })
-                .catch((error) => {
-                    console.error("Failed to archive notification:", error);
-                    notifications.show({
-                        title: "Error",
-                        message: "Failed to archive the notification.",
-                        color: "red",
-                        icon: <IconAlertCircle />,
-                    });
-                });
-        };
         fetchNotifications();
     }, []);
 
+    const handleMarkAsRead = async (
+        notificationId: string,
+        iconColor: string,
+        IconComponent: React.ComponentType
+    ) => {
+        try {
+            await ArchiveNotification(notificationId);
+            setNotificationsData((prev) => prev.filter((n) => n.id !== notificationId));
+            mantineNotifications.show({
+                title: "Notification Archived",
+                message: `The notification has been archived.`,
+                color: iconColor,
+                icon: <IconComponent />,
+            });
+        } catch (error) {
+            console.error("Failed to archive notification:", error);
+            mantineNotifications.show({
+                title: "Error",
+                message: "Failed to archive the notification.",
+                color: "red",
+                icon: <IconAlertCircle />,
+            });
+        }
+    };
+
+    const filteredNotifications = notificationsData.filter((n) =>
+        n.title.toLowerCase().includes(search.toLowerCase()) ||
+        n.content.toLowerCase().includes(search.toLowerCase())
+    );
+
     return (
         <Box mx="auto" p="lg">
-            <Title order={3} mb="sm">
-                Notifications
-            </Title>
-            <Divider mb="lg" />
-            <Container p={25}>
-                {loading && <LoadingComponent withBorder={false} />}
-                {!loading && (
-                    <Table withTableBorder>
-                        {/* TODO: Show "No notifications" when empty */}
-                        <Table.Tbody>{notificationsList}</Table.Tbody>
+            <Title order={3}>Notifications</Title>
+            <TextInput
+                icon={<IconSearch size={16} />}
+                placeholder="Search notifications..."
+                value={search}
+                onChange={(e) => setSearch(e.currentTarget.value)}
+                my="md"
+            />
+            <Divider mb="md" />
+            <Container p={0} px="md">
+                {loading ? (
+                    <LoadingComponent withBorder={false} />
+                ) : filteredNotifications.length > 0 ? (
+                    <Table highlightOnHover withTableBorder>
+                        <Table.Tbody>
+                            {filteredNotifications.map((notification) => {
+                                const IconComponent = notificationIcons[notification.type]?.[0] || IconInfoCircle;
+                                const iconColor = notificationIcons[notification.type]?.[1] || "gray";
+                                return (
+                                    <Table.Tr key={notification.id}>
+                                        <Table.Td>
+                                            <Group align="flex-start">
+                                                <IconComponent size={24} color={iconColor} />
+                                                <Stack gap={0}>
+                                                    <Text size="md" fw={600}>{notification.title}</Text>
+                                                    <Text size="sm" c="dimmed">{notification.content}</Text>
+                                                </Stack>
+                                            </Group>
+                                        </Table.Td>
+                                        <Table.Td>
+                                            <Tooltip label="Mark as Read" withArrow>
+                                                <ActionIcon
+                                                    variant="subtle"
+                                                    color="gray"
+                                                    onClick={() => handleMarkAsRead(notification.id, iconColor, IconComponent)}
+                                                >
+                                                    <IconMailOpened />
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        </Table.Td>
+                                    </Table.Tr>
+                                );
+                            })}
+                        </Table.Tbody>
                     </Table>
+                ) : (
+                    <Text>No notifications found.</Text>
                 )}
             </Container>
         </Box>
