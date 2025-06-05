@@ -1,32 +1,32 @@
 "use client";
 
 import {
-    Box,
-    Divider,
-    Group,
-    Flex,
-    Stack,
-    Space,
+    Anchor,
     Avatar,
-    Title,
+    Box,
+    Button,
+    Divider,
+    FileButton,
+    Flex,
+    Group,
+    Modal,
+    Space,
+    Stack,
+    Switch,
     Text,
     TextInput,
-    Modal,
-    Anchor,
-    Button,
-    FileButton,
-    Switch,
+    Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
-import { useUser } from "@/lib/providers/user";
+import { VerifyUserEmail } from "@/lib/api/auth";
 import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { VerifyUserEmail } from "@/lib/api/auth";
+import { useUser } from "@/lib/providers/user";
 import { notifications } from "@mantine/notifications";
 import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 export default function ProfilePage() {
     const searchParams = useSearchParams();

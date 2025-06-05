@@ -1,7 +1,7 @@
 "use client";
 
-import { GetAllUsers, GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllUsers, GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
@@ -29,7 +29,6 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { motion } from "motion/react";
 import {
     IconCheck,
     IconCircleDashedCheck,
@@ -45,6 +44,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
+import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {

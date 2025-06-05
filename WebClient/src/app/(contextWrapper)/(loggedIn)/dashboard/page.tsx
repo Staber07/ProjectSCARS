@@ -3,12 +3,11 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import { GetSelfNotifications } from "@/lib/api/notification";
+import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { NotificationType } from "@/lib/types";
-import { Avatar, Container, Group, Title, Text, Card, Stack } from "@mantine/core";
-import { Suspense, useState, useEffect } from "react";
-import { notificationIcons } from "@/lib/info";
-import React from "react";
+import { Avatar, Card, Container, Group, Text, Title } from "@mantine/core";
+import React, { Suspense, useEffect, useState } from "react";
 
 function DashboardContent() {
     const userCtx = useUser();

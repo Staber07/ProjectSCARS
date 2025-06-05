@@ -1,6 +1,6 @@
+import { LocalStorage } from "@/lib/info";
 import { UserPublicType } from "@/lib/types";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { LocalStorage } from "@/lib/info";
 
 interface UserContextType {
     userInfo: UserPublicType | null;
