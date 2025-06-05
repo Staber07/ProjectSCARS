@@ -19,6 +19,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { VerifyUserEmail } from "@/lib/api/auth";
 import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
@@ -26,7 +27,7 @@ import { useUser } from "@/lib/providers/user";
 import { notifications } from "@mantine/notifications";
 import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 export default function ProfilePage() {
     const searchParams = useSearchParams();
@@ -83,7 +84,7 @@ export default function ProfilePage() {
         }
     }, [searchParams]);
     return (
-        <div>
+        <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
             <Box mx="auto" p="lg">
                 <Title order={3} mb="sm">
                     Profile
@@ -237,6 +238,6 @@ export default function ProfilePage() {
                     <Switch />
                 </Group>
             </Box>
-        </div>
+        </Suspense>
     );
 }
