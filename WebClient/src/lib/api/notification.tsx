@@ -9,8 +9,9 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 /**
  * Fetch the user notifications from the central server.
  */
-export async function GetSelfNotifications(): Promise<NotificationType[]> {
+export async function GetSelfNotifications(importantOnly: boolean = false): Promise<NotificationType[]> {
     const centralServerResponse = await ky.get(`${endpoint}/notifications/me`, {
+        searchParams: { important_only: importantOnly },
         headers: { Authorization: GetAccessTokenHeader() },
     });
     if (!centralServerResponse.ok) {
@@ -39,9 +40,9 @@ export async function GetNotificationsQuantity(showArchived: boolean = false): P
     return notificationsQuantity;
 }
 
-export async function ArchiveNotification(notificationId: string): Promise<void> {
+export async function ArchiveNotification(notificationId: string, unarchive: boolean = false): Promise<void> {
     const centralServerResponse = await ky.post(`${endpoint}/notifications`, {
-        json: { notification_id: notificationId },
+        json: { notification_id: notificationId, unarchive: unarchive },
         headers: { Authorization: GetAccessTokenHeader() },
     });
 

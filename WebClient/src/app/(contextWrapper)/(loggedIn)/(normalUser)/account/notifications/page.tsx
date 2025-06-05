@@ -2,6 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ArchiveNotification, GetSelfNotifications } from "@/lib/api/notification";
+import { notificationIcons } from "@/lib/info";
 import { NotificationType } from "@/lib/types";
 import {
     ActionIcon,
@@ -26,32 +27,22 @@ import {
     IconAlertCircle,
     IconCircleCheck,
     IconInfoCircle,
-    IconInfoTriangle,
     IconMail,
     IconMailOpened,
     IconSearch,
-    IconShieldLock,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
-import React, { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import React, { useEffect, useState } from "react";
 
 dayjs.extend(relativeTime);
-const notificationIcons: Record<string, [React.ComponentType, string]> = {
-    info: [IconInfoCircle, "blue"],
-    warning: [IconInfoTriangle, "yellow"],
-    error: [IconAlertCircle, "red"],
-    success: [IconCircleCheck, "green"],
-    mail: [IconMail, "pink"],
-    security: [IconShieldLock, "orange"],
-};
 
 export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
     const [allNotifications, setAllNotifications] = useState<NotificationType[]>([]);
     const [filteredNotifications, setFilteredNotifications] = useState<NotificationType[]>([]);
-    const [filter, setFilter] = useState("all");
+    const [filter, setFilter] = useState("unread");
     const [search, setSearch] = useState("");
     const [groupBy, setGroupBy] = useState("Date");
     const [selectAll, setSelectAll] = useState(false);
@@ -68,17 +59,26 @@ export default function NotificationsPage() {
         }
     };
 
-    const handleArchive = async (id: string) => {
+    const handleArchive = async (id: string, unarchive: boolean) => {
         const notif = allNotifications.find((n) => n.id === id);
         if (!notif) return;
         try {
-            await ArchiveNotification(id);
-            notifications.show({
-                title: "Notification Archived",
-                message: `The notification has been archived.`,
-                color: notificationIcons[notif.type]?.[1] || "gray",
-                icon: React.createElement(notificationIcons[notif.type]?.[0] || IconInfoCircle),
-            });
+            await ArchiveNotification(id, unarchive);
+            if (unarchive) {
+                notifications.show({
+                    title: "Notification Unarchived",
+                    message: `The notification has been unarchived.`,
+                    color: notificationIcons[notif.type]?.[1] || "gray",
+                    icon: React.createElement(notificationIcons[notif.type]?.[0] || IconInfoCircle),
+                });
+            } else {
+                notifications.show({
+                    title: "Notification Archived",
+                    message: `The notification has been archived.`,
+                    color: notificationIcons[notif.type]?.[1] || "gray",
+                    icon: React.createElement(notificationIcons[notif.type]?.[0] || IconInfoCircle),
+                });
+            }
             setAllNotifications((prev) => prev.filter((n) => n.id !== id));
         } catch (error) {
             if (error instanceof Error) {
@@ -169,44 +169,74 @@ export default function NotificationsPage() {
                                 ? `Selected ${selected.size} notification`
                                 : `Selected ${selected.size} notifications`}
                         </Text>
-                        <ActionIcon
-                            variant="light"
-                            color="blue"
-                            onClick={() => {
-                                if (selected.size === 0) {
-                                    notifications.show({
-                                        title: "No Notifications Selected",
-                                        message: "Please select at least one notification to archive.",
-                                        color: "yellow",
-                                        icon: <IconAlertCircle />,
-                                    });
-                                    return;
-                                }
+                        <Tooltip
+                            label={(() => {
                                 const ids = Array.from(selected);
-                                Promise.all(ids.map((id) => ArchiveNotification(id)))
-                                    .then(() => {
+                                const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                const allArchived = selectedNotifications.every((n) => n.archived);
+                                const action = allArchived ? "Unarchive" : "Archive";
+                                return selected.size == 1
+                                    ? `${action} ${selected.size} notification`
+                                    : `${action} ${selected.size} notifications`;
+                            })()}
+                            position="bottom"
+                            withArrow
+                        >
+                            <ActionIcon
+                                variant="light"
+                                color="blue"
+                                onClick={() => {
+                                    if (selected.size === 0) {
                                         notifications.show({
-                                            title: "Notifications Archived",
-                                            message: `Successfully archived ${ids.length} notifications.`,
-                                            color: "green",
-                                            icon: <IconCircleCheck />,
-                                        });
-                                        setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
-                                        setSelected(new Set());
-                                    })
-                                    .catch((error) => {
-                                        notifications.show({
-                                            title: "Error Archiving Notifications",
-                                            message:
-                                                error instanceof Error ? error.message : "An unknown error occurred.",
-                                            color: "red",
+                                            title: "No Notifications Selected",
+                                            message: "Please select at least one notification to archive.",
+                                            color: "yellow",
                                             icon: <IconAlertCircle />,
                                         });
-                                    });
-                            }}
-                        >
-                            <IconMailOpened />
-                        </ActionIcon>
+                                        return;
+                                    }
+                                    const ids = Array.from(selected);
+                                    const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                    const allArchived = selectedNotifications.every((n) => n.archived);
+
+                                    Promise.all(ids.map((id) => ArchiveNotification(id, allArchived)))
+                                        .then(() => {
+                                            notifications.show({
+                                                title: allArchived
+                                                    ? "Notifications Unarchived"
+                                                    : "Notifications Archived",
+                                                message: `Successfully ${allArchived ? "unarchived" : "archived"} ${
+                                                    ids.length
+                                                } notifications.`,
+                                                color: "green",
+                                                icon: <IconCircleCheck />,
+                                            });
+                                            setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+                                            setSelected(new Set());
+                                        })
+                                        .catch((error) => {
+                                            notifications.show({
+                                                title: `Error ${
+                                                    allArchived ? "Unarchiving" : "Archiving"
+                                                } Notifications`,
+                                                message:
+                                                    error instanceof Error
+                                                        ? error.message
+                                                        : "An unknown error occurred.",
+                                                color: "red",
+                                                icon: <IconAlertCircle />,
+                                            });
+                                        });
+                                }}
+                            >
+                                {(() => {
+                                    const ids = Array.from(selected);
+                                    const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                    const allArchived = selectedNotifications.every((n) => n.archived);
+                                    return allArchived ? <IconMail /> : <IconMailOpened />;
+                                })()}
+                            </ActionIcon>
+                        </Tooltip>
                     </Group>
                 )}
             </Group>
@@ -240,7 +270,16 @@ export default function NotificationsPage() {
                                             </Avatar>
                                             <Stack gap={0} style={{ flex: 1 }}>
                                                 <Group justify="space-between">
-                                                    <Text fw={500}>{n.title}</Text>
+                                                    <Group>
+                                                        <Text fw={500}>{n.title}</Text>
+                                                        {n.important && (
+                                                            <Tooltip position="bottom" label="Important" withArrow>
+                                                                <Badge color="red" variant="filled" size="xs">
+                                                                    Important
+                                                                </Badge>
+                                                            </Tooltip>
+                                                        )}
+                                                    </Group>
                                                     <Tooltip
                                                         position="bottom"
                                                         label={dayjs(n.created).format("YYYY-MM-DD HH:mm:ss")}
@@ -253,18 +292,33 @@ export default function NotificationsPage() {
                                                     {n.content}
                                                 </Text>
                                             </Stack>
-                                            <Tooltip position="bottom" label="Mark as Read" withArrow>
-                                                <motion.div
-                                                    whileHover={{ scale: 1.1 }}
-                                                    whileTap={{ scale: 0.9 }}
-                                                    style={{ cursor: "pointer" }}
-                                                    onClick={() => handleArchive(n.id)}
-                                                >
-                                                    <ActionIcon variant="subtle">
-                                                        <IconMailOpened />
-                                                    </ActionIcon>
-                                                </motion.div>
-                                            </Tooltip>
+                                            {n.archived ? (
+                                                <Tooltip position="bottom" label="Unarchive" withArrow>
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        style={{ cursor: "pointer" }}
+                                                        onClick={() => handleArchive(n.id, n.archived)}
+                                                    >
+                                                        <ActionIcon variant="subtle">
+                                                            <IconMail />
+                                                        </ActionIcon>
+                                                    </motion.div>
+                                                </Tooltip>
+                                            ) : (
+                                                <Tooltip position="bottom" label="Archive" withArrow>
+                                                    <motion.div
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        style={{ cursor: "pointer" }}
+                                                        onClick={() => handleArchive(n.id, n.archived)}
+                                                    >
+                                                        <ActionIcon variant="subtle">
+                                                            <IconMailOpened />
+                                                        </ActionIcon>
+                                                    </motion.div>
+                                                </Tooltip>
+                                            )}
                                         </Group>
                                     </Card>
                                 );
