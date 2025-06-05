@@ -1030,7 +1030,7 @@ def test_get_user_avatar_fail():
     ).json()[0]
 
     response = client.get(
-        f"/api/v1/users/avatar=fn?{user_info["avatarUrn"]}",
+        f"/api/v1/users/avatar?fn={user_info["avatarUrn"]}",
         headers=headers,
     )
     assert response.status_code == 404
