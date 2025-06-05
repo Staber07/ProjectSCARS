@@ -1,5 +1,6 @@
 "use client";
 
+import '@mantine/dates/styles.css';
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import {
   ActionIcon,
