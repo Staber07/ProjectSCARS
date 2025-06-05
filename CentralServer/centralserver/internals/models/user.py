@@ -156,20 +156,20 @@ class UserUpdate(SQLModel):
     """A model used when updating user information."""
 
     id: str  # The ID of the user to be updated.
-    username: str | None
-    email: EmailStr | None
-    nameFirst: str | None
-    nameMiddle: str | None
-    nameLast: str | None
+    username: str | None = None
+    email: EmailStr | None = None
+    nameFirst: str | None = None
+    nameMiddle: str | None = None
+    nameLast: str | None = None
 
-    schoolId: int | None
-    roleId: int
+    schoolId: int | None = None
+    roleId: int | None = None
 
-    deactivated: bool | None
-    finishedTutorials: str | None
-    forceUpdateInfo: bool | None
+    deactivated: bool | None = None
+    finishedTutorials: str | None = None
+    forceUpdateInfo: bool | None = None
 
-    password: str | None
+    password: str | None = None
 
 
 class UserCreate(SQLModel):
