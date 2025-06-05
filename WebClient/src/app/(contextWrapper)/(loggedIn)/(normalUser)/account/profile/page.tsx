@@ -29,7 +29,7 @@ import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
-export function ProfileContent() {
+function ProfileContent() {
     const searchParams = useSearchParams();
     const userCtx = useUser();
     const [opened, { open, close }] = useDisclosure(false);
