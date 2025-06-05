@@ -1,6 +1,7 @@
 from sqlmodel import Session, select
-from centralserver.internals.models.notification import Notification, NotificationType
+
 from centralserver.internals.exceptions import NotificationNotFoundError
+from centralserver.internals.models.notification import Notification, NotificationType
 
 
 async def get_all_notifications(
@@ -41,19 +42,20 @@ async def get_user_notifications(
         A list of notifications for the specified user.
     """
 
-    return list(
-        session.exec(
-            select(Notification)
-            .where(Notification.ownerId == user_id)
-            .where(Notification.important is True)
-        ).all()
-        if important_only
-        else list(
+    if important_only:
+        return list(
+            session.exec(
+                select(Notification).where(
+                    Notification.ownerId == user_id and Notification.important is True
+                )
+            ).all()
+        )
+    else:
+        return list(
             session.exec(
                 select(Notification).where(Notification.ownerId == user_id)
             ).all()
         )
-    )
 
 
 async def get_notification(notification_id: str, session: Session) -> Notification:
@@ -113,19 +115,21 @@ async def push_notification(
 async def archive_notification(
     notification_id: str,
     session: Session,
+    unarchive: bool = False,
 ) -> Notification:
-    """Set a notification as archived.
+    """Set a notification as archived (or unarchived).
 
     Args:
         notification_id: The ID of the notification to delete.
         session: The SQLAlchemy session to use for the operation.
+        unarchive: If True, the notification will be unarchived instead of archived.
 
     Returns:
         The deleted notification object if found, otherwise None.
     """
 
     notification = await get_notification(notification_id, session)
-    notification.archived = True
+    notification.archived = False if unarchive else True
     session.add(notification)
     session.commit()
     session.refresh(notification)

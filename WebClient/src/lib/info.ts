@@ -1,3 +1,12 @@
+import {
+    IconAlertCircle,
+    IconCircleCheck,
+    IconInfoCircle,
+    IconInfoTriangle,
+    IconMail,
+    IconShieldLock,
+} from "@tabler/icons-react";
+
 // Used for exporting the program information and connection details into NavBar Component
 export const Program = {
     name: "BENTO",
@@ -34,6 +43,15 @@ export const randomLoadingMessages: string[] = [
     "Auditing the piggy bank...",
     "Making sure every cent is accounted for...",
 ];
+
+export const notificationIcons: Record<string, [React.ComponentType, string]> = {
+    info: [IconInfoCircle, "blue"],
+    warning: [IconInfoTriangle, "yellow"],
+    error: [IconAlertCircle, "red"],
+    success: [IconCircleCheck, "green"],
+    mail: [IconMail, "pink"],
+    security: [IconShieldLock, "orange"],
+};
 
 export const roles: Record<number, string> = {
     1: "Website Administrator",

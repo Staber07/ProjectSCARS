@@ -1,7 +1,7 @@
 "use client";
 
-import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
-import { GetAllRoles } from "@/lib/api/auth";
+import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllUsers, GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
@@ -29,19 +29,22 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { motion } from "motion/react";
 import {
     IconCheck,
     IconCircleDashedCheck,
+    IconCircleDashedX,
     IconEdit,
     IconLock,
+    IconMail,
     IconPencilCheck,
     IconSearch,
     IconSendOff,
     IconUser,
+    IconUserCircle,
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
+import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
@@ -148,7 +151,6 @@ export default function UsersPage(): JSX.Element {
             if (editUserAvatar) {
                 console.debug("Uploading avatar...");
                 const updatedUserInfo = await UploadUserAvatar(editUser.id, editUserAvatar);
-                setEditUser(updatedUserInfo);
                 if (updatedUserInfo.avatarUrn) {
                     fetchUserAvatar(updatedUserInfo.avatarUrn);
                 }
@@ -196,7 +198,6 @@ export default function UsersPage(): JSX.Element {
                     }
                 });
         };
-
         const fetchRoles = async () => {
             await GetAllRoles()
                 .then((data) => {
@@ -220,7 +221,7 @@ export default function UsersPage(): JSX.Element {
 
         fetchRoles();
         fetchUsers();
-    }, [fetchRolesErrorShown, fetchUsersErrorShown]);
+    }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
     console.debug("Rendering UsersPage");
     return (
@@ -260,23 +261,39 @@ export default function UsersPage(): JSX.Element {
                             <TableTd>
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
-                                    <Avatar
-                                        radius="xl"
-                                        src={user.avatarUrn ? fetchUserAvatar(user.avatarUrn) : undefined}
-                                    >
-                                        <IconUser />
-                                    </Avatar>
+                                    {user.avatarUrn ? (
+                                        <Avatar radius="xl" src={fetchUserAvatar(user.avatarUrn)}>
+                                            <IconUser />
+                                        </Avatar>
+                                    ) : (
+                                        <Avatar
+                                            radius="xl"
+                                            name={user.nameFirst + " " + user.nameLast}
+                                            color="initials"
+                                        />
+                                    )}
                                 </Group>
                             </TableTd>
                             <TableTd>{user.username}</TableTd>
                             <TableTd>
-                                {user.email ? (
-                                    user.email
-                                ) : (
-                                    <Text size="sm" c="dimmed">
-                                        N/A
-                                    </Text>
-                                )}
+                                <Group gap="xs" align="center">
+                                    {user.emailVerified ? (
+                                        <Tooltip label="Email verified" position="bottom" withArrow>
+                                            <IconCircleDashedCheck size={16} color="green" />
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip label="Email not verified" position="bottom" withArrow>
+                                            <IconCircleDashedX size={16} color="gray" />
+                                        </Tooltip>
+                                    )}
+                                    {user.email ? (
+                                        user.email
+                                    ) : (
+                                        <Text size="sm" c="dimmed">
+                                            N/A
+                                        </Text>
+                                    )}
+                                </Group>
                             </TableTd>
                             <TableTd>
                                 {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
@@ -374,13 +391,31 @@ export default function UsersPage(): JSX.Element {
                                                     fontWeight: 500,
                                                 }}
                                             >
-                                                Edit Profile Picture
+                                                Upload Picture
                                             </motion.div>
                                         </motion.div>
                                     )}
                                 </FileButton>
                             </Card>
                         </Center>
+                        <Button
+                            variant="outline"
+                            color="red"
+                            mt="md"
+                            onClick={() => {
+                                RemoveUserProfile(editUser.id);
+                                setEditUserAvatar(null);
+                                setEditUserAvatarUrl(null);
+                                notifications.show({
+                                    title: "Profile picture removed",
+                                    message: "The profile picture has been removed successfully.",
+                                    color: "green",
+                                    icon: <IconUserCircle />,
+                                });
+                            }}
+                        >
+                            Remove Profile Picture
+                        </Button>
                         <Tooltip label="Username cannot be changed" withArrow>
                             <TextInput // TODO: Make username editable if user has permission
                                 disabled
@@ -409,10 +444,57 @@ export default function UsersPage(): JSX.Element {
                             label="Email"
                             value={editUser.email ? editUser.email : ""}
                             rightSection={
-                                // TODO: Add email verification
-                                <Tooltip label="This email has been verified" withArrow>
-                                    <IconCircleDashedCheck size={16} color="green" />
-                                </Tooltip>
+                                editUser.emailVerified ? (
+                                    <Tooltip
+                                        label="This email has been verified. You're good to go!"
+                                        withArrow
+                                        multiline
+                                        w={250}
+                                    >
+                                        <IconCircleDashedCheck size={16} color="green" />
+                                    </Tooltip>
+                                ) : (
+                                    <Tooltip
+                                        label="This email has not yet been verified. Click to send a verification email."
+                                        withArrow
+                                        multiline
+                                        w={250}
+                                    >
+                                        <IconCircleDashedX
+                                            size={16}
+                                            color="gray"
+                                            onClick={() => {
+                                                try {
+                                                    RequestVerificationEmail();
+                                                    notifications.show({
+                                                        title: "Verification Email Sent",
+                                                        message:
+                                                            "Please check your email and click the link to verify your email.",
+                                                        color: "blue",
+                                                        icon: <IconMail />,
+                                                    });
+                                                } catch (error) {
+                                                    if (error instanceof Error) {
+                                                        notifications.show({
+                                                            title: "Error",
+                                                            message: `Failed to send verification email: ${error.message}`,
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    } else {
+                                                        notifications.show({
+                                                            title: "Error",
+                                                            message:
+                                                                "Failed to send verification email. Please try again later.",
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Tooltip>
+                                )
                             }
                             onChange={(e) => setEditUser({ ...editUser, email: e.currentTarget.value })}
                         />

@@ -139,3 +139,31 @@ export async function GetAllRoles(): Promise<RoleType[]> {
     const roles: RoleType[] = await centralServerResponse.json();
     return roles;
 }
+export async function RequestVerificationEmail(): Promise<ServerMessageType> {
+    const centralServerResponse = await ky.post(`${endpoint}/auth/email/request`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to request verification email: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    console.debug("Verification email requested successfully");
+    return await centralServerResponse.json();
+}
+
+export async function VerifyUserEmail(token: string): Promise<ServerMessageType> {
+    console.debug("Verifying user email with token", { token });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/email/verify`, {
+        searchParams: { token: token },
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to verify email: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        return { message: errorResponse?.detail || errorMessage };
+    }
+    console.debug("Email verified successfully");
+    return await centralServerResponse.json();
+}

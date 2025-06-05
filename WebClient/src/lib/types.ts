@@ -18,6 +18,7 @@ export type UserPublicType = {
     deactivated: boolean;
     finishedTutorials: string;
     forceUpdateInfo: boolean;
+    emailVerified: boolean;
     dateCreated: Date;
     lastModified: Date;
     lastLoggedInTime?: Date | null;
@@ -52,6 +53,7 @@ export type RoleType = {
 
 export type NotificationType = {
     id: string;
+    created: Date;
     ownerId: string;
     title: string;
     content: string;

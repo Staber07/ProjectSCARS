@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select
@@ -44,12 +44,12 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
+@router.post("/create", response_model=UserPublic)
 async def create_new_user(
     new_user: UserCreate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
+) -> Response:
     """Create a new user in the database.
 
     Args:
@@ -78,7 +78,11 @@ async def create_new_user(
     logger.debug("Created by user: %s", token.id)
     user = UserPublic.model_validate(await create_user(new_user, session))
     logger.debug("Returning new user information: %s", user)
-    return user
+    return Response(
+        content=user.model_dump_json(),
+        status_code=status.HTTP_201_CREATED,
+        media_type="application/json",
+    )
 
 
 @router.post("/token")
@@ -193,9 +197,7 @@ async def request_verification_email(
     )
     session.commit()
     session.refresh(user)
-    recovery_link = (
-        f"{app_config.connection.base_url}/email/verify?token={user.verificationToken}"
-    )
+    recovery_link = f"{app_config.connection.base_url}/account/profile?emailVerificationToken={user.verificationToken}"
     logger.debug(
         "Generated verification link for user %s: %s", user.username, recovery_link
     )
@@ -229,7 +231,7 @@ async def request_verification_email(
     return {"message": "Email verification sent successfully."}
 
 
-@router.get("/email/verify")
+@router.post("/email/verify")
 async def verify_email(
     token: str,
     session: Annotated[Session, Depends(get_db_session)],
