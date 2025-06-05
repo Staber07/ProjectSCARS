@@ -11,7 +11,7 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
  */
 export function GetAccessTokenHeader(): string {
     console.debug("Getting access token header");
-    const storedToken = localStorage.getItem(LocalStorage.access_token);
+    const storedToken = localStorage.getItem(LocalStorage.accessToken);
     if (storedToken === null) {
         console.error("Access token is not set");
         throw new Error("Access token is not set");
@@ -53,7 +53,6 @@ export async function LoginUser(username: string, password: string): Promise<Tok
 
 /**
  * Fetch the user information from the central server.
- * @param {boolean} refresh - Whether to force a refresh of the user data.
  * @return {Promise<UserPublicType>} A promise that resolves to the user data.
  */
 export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {

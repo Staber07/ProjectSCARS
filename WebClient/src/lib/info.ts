@@ -21,11 +21,12 @@ export const Connections = {
 };
 
 export const LocalStorage = {
-    access_token: "at",
-    refresh_token: "rt",
-    user_data: "ud",
-    user_permissions: "up",
-    user_avatar: "ua",
+    accessToken: "at",
+    refreshToken: "rt",
+    userData: "ud",
+    userPermissions: "up",
+    userAvatar: "ua",
+    setupCompleteDismissed: "setupCompleteDismissed",
 };
 
 export const randomLoadingMessages: string[] = [

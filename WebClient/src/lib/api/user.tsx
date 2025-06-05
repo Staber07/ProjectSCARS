@@ -47,7 +47,7 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
     }
 
     const updatedUserData: UserPublicType = await centralServerResponse.json();
-    localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserData));
+    localStorage.setItem(LocalStorage.userData, JSON.stringify(updatedUserData));
     return updatedUserData;
 }
 

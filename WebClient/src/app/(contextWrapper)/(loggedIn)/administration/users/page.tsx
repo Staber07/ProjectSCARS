@@ -1,7 +1,7 @@
 "use client";
 
 import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
-import { GetAllUsers, GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
+import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
@@ -40,7 +40,6 @@ import {
     IconSearch,
     IconSendOff,
     IconUser,
-    IconUserCircle,
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
@@ -57,6 +56,7 @@ export default function UsersPage(): JSX.Element {
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editUser, setEditUser] = useState<UserPublicType | null>(null);
+    const [editUserPrevEmail, setEditUserPrevEmail] = useState<string | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
 
@@ -67,6 +67,7 @@ export default function UsersPage(): JSX.Element {
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
+        setEditUserPrevEmail(user.email || null);
         if (user.avatarUrn) {
             const avatarUrl = fetchUserAvatar(user.avatarUrn);
             setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
@@ -288,39 +289,49 @@ export default function UsersPage(): JSX.Element {
                                                 position="bottom"
                                                 withArrow
                                             >
-                                                <IconCircleDashedX
-                                                    size={16}
-                                                    color="gray"
-                                                    onClick={() => {
-                                                        try {
-                                                            RequestVerificationEmail();
-                                                            notifications.show({
-                                                                title: "Verification Email Sent",
-                                                                message:
-                                                                    "Please check your email and click the link to verify your email.",
-                                                                color: "blue",
-                                                                icon: <IconMail />,
-                                                            });
-                                                        } catch (error) {
-                                                            if (error instanceof Error) {
-                                                                notifications.show({
-                                                                    title: "Error",
-                                                                    message: `Failed to send verification email: ${error.message}`,
-                                                                    color: "red",
-                                                                    icon: <IconSendOff />,
-                                                                });
-                                                            } else {
-                                                                notifications.show({
-                                                                    title: "Error",
-                                                                    message:
-                                                                        "Failed to send verification email. Please try again later.",
-                                                                    color: "red",
-                                                                    icon: <IconSendOff />,
-                                                                });
-                                                            }
-                                                        }
+                                                <motion.div
+                                                    whileTap={{ scale: 0.9 }}
+                                                    whileHover={{ scale: 1.05 }}
+                                                    style={{
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
                                                     }}
-                                                />
+                                                >
+                                                    <IconCircleDashedX
+                                                        size={16}
+                                                        color="gray"
+                                                        onClick={() => {
+                                                            try {
+                                                                RequestVerificationEmail();
+                                                                notifications.show({
+                                                                    title: "Verification Email Sent",
+                                                                    message:
+                                                                        "Please check your email and click the link to verify your email.",
+                                                                    color: "blue",
+                                                                    icon: <IconMail />,
+                                                                });
+                                                            } catch (error) {
+                                                                if (error instanceof Error) {
+                                                                    notifications.show({
+                                                                        title: "Error",
+                                                                        message: `Failed to send verification email: ${error.message}`,
+                                                                        color: "red",
+                                                                        icon: <IconSendOff />,
+                                                                    });
+                                                                } else {
+                                                                    notifications.show({
+                                                                        title: "Error",
+                                                                        message:
+                                                                            "Failed to send verification email. Please try again later.",
+                                                                        color: "red",
+                                                                        icon: <IconSendOff />,
+                                                                    });
+                                                                }
+                                                            }
+                                                        }}
+                                                    />
+                                                </motion.div>
                                             </Tooltip>
                                         ))}
                                     {user.email ? (
@@ -477,7 +488,7 @@ export default function UsersPage(): JSX.Element {
                             value={editUser.email ? editUser.email : ""}
                             rightSection={
                                 editUser.email &&
-                                (editUser.emailVerified ? (
+                                (editUser.emailVerified && editUser.email == editUserPrevEmail ? (
                                     <Tooltip
                                         label="This email has been verified. You're good to go!"
                                         withArrow
@@ -492,7 +503,9 @@ export default function UsersPage(): JSX.Element {
                                     </Tooltip>
                                 ))
                             }
-                            onChange={(e) => setEditUser({ ...editUser, email: e.currentTarget.value })}
+                            onChange={(e) => {
+                                setEditUser({ ...editUser, email: e.currentTarget.value });
+                            }}
                         />
                         <Select
                             label="Role"
