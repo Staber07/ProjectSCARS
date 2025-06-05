@@ -4,6 +4,7 @@ import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import { GetUserInfo } from "@/lib/api/auth";
 import { GetSelfNotifications } from "@/lib/api/notification";
+import { GetUserAvatar } from "@/lib/api/user";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { NotificationType } from "@/lib/types";
@@ -43,8 +44,18 @@ function DashboardContent() {
     useEffect(() => {
         GetUserInfo()
             .then((userInfo) => {
-                userCtx.userInfo = userInfo[0];
-                userCtx.userPermissions = userInfo[1];
+                if (userInfo[0].avatarUrn) {
+                    GetUserAvatar(userInfo[0].avatarUrn).then((userAvatar) => {
+                        if (userAvatar) {
+                            console.debug("User avatar fetched successfully", { size: userAvatar.size });
+                        } else {
+                            console.warn("No avatar found for user, using default avatar.");
+                        }
+                        userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
+                    });
+                } else {
+                    userCtx.updateUserInfo(userInfo[0], userInfo[1]);
+                }
             })
             .catch((error) => {
                 console.error("Failed to fetch user info:", error);
@@ -82,7 +93,9 @@ function DashboardContent() {
 
             setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
         }
-    }, [userCtx, userCtx.userAvatarUrl, userCtx.userInfo]);
+    }, []);
+    // FIXME: Fix the dependency array to avoid infinite loop
+    // }, [userCtx, userCtx.userAvatarUrl, userCtx.userInfo]);
 
     console.debug("Rendering DashboardPage");
     return (
@@ -106,7 +119,7 @@ function DashboardContent() {
             </Group>
             <Container mt={20}>
                 {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
-                    <Card padding="lg" radius="md" withBorder>
+                    <Card p="md" radius="md" withBorder>
                         <Flex justify="space-between" align="center" mb={20}>
                             <SemiCircleProgress
                                 fillDirection="left-to-right"
@@ -121,7 +134,7 @@ function DashboardContent() {
                                 <Text size="sm" c="dimmed">
                                     Complete your profile, set up security features, and customize your preferences.
                                 </Text>
-                                <List spacing="xs" size="sm" center>
+                                <List spacing="xs" center>
                                     {stepsToComplete.map(([step, completed], index) => (
                                         <List.Item
                                             key={index}
@@ -130,8 +143,14 @@ function DashboardContent() {
                                                     {completed ? <IconCircleCheck /> : <IconCircleDashed />}
                                                 </ThemeIcon>
                                             }
+                                            c={completed ? "gray" : "dark"}
                                         >
-                                            {step}
+                                            <Text
+                                                size="sm"
+                                                style={{ textDecoration: completed ? "line-through" : "none" }}
+                                            >
+                                                {step}
+                                            </Text>
                                         </List.Item>
                                     ))}
                                 </List>
@@ -151,7 +170,7 @@ function DashboardContent() {
                         </Text>
                     </Card>
                 )}
-                <Card padding="lg" radius="md" withBorder>
+                <Card p="md" radius="md">
                     <Title order={4}>Important Notifications</Title>
                     {HVNotifications.length > 0 ? (
                         HVNotifications.map((notification) => (
