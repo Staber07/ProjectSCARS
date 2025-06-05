@@ -29,7 +29,7 @@ import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 
-export default function ProfilePage() {
+export function ProfileContent() {
     const searchParams = useSearchParams();
     const userCtx = useUser();
     const [opened, { open, close }] = useDisclosure(false);
@@ -84,160 +84,161 @@ export default function ProfilePage() {
         }
     }, [searchParams]);
     return (
-        <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
-            <Box mx="auto" p="lg">
-                <Title order={3} mb="sm">
-                    Profile
-                </Title>
-                <Divider mb="lg" />
-                <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
-                    <Group gap={20}>
-                        <Avatar
-                            variant="light"
-                            radius="lg"
-                            size={100}
-                            color="#258ce6"
-                            src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
-                        />
-                        <Stack gap={0}>
-                            <Text size="sm" c="dimmed">
-                                {userCtx.userInfo ? roles[userCtx.userInfo?.roleId] : "Unknown Role"}
-                            </Text>
-                            <Text fw={600} size="lg">
-                                {userCtx.userInfo?.nameFirst}{" "}
-                                {userCtx.userInfo?.nameMiddle
-                                    ? userCtx.userInfo?.nameMiddle
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join(".") + ". "
-                                    : ""}
-                                {userCtx.userInfo?.nameLast}
-                            </Text>
-                            <Text size="sm" c="dimmed">
-                                @{userCtx.userInfo?.username}
-                            </Text>
-                        </Stack>
-                    </Group>
-
-                    <FileButton onChange={uploadAvatar} accept="image/png,image/jpeg">
-                        {(props) => (
-                            <Button {...props} variant="outline" size="sm">
-                                Edit Profile
-                            </Button>
-                        )}
-                    </FileButton>
-                </Flex>
-
-                <Divider my="lg" />
-
-                <Title order={4} mb="sm">
-                    Account Security
-                </Title>
-                <Flex justify="space-between" align="end" w="100%" gap="lg">
-                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
-                        <TextInput
-                            label="Email"
-                            value={userCtx.userInfo?.email || ""}
-                            size="sm"
-                            disabled
-                            w="100%"
-                            style={{ flexGrow: 1, minWidth: 0 }}
-                            labelProps={{ style: { marginBottom: 6 } }}
-                        />
-                    </Stack>
-
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        style={{
-                            height: 35,
-                            whiteSpace: "nowrap",
-                            width: 165,
-                            flexShrink: 0,
-                        }}
-                    >
-                        Change email
-                    </Button>
-                </Flex>
-
-                <Space h="md" />
-
-                <Flex justify="space-between" align="end" w="100%" gap="lg">
-                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
-                        <TextInput
-                            label="Password"
-                            value="********"
-                            size="sm"
-                            disabled
-                            w="100%"
-                            style={{ flexGrow: 1, minWidth: 0 }}
-                            labelProps={{ style: { marginBottom: 6 } }}
-                        />
-                    </Stack>
-
-                    <Modal opened={opened} onClose={close} title="Update Password" centered>
-                        <Stack>
-                            <TextInput label="Current Password" placeholder="" type="password" required />
-                            <TextInput
-                                label="New Password"
-                                placeholder="At least 8 characters"
-                                type="password"
-                                required
-                            />
-                            <TextInput
-                                label="Confirm Password"
-                                placeholder="At least 8 characters"
-                                type="password"
-                                required
-                            />
-
-                            <Button variant="filled" color="blue">
-                                Update Password
-                            </Button>
-
-                            <Anchor
-                                size="xs"
-                                style={{
-                                    color: "gray",
-                                    textAlign: "center",
-                                    cursor: "pointer",
-                                }}
-                            >
-                                Forgot your password?
-                            </Anchor>
-                        </Stack>
-                    </Modal>
-
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        style={{
-                            height: 35,
-                            whiteSpace: "nowrap",
-                            width: 165,
-                            flexShrink: 0,
-                        }}
-                        onClick={open}
-                    >
-                        Change password
-                    </Button>
-                </Flex>
-
-                <Space h="md" />
-
-                <Group justify="space-between" mt="md">
-                    <Box>
-                        <Text fw={500} size="sm">
-                            2-Step Verification
+        <Box mx="auto" p="lg">
+            <Title order={3} mb="sm">
+                Profile
+            </Title>
+            <Divider mb="lg" />
+            <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
+                <Group gap={20}>
+                    <Avatar
+                        variant="light"
+                        radius="lg"
+                        size={100}
+                        color="#258ce6"
+                        src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
+                    />
+                    <Stack gap={0}>
+                        <Text size="sm" c="dimmed">
+                            {userCtx.userInfo ? roles[userCtx.userInfo?.roleId] : "Unknown Role"}
                         </Text>
-                        <Text size="xs" c="dimmed">
-                            Add an additional layer of security to your account during login.
+                        <Text fw={600} size="lg">
+                            {userCtx.userInfo?.nameFirst}{" "}
+                            {userCtx.userInfo?.nameMiddle
+                                ? userCtx.userInfo?.nameMiddle
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join(".") + ". "
+                                : ""}
+                            {userCtx.userInfo?.nameLast}
                         </Text>
-                    </Box>
-
-                    <Switch />
+                        <Text size="sm" c="dimmed">
+                            @{userCtx.userInfo?.username}
+                        </Text>
+                    </Stack>
                 </Group>
-            </Box>
+
+                <FileButton onChange={uploadAvatar} accept="image/png,image/jpeg">
+                    {(props) => (
+                        <Button {...props} variant="outline" size="sm">
+                            Edit Profile
+                        </Button>
+                    )}
+                </FileButton>
+            </Flex>
+
+            <Divider my="lg" />
+
+            <Title order={4} mb="sm">
+                Account Security
+            </Title>
+            <Flex justify="space-between" align="end" w="100%" gap="lg">
+                <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+                    <TextInput
+                        label="Email"
+                        value={userCtx.userInfo?.email || ""}
+                        size="sm"
+                        disabled
+                        w="100%"
+                        style={{ flexGrow: 1, minWidth: 0 }}
+                        labelProps={{ style: { marginBottom: 6 } }}
+                    />
+                </Stack>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    style={{
+                        height: 35,
+                        whiteSpace: "nowrap",
+                        width: 165,
+                        flexShrink: 0,
+                    }}
+                >
+                    Change email
+                </Button>
+            </Flex>
+
+            <Space h="md" />
+
+            <Flex justify="space-between" align="end" w="100%" gap="lg">
+                <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+                    <TextInput
+                        label="Password"
+                        value="********"
+                        size="sm"
+                        disabled
+                        w="100%"
+                        style={{ flexGrow: 1, minWidth: 0 }}
+                        labelProps={{ style: { marginBottom: 6 } }}
+                    />
+                </Stack>
+
+                <Modal opened={opened} onClose={close} title="Update Password" centered>
+                    <Stack>
+                        <TextInput label="Current Password" placeholder="" type="password" required />
+                        <TextInput label="New Password" placeholder="At least 8 characters" type="password" required />
+                        <TextInput
+                            label="Confirm Password"
+                            placeholder="At least 8 characters"
+                            type="password"
+                            required
+                        />
+
+                        <Button variant="filled" color="blue">
+                            Update Password
+                        </Button>
+
+                        <Anchor
+                            size="xs"
+                            style={{
+                                color: "gray",
+                                textAlign: "center",
+                                cursor: "pointer",
+                            }}
+                        >
+                            Forgot your password?
+                        </Anchor>
+                    </Stack>
+                </Modal>
+
+                <Button
+                    variant="outline"
+                    size="sm"
+                    style={{
+                        height: 35,
+                        whiteSpace: "nowrap",
+                        width: 165,
+                        flexShrink: 0,
+                    }}
+                    onClick={open}
+                >
+                    Change password
+                </Button>
+            </Flex>
+
+            <Space h="md" />
+
+            <Group justify="space-between" mt="md">
+                <Box>
+                    <Text fw={500} size="sm">
+                        2-Step Verification
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                        Add an additional layer of security to your account during login.
+                    </Text>
+                </Box>
+
+                <Switch />
+            </Group>
+        </Box>
+    );
+}
+
+export default function ProfilePage() {
+    return (
+        <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
+            <ProfileContent />
         </Suspense>
     );
 }
