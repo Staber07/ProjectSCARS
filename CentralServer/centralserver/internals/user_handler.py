@@ -293,9 +293,17 @@ async def update_user_info(
                 detail="Permission denied: Cannot modify email.",
             )
         logger.debug("Updating email for user: %s", target_user.id)
-        selected_user.email = target_user.email
-        selected_user.emailVerified = False  # Reset email verification status
-        email_changed = True
+        if selected_user.email == target_user.email:
+            logger.debug(
+                "Email for user %s is already set to %s",
+                target_user.id,
+                target_user.email,
+            )
+
+        else:
+            selected_user.email = target_user.email
+            selected_user.emailVerified = False  # Reset email verification status
+            email_changed = True
 
     if target_user.nameFirst:  # Update first name if provided
         if not await verify_user_permission(
