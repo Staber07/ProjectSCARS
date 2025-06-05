@@ -1,8 +1,8 @@
 from sqlmodel import Session, select
 
 from centralserver.internals.exceptions import NotificationNotFoundError
-from centralserver.internals.models.notification import Notification, NotificationType
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.notification import Notification, NotificationType
 
 logger = LoggerFactory().get_logger(__name__)
 

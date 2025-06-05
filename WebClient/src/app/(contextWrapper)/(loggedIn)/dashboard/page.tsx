@@ -37,11 +37,10 @@ function DashboardContent() {
     const userCtx = useUser();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
-    const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
-        localStorage.getItem("setupCompleteDismissed") === "true"
-    );
+    const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
 
     useEffect(() => {
+        setSetupCompleteDismissed(localStorage.getItem("setupCompleteDismissed") === "true");
         GetUserInfo()
             .then((userInfo) => {
                 if (userInfo[0].avatarUrn) {
