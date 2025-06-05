@@ -1033,7 +1033,11 @@ def test_get_user_avatar_fail():
         f"/api/v1/users/avatar?fn={user_info["avatarUrn"]}",
         headers=headers,
     )
-    assert response.status_code == 404
+    assert response.status_code == 403
+    assert (
+        response.json()["detail"]
+        == "You do not have permission to view other users' information."
+    )
 
 
 def test_delete_user_avatar_no_permission():
