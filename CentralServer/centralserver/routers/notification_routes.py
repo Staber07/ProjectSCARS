@@ -31,7 +31,7 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.get("/quantity", status_code=status.HTTP_200_OK, response_model=int)
+@router.get("/quantity", response_model=int)
 async def get_notification_quantity(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -57,11 +57,11 @@ async def get_notification_quantity(
 
     logger.debug("user %s fetching users quantity", token.id)
     return (
-        session.exec(select(func.count(Notification.id))).one()
+        session.exec(select(func.count(Notification.id))).one()  # type: ignore
         if show_archived
         else session.exec(
             # FIXME: when show_archived is False, no item is returned
-            select(func.count(Notification.id)).where(Notification.archived is False)
+            select(func.count(Notification.id)).where(Notification.archived is False)  # type: ignore
         ).one()
     )
 
