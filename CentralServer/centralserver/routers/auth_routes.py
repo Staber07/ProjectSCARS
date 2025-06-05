@@ -19,6 +19,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.exceptions import EmailTemplateNotFoundError
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import (
@@ -27,6 +28,7 @@ from centralserver.internals.models.user import (
     UserPasswordResetRequest,
     UserPublic,
 )
+from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.user_handler import (
     create_user,
     crypt_ctx,
@@ -279,6 +281,13 @@ async def verify_email(
     user.verificationTokenExpires = None
     session.commit()
     session.refresh(user)
+    await push_notification(
+        owner_id=user.id,
+        title="Email address verified!",
+        content=f"Your email address ({user.email}) has been successfully verified.",
+        notification_type=NotificationType.MAIL,
+        session=session,
+    )
     logger.info("Email verified successfully for user: %s", user.username)
 
     return {"message": "Email verified successfully."}
