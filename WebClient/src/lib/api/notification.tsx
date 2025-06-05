@@ -8,10 +8,18 @@ const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
 /**
  * Fetch the user notifications from the central server.
+ *
+ * @param unarchivedOnly - If true, only unarchived notifications will be returned.
+ * @param importantOnly - If true, only important notifications will be returned.
  */
-export async function GetSelfNotifications(importantOnly: boolean = false): Promise<NotificationType[]> {
+export async function GetSelfNotifications(
+    unarchivedOnly: boolean = false,
+    importantOnly: boolean = false,
+    offset: number = 0,
+    limit: number = 100
+): Promise<NotificationType[]> {
     const centralServerResponse = await ky.get(`${endpoint}/notifications/me`, {
-        searchParams: { important_only: importantOnly },
+        searchParams: { unarchived_only: unarchivedOnly, important_only: importantOnly, offset: offset, limit: limit },
         headers: { Authorization: GetAccessTokenHeader() },
     });
     if (!centralServerResponse.ok) {
@@ -42,7 +50,8 @@ export async function GetNotificationsQuantity(showArchived: boolean = false): P
 
 export async function ArchiveNotification(notificationId: string, unarchive: boolean = false): Promise<void> {
     const centralServerResponse = await ky.post(`${endpoint}/notifications`, {
-        json: { notification_id: notificationId, unarchive: unarchive },
+        searchParams: { unarchive: unarchive },
+        json: { notification_id: notificationId },
         headers: { Authorization: GetAccessTokenHeader() },
     });
 

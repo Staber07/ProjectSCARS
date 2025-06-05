@@ -277,15 +277,52 @@ export default function UsersPage(): JSX.Element {
                             <TableTd>{user.username}</TableTd>
                             <TableTd>
                                 <Group gap="xs" align="center">
-                                    {user.emailVerified ? (
-                                        <Tooltip label="Email verified" position="bottom" withArrow>
-                                            <IconCircleDashedCheck size={16} color="green" />
-                                        </Tooltip>
-                                    ) : (
-                                        <Tooltip label="Email not verified" position="bottom" withArrow>
-                                            <IconCircleDashedX size={16} color="gray" />
-                                        </Tooltip>
-                                    )}
+                                    {user.email &&
+                                        (user.emailVerified ? (
+                                            <Tooltip label="Email verified" position="bottom" withArrow>
+                                                <IconCircleDashedCheck size={16} color="green" />
+                                            </Tooltip>
+                                        ) : (
+                                            <Tooltip
+                                                label="Email not verified (Click to send verification mail)"
+                                                position="bottom"
+                                                withArrow
+                                            >
+                                                <IconCircleDashedX
+                                                    size={16}
+                                                    color="gray"
+                                                    onClick={() => {
+                                                        try {
+                                                            RequestVerificationEmail();
+                                                            notifications.show({
+                                                                title: "Verification Email Sent",
+                                                                message:
+                                                                    "Please check your email and click the link to verify your email.",
+                                                                color: "blue",
+                                                                icon: <IconMail />,
+                                                            });
+                                                        } catch (error) {
+                                                            if (error instanceof Error) {
+                                                                notifications.show({
+                                                                    title: "Error",
+                                                                    message: `Failed to send verification email: ${error.message}`,
+                                                                    color: "red",
+                                                                    icon: <IconSendOff />,
+                                                                });
+                                                            } else {
+                                                                notifications.show({
+                                                                    title: "Error",
+                                                                    message:
+                                                                        "Failed to send verification email. Please try again later.",
+                                                                    color: "red",
+                                                                    icon: <IconSendOff />,
+                                                                });
+                                                            }
+                                                        }
+                                                    }}
+                                                />
+                                            </Tooltip>
+                                        ))}
                                     {user.email ? (
                                         user.email
                                     ) : (
@@ -398,24 +435,19 @@ export default function UsersPage(): JSX.Element {
                                 </FileButton>
                             </Card>
                         </Center>
-                        <Button
-                            variant="outline"
-                            color="red"
-                            mt="md"
-                            onClick={() => {
-                                RemoveUserProfile(editUser.id);
-                                setEditUserAvatar(null);
-                                setEditUserAvatarUrl(null);
-                                notifications.show({
-                                    title: "Profile picture removed",
-                                    message: "The profile picture has been removed successfully.",
-                                    color: "green",
-                                    icon: <IconUserCircle />,
-                                });
-                            }}
-                        >
-                            Remove Profile Picture
-                        </Button>
+                        {editUserAvatar && (
+                            <Button
+                                variant="outline"
+                                color="red"
+                                mt="md"
+                                onClick={() => {
+                                    setEditUserAvatar(null);
+                                    setEditUserAvatarUrl(null);
+                                }}
+                            >
+                                Remove Profile Picture
+                            </Button>
+                        )}
                         <Tooltip label="Username cannot be changed" withArrow>
                             <TextInput // TODO: Make username editable if user has permission
                                 disabled
@@ -444,7 +476,8 @@ export default function UsersPage(): JSX.Element {
                             label="Email"
                             value={editUser.email ? editUser.email : ""}
                             rightSection={
-                                editUser.emailVerified ? (
+                                editUser.email &&
+                                (editUser.emailVerified ? (
                                     <Tooltip
                                         label="This email has been verified. You're good to go!"
                                         withArrow
@@ -454,47 +487,10 @@ export default function UsersPage(): JSX.Element {
                                         <IconCircleDashedCheck size={16} color="green" />
                                     </Tooltip>
                                 ) : (
-                                    <Tooltip
-                                        label="This email has not yet been verified. Click to send a verification email."
-                                        withArrow
-                                        multiline
-                                        w={250}
-                                    >
-                                        <IconCircleDashedX
-                                            size={16}
-                                            color="gray"
-                                            onClick={() => {
-                                                try {
-                                                    RequestVerificationEmail();
-                                                    notifications.show({
-                                                        title: "Verification Email Sent",
-                                                        message:
-                                                            "Please check your email and click the link to verify your email.",
-                                                        color: "blue",
-                                                        icon: <IconMail />,
-                                                    });
-                                                } catch (error) {
-                                                    if (error instanceof Error) {
-                                                        notifications.show({
-                                                            title: "Error",
-                                                            message: `Failed to send verification email: ${error.message}`,
-                                                            color: "red",
-                                                            icon: <IconSendOff />,
-                                                        });
-                                                    } else {
-                                                        notifications.show({
-                                                            title: "Error",
-                                                            message:
-                                                                "Failed to send verification email. Please try again later.",
-                                                            color: "red",
-                                                            icon: <IconSendOff />,
-                                                        });
-                                                    }
-                                                }
-                                            }}
-                                        />
+                                    <Tooltip label="This email has not yet been verified." withArrow multiline w={250}>
+                                        <IconCircleDashedX size={16} color="gray" />
                                     </Tooltip>
-                                )
+                                ))
                             }
                             onChange={(e) => setEditUser({ ...editUser, email: e.currentTarget.value })}
                         />

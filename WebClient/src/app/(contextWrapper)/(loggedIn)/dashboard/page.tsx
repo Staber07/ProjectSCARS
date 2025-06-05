@@ -14,7 +14,7 @@ function DashboardContent() {
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     useEffect(() => {
         const fetchNotifications = async () => {
-            const notifications = await GetSelfNotifications(true);
+            const notifications = await GetSelfNotifications(true, true, 0, 1);
             setHVNotifications(notifications);
         };
         fetchNotifications();
