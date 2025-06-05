@@ -34,7 +34,7 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.get("/quantity", status_code=status.HTTP_200_OK, response_model=int)
+@router.get("/quantity", response_model=int)
 async def get_users_quantity_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -56,12 +56,10 @@ async def get_users_quantity_endpoint(
         )
 
     logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(User.id))).one()
+    return session.exec(select(func.count(User.id))).one()  # type: ignore
 
 
-@router.get(
-    "/me", status_code=status.HTTP_200_OK, response_model=tuple[UserPublic, list[str]]
-)
+@router.get("/me", response_model=tuple[UserPublic, list[str]])
 async def get_user_profile_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -93,7 +91,7 @@ async def get_user_profile_endpoint(
     return (UserPublic.model_validate(user), ROLE_PERMISSIONS[user.roleId])
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=list[UserPublic])
+@router.get("/all", response_model=list[UserPublic])
 async def get_all_users_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -125,7 +123,7 @@ async def get_all_users_endpoint(
     ]
 
 
-@router.get("/", status_code=status.HTTP_200_OK, response_model=UserPublic)
+@router.get("/", response_model=UserPublic)
 async def get_user_endpoint(
     user_id: str,
     token: logged_in_dep,
@@ -159,7 +157,7 @@ async def get_user_endpoint(
     return UserPublic.model_validate(selected_user)
 
 
-@router.get("/avatar", status_code=status.HTTP_200_OK, response_class=StreamingResponse)
+@router.get("/avatar", response_class=StreamingResponse)
 async def get_user_avatar_endpoint(
     fn: str,
     token: logged_in_dep,
@@ -214,7 +212,7 @@ async def get_user_avatar_endpoint(
     return StreamingResponse(BytesIO(bucket_object.obj), media_type="image/*")
 
 
-@router.patch("/", status_code=status.HTTP_200_OK, response_model=UserPublic)
+@router.patch("/", response_model=UserPublic)
 async def update_user_endpoint(
     updated_user_info: UserUpdate,
     token: logged_in_dep,
@@ -250,7 +248,7 @@ async def update_user_endpoint(
     )
 
 
-@router.patch("/avatar", status_code=status.HTTP_200_OK, response_model=UserPublic)
+@router.patch("/avatar", response_model=UserPublic)
 async def update_user_avatar_endpoint(
     user_id: str,
     img: UploadFile,
@@ -288,7 +286,7 @@ async def update_user_avatar_endpoint(
     return await update_user_avatar(user_id, await img.read(), token, session)
 
 
-@router.delete("/avatar", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/avatar")
 async def delete_user_avatar_endpoint(
     user_id: str,
     token: logged_in_dep,
