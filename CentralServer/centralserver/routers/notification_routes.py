@@ -88,7 +88,9 @@ async def get_all_notifications(
             detail="You do not have permission to view notifications.",
         )
 
-    return await internals_get_all_notifications(session=session)
+    notifications = await internals_get_all_notifications(session=session)
+    logger.debug("Found %d notifications for user %s.", len(notifications), token.id)
+    return notifications
 
 
 @router.get("/", response_model=Notification)
@@ -151,12 +153,15 @@ async def archive_notification(
     n: NotificationArchiveRequest,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    unarchive: bool = False,
 ) -> Notification:
-    """Set a notification as archived.
+    """Set a notification as archived (or unarchived).
 
     Args:
-        notification_id: The ID of the notification to archive.
+        n: The ID of the notification to archive.
         token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        unarchive: If True, the notification will be unarchived instead of archived.
 
     Returns:
         Notification: The archived notification object.
@@ -195,7 +200,7 @@ async def archive_notification(
 
     try:
         archived_notification = await internals_archive_notification(
-            notification_id=n.notification_id, session=session
+            notification_id=n.notification_id, session=session, unarchive=unarchive
         )
         logger.info(
             "Notification %s archived successfully by user %s.",
@@ -220,12 +225,15 @@ async def archive_notification(
 async def get_user_notifications(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    important_only: bool = False,
 ) -> list[Notification]:
     """
     Get all notifications for the logged-in user.
 
     Args:
         token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        important_only: If True, only fetch important notifications.
 
     Returns:
         A list of notification titles.
@@ -238,4 +246,8 @@ async def get_user_notifications(
             detail="You do not have permission to view your own notifications.",
         )
 
-    return await internals_get_user_notifications(user_id=token.id, session=session)
+    notifications = await internals_get_user_notifications(
+        user_id=token.id, session=session, important_only=important_only
+    )
+    logger.debug("Found %d notifications for user %s.", len(notifications), token.id)
+    return notifications
