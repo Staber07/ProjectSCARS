@@ -1022,7 +1022,7 @@ def test_get_user_avatar_no_current():
 def test_get_user_avatar_fail():
     login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    login2 = _request_token("testuser1", "Password123")
+    login2 = _request_token(Database.default_user, Database.default_password)
     headers2 = {"Authorization": f"Bearer {login2.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
