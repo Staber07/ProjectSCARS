@@ -70,7 +70,9 @@ function DashboardContent() {
             setHVNotifications(notifications);
         };
         fetchNotifications();
+    }, []);
 
+    useEffect(() => {
         if (userCtx.userInfo) {
             const totalSteps = stepsToComplete.length;
             let completedSteps = 0;
@@ -92,9 +94,7 @@ function DashboardContent() {
 
             setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
         }
-    }, []);
-    // FIXME: Fix the dependency array to avoid infinite loop
-    // }, [userCtx, userCtx.userAvatarUrl, userCtx.userInfo]);
+    }, [userCtx.userInfo]);
 
     console.debug("Rendering DashboardPage");
     return (
