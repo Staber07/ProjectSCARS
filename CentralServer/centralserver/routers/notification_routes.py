@@ -1,24 +1,32 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlmodel import Session, select, func
+from sqlmodel import Session, func, select
 
-from centralserver.internals.exceptions import NotificationNotFoundError
-from centralserver.internals.auth_handler import verify_access_token
+from centralserver.internals.auth_handler import (
+    verify_access_token,
+    verify_user_permission,
+)
 from centralserver.internals.db_handler import get_db_session
+from centralserver.internals.exceptions import NotificationNotFoundError
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.notification import (
     Notification,
     NotificationArchiveRequest,
 )
+from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.notification_handler import (
-    get_all_notifications as internals_get_all_notifications,
-    get_notification as internals_get_notification,
-    get_user_notifications as internals_get_user_notifications,
     archive_notification as internals_archive_notification,
 )
-from centralserver.internals.auth_handler import verify_user_permission
+from centralserver.internals.notification_handler import (
+    get_all_notifications as internals_get_all_notifications,
+)
+from centralserver.internals.notification_handler import (
+    get_notification as internals_get_notification,
+)
+from centralserver.internals.notification_handler import (
+    get_user_notifications as internals_get_user_notifications,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from minio.error import S3Error
-from sqlmodel import Session, select, func
+from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
     get_role,

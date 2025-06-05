@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select

@@ -10,9 +10,9 @@ from centralserver.internals.logger import LoggerFactory, log_app_info
 from centralserver.routers import (
     auth_routes,
     misc_routes,
+    notification_routes,
     reports_routes,
     users_routes,
-    notification_routes,
 )
 
 logger = LoggerFactory(

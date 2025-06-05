@@ -7,9 +7,9 @@ from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
+    from centralserver.internals.models.notification import Notification
     from centralserver.internals.models.role import Role
     from centralserver.internals.models.school import School
-    from centralserver.internals.models.notification import Notification
 
 
 @dataclass(frozen=True)

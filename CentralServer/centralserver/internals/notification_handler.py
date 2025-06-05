@@ -1,6 +1,7 @@
 from sqlmodel import Session, select
-from centralserver.internals.models.notification import Notification, NotificationType
+
 from centralserver.internals.exceptions import NotificationNotFoundError
+from centralserver.internals.models.notification import Notification, NotificationType
 
 
 async def get_all_notifications(
