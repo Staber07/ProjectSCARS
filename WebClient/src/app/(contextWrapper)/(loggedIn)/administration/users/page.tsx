@@ -44,6 +44,7 @@ import {
     IconUser,
     IconUserExclamation,
     IconX,
+    IconPlus
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
@@ -68,9 +69,13 @@ export default function UsersPage(): JSX.Element {
 
     //Handler for User Creation
     const [addModalOpen, setAddModalOpen] = useState(false);
+
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [username, setUsername] = useState("");
+    const [assignedSchool, setAssignedSchool] = useState("");
+    const [role, setRole] = useState("");
 
 
     const handleSearch = () => { };
@@ -237,16 +242,34 @@ export default function UsersPage(): JSX.Element {
 
     //Function to handle user creation
     const handleCreateUser = async () => {
+        if (!fullName || !email || !password || !username || !assignedSchool || !role) {
+            notifications.show({ title: "Error", message: "All fields are required", color: "red" });
+            return;
+        }
+
         try {
-            await CreateAuthUser({ full_name: fullName, email, password });
+            await CreateAuthUser({
+                full_name: fullName,
+                email,
+                password,
+                username,
+                assigned_school: assignedSchool,
+                role,
+            });
             notifications.show({ title: "Success", message: "User created successfully", color: "green" });
             setAddModalOpen(false);
-            setFullName(""); setEmail(""); setPassword("");
-            //fetchUsers();  Refresh user list if applicable
+            setFullName("");
+            setEmail("");
+            setPassword("");
+            setUsername("");
+            setAssignedSchool("");
+            setRole("");
+            //fetchUsers?.(); Refresh list if you have a fetchUsers method
         } catch (err) {
             notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
         }
     };
+
 
 
 
@@ -262,7 +285,9 @@ export default function UsersPage(): JSX.Element {
                     style={{ width: "400px" }}
                 />
                 <Flex ml="auto" gap="sm" align="center">
-                    <Button onClick={() => setAddModalOpen(true)}>Add User</Button>
+                    <ActionIcon variant="filled" color="blue" onClick={() => setAddModalOpen(true)}>
+                        <IconPlus size={18} />
+                    </ActionIcon>
                     <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
                         <IconSearch size={16} />
                     </ActionIcon>
