@@ -592,7 +592,7 @@ export default function UsersPage(): JSX.Element {
                     <TextInput label="Assigned School" value={assignedSchool} onChange={(e) => setAssignedSchool(e.currentTarget.value)} />
                     <Select
                         label="Role"
-                        data={["Admin", "Staff", "Viewer"]}
+                        data={["Admin", "Principal", "Canteen Manager", "Teacher"]}
                         value={role}
                         onChange={(value) => setRole(value || "")}
                         placeholder="Select a role"
