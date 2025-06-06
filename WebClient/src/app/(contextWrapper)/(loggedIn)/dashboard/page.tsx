@@ -39,6 +39,7 @@ function DashboardContent() {
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         setSetupCompleteDismissed(localStorage.getItem("setupCompleteDismissed") === "true");
         GetUserInfo()
@@ -70,7 +71,7 @@ function DashboardContent() {
             setHVNotifications(notifications);
         };
         fetchNotifications();
-    }, []);
+    });
 
     useEffect(() => {
         if (userCtx.userInfo) {

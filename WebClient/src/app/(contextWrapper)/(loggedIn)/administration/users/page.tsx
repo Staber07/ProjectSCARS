@@ -1,10 +1,9 @@
 "use client";
 
-import { GetAllRoles, RequestVerificationEmail, CreateAuthUser } from "@/lib/api/auth";
+import { CreateAuthUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
 import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
-
 import {
     ActionIcon,
     Avatar,
@@ -19,6 +18,7 @@ import {
     Modal,
     Pagination,
     Select,
+    Stack,
     Table,
     TableTbody,
     TableTd,
@@ -28,7 +28,6 @@ import {
     Text,
     TextInput,
     Tooltip,
-    Stack
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -39,12 +38,12 @@ import {
     IconLock,
     IconMail,
     IconPencilCheck,
+    IconPlus,
     IconSearch,
     IconSendOff,
     IconUser,
     IconUserExclamation,
     IconX,
-    IconPlus
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
@@ -66,7 +65,6 @@ export default function UsersPage(): JSX.Element {
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
 
-
     //Handler for User Creation
     const [addModalOpen, setAddModalOpen] = useState(false);
 
@@ -77,8 +75,7 @@ export default function UsersPage(): JSX.Element {
     const [assignedSchool, setAssignedSchool] = useState("");
     const [role, setRole] = useState("");
 
-
-    const handleSearch = () => { };
+    const handleSearch = () => {};
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
@@ -239,7 +236,6 @@ export default function UsersPage(): JSX.Element {
         fetchUsers();
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
-
     //Function to handle user creation
     const handleCreateUser = async () => {
         if (!fullName || !email || !password || !username || !assignedSchool || !role) {
@@ -265,13 +261,10 @@ export default function UsersPage(): JSX.Element {
             setAssignedSchool("");
             setRole("");
             //fetchUsers?.(); Refresh list idk  ano yung pang refresh ng list dito HAHAHA
-        } catch (err) {
+        } catch {
             notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
         }
     };
-
-
-
 
     console.debug("Rendering UsersPage");
     return (
@@ -404,9 +397,9 @@ export default function UsersPage(): JSX.Element {
                                 {user.nameFirst}{" "}
                                 {user.nameMiddle
                                     ? user.nameMiddle
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join(".") + ". "
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join(".") + ". "
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
@@ -578,18 +571,26 @@ export default function UsersPage(): JSX.Element {
                 )}
             </Modal>
 
-
-            <Modal
-                opened={addModalOpen}
-                onClose={() => setAddModalOpen(false)}
-                title="Add New User"
-            >
+            <Modal opened={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add New User">
                 <Stack>
-                    <TextInput label="Full Name" value={fullName} onChange={(e) => setFullName(e.currentTarget.value)} />
+                    <TextInput
+                        label="Full Name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.currentTarget.value)}
+                    />
                     <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} />
                     <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
-                    <TextInput label="Password" type="password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} />
-                    <TextInput label="Assigned School" value={assignedSchool} onChange={(e) => setAssignedSchool(e.currentTarget.value)} />
+                    <TextInput
+                        label="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.currentTarget.value)}
+                    />
+                    <TextInput
+                        label="Assigned School"
+                        value={assignedSchool}
+                        onChange={(e) => setAssignedSchool(e.currentTarget.value)}
+                    />
                     <Select
                         label="Role"
                         data={["Admin", "Principal", "Canteen Manager", "Teacher"]}
@@ -600,7 +601,6 @@ export default function UsersPage(): JSX.Element {
                     <Button onClick={handleCreateUser}>Create User</Button>
                 </Stack>
             </Modal>
-
         </>
     );
 }
