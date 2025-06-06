@@ -586,11 +586,21 @@ export default function UsersPage(): JSX.Element {
             >
                 <Stack>
                     <TextInput label="Full Name" value={fullName} onChange={(e) => setFullName(e.currentTarget.value)} />
+                    <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} />
                     <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
                     <TextInput label="Password" type="password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} />
+                    <TextInput label="Assigned School" value={assignedSchool} onChange={(e) => setAssignedSchool(e.currentTarget.value)} />
+                    <Select
+                        label="Role"
+                        data={["Admin", "Staff", "Viewer"]}
+                        value={role}
+                        onChange={(value) => setRole(value || "")}
+                        placeholder="Select a role"
+                    />
                     <Button onClick={handleCreateUser}>Create User</Button>
                 </Stack>
             </Modal>
+
         </>
     );
 }
