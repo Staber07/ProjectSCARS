@@ -1,6 +1,6 @@
 [project]
 name = "centralserver"
-version = "0.3.6"
+version = "0.3.7"
 description = "The central server for the project"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -33,4 +33,4 @@ addopts = "--cache-clear --color=yes --code-highlight=yes --cov=centralserver --
 testpaths = ["tests"]
 env_files = [".pytest.env"]
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope="function"
+asyncio_default_fixture_loop_scope = "function"
