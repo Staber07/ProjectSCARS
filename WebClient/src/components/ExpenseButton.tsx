@@ -76,7 +76,7 @@ export function ExpenseButtonMenu({ label = "Create new", onSelect }: ExpenseBut
         icon: IconMoneybag,
         color: theme.colors.green[6],
         path: '/reports/liquidation-report',
-    },
+    }
     ];
 
     return (
