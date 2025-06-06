@@ -1,9 +1,10 @@
 "use client";
 
-import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllRoles, RequestVerificationEmail, CreateAuthUser } from "@/lib/api/auth";
 import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
+
 import {
     ActionIcon,
     Avatar,
@@ -27,6 +28,7 @@ import {
     Text,
     TextInput,
     Tooltip,
+    Stack
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -63,7 +65,15 @@ export default function UsersPage(): JSX.Element {
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
 
-    const handleSearch = () => {};
+
+    //Handler for User Creation
+    const [addModalOpen, setAddModalOpen] = useState(false);
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+
+
+    const handleSearch = () => { };
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
@@ -224,6 +234,22 @@ export default function UsersPage(): JSX.Element {
         fetchUsers();
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
+
+    //Function to handle user creation
+    const handleCreateUser = async () => {
+        try {
+            await CreateAuthUser({ full_name: fullName, email, password });
+            notifications.show({ title: "Success", message: "User created successfully", color: "green" });
+            setAddModalOpen(false);
+            setFullName(""); setEmail(""); setPassword("");
+            //fetchUsers();  Refresh user list if applicable
+        } catch (err) {
+            notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
+        }
+    };
+
+
+
     console.debug("Rendering UsersPage");
     return (
         <>
@@ -236,6 +262,7 @@ export default function UsersPage(): JSX.Element {
                     style={{ width: "400px" }}
                 />
                 <Flex ml="auto" gap="sm" align="center">
+                    <Button onClick={() => setAddModalOpen(true)}>Add User</Button>
                     <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
                         <IconSearch size={16} />
                     </ActionIcon>
@@ -352,9 +379,9 @@ export default function UsersPage(): JSX.Element {
                                 {user.nameFirst}{" "}
                                 {user.nameMiddle
                                     ? user.nameMiddle
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join(".") + ". "
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join(".") + ". "
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
@@ -524,6 +551,20 @@ export default function UsersPage(): JSX.Element {
                         <Button onClick={handleSave}>Save</Button>
                     </Flex>
                 )}
+            </Modal>
+
+
+            <Modal
+                opened={addModalOpen}
+                onClose={() => setAddModalOpen(false)}
+                title="Add New User"
+            >
+                <Stack>
+                    <TextInput label="Full Name" value={fullName} onChange={(e) => setFullName(e.currentTarget.value)} />
+                    <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
+                    <TextInput label="Password" type="password" value={password} onChange={(e) => setPassword(e.currentTarget.value)} />
+                    <Button onClick={handleCreateUser}>Create User</Button>
+                </Stack>
             </Modal>
         </>
     );
