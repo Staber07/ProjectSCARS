@@ -166,3 +166,25 @@ export async function VerifyUserEmail(token: string): Promise<ServerMessageType>
     console.debug("Email verified successfully");
     return await centralServerResponse.json();
 }
+
+export async function CreateAuthUser(payload: {
+  full_name: string;
+  email: string;
+  password: string;
+  username: string;
+  assigned_school: string;
+  role: string;
+}) {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_URL}/auth/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to create user");
+  }
+
+  return await res.json();
+}
+
