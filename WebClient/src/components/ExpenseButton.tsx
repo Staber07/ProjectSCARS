@@ -27,7 +27,7 @@ export function ExpenseButtonMenu({ label = "Create new", onSelect }: ExpenseBut
         router.push(path);
     };
 
-    const menuItems = [
+    const expenseCategory = [
     {
         label: 'Operating Expenses',
         value: 'operating-expenses',
