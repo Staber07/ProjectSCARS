@@ -171,6 +171,9 @@ export async function CreateAuthUser(payload: {
   full_name: string;
   email: string;
   password: string;
+  username: string;
+  assigned_school: string;
+  role: string;
 }) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_URL}/auth/create`, {
     method: "POST",
@@ -184,3 +187,4 @@ export async function CreateAuthUser(payload: {
 
   return await res.json();
 }
+
