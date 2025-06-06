@@ -21,6 +21,7 @@ import {
     Stack
 } from "@mantine/core";
 import { IconSearch, IconFilter, IconDownload, IconEye, IconPencil, IconTrash, IconDots, IconCash, IconReceipt, IconUsers } from "@tabler/icons-react";
+import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 
 // Sample Report Submission Data
 const reportSubmissions = [
@@ -88,6 +89,7 @@ export default function ReportsPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [activeTab, setActiveTab] = useState("all");
+    const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
 
     const filteredReports = reportSubmissions.filter((report) => {
         const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
@@ -124,6 +126,10 @@ export default function ReportsPage() {
         } else {
             setSelectedReports(selectedReports.filter(reportId => reportId !== id));
         }
+    };
+
+    const handleCreateLiquidationReport = (category: string, path: string) => {
+        console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
     };
 
     type QuickActionCardProps = {
@@ -229,7 +235,7 @@ export default function ReportsPage() {
                             description="Create liquidation report"
                             icon={IconReceipt}
                             color="green"
-                            onClick={() => console.log('Create liquidation report')}
+                            onClick={() => setLiquidationModalOpened(true)}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -343,6 +349,13 @@ export default function ReportsPage() {
             <Group justify="center">
                 <Pagination total={Math.ceil(filteredReports.length / 10)} />
             </Group>
+
+            {/* Liquidation Report Modal */}
+            <LiquidationReportModal
+                opened={liquidationModalOpened}
+                onClose={() => setLiquidationModalOpened(false)}
+                onSelect={handleCreateLiquidationReport}
+            />
         </Stack>
     );
 }
