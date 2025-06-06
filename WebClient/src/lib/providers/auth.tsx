@@ -29,7 +29,7 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
             return false; // Server-side rendering
         }
 
-        const stored_auth_state = localStorage.getItem(LocalStorage.access_token);
+        const stored_auth_state = localStorage.getItem(LocalStorage.accessToken);
         return stored_auth_state !== null;
     });
 
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
      */
     const login = (access_token: TokenType) => {
         console.debug("Setting local login state to true");
-        localStorage.setItem(LocalStorage.access_token, JSON.stringify(access_token));
+        localStorage.setItem(LocalStorage.accessToken, JSON.stringify(access_token));
         setIsAuthenticated(true);
     };
 
@@ -49,10 +49,11 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     const logout = () => {
         console.debug("Setting local login state to false");
         setIsAuthenticated(false);
-        localStorage.removeItem(LocalStorage.access_token);
-        localStorage.removeItem(LocalStorage.user_data);
-        localStorage.removeItem(LocalStorage.user_permissions);
-        localStorage.removeItem(LocalStorage.user_avatar);
+        localStorage.removeItem(LocalStorage.accessToken);
+        localStorage.removeItem(LocalStorage.userData);
+        localStorage.removeItem(LocalStorage.userPermissions);
+        localStorage.removeItem(LocalStorage.userAvatar);
+        localStorage.removeItem(LocalStorage.setupCompleteDismissed);
     };
 
     return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>;

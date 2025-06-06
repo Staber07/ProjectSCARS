@@ -1,9 +1,9 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { useUser } from "@/lib/providers/user";
 import { GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
+import { useUser } from "@/lib/providers/user";
 import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";

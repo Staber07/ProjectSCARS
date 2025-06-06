@@ -1,5 +1,6 @@
 "use client";
 
+import { Button, Menu, useMantineTheme } from "@mantine/core";
 import {
     IconBowl,
     IconCalendarEvent,
@@ -9,16 +10,15 @@ import {
     IconMoneybag,
     IconSettingsDollar,
     IconUsers,
-} from '@tabler/icons-react';
-import { Button, Menu, useMantineTheme } from '@mantine/core';
-import { useRouter } from 'next/navigation';
+} from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
 
 interface ExpenseButtonMenuProps {
     label?: string;
     onSelect?: (path: string) => void;
 }
 
-export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseButtonMenuProps) {
+export function ExpenseButtonMenu({ label = "Create new", onSelect }: ExpenseButtonMenuProps) {
     const theme = useMantineTheme();
     const router = useRouter();
 
@@ -27,7 +27,7 @@ export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseBut
         router.push(path);
     };
 
-    const expenseCategory = [
+    const menuItems = [
     {
         label: 'Operating Expenses',
         value: 'operating-expenses',
@@ -80,13 +80,7 @@ export function ExpenseButtonMenu({ label = 'Create new', onSelect }: ExpenseBut
     ];
 
     return (
-        <Menu
-            transitionProps={{ transition: 'pop-top-right' }}
-            position="top-end"
-            width={260}
-            withinPortal
-            radius="md"
-        >
+        <Menu transitionProps={{ transition: "pop-top-right" }} position="top-end" width={260} withinPortal radius="md">
             <Menu.Target>
                 <Button rightSection={<IconChevronDown size={18} stroke={1.5} />} pr={12} radius="md">
                     {label}

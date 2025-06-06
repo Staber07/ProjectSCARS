@@ -1,58 +1,77 @@
 from sqlmodel import Session, select
-from centralserver.internals.models.notification import Notification, NotificationType
+
 from centralserver.internals.exceptions import NotificationNotFoundError
+from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.notification import Notification, NotificationType
 
-
-async def get_all_notifications(
-    session: Session, important_only: bool = False
-) -> list[Notification]:
-    """Retrieve all notifications from the database.
-
-    Args:
-        session: The SQLAlchemy session to use for the query.
-        important_only: If True, only retrieve important notifications.
-
-    Returns:
-        A list of all notifications.
-    """
-
-    return (
-        list(
-            session.exec(
-                select(Notification).where(Notification.important is True)
-            ).all()
-        )
-        if important_only
-        else list(session.exec(select(Notification)).all())
-    )
+logger = LoggerFactory().get_logger(__name__)
 
 
 async def get_user_notifications(
-    user_id: str, session: Session, important_only: bool = False
+    user_id: str,
+    session: Session,
+    unarchived_only: bool = True,
+    important_only: bool = False,
+    offset: int = 0,
+    limit: int = 100,
 ) -> list[Notification]:
     """Retrieve all notifications for a specific user.
 
     Args:
         user_id: The ID of the user whose notifications are to be retrieved.
         session: The SQLAlchemy session to use for the query.
+        unarchived_only: If True, only retrieve unarchived notifications.
         important_only: If True, only retrieve important notifications.
 
     Returns:
         A list of notifications for the specified user.
     """
 
+    logger.debug(
+        "Unarchived only: %s, Important only: %s",
+        unarchived_only,
+        important_only,
+    )
+    if important_only:
+        if unarchived_only:
+            return list(
+                session.exec(
+                    select(Notification)
+                    .where(Notification.ownerId == user_id)
+                    .where(Notification.archived == False)  # pylint: disable=C0121
+                    .where(Notification.important)
+                    .offset(offset)
+                    .limit(limit)
+                ).all()
+            )
+
+        return list(
+            session.exec(
+                select(Notification)
+                .where(Notification.ownerId == user_id)
+                .where(Notification.important)
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
+
+    if unarchived_only:
+        return list(
+            session.exec(
+                select(Notification)
+                .where(Notification.ownerId == user_id)
+                .where(Notification.archived == False)  # pylint: disable=C0121
+                .offset(offset)
+                .limit(limit)
+            ).all()
+        )
     return list(
         session.exec(
             select(Notification)
             .where(Notification.ownerId == user_id)
-            .where(Notification.important is True)
+            .offset(offset)
+            .limit(limit)
         ).all()
-        if important_only
-        else list(
-            session.exec(
-                select(Notification).where(Notification.ownerId == user_id)
-            ).all()
-        )
     )
 
 
@@ -113,19 +132,21 @@ async def push_notification(
 async def archive_notification(
     notification_id: str,
     session: Session,
+    unarchive: bool = False,
 ) -> Notification:
-    """Set a notification as archived.
+    """Set a notification as archived (or unarchived).
 
     Args:
         notification_id: The ID of the notification to delete.
         session: The SQLAlchemy session to use for the operation.
+        unarchive: If True, the notification will be unarchived instead of archived.
 
     Returns:
         The deleted notification object if found, otherwise None.
     """
 
     notification = await get_notification(notification_id, session)
-    notification.archived = True
+    notification.archived = False if unarchive else True
     session.add(notification)
     session.commit()
     session.refresh(notification)

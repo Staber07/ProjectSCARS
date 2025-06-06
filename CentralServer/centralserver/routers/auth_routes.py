@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select
@@ -19,6 +19,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.exceptions import EmailTemplateNotFoundError
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import (
@@ -27,6 +28,7 @@ from centralserver.internals.models.user import (
     UserPasswordResetRequest,
     UserPublic,
 )
+from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.user_handler import (
     create_user,
     crypt_ctx,
@@ -44,12 +46,12 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
+@router.post("/create", response_model=UserPublic)
 async def create_new_user(
     new_user: UserCreate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
+) -> Response:
     """Create a new user in the database.
 
     Args:
@@ -78,7 +80,11 @@ async def create_new_user(
     logger.debug("Created by user: %s", token.id)
     user = UserPublic.model_validate(await create_user(new_user, session))
     logger.debug("Returning new user information: %s", user)
-    return user
+    return Response(
+        content=user.model_dump_json(),
+        status_code=status.HTTP_201_CREATED,
+        media_type="application/json",
+    )
 
 
 @router.post("/token")
@@ -193,9 +199,7 @@ async def request_verification_email(
     )
     session.commit()
     session.refresh(user)
-    recovery_link = (
-        f"{app_config.connection.base_url}/email/verify?token={user.verificationToken}"
-    )
+    recovery_link = f"{app_config.connection.base_url}/account/profile?emailVerificationToken={user.verificationToken}"
     logger.debug(
         "Generated verification link for user %s: %s", user.username, recovery_link
     )
@@ -229,7 +233,7 @@ async def request_verification_email(
     return {"message": "Email verification sent successfully."}
 
 
-@router.get("/email/verify")
+@router.post("/email/verify")
 async def verify_email(
     token: str,
     session: Annotated[Session, Depends(get_db_session)],
@@ -277,6 +281,13 @@ async def verify_email(
     user.verificationTokenExpires = None
     session.commit()
     session.refresh(user)
+    await push_notification(
+        owner_id=user.id,
+        title="Email address verified!",
+        content=f"Your email address ({user.email}) has been successfully verified.",
+        notification_type=NotificationType.MAIL,
+        session=session,
+    )
     logger.info("Email verified successfully for user: %s", user.username)
 
     return {"message": "Email verified successfully."}

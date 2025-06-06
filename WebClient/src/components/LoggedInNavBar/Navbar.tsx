@@ -1,25 +1,26 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { Code, Group, Image, Indicator, NavLink, Title, Tooltip } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
     IconDashboard,
+    IconGraph,
     IconLogout,
+    IconNotification,
     IconReport,
     IconSettings,
     IconUser,
-    IconGraph,
-    IconNotification,
 } from "@tabler/icons-react";
-import { Code, Group, Title, Image, NavLink, Tooltip, Indicator } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
+import { usePathname, useRouter } from "next/navigation";
 
-import classes from "./Navbar.module.css";
-import { useAuth } from "@/lib/providers/auth";
+import { GetNotificationsQuantity } from "@/lib/api/notification";
 import { Program } from "@/lib/info";
+import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import { JSX, useEffect, useState } from "react";
-import { GetNotificationsQuantity } from "@/lib/api/notification";
+
+import classes from "./Navbar.module.css";
 
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);

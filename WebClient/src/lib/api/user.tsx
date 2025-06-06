@@ -47,7 +47,7 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
     }
 
     const updatedUserData: UserPublicType = await centralServerResponse.json();
-    localStorage.setItem(LocalStorage.user_data, JSON.stringify(updatedUserData));
+    localStorage.setItem(LocalStorage.userData, JSON.stringify(updatedUserData));
     return updatedUserData;
 }
 
@@ -56,7 +56,7 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
  * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
  */
 export async function GetAllUsers(): Promise<UserPublicType[]> {
-    const centralServerResponse = await ky.get(`${endpoint}/users`, {
+    const centralServerResponse = await ky.get(`${endpoint}/users/all`, {
         headers: { Authorization: GetAccessTokenHeader() },
     });
     if (!centralServerResponse.ok) {
@@ -101,4 +101,18 @@ export async function GetUsersQuantity(): Promise<number> {
 
     const usersQuantity: number = await centralServerResponse.json();
     return usersQuantity;
+}
+
+export async function RemoveUserProfile(userId: string): Promise<void> {
+    const centralServerResponse = await ky.delete(`${endpoint}/users/avatar`, {
+        searchParams: { user_id: userId },
+        headers: { Authorization: GetAccessTokenHeader() },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to remove user profile: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    console.debug("User profile removed successfully");
 }

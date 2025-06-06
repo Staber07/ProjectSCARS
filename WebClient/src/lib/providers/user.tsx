@@ -1,6 +1,6 @@
+import { LocalStorage } from "@/lib/info";
 import { UserPublicType } from "@/lib/types";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { LocalStorage } from "@/lib/info";
 
 interface UserContextType {
     userInfo: UserPublicType | null;
@@ -25,9 +25,9 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
 
     useEffect(() => {
         const loadUserData = async () => {
-            const storedUserInfo = localStorage.getItem(LocalStorage.user_data);
-            const storedUserPermissions = localStorage.getItem(LocalStorage.user_permissions);
-            const storedUserAvatar = localStorage.getItem(LocalStorage.user_avatar);
+            const storedUserInfo = localStorage.getItem(LocalStorage.userData);
+            const storedUserPermissions = localStorage.getItem(LocalStorage.userPermissions);
+            const storedUserAvatar = localStorage.getItem(LocalStorage.userAvatar);
             if (storedUserInfo) {
                 setUserInfo(JSON.parse(storedUserInfo));
             }
@@ -64,15 +64,15 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     const updateUserInfo = (userInfo: UserPublicType, permissions?: string[] | null, userAvatar?: Blob | null) => {
         console.debug("Setting user info", { userInfo, permissions, userAvatar });
         setUserInfo(userInfo);
-        localStorage.setItem(LocalStorage.user_data, JSON.stringify(userInfo));
+        localStorage.setItem(LocalStorage.userData, JSON.stringify(userInfo));
 
         // Update permissions and avatar only if they are provided
         if (permissions) {
             setUserPermissions(permissions);
-            localStorage.setItem(LocalStorage.user_permissions, JSON.stringify(permissions));
+            localStorage.setItem(LocalStorage.userPermissions, JSON.stringify(permissions));
         } else {
             setUserPermissions(null);
-            localStorage.removeItem(LocalStorage.user_permissions);
+            localStorage.removeItem(LocalStorage.userPermissions);
         }
 
         if (userAvatar) {
@@ -85,13 +85,13 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
             });
             const reader = new FileReader();
             reader.onload = () => {
-                localStorage.setItem(LocalStorage.user_avatar, reader.result as string);
+                localStorage.setItem(LocalStorage.userAvatar, reader.result as string);
             };
             reader.readAsDataURL(userAvatar);
         } else {
             setUserAvatar(null);
             setUserAvatarUrl(null);
-            localStorage.removeItem(LocalStorage.user_avatar);
+            localStorage.removeItem(LocalStorage.userAvatar);
         }
     };
 

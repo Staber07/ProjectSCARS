@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
+from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
@@ -11,11 +12,10 @@ from centralserver.internals.adapters.object_store import (
 from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
-from centralserver.info import Program
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
-from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.notification_handler import push_notification
 
 logger = LoggerFactory().get_logger(__name__)
@@ -293,9 +293,17 @@ async def update_user_info(
                 detail="Permission denied: Cannot modify email.",
             )
         logger.debug("Updating email for user: %s", target_user.id)
-        selected_user.email = target_user.email
-        selected_user.emailVerified = False  # Reset email verification status
-        email_changed = True
+        if selected_user.email == target_user.email:
+            logger.debug(
+                "Email for user %s is already set to %s",
+                target_user.id,
+                target_user.email,
+            )
+
+        else:
+            selected_user.email = target_user.email
+            selected_user.emailVerified = False  # Reset email verification status
+            email_changed = True
 
     if target_user.nameFirst:  # Update first name if provided
         if not await verify_user_permission(
