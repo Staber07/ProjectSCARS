@@ -264,7 +264,7 @@ export default function UsersPage(): JSX.Element {
             setUsername("");
             setAssignedSchool("");
             setRole("");
-            //fetchUsers?.(); Refresh list if you have a fetchUsers method
+            //fetchUsers?.(); Refresh list idk  ano yung pang refresh ng list dito HAHAHA
         } catch (err) {
             notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
         }
