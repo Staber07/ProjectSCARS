@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.school import School, SchoolUserLink
+
 if TYPE_CHECKING:
     from centralserver.internals.models.notification import Notification
     from centralserver.internals.models.role import Role
-    from centralserver.internals.models.school import School
 
 
 @dataclass(frozen=True)
@@ -47,11 +48,6 @@ class User(SQLModel, table=True):
     avatarUrn: str | None = Field(
         default=None,
         description="A link or identifier to the user's avatar within the file storage server.",
-    )
-    schoolId: int | None = Field(
-        default=None,
-        description="The ID of the school the user belongs to.",
-        foreign_key="schools.id",
     )
     roleId: int = Field(
         description="The user's role in the system.", foreign_key="roles.id"
@@ -121,18 +117,16 @@ class User(SQLModel, table=True):
         description="The last IP address the user logged in from.",
     )
 
-    school: "School | None" = Relationship(
-        back_populates="users",
-    )
     role: "Role" = Relationship(back_populates="users")
-    notifications: list["Notification"] = Relationship(
-        back_populates="owner",
-    )
-    lastModifiedSchools: list["School"] = Relationship(
+    notifications: list["Notification"] = Relationship(back_populates="owner")
+    lastModifiedSchools: list[School] = Relationship(
         back_populates="lastModifiedBy",
     )
-    principalOfSchools: list["School"] = Relationship(
+    principalOfSchools: list[School] = Relationship(
         back_populates="principal",
+    )
+    school: list[School] = Relationship(
+        back_populates="users", link_model=SchoolUserLink
     )
 
 

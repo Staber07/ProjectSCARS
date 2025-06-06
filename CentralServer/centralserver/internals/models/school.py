@@ -8,6 +8,26 @@ if TYPE_CHECKING:
     from centralserver.internals.models.user import User
 
 
+class SchoolUserLink(SQLModel, table=True):
+    """A model representing the relationship between schools and users."""
+
+    __tablename__: str = "school_user_link"  # type: ignore
+
+    schoolId: int = Field(
+        primary_key=True,
+        foreign_key="schools.id",
+        description="The ID of the school.",
+    )
+    userId: str = Field(
+        primary_key=True,
+        foreign_key="users.id",
+        description="The ID of the user (employee).",
+    )
+
+    school: "School" = Relationship(back_populates="users")
+    user: "User" = Relationship(back_populates="school")
+
+
 class School(SQLModel, table=True):
     """A model representing schools in the system."""
 
@@ -61,6 +81,8 @@ class School(SQLModel, table=True):
         foreign_key="users.id",
     )
 
-    users: list["User"] = Relationship(back_populates="school")
     lastModifiedBy: "User" = Relationship(back_populates="lastModifiedSchools")
     principal: "User" = Relationship(back_populates="principalOfSchools")
+    users: list["User"] = Relationship(
+        back_populates="school", link_model=SchoolUserLink
+    )
