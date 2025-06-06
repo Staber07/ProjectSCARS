@@ -1,7 +1,7 @@
 import datetime
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
@@ -121,12 +121,18 @@ class User(SQLModel, table=True):
         description="The last IP address the user logged in from.",
     )
 
-    school: Optional["School"] = Relationship(
+    school: "School | None" = Relationship(
         back_populates="users",
     )
     role: "Role" = Relationship(back_populates="users")
     notifications: list["Notification"] = Relationship(
         back_populates="owner",
+    )
+    lastModifiedSchools: list["School"] = Relationship(
+        back_populates="lastModifiedBy",
+    )
+    principalOfSchools: list["School"] = Relationship(
+        back_populates="principal",
     )
 
 
