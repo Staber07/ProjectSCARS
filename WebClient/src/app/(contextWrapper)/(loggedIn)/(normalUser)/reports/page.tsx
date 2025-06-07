@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 import {
     ActionIcon,
@@ -84,6 +85,8 @@ const reportSubmissions = [
 export default function ReportsPage() {
     console.debug("Rendering ReportsPage");
 
+    const router = useRouter();
+
     const [search, setSearch] = useState("");
     const [selectedReports, setSelectedReports] = useState<number[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
@@ -128,8 +131,16 @@ export default function ReportsPage() {
         }
     };
 
+    const handleNavigateToSales = () => {
+        router.push('/reports/sales');
+    };
+
     const handleCreateLiquidationReport = (category: string, path: string) => {
         console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
+    };
+
+    const handleNavigateToPayroll = () => {
+        router.push('/reports/payroll');
     };
 
     type QuickActionCardProps = {
@@ -226,7 +237,7 @@ export default function ReportsPage() {
                             description="Record today's sales"
                             icon={IconCash}
                             color="blue"
-                            onClick={() => console.log('Create daily sales')}
+                            onClick={handleNavigateToSales}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -244,7 +255,7 @@ export default function ReportsPage() {
                             description="Manage staff payroll"
                             icon={IconUsers}
                             color="violet"
-                            onClick={() => console.log('Create payroll')}
+                            onClick={handleNavigateToPayroll}
                         />
                     </Grid.Col>
                 </Grid>
