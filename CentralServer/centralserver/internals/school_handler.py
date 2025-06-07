@@ -1,4 +1,5 @@
 from sqlmodel import Session
+
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.school import School, SchoolCreate
 

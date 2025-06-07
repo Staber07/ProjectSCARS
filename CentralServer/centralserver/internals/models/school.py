@@ -1,8 +1,8 @@
 import datetime
 from typing import TYPE_CHECKING, Optional
 
-from sqlmodel import Field, Relationship, SQLModel
 from pydantic import EmailStr
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from centralserver.internals.models.user import User

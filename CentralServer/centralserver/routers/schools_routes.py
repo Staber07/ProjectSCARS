@@ -1,17 +1,18 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, func, select
-from centralserver.internals.db_handler import get_db_session
+
 from centralserver.internals.auth_handler import (
     verify_access_token,
     verify_user_permission,
 )
+from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.school import School, SchoolCreate
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.school import SchoolCreate, School
 from centralserver.internals.models.user import User
 from centralserver.internals.school_handler import create_school
-
 
 logger = LoggerFactory().get_logger(__name__)
 
