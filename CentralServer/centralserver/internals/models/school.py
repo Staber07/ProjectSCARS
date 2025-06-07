@@ -66,7 +66,8 @@ class School(SQLModel, table=True):
 
     __tablename__: str = "schools"  # type: ignore
 
-    id: int = Field(
+    id: int | None = Field(
+        default=None,
         primary_key=True,
         index=True,
         description="The unique identifier for the school.",
@@ -114,3 +115,14 @@ class School(SQLModel, table=True):
     users: list["User"] = Relationship(
         back_populates="schools", link_model=SchoolUserLink
     )
+
+
+class SchoolCreate(SQLModel):
+    """A model for creating a new school."""
+
+    name: str
+    address: str | None = None
+    coordinates: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    website: str | None = None
