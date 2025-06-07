@@ -50,6 +50,8 @@ import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 import { motion as motionFramer, AnimatePresence } from "framer-motion";
 
+
+
 export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
@@ -457,7 +459,7 @@ export default function UsersPage(): JSX.Element {
 
             <AnimatePresence>
                 {hoveredUser && (
-                    <motion.div
+                    <motionFramer.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -484,10 +486,10 @@ export default function UsersPage(): JSX.Element {
                                 <Text size="sm">School: {hoveredUser.school || "—"}</Text>
                             </Stack>
                         </Card>
-                    </motion.div>
+                    </motionFramer.div>
                 )}
             </AnimatePresence>
-            
+
             <Group justify="center">
                 <Pagination total={1} mt="md" />
             </Group>
