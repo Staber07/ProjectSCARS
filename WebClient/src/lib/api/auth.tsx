@@ -167,24 +167,22 @@ export async function VerifyUserEmail(token: string): Promise<ServerMessageType>
     return await centralServerResponse.json();
 }
 
-export async function CreateAuthUser(payload: {
-  full_name: string;
-  email: string;
-  password: string;
-  username: string;
-  assigned_school: string;
-  role: string;
-}) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_URL}/auth/create`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+export async function CreateUser(username: string, roleId: number, password: string): Promise<UserPublicType> {
+    const res = await ky.post(`${endpoint}/auth/create`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        json: {
+            username: username,
+            roleId: roleId,
+            password: password,
+        },
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to create user");
-  }
+    if (!res.ok) {
+        const errorMessage = `Failed to create user: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await res.json()) as { detail?: string };
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
 
-  return await res.json();
+    return await res.json();
 }
-

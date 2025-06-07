@@ -55,8 +55,9 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
  * Fetch the user information from the central server.
  * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
  */
-export async function GetAllUsers(): Promise<UserPublicType[]> {
+export async function GetAllUsers(offset: number, limit: number): Promise<UserPublicType[]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/all`, {
+        searchParams: { offset: offset, limit: limit },
         headers: { Authorization: GetAccessTokenHeader() },
     });
     if (!centralServerResponse.ok) {
