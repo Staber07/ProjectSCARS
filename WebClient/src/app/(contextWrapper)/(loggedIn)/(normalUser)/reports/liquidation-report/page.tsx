@@ -36,6 +36,7 @@ const categoryLabels = {
     "clinic-fund": "Clinic Fund",
     "faculty-student-development-fund": "Faculty and Student Development Fund",
     "he-fund": "HE Fund",
+    "school-operations-fund": "School Operations Fund",
     "revolving-fund": "Revolving Fund",
 };
 
