@@ -28,6 +28,7 @@ import {
     Text,
     TextInput,
     Tooltip,
+    Divider
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -47,6 +48,7 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
+import { motion as motionFramer, AnimatePresence } from "framer-motion";
 
 export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
@@ -75,7 +77,7 @@ export default function UsersPage(): JSX.Element {
     const [assignedSchool, setAssignedSchool] = useState("");
     const [role, setRole] = useState("");
 
-    const handleSearch = () => {};
+    const handleSearch = () => { };
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
@@ -266,6 +268,21 @@ export default function UsersPage(): JSX.Element {
         }
     };
 
+    //Function to for Hover and Mouse Tracking on User Card
+    const [hoveredUser, setHoveredUser] = useState<User | null>(null);
+    const [mouseX, setMouseX] = useState(0);
+    const [mouseY, setMouseY] = useState(0);
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            setMouseX(e.clientX);
+            setMouseY(e.clientY);
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+        return () => window.removeEventListener('mousemove', handleMouseMove);
+    }, []);
+
+
     console.debug("Rendering UsersPage");
     return (
         <>
@@ -302,7 +319,12 @@ export default function UsersPage(): JSX.Element {
                 </TableThead>
                 <TableTbody>
                     {users.map((user, index) => (
-                        <TableTr key={index} bg={selected.has(index) ? "gray.1" : undefined}>
+                        <TableTr
+                            key={index}
+                            bg={selected.has(index) ? "gray.1" : undefined}
+                            onMouseEnter={() => setHoveredUser(user)}
+                            onMouseLeave={() => setHoveredUser(null)}
+                        >
                             {/* Checkbox and Avatar */}
                             <TableTd>
                                 <Group>
@@ -397,9 +419,9 @@ export default function UsersPage(): JSX.Element {
                                 {user.nameFirst}{" "}
                                 {user.nameMiddle
                                     ? user.nameMiddle
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join(".") + ". "
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join(".") + ". "
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
@@ -433,6 +455,39 @@ export default function UsersPage(): JSX.Element {
                 </TableTbody>
             </Table>
 
+            <AnimatePresence>
+                {hoveredUser && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        style={{
+                            position: "fixed",
+                            top: mouseY + 16,
+                            left: mouseX + 16,
+                            zIndex: 1000,
+                            pointerEvents: "none",
+                        }}
+                    >
+                        <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
+                            <Stack gap="xs">
+                                <Group>
+                                    <Avatar src={hoveredUser.avatarUrl} />
+                                    <Stack gap={0}>
+                                        <Text fw={500}>{hoveredUser.nameFirst} {hoveredUser.nameLast}</Text>
+                                        <Text size="sm" c="dimmed">{hoveredUser.email}</Text>
+                                    </Stack>
+                                </Group>
+                                <Divider></Divider>
+                                <Text size="sm">Role: {roles[hoveredUser.roleId]}</Text>
+                                <Text size="sm">School: {hoveredUser.school || "—"}</Text>
+                            </Stack>
+                        </Card>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            
             <Group justify="center">
                 <Pagination total={1} mt="md" />
             </Group>
