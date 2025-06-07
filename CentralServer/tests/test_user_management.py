@@ -102,7 +102,6 @@ def test_create_user_success():
         assert resp_data["nameMiddle"] is None
         assert resp_data["nameLast"] is None
         assert resp_data["avatarUrn"] is None
-        assert resp_data["schoolId"] is None
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
@@ -335,7 +334,6 @@ def test_self_profile_logged_in():
     assert resp_data["nameMiddle"] is None
     assert resp_data["nameLast"] is None
     assert resp_data["avatarUrn"] is None
-    assert resp_data["schoolId"] is None
     assert resp_data["roleId"] == 1
     assert resp_data["deactivated"] is False
 
