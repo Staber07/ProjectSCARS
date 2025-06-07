@@ -13,7 +13,6 @@ export type UserPublicType = {
     nameMiddle?: string | null;
     nameLast?: string | null;
     avatarUrn?: string | null;
-    schoolId?: number | null;
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
@@ -33,7 +32,6 @@ export type UserUpdateType = {
     nameFirst?: string | null;
     nameMiddle?: string | null;
     nameLast?: string | null;
-    schoolId?: number | null;
     roleId: number;
     deactivated?: boolean | null;
     finishedTutorials?: string | null;

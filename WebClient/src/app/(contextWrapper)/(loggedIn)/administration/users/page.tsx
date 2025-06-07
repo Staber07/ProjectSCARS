@@ -1,10 +1,9 @@
 "use client";
 
 import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
-import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -52,8 +51,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence, motion as motionFramer } from "framer-motion";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
@@ -62,7 +60,7 @@ export default function UsersPage(): JSX.Element {
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
     const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    // const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -85,7 +83,7 @@ export default function UsersPage(): JSX.Element {
     const [createUserEmail, setCreateUserEmail] = useState("");
     const [createUserPassword, setCreateUserPassword] = useState("");
     const [createUserUsername, setCreateUserUsername] = useState("");
-    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
+    // const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
     const [createUserRole, setCreateUserRole] = useState<number | null>();
 
     const handleSearch = () => {};
@@ -145,7 +143,6 @@ export default function UsersPage(): JSX.Element {
                 nameLast: editUser.nameLast,
                 email: editUser.email,
                 roleId: editUser.roleId,
-                schoolId: editUser.schoolId,
                 deactivated: editUser.deactivated,
                 forceUpdateInfo: editUser.forceUpdateInfo,
                 finishedTutorials: null,
@@ -263,25 +260,25 @@ export default function UsersPage(): JSX.Element {
                     }
                 });
         };
-        const fetchSchools = async () => {
-            await GetAllSchools()
-                .then((data) => {
-                    setAvailableSchools(data);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch schools:", error);
-                    notifications.show({
-                        title: "Error",
-                        message: "Failed to fetch schools. Please try again later.",
-                        color: "red",
-                        icon: <IconUserExclamation />,
-                    });
-                });
-        };
+        // const fetchSchools = async () => {
+        //     await GetAllSchools()
+        //         .then((data) => {
+        //             setAvailableSchools(data);
+        //         })
+        //         .catch((error) => {
+        //             console.error("Failed to fetch schools:", error);
+        //             notifications.show({
+        //                 title: "Error",
+        //                 message: "Failed to fetch schools. Please try again later.",
+        //                 color: "red",
+        //                 icon: <IconUserExclamation />,
+        //             });
+        //         });
+        // };
 
         fetchRoles();
         fetchUsers(1);
-        fetchSchools();
+        // fetchSchools();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
@@ -308,7 +305,6 @@ export default function UsersPage(): JSX.Element {
                 nameFirst: createUserFullName.split(" ")[0],
                 nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
                 nameLast: createUserFullName.split(" ").slice(-1)[0],
-                schoolId: createUserAssignedSchool,
                 roleId: createUserRole,
             });
             notifications.show({
@@ -322,7 +318,7 @@ export default function UsersPage(): JSX.Element {
             setCreateUserEmail("");
             setCreateUserPassword("");
             setCreateUserUsername("");
-            setCreateUserAssignedSchool(null);
+            // setCreateUserAssignedSchool(null);
             setCreateUserRole(null);
             fetchUsers(currentPage);
         } catch (err) {
@@ -386,7 +382,7 @@ export default function UsersPage(): JSX.Element {
                         <TableTh>Username</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Name</TableTh>
-                        <TableTh>Assigned School</TableTh>
+                        {/* <TableTh>Assigned School</TableTh> */}
                         <TableTh>Role</TableTh>
                         <TableTh></TableTh>
                         <TableTh></TableTh>
@@ -501,7 +497,7 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                            {/* <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.schoolId ? ( // TODO: Fetch school name by ID
                                     user.schoolId
                                 ) : (
@@ -509,7 +505,7 @@ export default function UsersPage(): JSX.Element {
                                         N/A
                                     </Text>
                                 )}
-                            </TableTd>
+                            </TableTd> */}
                             <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
                             <TableTd>
                                 <Tooltip
@@ -539,7 +535,7 @@ export default function UsersPage(): JSX.Element {
 
             <AnimatePresence>
                 {hoveredUser && (
-                    <motionFramer.div
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -555,7 +551,18 @@ export default function UsersPage(): JSX.Element {
                         <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
                             <Stack gap="xs">
                                 <Group>
-                                    <Avatar src={hoveredUser.avatarUrn} /> {/* Use the fetched avatar URL */}
+                                    {hoveredUser.avatarUrn ? (
+                                        <Avatar radius="xl" src={fetchUserAvatar(hoveredUser.avatarUrn)}>
+                                            <IconUser />
+                                        </Avatar>
+                                    ) : (
+                                        <Avatar
+                                            radius="xl"
+                                            name={hoveredUser.nameFirst + " " + hoveredUser.nameLast}
+                                            color="initials"
+                                        />
+                                    )}
+                                    {/* Use the fetched avatar URL */}
                                     <Stack gap={0}>
                                         <Text fw={500}>
                                             {hoveredUser.nameFirst} {hoveredUser.nameLast}
@@ -566,11 +573,12 @@ export default function UsersPage(): JSX.Element {
                                     </Stack>
                                 </Group>
                                 <Divider></Divider>
-                                <Text size="sm">Role: {roles[hoveredUser.roleId]}</Text>
-                                <Text size="sm">School: {hoveredUser.schoolId || "—"}</Text>{" "}
+                                <Text size="sm" c="dimmed">
+                                    {roles[hoveredUser.roleId]}
+                                </Text>
                             </Stack>
                         </Card>
-                    </motionFramer.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
@@ -753,7 +761,7 @@ export default function UsersPage(): JSX.Element {
                         value={createUserPassword}
                         onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
                     />
-                    <Select
+                    {/* <Select
                         label="Assigned School"
                         placeholder="School"
                         data={availableSchools.map(
@@ -765,7 +773,7 @@ export default function UsersPage(): JSX.Element {
                             );
                             setCreateUserAssignedSchool(school?.id ?? null);
                         }}
-                    />
+                    /> */}
                     <Select
                         withAsterisk
                         label="Role"
