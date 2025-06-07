@@ -11,6 +11,7 @@ import {
     Card,
     Center,
     Checkbox,
+    Divider,
     FileButton,
     Flex,
     Group,
@@ -28,7 +29,6 @@ import {
     Text,
     TextInput,
     Tooltip,
-    Divider
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
@@ -46,11 +46,9 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
+import { AnimatePresence, motion as motionFramer } from "framer-motion";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
-import { motion as motionFramer, AnimatePresence } from "framer-motion";
-
-
 
 export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
@@ -79,7 +77,7 @@ export default function UsersPage(): JSX.Element {
     const [assignedSchool, setAssignedSchool] = useState("");
     const [role, setRole] = useState("");
 
-    const handleSearch = () => { };
+    const handleSearch = () => {};
     const handleEdit = (index: number, user: UserPublicType) => {
         setEditIndex(index);
         setEditUser(user);
@@ -271,7 +269,7 @@ export default function UsersPage(): JSX.Element {
     };
 
     //Function to for Hover and Mouse Tracking on User Card
-    const [hoveredUser, setHoveredUser] = useState< UserPublicType | null>(null); //UserPublicType is "User" originally. However, it shows an issue so helpp
+    const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null); //UserPublicType is "User" originally. However, it shows an issue so helpp
     const [mouseX, setMouseX] = useState(0);
     const [mouseY, setMouseY] = useState(0);
 
@@ -280,10 +278,9 @@ export default function UsersPage(): JSX.Element {
             setMouseX(e.clientX);
             setMouseY(e.clientY);
         };
-        window.addEventListener('mousemove', handleMouseMove);
-        return () => window.removeEventListener('mousemove', handleMouseMove);
+        window.addEventListener("mousemove", handleMouseMove);
+        return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
-
 
     console.debug("Rendering UsersPage");
     return (
@@ -421,9 +418,9 @@ export default function UsersPage(): JSX.Element {
                                 {user.nameFirst}{" "}
                                 {user.nameMiddle
                                     ? user.nameMiddle
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join(".") + ". "
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join(".") + ". "
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
@@ -475,15 +472,19 @@ export default function UsersPage(): JSX.Element {
                         <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
                             <Stack gap="xs">
                                 <Group>
-                                    <Avatar src={hoveredUser.avatarUrl} /> {/* Use the fetched avatar URL */}
+                                    <Avatar src={hoveredUser.avatarUrn} /> {/* Use the fetched avatar URL */}
                                     <Stack gap={0}>
-                                        <Text fw={500}>{hoveredUser.nameFirst} {hoveredUser.nameLast}</Text>
-                                        <Text size="sm" c="dimmed">{hoveredUser.email}</Text>
+                                        <Text fw={500}>
+                                            {hoveredUser.nameFirst} {hoveredUser.nameLast}
+                                        </Text>
+                                        <Text size="sm" c="dimmed">
+                                            {hoveredUser.email}
+                                        </Text>
                                     </Stack>
                                 </Group>
                                 <Divider></Divider>
                                 <Text size="sm">Role: {roles[hoveredUser.roleId]}</Text>
-                                <Text size="sm">School: {hoveredUser.school || "—"}</Text> {/* Assuming school is a string, adjust if needed */}
+                                <Text size="sm">School: {hoveredUser.schoolId || "—"}</Text>{" "}
                             </Stack>
                         </Card>
                     </motionFramer.div>
