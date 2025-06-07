@@ -52,8 +52,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence, motion as motionFramer } from "framer-motion";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
@@ -145,7 +144,6 @@ export default function UsersPage(): JSX.Element {
                 nameLast: editUser.nameLast,
                 email: editUser.email,
                 roleId: editUser.roleId,
-                schoolId: editUser.schoolId,
                 deactivated: editUser.deactivated,
                 forceUpdateInfo: editUser.forceUpdateInfo,
                 finishedTutorials: null,
@@ -308,7 +306,6 @@ export default function UsersPage(): JSX.Element {
                 nameFirst: createUserFullName.split(" ")[0],
                 nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
                 nameLast: createUserFullName.split(" ").slice(-1)[0],
-                schoolId: createUserAssignedSchool,
                 roleId: createUserRole,
             });
             notifications.show({
@@ -386,7 +383,7 @@ export default function UsersPage(): JSX.Element {
                         <TableTh>Username</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Name</TableTh>
-                        <TableTh>Assigned School</TableTh>
+                        {/* <TableTh>Assigned School</TableTh> */}
                         <TableTh>Role</TableTh>
                         <TableTh></TableTh>
                         <TableTh></TableTh>
@@ -501,7 +498,7 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                            {/* <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.schoolId ? ( // TODO: Fetch school name by ID
                                     user.schoolId
                                 ) : (
@@ -509,7 +506,7 @@ export default function UsersPage(): JSX.Element {
                                         N/A
                                     </Text>
                                 )}
-                            </TableTd>
+                            </TableTd> */}
                             <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
                             <TableTd>
                                 <Tooltip
@@ -539,7 +536,7 @@ export default function UsersPage(): JSX.Element {
 
             <AnimatePresence>
                 {hoveredUser && (
-                    <motionFramer.div
+                    <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
@@ -555,7 +552,18 @@ export default function UsersPage(): JSX.Element {
                         <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
                             <Stack gap="xs">
                                 <Group>
-                                    <Avatar src={hoveredUser.avatarUrn} /> {/* Use the fetched avatar URL */}
+                                    {hoveredUser.avatarUrn ? (
+                                        <Avatar radius="xl" src={fetchUserAvatar(hoveredUser.avatarUrn)}>
+                                            <IconUser />
+                                        </Avatar>
+                                    ) : (
+                                        <Avatar
+                                            radius="xl"
+                                            name={hoveredUser.nameFirst + " " + hoveredUser.nameLast}
+                                            color="initials"
+                                        />
+                                    )}
+                                    {/* Use the fetched avatar URL */}
                                     <Stack gap={0}>
                                         <Text fw={500}>
                                             {hoveredUser.nameFirst} {hoveredUser.nameLast}
@@ -566,11 +574,12 @@ export default function UsersPage(): JSX.Element {
                                     </Stack>
                                 </Group>
                                 <Divider></Divider>
-                                <Text size="sm">Role: {roles[hoveredUser.roleId]}</Text>
-                                <Text size="sm">School: {hoveredUser.schoolId || "—"}</Text>{" "}
+                                <Text size="sm" c="dimmed">
+                                    {roles[hoveredUser.roleId]}
+                                </Text>
                             </Stack>
                         </Card>
-                    </motionFramer.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
 
