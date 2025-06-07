@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
@@ -29,7 +29,7 @@ async def create_school_endpoint(
     school: SchoolCreate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> School:
+) -> Response:
     """Create a new school in the system."""
 
     if not await verify_user_permission("schools:create", session, token):
@@ -40,7 +40,11 @@ async def create_school_endpoint(
 
     new_school = await create_school(school, session)
     logger.debug("user %s created a new school with id %s", token.id, new_school.id)
-    return new_school
+    return Response(
+        content=new_school.model_dump_json(),
+        status_code=status.HTTP_201_CREATED,
+        media_type="application/json",
+    )
 
 
 @router.get("/quantity", response_model=int)
