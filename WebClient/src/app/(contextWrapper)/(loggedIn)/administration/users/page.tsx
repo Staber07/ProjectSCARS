@@ -475,7 +475,7 @@ export default function UsersPage(): JSX.Element {
                         <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
                             <Stack gap="xs">
                                 <Group>
-                                    <Avatar src={hoveredUser.avatarUrl} />
+                                    <Avatar src={hoveredUser.avatarUrl} /> {/* Use the fetched avatar URL */}
                                     <Stack gap={0}>
                                         <Text fw={500}>{hoveredUser.nameFirst} {hoveredUser.nameLast}</Text>
                                         <Text size="sm" c="dimmed">{hoveredUser.email}</Text>
@@ -483,7 +483,7 @@ export default function UsersPage(): JSX.Element {
                                 </Group>
                                 <Divider></Divider>
                                 <Text size="sm">Role: {roles[hoveredUser.roleId]}</Text>
-                                <Text size="sm">School: {hoveredUser.school || "—"}</Text>
+                                <Text size="sm">School: {hoveredUser.school || "—"}</Text> {/* Assuming school is a string, adjust if needed */}
                             </Stack>
                         </Card>
                     </motionFramer.div>
