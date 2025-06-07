@@ -271,7 +271,7 @@ export default function UsersPage(): JSX.Element {
     };
 
     //Function to for Hover and Mouse Tracking on User Card
-    const [hoveredUser, setHoveredUser] = useState<User | null>(null);
+    const [hoveredUser, setHoveredUser] = useState< UserPublicType | null>(null); //UserPublicType is "User" originally. However, it shows an issue so helpp
     const [mouseX, setMouseX] = useState(0);
     const [mouseY, setMouseY] = useState(0);
 
