@@ -954,7 +954,7 @@ def test_update_user_avatar():
 def test_update_user_avatar_no_permission():
     other_user = _request_token("testuser1", "Password123")
     other_headers = {"Authorization": f"Bearer {other_user.json()['access_token']}"}
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",
