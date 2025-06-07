@@ -69,11 +69,23 @@ async def create_new_user(
             detail="You do not have permission to create a user.",
         )
 
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User not found."
+        )
+
     user_role = session.get(Role, new_user.roleId)
     if not user_role:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid role ID provided.",
+        )
+
+    if new_user.roleId < user.roleId:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create a user with this role.",
         )
 
     logger.info("Creating new user: %s", new_user.username)

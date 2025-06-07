@@ -75,6 +75,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "schools:create",
         "schools:global:read",
         "schools:self:read",
+        "users:create",
         "users:global:read",
         "users:self:modify",
         "users:self:modify:username",
