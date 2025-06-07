@@ -1,10 +1,9 @@
 "use client";
 
 import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
-import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -61,7 +60,7 @@ export default function UsersPage(): JSX.Element {
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
     const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    // const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -84,7 +83,7 @@ export default function UsersPage(): JSX.Element {
     const [createUserEmail, setCreateUserEmail] = useState("");
     const [createUserPassword, setCreateUserPassword] = useState("");
     const [createUserUsername, setCreateUserUsername] = useState("");
-    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
+    // const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
     const [createUserRole, setCreateUserRole] = useState<number | null>();
 
     const handleSearch = () => {};
@@ -261,25 +260,25 @@ export default function UsersPage(): JSX.Element {
                     }
                 });
         };
-        const fetchSchools = async () => {
-            await GetAllSchools()
-                .then((data) => {
-                    setAvailableSchools(data);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch schools:", error);
-                    notifications.show({
-                        title: "Error",
-                        message: "Failed to fetch schools. Please try again later.",
-                        color: "red",
-                        icon: <IconUserExclamation />,
-                    });
-                });
-        };
+        // const fetchSchools = async () => {
+        //     await GetAllSchools()
+        //         .then((data) => {
+        //             setAvailableSchools(data);
+        //         })
+        //         .catch((error) => {
+        //             console.error("Failed to fetch schools:", error);
+        //             notifications.show({
+        //                 title: "Error",
+        //                 message: "Failed to fetch schools. Please try again later.",
+        //                 color: "red",
+        //                 icon: <IconUserExclamation />,
+        //             });
+        //         });
+        // };
 
         fetchRoles();
         fetchUsers(1);
-        fetchSchools();
+        // fetchSchools();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
@@ -319,7 +318,7 @@ export default function UsersPage(): JSX.Element {
             setCreateUserEmail("");
             setCreateUserPassword("");
             setCreateUserUsername("");
-            setCreateUserAssignedSchool(null);
+            // setCreateUserAssignedSchool(null);
             setCreateUserRole(null);
             fetchUsers(currentPage);
         } catch (err) {
@@ -762,7 +761,7 @@ export default function UsersPage(): JSX.Element {
                         value={createUserPassword}
                         onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
                     />
-                    <Select
+                    {/* <Select
                         label="Assigned School"
                         placeholder="School"
                         data={availableSchools.map(
@@ -774,7 +773,7 @@ export default function UsersPage(): JSX.Element {
                             );
                             setCreateUserAssignedSchool(school?.id ?? null);
                         }}
-                    />
+                    /> */}
                     <Select
                         withAsterisk
                         label="Role"
