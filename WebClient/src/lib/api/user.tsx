@@ -1,7 +1,7 @@
 import ky from "ky";
 
 import { GetAccessTokenHeader } from "@/lib/api/auth";
-import { Connections, LocalStorage } from "@/lib/info";
+import { Connections } from "@/lib/info";
 import { UserPublicType, UserUpdateType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
@@ -47,7 +47,6 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
     }
 
     const updatedUserData: UserPublicType = await centralServerResponse.json();
-    localStorage.setItem(LocalStorage.userData, JSON.stringify(updatedUserData));
     return updatedUserData;
 }
 
@@ -55,8 +54,9 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
  * Fetch the user information from the central server.
  * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
  */
-export async function GetAllUsers(): Promise<UserPublicType[]> {
+export async function GetAllUsers(offset: number, limit: number): Promise<UserPublicType[]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/all`, {
+        searchParams: { offset: offset, limit: limit },
         headers: { Authorization: GetAccessTokenHeader() },
     });
     if (!centralServerResponse.ok) {

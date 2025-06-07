@@ -33,8 +33,8 @@ async def validate_username(username: str) -> bool:
 
     return (
         all(c.isalnum() or c in ("_", "-") for c in username)
-        and len(username) > 3
-        and len(username) < 22
+        and len(username) >= 3
+        and len(username) <= 22
     )
 
 

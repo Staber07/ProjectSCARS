@@ -61,3 +61,19 @@ export type NotificationType = {
     type: string;
     archived: boolean;
 };
+
+export type SchoolType = {
+    id: number;
+    name: string;
+    address: string | null;
+    coordinates: string | null;
+
+    phone: string | null;
+    email: string | null;
+    website: string | null;
+
+    logoUrn: string | null;
+
+    dateCreated: Date;
+    lastModified: Date;
+};

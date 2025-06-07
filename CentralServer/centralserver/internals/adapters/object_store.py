@@ -22,6 +22,7 @@ class BucketNames(Enum):
     """Names of the buckets in the object store."""
 
     AVATARS = "centralserver-avatars"  # Contains user profile pictures
+    SCHOOL_LOGOS = "centralserver-school-logos"  # Contains school logos
     REPORT_EXPORTS = "centralserver-reports"  # Contains exported reports
 
 

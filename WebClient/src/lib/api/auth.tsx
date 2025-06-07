@@ -36,11 +36,13 @@ export async function LoginUser(username: string, password: string): Promise<Tok
     console.debug("Logging in user", { username });
     const centralServerResponse = await ky.post(`${endpoint}/auth/token`, {
         body: loginFormData,
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
     }
 
     const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
@@ -58,6 +60,7 @@ export async function LoginUser(username: string, password: string): Promise<Tok
 export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
         headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
@@ -167,24 +170,23 @@ export async function VerifyUserEmail(token: string): Promise<ServerMessageType>
     return await centralServerResponse.json();
 }
 
-export async function CreateAuthUser(payload: {
-  full_name: string;
-  email: string;
-  password: string;
-  username: string;
-  assigned_school: string;
-  role: string;
-}) {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_URL}/auth/create`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+export async function CreateUser(username: string, roleId: number, password: string): Promise<UserPublicType> {
+    const res = await ky.post(`${endpoint}/auth/create`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        json: {
+            username: username,
+            roleId: roleId,
+            password: password,
+        },
+        throwHttpErrors: false,
+    });
 
-  if (!res.ok) {
-    throw new Error("Failed to create user");
-  }
+    if (!res.ok) {
+        const errorMessage = `Failed to create user: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await res.json()) as { detail?: string };
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
 
-  return await res.json();
+    return await res.json();
 }
-

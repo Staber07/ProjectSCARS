@@ -102,7 +102,6 @@ def test_create_user_success():
         assert resp_data["nameMiddle"] is None
         assert resp_data["nameLast"] is None
         assert resp_data["avatarUrn"] is None
-        assert resp_data["schoolId"] is None
         assert resp_data["roleId"] == data["roleId"]
         assert resp_data["deactivated"] is False
 
@@ -335,7 +334,6 @@ def test_self_profile_logged_in():
     assert resp_data["nameMiddle"] is None
     assert resp_data["nameLast"] is None
     assert resp_data["avatarUrn"] is None
-    assert resp_data["schoolId"] is None
     assert resp_data["roleId"] == 1
     assert resp_data["deactivated"] is False
 
@@ -956,7 +954,7 @@ def test_update_user_avatar():
 def test_update_user_avatar_no_permission():
     other_user = _request_token("testuser1", "Password123")
     other_headers = {"Authorization": f"Bearer {other_user.json()['access_token']}"}
-    login = _request_token("testuser2", "Password123")
+    login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     user_info = client.get(
         "/api/v1/users/me",

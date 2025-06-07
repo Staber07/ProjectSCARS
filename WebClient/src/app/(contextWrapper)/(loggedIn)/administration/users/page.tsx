@@ -1,9 +1,10 @@
 "use client";
 
-import { CreateAuthUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
-import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
+import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllSchools } from "@/lib/api/school";
+import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -20,6 +21,7 @@ import {
     Pagination,
     Select,
     Stack,
+    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -30,19 +32,23 @@ import {
     TextInput,
     Tooltip,
 } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
     IconCheck,
     IconCircleDashedCheck,
     IconCircleDashedX,
+    IconDeviceFloppy,
     IconEdit,
     IconLock,
+    IconLockOpen,
     IconMail,
     IconPencilCheck,
     IconPlus,
     IconSearch,
     IconSendOff,
     IconUser,
+    IconUserCheck,
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
@@ -51,10 +57,12 @@ import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
+    const userPerPage = 10; // Number of users per page
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
     const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
+    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -63,19 +71,22 @@ export default function UsersPage(): JSX.Element {
     const [editUserPrevEmail, setEditUserPrevEmail] = useState<string | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
+    const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     //Handler for User Creation
     const [addModalOpen, setAddModalOpen] = useState(false);
 
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [username, setUsername] = useState("");
-    const [assignedSchool, setAssignedSchool] = useState("");
-    const [role, setRole] = useState("");
+    const [createUserFullName, setCreateUserFullName] = useState("");
+    const [createUserEmail, setCreateUserEmail] = useState("");
+    const [createUserPassword, setCreateUserPassword] = useState("");
+    const [createUserUsername, setCreateUserUsername] = useState("");
+    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
+    const [createUserRole, setCreateUserRole] = useState<number | null>();
 
     const handleSearch = () => {};
     const handleEdit = (index: number, user: UserPublicType) => {
@@ -124,6 +135,7 @@ export default function UsersPage(): JSX.Element {
     };
 
     const handleSave = async () => {
+        buttonStateHandler.open();
         if (editIndex !== null && editUser) {
             const newUserInfo: UserUpdateType = {
                 id: editUser.id,
@@ -175,6 +187,8 @@ export default function UsersPage(): JSX.Element {
             setEditIndex(null);
             setEditUser(null);
             setEditUserAvatar(null);
+            fetchUsers(currentPage);
+            buttonStateHandler.close();
         }
     };
 
@@ -192,27 +206,43 @@ export default function UsersPage(): JSX.Element {
         });
     };
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            await GetAllUsers()
-                .then((data) => {
-                    setUsers(data);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch users:", error);
-                    if (!fetchUsersErrorShown) {
-                        setFetchUsersErrorShown(true);
-                        notifications.show({
-                            id: "fetch-users-error",
-                            title: "Failed to fetch users list",
-                            message: "Please try again later.",
-                            color: "red",
-                            icon: <IconUserExclamation />,
-                        });
-                        setUsers([]);
-                    }
+    const fetchUsers = async (page: number) => {
+        setCurrentPage(page);
+        const pageOffset = (page - 1) * userPerPage;
+        GetUsersQuantity()
+            .then((quantity) => {
+                setTotalPages(Math.ceil(quantity / userPerPage));
+            })
+            .catch((error) => {
+                console.error("Failed to fetch users quantity:", error);
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to fetch users quantity. Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
                 });
-        };
+                setTotalPages(1); // Default to 1 page if fetching fails
+            });
+        await GetAllUsers(pageOffset, userPerPage)
+            .then((data) => {
+                setUsers(data);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch users:", error);
+                if (!fetchUsersErrorShown) {
+                    setFetchUsersErrorShown(true);
+                    notifications.show({
+                        id: "fetch-users-error",
+                        title: "Failed to fetch users list",
+                        message: "Please try again later.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                    setUsers([]);
+                }
+            });
+    };
+    useEffect(() => {
         const fetchRoles = async () => {
             await GetAllRoles()
                 .then((data) => {
@@ -233,39 +263,86 @@ export default function UsersPage(): JSX.Element {
                     }
                 });
         };
+        const fetchSchools = async () => {
+            await GetAllSchools()
+                .then((data) => {
+                    setAvailableSchools(data);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch schools:", error);
+                    notifications.show({
+                        title: "Error",
+                        message: "Failed to fetch schools. Please try again later.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                });
+        };
 
         fetchRoles();
-        fetchUsers();
+        fetchUsers(1);
+        fetchSchools();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
     //Function to handle user creation
     const handleCreateUser = async () => {
-        if (!fullName || !email || !password || !username || !assignedSchool || !role) {
-            notifications.show({ title: "Error", message: "All fields are required", color: "red" });
+        buttonStateHandler.open();
+        if (!createUserUsername || !createUserRole || !createUserPassword) {
+            notifications.show({
+                title: "Error",
+                message: "Username, role, and password fields are required",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+            buttonStateHandler.close();
             return;
         }
 
         try {
-            await CreateAuthUser({
-                full_name: fullName,
-                email,
-                password,
-                username,
-                assigned_school: assignedSchool,
-                role,
+            const new_user = await CreateUser(createUserUsername, createUserRole, createUserPassword);
+            await UpdateUserInfo({
+                id: new_user.id,
+                username: createUserUsername,
+                email: createUserEmail === "" ? null : createUserEmail,
+                nameFirst: createUserFullName.split(" ")[0],
+                nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
+                nameLast: createUserFullName.split(" ").slice(-1)[0],
+                schoolId: createUserAssignedSchool,
+                roleId: createUserRole,
             });
-            notifications.show({ title: "Success", message: "User created successfully", color: "green" });
+            notifications.show({
+                title: "Success",
+                message: "User created successfully",
+                color: "green",
+                icon: <IconUserCheck />,
+            });
             setAddModalOpen(false);
-            setFullName("");
-            setEmail("");
-            setPassword("");
-            setUsername("");
-            setAssignedSchool("");
-            setRole("");
-            //fetchUsers?.(); Refresh list idk  ano yung pang refresh ng list dito HAHAHA
-        } catch {
-            notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
+            setCreateUserFullName("");
+            setCreateUserEmail("");
+            setCreateUserPassword("");
+            setCreateUserUsername("");
+            setCreateUserAssignedSchool(null);
+            setCreateUserRole(null);
+            fetchUsers(currentPage);
+        } catch (err) {
+            if (err instanceof Error) {
+                notifications.show({
+                    title: "Error",
+                    message: `Failed to create user: ${err.message}`,
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            } else {
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to create user",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            }
         }
+        buttonStateHandler.close();
     };
 
     //Function to for Hover and Mouse Tracking on User Card
@@ -341,8 +418,8 @@ export default function UsersPage(): JSX.Element {
                                     )}
                                 </Group>
                             </TableTd>
-                            <TableTd>{user.username}</TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 <Group gap="xs" align="center">
                                     {user.email &&
                                         (user.emailVerified ? (
@@ -409,7 +486,7 @@ export default function UsersPage(): JSX.Element {
                                     )}
                                 </Group>
                             </TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
                                     <Text size="sm" c="dimmed">
                                         N/A
@@ -424,7 +501,7 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.schoolId ? ( // TODO: Fetch school name by ID
                                     user.schoolId
                                 ) : (
@@ -433,21 +510,27 @@ export default function UsersPage(): JSX.Element {
                                     </Text>
                                 )}
                             </TableTd>
-                            <TableTd>{roles[user.roleId]}</TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
                             <TableTd>
-                                <Tooltip label="Deactivated" position="bottom" withArrow>
-                                    {user.deactivated ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                <Tooltip
+                                    label={user.deactivated ? "User is deactivated" : "User is active"}
+                                    position="bottom"
+                                    withArrow
+                                >
+                                    {user.deactivated ? <IconLock color="gray" /> : <IconLockOpen color="green" />}
                                 </Tooltip>
                             </TableTd>
                             <TableTd>
                                 <Tooltip label="Force Update Required" position="bottom" withArrow>
-                                    {user.forceUpdateInfo ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                    {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
                                 </Tooltip>
                             </TableTd>
                             <TableTd>
-                                <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
-                                    <IconEdit size={16} />
-                                </ActionIcon>
+                                <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
+                                    <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
+                                        <IconEdit size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
                             </TableTd>
                         </TableTr>
                     ))}
@@ -492,7 +575,7 @@ export default function UsersPage(): JSX.Element {
             </AnimatePresence>
 
             <Group justify="center">
-                <Pagination total={1} mt="md" />
+                <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
             </Group>
 
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
@@ -624,7 +707,23 @@ export default function UsersPage(): JSX.Element {
                                 );
                             }}
                         />
-                        <Button onClick={handleSave}>Save</Button>
+                        <Switch
+                            label="Deactivated"
+                            checked={editUser.deactivated}
+                            onChange={(e) => {
+                                setEditUser({ ...editUser, deactivated: e.currentTarget.checked });
+                            }}
+                        />
+                        <Switch
+                            label="Force Update Required"
+                            checked={editUser.forceUpdateInfo}
+                            onChange={(e) => {
+                                setEditUser({ ...editUser, forceUpdateInfo: e.currentTarget.checked });
+                            }}
+                        />
+                        <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
+                            Save
+                        </Button>
                     </Flex>
                 )}
             </Modal>
@@ -633,30 +732,52 @@ export default function UsersPage(): JSX.Element {
                 <Stack>
                     <TextInput
                         label="Full Name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.currentTarget.value)}
+                        value={createUserFullName}
+                        onChange={(e) => setCreateUserFullName(e.currentTarget.value)}
                     />
-                    <TextInput label="Username" value={username} onChange={(e) => setUsername(e.currentTarget.value)} />
-                    <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
                     <TextInput
+                        withAsterisk
+                        label="Username"
+                        value={createUserUsername}
+                        onChange={(e) => setCreateUserUsername(e.currentTarget.value)}
+                    />
+                    <TextInput
+                        label="Email"
+                        value={createUserEmail}
+                        onChange={(e) => setCreateUserEmail(e.currentTarget.value)}
+                    />
+                    <TextInput
+                        withAsterisk
                         label="Password"
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
-                    />
-                    <TextInput
-                        label="Assigned School"
-                        value={assignedSchool}
-                        onChange={(e) => setAssignedSchool(e.currentTarget.value)}
+                        value={createUserPassword}
+                        onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
                     />
                     <Select
-                        label="Role"
-                        data={["Admin", "Principal", "Canteen Manager", "Teacher"]}
-                        value={role}
-                        onChange={(value) => setRole(value || "")}
-                        placeholder="Select a role"
+                        label="Assigned School"
+                        placeholder="School"
+                        data={availableSchools.map(
+                            (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
+                        )}
+                        onChange={(e) => {
+                            const school = availableSchools.find(
+                                (s) => `${s.name}${s.address ? ` (${s.address})` : ""}` === e
+                            );
+                            setCreateUserAssignedSchool(school?.id ?? null);
+                        }}
                     />
-                    <Button onClick={handleCreateUser}>Create User</Button>
+                    <Select
+                        withAsterisk
+                        label="Role"
+                        placeholder="Role"
+                        data={availableRoles.map((role) => role.description)}
+                        onChange={(e) => {
+                            setCreateUserRole(availableRoles.find((role) => role.description === e)?.id ?? null);
+                        }}
+                    />
+                    <Button loading={buttonLoading} rightSection={<IconUserCheck />} onClick={handleCreateUser}>
+                        Create User
+                    </Button>
                 </Stack>
             </Modal>
         </>

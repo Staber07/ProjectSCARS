@@ -12,6 +12,7 @@ from centralserver.routers import (
     misc_routes,
     notification_routes,
     reports_routes,
+    schools_routes,
     users_routes,
 )
 
@@ -43,6 +44,7 @@ app = FastAPI(
 
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
+app.include_router(schools_routes.router)
 app.include_router(notification_routes.router)
 app.include_router(reports_routes.router)
 app.include_router(misc_routes.router)

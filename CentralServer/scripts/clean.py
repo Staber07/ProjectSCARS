@@ -161,7 +161,11 @@ def main() -> int:
             secure=config["object_store"]["config"]["secure"],
             region="garage" if config["object_store"]["type"] == "garage" else None,
         )
-        buckets = {"centralserver-avatars", "centralserver-reports"}
+        buckets = {
+            "centralserver-avatars",
+            "centralserver-reports",
+            "centralserver-school-logos",
+        }
         for bucket in buckets:
             try:
                 if client.bucket_exists(bucket):
