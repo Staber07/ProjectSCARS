@@ -40,6 +40,7 @@ import {
     IconDeviceFloppy,
     IconEdit,
     IconLock,
+    IconLockOpen,
     IconMail,
     IconPencilCheck,
     IconPlus,
@@ -395,8 +396,8 @@ export default function UsersPage(): JSX.Element {
                                     )}
                                 </Group>
                             </TableTd>
-                            <TableTd>{user.username}</TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 <Group gap="xs" align="center">
                                     {user.email &&
                                         (user.emailVerified ? (
@@ -463,7 +464,7 @@ export default function UsersPage(): JSX.Element {
                                     )}
                                 </Group>
                             </TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
                                     <Text size="sm" c="dimmed">
                                         N/A
@@ -478,7 +479,7 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            <TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
                                 {user.schoolId ? ( // TODO: Fetch school name by ID
                                     user.schoolId
                                 ) : (
@@ -487,21 +488,27 @@ export default function UsersPage(): JSX.Element {
                                     </Text>
                                 )}
                             </TableTd>
-                            <TableTd>{roles[user.roleId]}</TableTd>
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
                             <TableTd>
-                                <Tooltip label="Deactivated" position="bottom" withArrow>
-                                    {user.deactivated ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                <Tooltip
+                                    label={user.deactivated ? "User is deactivated" : "User is active"}
+                                    position="bottom"
+                                    withArrow
+                                >
+                                    {user.deactivated ? <IconLock color="gray" /> : <IconLockOpen color="green" />}
                                 </Tooltip>
                             </TableTd>
                             <TableTd>
                                 <Tooltip label="Force Update Required" position="bottom" withArrow>
-                                    {user.forceUpdateInfo ? <IconCheck color="green" /> : <IconX color="gray" />}
+                                    {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
                                 </Tooltip>
                             </TableTd>
                             <TableTd>
-                                <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
-                                    <IconEdit size={16} />
-                                </ActionIcon>
+                                <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
+                                    <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
+                                        <IconEdit size={16} />
+                                    </ActionIcon>
+                                </Tooltip>
                             </TableTd>
                         </TableTr>
                     ))}
