@@ -49,6 +49,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "notifications:self:archive",
         "notifications:global:view",
         "notifications:self:view",
+        "schools:global:read",
         "site:manage",
         "users:create",
         "users:global:modify",

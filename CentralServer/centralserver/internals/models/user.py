@@ -41,7 +41,7 @@ class User(SQLModel, table=True):
         unique=True, index=True, description="The username of the user."
     )
     email: EmailStr | None = Field(
-        default=None, unique=True, description="The email address of the user."
+        default=None, description="The email address of the user."
     )
     nameFirst: str | None = Field(
         default=None, description="The first name of the user."
