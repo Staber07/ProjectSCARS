@@ -280,6 +280,7 @@ export default function UsersPage(): JSX.Element {
         fetchRoles();
         fetchUsers(1);
         fetchSchools();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
     //Function to handle user creation
