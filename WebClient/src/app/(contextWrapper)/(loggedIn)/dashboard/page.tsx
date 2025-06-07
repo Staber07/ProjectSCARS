@@ -6,6 +6,7 @@ import { GetUserInfo } from "@/lib/api/auth";
 import { GetSelfNotifications } from "@/lib/api/notification";
 import { GetUserAvatar } from "@/lib/api/user";
 import { notificationIcons } from "@/lib/info";
+import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import { NotificationType } from "@/lib/types";
 import {
@@ -35,6 +36,7 @@ const stepsToComplete: [string, boolean][] = [
 
 function DashboardContent() {
     const userCtx = useUser();
+    const authCtx = useAuth();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
@@ -65,6 +67,7 @@ function DashboardContent() {
                     color: "red",
                     icon: <IconRefreshAlert />,
                 });
+                authCtx.logout();
             });
         const fetchNotifications = async () => {
             const notifications = await GetSelfNotifications(true, true, 0, 1);

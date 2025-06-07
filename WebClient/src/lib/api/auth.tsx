@@ -36,11 +36,13 @@ export async function LoginUser(username: string, password: string): Promise<Tok
     console.debug("Logging in user", { username });
     const centralServerResponse = await ky.post(`${endpoint}/auth/token`, {
         body: loginFormData,
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
     }
 
     const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
@@ -58,6 +60,7 @@ export async function LoginUser(username: string, password: string): Promise<Tok
 export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
         headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
     });
     if (!centralServerResponse.ok) {
         const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;

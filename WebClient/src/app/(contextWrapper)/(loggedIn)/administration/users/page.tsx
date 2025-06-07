@@ -20,6 +20,7 @@ import {
     Pagination,
     Select,
     Stack,
+    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -494,7 +495,7 @@ export default function UsersPage(): JSX.Element {
                             </TableTd>
                             <TableTd>
                                 <Tooltip label="Force Update Required" position="bottom" withArrow>
-                                    {user.forceUpdateInfo ? <IconCheck color="red" /> : <IconX color="gray" />}
+                                    {user.forceUpdateInfo ? <IconCheck color="green" /> : <IconX color="gray" />}
                                 </Tooltip>
                             </TableTd>
                             <TableTd>
@@ -638,6 +639,20 @@ export default function UsersPage(): JSX.Element {
                                 setEditUser(
                                     value ? { ...editUser, roleId: selectedRoleId ?? editUser.roleId } : editUser
                                 );
+                            }}
+                        />
+                        <Switch
+                            label="Deactivated"
+                            checked={editUser.deactivated}
+                            onChange={(e) => {
+                                setEditUser({ ...editUser, deactivated: e.currentTarget.checked });
+                            }}
+                        />
+                        <Switch
+                            label="Force Update Required"
+                            checked={editUser.forceUpdateInfo}
+                            onChange={(e) => {
+                                setEditUser({ ...editUser, forceUpdateInfo: e.currentTarget.checked });
                             }}
                         />
                         <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
