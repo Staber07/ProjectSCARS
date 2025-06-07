@@ -77,12 +77,12 @@ export default function UsersPage(): JSX.Element {
     //Handler for User Creation
     const [addModalOpen, setAddModalOpen] = useState(false);
 
-    const [fullName, setFullName] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [username, setUsername] = useState("");
-    const [assignedSchool, setAssignedSchool] = useState<number | null>(null);
-    const [role, setRole] = useState<number | null>();
+    const [createUserFullName, setCreateUserFullName] = useState("");
+    const [createUserEmail, setCreateUserEmail] = useState("");
+    const [createUserPassword, setCreateUserPassword] = useState("");
+    const [createUserUsername, setCreateUserUsername] = useState("");
+    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
+    const [createUserRole, setCreateUserRole] = useState<number | null>();
 
     const handleSearch = () => {};
     const handleEdit = (index: number, user: UserPublicType) => {
@@ -183,6 +183,7 @@ export default function UsersPage(): JSX.Element {
             setEditIndex(null);
             setEditUser(null);
             setEditUserAvatar(null);
+            fetchUsers(currentPage);
             buttonStateHandler.close();
         }
     };
@@ -282,38 +283,58 @@ export default function UsersPage(): JSX.Element {
     //Function to handle user creation
     const handleCreateUser = async () => {
         buttonStateHandler.open();
-        if (!fullName || !email || !password || !username || !assignedSchool || !role) {
-            notifications.show({ title: "Error", message: "All fields are required", color: "red" });
+        if (!createUserUsername || !createUserRole || !createUserPassword) {
+            notifications.show({
+                title: "Error",
+                message: "Username, role, and password fields are required",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
             buttonStateHandler.close();
             return;
         }
 
         try {
-            const new_user = await CreateUser(username, role, password);
+            const new_user = await CreateUser(createUserUsername, createUserRole, createUserPassword);
             await UpdateUserInfo({
                 id: new_user.id,
-                username: username,
-                email: email,
-                nameFirst: fullName.split(" ")[0],
-                nameMiddle: fullName.split(" ").slice(1, -1).join(" ") || null,
-                nameLast: fullName.split(" ").slice(-1)[0],
-                schoolId: assignedSchool,
-                roleId: role,
+                username: createUserUsername,
+                email: createUserEmail === "" ? null : createUserEmail,
+                nameFirst: createUserFullName.split(" ")[0],
+                nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
+                nameLast: createUserFullName.split(" ").slice(-1)[0],
+                schoolId: createUserAssignedSchool,
+                roleId: createUserRole,
             });
-            notifications.show({ title: "Success", message: "User created successfully", color: "green" });
+            notifications.show({
+                title: "Success",
+                message: "User created successfully",
+                color: "green",
+                icon: <IconUserCheck />,
+            });
             setAddModalOpen(false);
-            setFullName("");
-            setEmail("");
-            setPassword("");
-            setUsername("");
-            setAssignedSchool(null);
-            setRole(null);
-            //fetchUsers?.(); Refresh list idk  ano yung pang refresh ng list dito HAHAHA
+            setCreateUserFullName("");
+            setCreateUserEmail("");
+            setCreateUserPassword("");
+            setCreateUserUsername("");
+            setCreateUserAssignedSchool(null);
+            setCreateUserRole(null);
+            fetchUsers(currentPage);
         } catch (err) {
             if (err instanceof Error) {
-                notifications.show({ title: "Error", message: `Failed to create user: ${err.message}`, color: "red" });
+                notifications.show({
+                    title: "Error",
+                    message: `Failed to create user: ${err.message}`,
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
             } else {
-                notifications.show({ title: "Error", message: "Failed to create user", color: "red" });
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to create user",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
             }
         }
         buttonStateHandler.close();
@@ -630,22 +651,26 @@ export default function UsersPage(): JSX.Element {
                 <Stack>
                     <TextInput
                         label="Full Name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.currentTarget.value)}
+                        value={createUserFullName}
+                        onChange={(e) => setCreateUserFullName(e.currentTarget.value)}
                     />
                     <TextInput
                         withAsterisk
                         label="Username"
-                        value={username}
-                        onChange={(e) => setUsername(e.currentTarget.value)}
+                        value={createUserUsername}
+                        onChange={(e) => setCreateUserUsername(e.currentTarget.value)}
                     />
-                    <TextInput label="Email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
+                    <TextInput
+                        label="Email"
+                        value={createUserEmail}
+                        onChange={(e) => setCreateUserEmail(e.currentTarget.value)}
+                    />
                     <TextInput
                         withAsterisk
                         label="Password"
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
+                        value={createUserPassword}
+                        onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
                     />
                     <Select
                         label="Assigned School"
@@ -657,15 +682,16 @@ export default function UsersPage(): JSX.Element {
                             const school = availableSchools.find(
                                 (s) => `${s.name}${s.address ? ` (${s.address})` : ""}` === e
                             );
-                            setAssignedSchool(school?.id ?? null);
+                            setCreateUserAssignedSchool(school?.id ?? null);
                         }}
                     />
                     <Select
+                        withAsterisk
                         label="Role"
                         placeholder="Role"
                         data={availableRoles.map((role) => role.description)}
                         onChange={(e) => {
-                            setRole(availableRoles.find((role) => role.description === e)?.id ?? null);
+                            setCreateUserRole(availableRoles.find((role) => role.description === e)?.id ?? null);
                         }}
                     />
                     <Button loading={buttonLoading} rightSection={<IconUserCheck />} onClick={handleCreateUser}>

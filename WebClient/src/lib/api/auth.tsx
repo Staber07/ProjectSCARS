@@ -175,6 +175,7 @@ export async function CreateUser(username: string, roleId: number, password: str
             roleId: roleId,
             password: password,
         },
+        throwHttpErrors: false,
     });
 
     if (!res.ok) {
