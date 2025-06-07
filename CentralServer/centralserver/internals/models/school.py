@@ -1,5 +1,5 @@
 import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 from pydantic import EmailStr
@@ -9,23 +9,56 @@ if TYPE_CHECKING:
 
 
 class SchoolUserLink(SQLModel, table=True):
-    """A model representing the relationship between schools and users."""
+    """A model representing which users are linked to which schools."""
 
     __tablename__: str = "school_user_link"  # type: ignore
 
     schoolId: int = Field(
         primary_key=True,
+        index=True,
         foreign_key="schools.id",
         description="The ID of the school.",
     )
     userId: str = Field(
         primary_key=True,
+        index=True,
         foreign_key="users.id",
         description="The ID of the user (employee).",
     )
 
-    school: "School" = Relationship(back_populates="users")
-    user: "User" = Relationship(back_populates="school")
+
+class SchoolPrincipalLink(SQLModel, table=True):
+    """A model representing which user is the principal of a school."""
+
+    __tablename__: str = "school_principal"  # type: ignore
+
+    schoolId: int = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="schools.id",
+        description="The ID of the school.",
+    )
+    principalId: str = Field(
+        foreign_key="users.id",
+        description="The ID of the user (principal).",
+    )
+
+
+class SchoolLastModifiedByLink(SQLModel, table=True):
+    """A model representing which user last modified a school record."""
+
+    __tablename__: str = "school_last_modified_by"  # type: ignore
+
+    schoolId: int = Field(
+        primary_key=True,
+        index=True,
+        foreign_key="schools.id",
+        description="The ID of the school.",
+    )
+    lastModifiedById: str = Field(
+        foreign_key="users.id",
+        description="The ID of the user who last modified the school record.",
+    )
 
 
 class School(SQLModel, table=True):
@@ -70,19 +103,14 @@ class School(SQLModel, table=True):
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
         description="The last time the user information was modified.",
     )
-    lastModifiedById: str = Field(
-        description="The user ID of the last user who modified the record.",
-        foreign_key="users.id",
-    )
 
-    principalId: str | None = Field(
-        default=None,
-        description="The user ID of the principal of the school.",
-        foreign_key="users.id",
+    # lastModifiedBy: "User" = Relationship(back_populates="lastModifiedSchools")
+    lastModifiedBy: Optional["User"] = Relationship(
+        back_populates="lastModifiedSchools", link_model=SchoolLastModifiedByLink
     )
-
-    lastModifiedBy: "User" = Relationship(back_populates="lastModifiedSchools")
-    principal: "User" = Relationship(back_populates="principalOfSchools")
+    principal: Optional["User"] = Relationship(
+        back_populates="principalOfSchools", link_model=SchoolPrincipalLink
+    )
     users: list["User"] = Relationship(
-        back_populates="school", link_model=SchoolUserLink
+        back_populates="schools", link_model=SchoolUserLink
     )

@@ -6,7 +6,12 @@ from typing import TYPE_CHECKING
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
-from centralserver.internals.models.school import School, SchoolUserLink
+from centralserver.internals.models.school import (
+    School,
+    SchoolLastModifiedByLink,
+    SchoolPrincipalLink,
+    SchoolUserLink,
+)
 
 if TYPE_CHECKING:
     from centralserver.internals.models.notification import Notification
@@ -120,12 +125,12 @@ class User(SQLModel, table=True):
     role: "Role" = Relationship(back_populates="users")
     notifications: list["Notification"] = Relationship(back_populates="owner")
     lastModifiedSchools: list[School] = Relationship(
-        back_populates="lastModifiedBy",
+        back_populates="lastModifiedBy", link_model=SchoolLastModifiedByLink
     )
     principalOfSchools: list[School] = Relationship(
-        back_populates="principal",
+        back_populates="principal", link_model=SchoolPrincipalLink
     )
-    school: list[School] = Relationship(
+    schools: list[School] = Relationship(
         back_populates="users", link_model=SchoolUserLink
     )
 
