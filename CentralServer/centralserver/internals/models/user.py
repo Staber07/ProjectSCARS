@@ -145,7 +145,6 @@ class UserPublic(SQLModel):
     nameMiddle: str | None
     nameLast: str | None
     avatarUrn: str | None
-    schoolId: int | None
     roleId: int
     deactivated: bool
     finishedTutorials: str
@@ -167,7 +166,6 @@ class UserUpdate(SQLModel):
     nameMiddle: str | None = None
     nameLast: str | None = None
 
-    schoolId: int | None = None
     roleId: int | None = None
 
     deactivated: bool | None = None
