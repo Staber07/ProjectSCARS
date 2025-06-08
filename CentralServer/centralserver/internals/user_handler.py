@@ -2,7 +2,7 @@ import datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
 from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
@@ -17,6 +17,7 @@ from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
 from centralserver.internals.notification_handler import push_notification
+from centralserver.internals.permissions import DEFAULT_ROLES
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -400,6 +401,22 @@ async def update_user_info(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permission denied: Cannot modify deactivated status.",
             )
+
+        if selected_user.roleId == DEFAULT_ROLES[0].id:
+            # Make sure that there is at least one superintendent user in the database
+            # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
+            if (
+                session.exec(
+                    select(func.count(User.id)).where(
+                        User.roleId == DEFAULT_ROLES[0].id
+                    )
+                ).one()
+                <= 1
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot set deactivated status of the last admin user.",
+                )
 
         logger.debug("Updating deactivated status for user: %s", target_user.id)
         selected_user.deactivated = target_user.deactivated
