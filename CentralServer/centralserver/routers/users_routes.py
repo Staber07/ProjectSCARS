@@ -1,10 +1,12 @@
 from io import BytesIO
 from typing import Annotated
 
+
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from minio.error import S3Error
 from sqlmodel import Session, func, select
+
 
 from centralserver.internals.auth_handler import (
     get_role,
@@ -21,6 +23,7 @@ from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
     update_user_info,
+    validate_and_process_image,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -247,7 +250,6 @@ async def update_user_endpoint(
         target_user=updated_user_info, token=token, session=session
     )
 
-
 @router.patch("/avatar", response_model=UserPublic)
 async def update_user_avatar_endpoint(
     user_id: str,
@@ -283,7 +285,11 @@ async def update_user_avatar_endpoint(
         )
 
     logger.debug("user %s is updating user profile of %s...", token.id, user_id)
-    return await update_user_avatar(user_id, await img.read(), token, session)
+    
+    processed_image_bytes = await validate_and_process_image(img)
+    return await update_user_avatar(user_id, processed_image_bytes, token, session)
+
+
 
 
 @router.delete("/avatar")
