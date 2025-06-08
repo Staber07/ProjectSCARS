@@ -1,17 +1,12 @@
 import datetime
 import uuid
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
-from centralserver.internals.models.school import (
-    School,
-    SchoolLastModifiedByLink,
-    SchoolPrincipalLink,
-    SchoolUserLink,
-)
+from centralserver.internals.models.school import School
 
 if TYPE_CHECKING:
     from centralserver.internals.models.notification import Notification
@@ -53,6 +48,11 @@ class User(SQLModel, table=True):
     avatarUrn: str | None = Field(
         default=None,
         description="A link or identifier to the user's avatar within the file storage server.",
+    )
+    schoolId: int | None = Field(
+        default=None,
+        description="The ID of the school the user belongs to.",
+        foreign_key="schools.id",
     )
     roleId: int = Field(
         description="The user's role in the system.", foreign_key="roles.id"
@@ -124,14 +124,8 @@ class User(SQLModel, table=True):
 
     role: "Role" = Relationship(back_populates="users")
     notifications: list["Notification"] = Relationship(back_populates="owner")
-    lastModifiedSchools: list[School] = Relationship(
-        back_populates="lastModifiedBy", link_model=SchoolLastModifiedByLink
-    )
-    principalOfSchools: list[School] = Relationship(
-        back_populates="principal", link_model=SchoolPrincipalLink
-    )
-    schools: list[School] = Relationship(
-        back_populates="users", link_model=SchoolUserLink
+    school: Optional["School"] = Relationship(
+        back_populates="users",
     )
 
 
@@ -145,6 +139,7 @@ class UserPublic(SQLModel):
     nameMiddle: str | None
     nameLast: str | None
     avatarUrn: str | None
+    schoolId: int | None
     roleId: int
     deactivated: bool
     finishedTutorials: str
@@ -166,6 +161,7 @@ class UserUpdate(SQLModel):
     nameMiddle: str | None = None
     nameLast: str | None = None
 
+    schoolId: int | None = None
     roleId: int | None = None
 
     deactivated: bool | None = None
