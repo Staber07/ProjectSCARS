@@ -562,20 +562,25 @@ export default function UsersPage(): JSX.Element {
                                             color="initials"
                                         />
                                     )}
-                                    {/* Use the fetched avatar URL */}
                                     <Stack gap={0}>
                                         <Text fw={500}>
-                                            {hoveredUser.nameFirst} {hoveredUser.nameLast}
+                                            {hoveredUser.nameFirst}{" "}
+                                            {hoveredUser.nameMiddle
+                                                ? hoveredUser.nameMiddle
+                                                      .split(" ")
+                                                      .map((n) => n[0])
+                                                      .join(".") + ". "
+                                                : ""}
+                                            {hoveredUser.nameLast}
                                         </Text>
                                         <Text size="sm" c="dimmed">
                                             {hoveredUser.email}
                                         </Text>
+                                        <Text size="xs" c="dimmed">
+                                            {roles[hoveredUser.roleId]}
+                                        </Text>
                                     </Stack>
                                 </Group>
-                                <Divider></Divider>
-                                <Text size="sm" c="dimmed">
-                                    {roles[hoveredUser.roleId]}
-                                </Text>
                             </Stack>
                         </Card>
                     </motion.div>
