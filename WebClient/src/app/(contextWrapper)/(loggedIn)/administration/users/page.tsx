@@ -1,9 +1,10 @@
 "use client";
 
 import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { RoleType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -11,7 +12,6 @@ import {
     Card,
     Center,
     Checkbox,
-    Divider,
     FileButton,
     Flex,
     Group,
@@ -60,7 +60,7 @@ export default function UsersPage(): JSX.Element {
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
     const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    // const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -83,7 +83,7 @@ export default function UsersPage(): JSX.Element {
     const [createUserEmail, setCreateUserEmail] = useState("");
     const [createUserPassword, setCreateUserPassword] = useState("");
     const [createUserUsername, setCreateUserUsername] = useState("");
-    // const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
+    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
     const [createUserRole, setCreateUserRole] = useState<number | null>();
 
     const handleSearch = () => {};
@@ -142,6 +142,7 @@ export default function UsersPage(): JSX.Element {
                 nameMiddle: editUser.nameMiddle,
                 nameLast: editUser.nameLast,
                 email: editUser.email,
+                schoolId: editUser.schoolId,
                 roleId: editUser.roleId,
                 deactivated: editUser.deactivated,
                 forceUpdateInfo: editUser.forceUpdateInfo,
@@ -260,25 +261,25 @@ export default function UsersPage(): JSX.Element {
                     }
                 });
         };
-        // const fetchSchools = async () => {
-        //     await GetAllSchools()
-        //         .then((data) => {
-        //             setAvailableSchools(data);
-        //         })
-        //         .catch((error) => {
-        //             console.error("Failed to fetch schools:", error);
-        //             notifications.show({
-        //                 title: "Error",
-        //                 message: "Failed to fetch schools. Please try again later.",
-        //                 color: "red",
-        //                 icon: <IconUserExclamation />,
-        //             });
-        //         });
-        // };
+        const fetchSchools = async () => {
+            await GetAllSchools(0, 99)
+                .then((data) => {
+                    setAvailableSchools(data);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch schools:", error);
+                    notifications.show({
+                        title: "Error",
+                        message: "Failed to fetch schools. Please try again later.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                });
+        };
 
         fetchRoles();
         fetchUsers(1);
-        // fetchSchools();
+        fetchSchools();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
@@ -305,6 +306,7 @@ export default function UsersPage(): JSX.Element {
                 nameFirst: createUserFullName.split(" ")[0],
                 nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
                 nameLast: createUserFullName.split(" ").slice(-1)[0],
+                schoolId: createUserAssignedSchool,
                 roleId: createUserRole,
             });
             notifications.show({
@@ -318,7 +320,7 @@ export default function UsersPage(): JSX.Element {
             setCreateUserEmail("");
             setCreateUserPassword("");
             setCreateUserUsername("");
-            // setCreateUserAssignedSchool(null);
+            setCreateUserAssignedSchool(null);
             setCreateUserRole(null);
             fetchUsers(currentPage);
         } catch (err) {
@@ -382,7 +384,7 @@ export default function UsersPage(): JSX.Element {
                         <TableTh>Username</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Name</TableTh>
-                        {/* <TableTh>Assigned School</TableTh> */}
+                        <TableTh>Assigned School</TableTh>
                         <TableTh>Role</TableTh>
                         <TableTh></TableTh>
                         <TableTh></TableTh>
@@ -497,15 +499,19 @@ export default function UsersPage(): JSX.Element {
                                     : ""}
                                 {user.nameLast}
                             </TableTd>
-                            {/* <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                {user.schoolId ? ( // TODO: Fetch school name by ID
-                                    user.schoolId
+                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                {user.schoolId ? (
+                                    availableSchools.find((school) => school.id === user.schoolId)?.name || (
+                                        <Text size="sm" c="dimmed">
+                                            N/A
+                                        </Text>
+                                    )
                                 ) : (
                                     <Text size="sm" c="dimmed">
                                         N/A
                                     </Text>
                                 )}
-                            </TableTd> */}
+                            </TableTd>
                             <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
                             <TableTd>
                                 <Tooltip
@@ -707,6 +713,19 @@ export default function UsersPage(): JSX.Element {
                             }}
                         />
                         <Select
+                            label="Assigned School"
+                            placeholder="School"
+                            data={availableSchools.map(
+                                (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
+                            )}
+                            onChange={(e) => {
+                                const school = availableSchools.find(
+                                    (s) => `${s.name}${s.address ? ` (${s.address})` : ""}` === e
+                                );
+                                setEditUser({ ...editUser, schoolId: school?.id ?? null });
+                            }}
+                        />
+                        <Select
                             label="Role"
                             placeholder="Role"
                             data={availableRoles.map((role) => role.description)}
@@ -766,7 +785,7 @@ export default function UsersPage(): JSX.Element {
                         value={createUserPassword}
                         onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
                     />
-                    {/* <Select
+                    <Select
                         label="Assigned School"
                         placeholder="School"
                         data={availableSchools.map(
@@ -778,7 +797,7 @@ export default function UsersPage(): JSX.Element {
                             );
                             setCreateUserAssignedSchool(school?.id ?? null);
                         }}
-                    /> */}
+                    />
                     <Select
                         withAsterisk
                         label="Role"
