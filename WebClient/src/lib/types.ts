@@ -66,7 +66,6 @@ export type SchoolType = {
     id: number;
     name: string;
     address?: string | null;
-    coordinates?: string | null;
 
     phone?: string | null;
     email?: string | null;
@@ -78,7 +77,7 @@ export type SchoolType = {
     lastModified: Date;
 };
 
-export type SchoolUpdateType = {
+export type SchoolCreateType = {
     name: string;
     address?: string | null;
     coordinates?: string | null;
@@ -86,4 +85,17 @@ export type SchoolUpdateType = {
     phone?: string | null;
     email?: string | null;
     website?: string | null;
+};
+
+export type SchoolUpdateType = {
+    id: number;
+    name: string;
+    address?: string | null;
+    coordinates?: string | null;
+
+    phone?: string | null;
+    email?: string | null;
+    website?: string | null;
+
+    logoUrn?: string | null;
 };
