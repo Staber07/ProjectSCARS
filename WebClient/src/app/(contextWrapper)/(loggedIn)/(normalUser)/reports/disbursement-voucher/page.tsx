@@ -1,143 +1,84 @@
 "use client";
 
-import { useState } from "react";
-import { TextInput, Textarea, Select, Group, Divider, Button, Card, Grid } from "@mantine/core";
+import { Button, TextInput, Textarea, Select, Group } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import dayjs from "dayjs";
+import { useForm } from "@mantine/form";
+import { useState } from "react";
 import ky from "ky";
 
-// Define props type
-type VoucherValues = {
-    entityName: string;
-    fundCluster: string;
-    dvNumber: string;
-    date: Date | null;
-    modeOfPayment: string;
-    orsBurs: string;
-    payee: string;
-    tin: string;
-    address: string;
-    particulars: string;
-    amount: number;
-};
-
-export function VoucherForm({ onSaved }: { onSaved: () => void }) {
-    const [values, setValues] = useState<VoucherValues>({
-        entityName: "",
-        fundCluster: "",
-        dvNumber: "",
-        date: null,
-        modeOfPayment: "",
-        orsBurs: "",
-        payee: "",
-        tin: "",
-        address: "",
-        particulars: "",
-        amount: 0,
+export default function DisbursementVoucherPage() {
+    const form = useForm({
+        initialValues: {
+            dv_no: "",
+            dv_date: null,
+            payee: "",
+            tin_no: "",
+            address: "",
+            responsibility_center: "",
+            mfo_pap: "",
+            ors_no: "",
+            mode_of_payment: "",
+            particulars: "",
+            amount: "",
+            certified_by: "",
+            certified_date: null,
+            approved_by: "",
+            approved_date: null,
+            received_by: "",
+            received_date: null,
+        },
     });
 
-    const saveVoucher = async () => {
-        await ky.post("/api/disbursement-vouchers", {
-            json: {
-                ...values,
-                date: values.date ? dayjs(values.date).format("YYYY-MM-DD") : undefined,
-            },
-        });
-        onSaved();
+    const handleSubmit = async (values: typeof form.values) => {
+        try {
+            await ky
+                .post("/api/disbursement-voucher", {
+                    json: values,
+                })
+                .json();
+            alert("Disbursement Voucher submitted!");
+            form.reset();
+        } catch (error) {
+            alert("Submission failed");
+        }
     };
 
     return (
-        <Card withBorder padding="lg">
-            <Grid gutter="md">
-                <Grid.Col span={6}>
-                    <TextInput
-                        label="Entity Name"
-                        value={values.entityName}
-                        onChange={(e) => setValues({ ...values, entityName: e.target.value })}
-                        required
-                    />
-                </Grid.Col>
-                <Grid.Col span={6}>
-                    <TextInput
-                        label="Fund Cluster"
-                        value={values.fundCluster}
-                        onChange={(e) => setValues({ ...values, fundCluster: e.target.value })}
-                        required
-                    />
-                </Grid.Col>
-
-                <Grid.Col span={4}>
-                    <TextInput
-                        label="DV Number"
-                        value={values.dvNumber}
-                        onChange={(e) => setValues({ ...values, dvNumber: e.target.value })}
-                    />
-                </Grid.Col>
-                <Grid.Col span={4}>
-                    <DateInput label="Date" value={values.date} onChange={(d) => setValues({ ...values, date: d })} />
-                </Grid.Col>
-                <Grid.Col span={4}>
-                    <Select
-                        label="Mode of Payment"
-                        data={["MDS Check", "Commercial Check", "ADA", "Others"]}
-                        value={values.modeOfPayment}
-                        onChange={(v) => setValues({ ...values, modeOfPayment: v || "" })}
-                    />
-                </Grid.Col>
-                <Grid.Col span={6}>
-                    <TextInput
-                        label="ORS/BURS No."
-                        value={values.orsBurs}
-                        onChange={(e) => setValues({ ...values, orsBurs: e.target.value })}
-                    />
-                </Grid.Col>
-            </Grid>
-
-            <Divider my="sm" label="Payee Details" />
-
-            <TextInput
-                label="Payee"
-                value={values.payee}
-                onChange={(e) => setValues({ ...values, payee: e.target.value })}
-                required
-            />
-            <Group>
-                <TextInput
-                    label="TIN/Employee No."
-                    value={values.tin}
-                    onChange={(e) => setValues({ ...values, tin: e.target.value })}
+        <form onSubmit={form.onSubmit(handleSubmit)} className="p-8 max-w-5xl mx-auto space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+                <TextInput label="DV No." {...form.getInputProps("dv_no")} />
+                <DateInput label="DV Date" {...form.getInputProps("dv_date")} />
+                <TextInput label="Payee" {...form.getInputProps("payee")} />
+                <TextInput label="TIN No." {...form.getInputProps("tin_no")} />
+                <TextInput label="Address" {...form.getInputProps("address")} />
+                <TextInput label="Responsibility Center" {...form.getInputProps("responsibility_center")} />
+                <TextInput label="MFO/PAP" {...form.getInputProps("mfo_pap")} />
+                <TextInput label="ORS No." {...form.getInputProps("ors_no")} />
+                <Select
+                    label="Mode of Payment"
+                    data={["Cash", "Check", "Bank Transfer"]}
+                    {...form.getInputProps("mode_of_payment")}
                 />
-                <TextInput
-                    label="Address"
-                    value={values.address}
-                    onChange={(e) => setValues({ ...values, address: e.target.value })}
-                />
+                <TextInput label="Amount" type="number" {...form.getInputProps("amount")} />
+                <Textarea label="Particulars" autosize minRows={2} {...form.getInputProps("particulars")} />
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+                <TextInput label="Certified By" {...form.getInputProps("certified_by")} />
+                <DateInput label="Certified Date" {...form.getInputProps("certified_date")} />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+                <TextInput label="Approved By" {...form.getInputProps("approved_by")} />
+                <DateInput label="Approved Date" {...form.getInputProps("approved_date")} />
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+                <TextInput label="Received By" {...form.getInputProps("received_by")} />
+                <DateInput label="Received Date" {...form.getInputProps("received_date")} />
+            </div>
+
+            <Group justify="flex-end" mt="md">
+                <Button type="submit">Submit Voucher</Button>
             </Group>
-
-            <Textarea
-                label="Particulars"
-                value={values.particulars}
-                onChange={(e) => setValues({ ...values, particulars: e.target.value })}
-                minRows={3}
-            />
-
-            <Group mt="md" gap="sm">
-                <TextInput
-                    label="Amount"
-                    type="number"
-                    value={values.amount}
-                    onChange={(e) => setValues({ ...values, amount: Number(e.target.value) })}
-                />
-                <TextInput label="Total Amount" value={`₱ ${values.amount.toFixed(2)}`} readOnly />
-            </Group>
-
-            <Divider my="sm" />
-
-            <Group justify="flex-end">
-                <Button onClick={saveVoucher} color="blue">
-                    Submit Voucher
-                </Button>
-            </Group>
-        </Card>
+        </form>
     );
 }
