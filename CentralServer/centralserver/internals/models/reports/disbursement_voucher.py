@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
-
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -96,4 +95,3 @@ class DisbursementVoucherAccountingEntry(SQLModel, table=True):
     parent_report: DisbursementVoucher = Relationship(
         back_populates="accounting_entries"
     )
-
