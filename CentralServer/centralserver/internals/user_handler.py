@@ -14,9 +14,9 @@ from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
-from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.school import School
 from centralserver.internals.models.role import Role
+from centralserver.internals.models.school import School
+from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
 from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.permissions import DEFAULT_ROLES

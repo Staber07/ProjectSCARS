@@ -7,7 +7,6 @@ from minio.error import S3Error
 from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
-    get_role,
     get_user,
     verify_access_token,
     verify_user_permission,
@@ -16,7 +15,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserPublic, UserUpdate
-from centralserver.internals.permissions import DEFAULT_ROLES, ROLE_PERMISSIONS
+from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
