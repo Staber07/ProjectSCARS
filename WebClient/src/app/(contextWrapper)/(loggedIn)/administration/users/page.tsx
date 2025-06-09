@@ -123,6 +123,7 @@ export default function UsersPage(): JSX.Element {
             .catch((error) => {
                 console.error("Failed to fetch user avatar:", error);
                 notifications.show({
+                    id: "fetch-user-avatar-error",
                     title: "Error",
                     message: "Failed to fetch user avatar.",
                     color: "red",
@@ -154,6 +155,7 @@ export default function UsersPage(): JSX.Element {
                 await UpdateUserInfo(newUserInfo);
 
                 notifications.show({
+                    id: "user-update-success",
                     title: "Success",
                     message: "User information updated successfully.",
                     color: "green",
@@ -174,33 +176,34 @@ export default function UsersPage(): JSX.Element {
                         if (updatedUserInfo.avatarUrn) {
                             fetchUserAvatar(updatedUserInfo.avatarUrn);
                             console.debug("Avatar uploaded successfully.");
-
                             notifications.show({
+                                id: "avatar-upload-success",
                                 title: "Success",
                                 message: "Avatar uploaded successfully.",
                                 color: "green",
                                 icon: <IconPencilCheck />, // better icon for upload success
                             });
                         }
-                    } catch (error: any) {
-                        const detail = error?.response?.data?.detail || "Failed to upload avatar.";
-
-                        console.error("Avatar upload failed:", detail);
-                        notifications.show({
-                            title: "Avatar Upload Failed",
-                            message: detail,
-                            color: "red",
-                            icon: <IconSendOff />,
-                        });
+                    } catch (error) {
+                        if (error instanceof Error) {
+                            const detail = error.message || "Failed to upload avatar.";
+                            console.error("Avatar upload failed:", detail);
+                            notifications.show({
+                                id: "avatar-upload-error",
+                                title: "Avatar Upload Failed",
+                                message: detail,
+                                color: "red",
+                                icon: <IconSendOff />,
+                            });
+                            throw new Error(detail);
+                        }
                         buttonStateHandler.close();
-
-                        // Throw error to prevent continuation
-                        throw new Error(detail);
                     }
                 }
             } catch (error) {
                 console.error("Update process failed:", error);
                 notifications.show({
+                    id: "user-update-error",
                     title: "Error",
                     message: (error as Error).message || "Failed to update user information. Please try again later.",
                     color: "red",
@@ -225,30 +228,29 @@ export default function UsersPage(): JSX.Element {
             return;
         }
 
-        
         const fileSizeMB = file.size / (1024 * 1024);
         if (fileSizeMB > MAX_FILE_SIZE_MB) {
             notifications.show({
+                id: "file-too-large",
                 title: "File Too Large",
                 message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
                 color: "red",
                 icon: <IconSendOff />,
             });
-            return; 
+            return;
         }
 
-        
         if (!ALLOWED_FILE_TYPES.includes(file.type)) {
             notifications.show({
+                id: "invalid-file-type",
                 title: "Invalid File Type",
                 message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
                 color: "red",
                 icon: <IconSendOff />,
             });
-            return; 
+            return;
         }
 
-        
         setEditUserAvatar(file);
 
         setEditUserAvatarUrl((prevUrl) => {
@@ -269,6 +271,7 @@ export default function UsersPage(): JSX.Element {
             .catch((error) => {
                 console.error("Failed to fetch users quantity:", error);
                 notifications.show({
+                    id: "fetch-users-quantity-error",
                     title: "Error",
                     message: "Failed to fetch users quantity. Please try again later.",
                     color: "red",
@@ -324,6 +327,7 @@ export default function UsersPage(): JSX.Element {
                 .catch((error) => {
                     console.error("Failed to fetch schools:", error);
                     notifications.show({
+                        id: "fetch-schools-error",
                         title: "Error",
                         message: "Failed to fetch schools. Please try again later.",
                         color: "red",
@@ -343,6 +347,7 @@ export default function UsersPage(): JSX.Element {
         buttonStateHandler.open();
         if (!createUserUsername || !createUserRole || !createUserPassword) {
             notifications.show({
+                id: "create-user-error",
                 title: "Error",
                 message: "Username, role, and password fields are required",
                 color: "red",
@@ -365,6 +370,7 @@ export default function UsersPage(): JSX.Element {
                 roleId: createUserRole,
             });
             notifications.show({
+                id: "create-user-success",
                 title: "Success",
                 message: "User created successfully",
                 color: "green",
@@ -381,6 +387,7 @@ export default function UsersPage(): JSX.Element {
         } catch (err) {
             if (err instanceof Error) {
                 notifications.show({
+                    id: "create-user-error",
                     title: "Error",
                     message: `Failed to create user: ${err.message}`,
                     color: "red",
@@ -388,6 +395,7 @@ export default function UsersPage(): JSX.Element {
                 });
             } else {
                 notifications.show({
+                    id: "create-user-error",
                     title: "Error",
                     message: "Failed to create user",
                     color: "red",
@@ -399,7 +407,7 @@ export default function UsersPage(): JSX.Element {
     };
 
     //Function to for Hover and Mouse Tracking on User Card
-    const [hoveredUser, setHoveredUser] = useState< UserPublicType | null>(null);
+    const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
     const [mouseX, setMouseX] = useState(0);
     const [mouseY, setMouseY] = useState(0);
 
@@ -501,6 +509,7 @@ export default function UsersPage(): JSX.Element {
                                                             try {
                                                                 RequestVerificationEmail();
                                                                 notifications.show({
+                                                                    id: "verification-email-sent",
                                                                     title: "Verification Email Sent",
                                                                     message:
                                                                         "Please check your email and click the link to verify your email.",
@@ -510,6 +519,7 @@ export default function UsersPage(): JSX.Element {
                                                             } catch (error) {
                                                                 if (error instanceof Error) {
                                                                     notifications.show({
+                                                                        id: "verification-email-error",
                                                                         title: "Error",
                                                                         message: `Failed to send verification email: ${error.message}`,
                                                                         color: "red",
@@ -517,6 +527,7 @@ export default function UsersPage(): JSX.Element {
                                                                     });
                                                                 } else {
                                                                     notifications.show({
+                                                                        id: "verification-email-error-unknown",
                                                                         title: "Error",
                                                                         message:
                                                                             "Failed to send verification email. Please try again later.",

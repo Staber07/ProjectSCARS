@@ -58,6 +58,7 @@ function ProfileContent() {
             VerifyUserEmail(emailVerificationToken)
                 .then(() => {
                     notifications.show({
+                        id: "email-verification-success",
                         title: "Your email has been verified",
                         message: "Thank you for verifying your email address.",
                         color: "green",
@@ -67,6 +68,7 @@ function ProfileContent() {
                 .catch((error) => {
                     if (error instanceof Error) {
                         notifications.show({
+                            id: "email-verification-failure",
                             title: "Email Verification Failed",
                             message: `Failed to verify your email: ${error.message}`,
                             color: "red",
@@ -74,6 +76,7 @@ function ProfileContent() {
                         });
                     } else {
                         notifications.show({
+                            id: "email-verification-failure-unknown",
                             title: "Email Verification Failed",
                             message: "An unknown error occurred while verifying your email. Please try again later.",
                             color: "red",

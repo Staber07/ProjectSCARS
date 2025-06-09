@@ -45,17 +45,28 @@ export default function DisbursementVoucherPage() {
                 .json();
 
             notifications.show({
+                id: "disbursement-voucher-success",
                 title: "Success",
                 message: "Disbursement Voucher has been submitted successfully",
                 color: "green",
             });
             form.reset();
         } catch (error) {
-            notifications.show({
-                title: "Error",
-                message: "Failed to submit Disbursement Voucher",
-                color: "red",
-            });
+            if (error instanceof Error) {
+                notifications.show({
+                    id: "disbursement-voucher-error",
+                    title: "Error",
+                    message: error.message,
+                    color: "red",
+                });
+            } else {
+                notifications.show({
+                    id: "disbursement-voucher-error",
+                    title: "Error",
+                    message: "Failed to submit Disbursement Voucher",
+                    color: "red",
+                });
+            }
         }
     };
 

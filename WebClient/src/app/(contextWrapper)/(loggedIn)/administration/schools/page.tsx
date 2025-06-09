@@ -115,6 +115,7 @@ export default function SchoolsPage(): JSX.Element {
             .catch((error) => {
                 console.error("Failed to fetch school logo:", error);
                 notifications.show({
+                    id: "fetch-school-logo-error",
                     title: "Error",
                     message: "Failed to fetch school logo.",
                     color: "red",
@@ -139,6 +140,7 @@ export default function SchoolsPage(): JSX.Element {
             UpdateSchoolInfo(newSchoolInfo)
                 .then(() => {
                     notifications.show({
+                        id: "school-update-success",
                         title: "Success",
                         message: "School information updated successfully.",
                         color: "green",
@@ -154,6 +156,7 @@ export default function SchoolsPage(): JSX.Element {
                 .catch((error) => {
                     console.error("Failed to update school:", error);
                     notifications.show({
+                        id: "school-update-error",
                         title: "Error",
                         message: "Failed to update school information. Please try again later.",
                         color: "red",
@@ -201,6 +204,7 @@ export default function SchoolsPage(): JSX.Element {
             .catch((error) => {
                 console.error("Failed to fetch school quantity:", error);
                 notifications.show({
+                    id: "fetch-school-quantity-error",
                     title: "Error",
                     message: "Failed to fetch school quantity. Please try again later.",
                     color: "red",
@@ -233,6 +237,7 @@ export default function SchoolsPage(): JSX.Element {
         buttonStateHandler.open();
         if (!createSchoolName) {
             notifications.show({
+                id: "create-school-error",
                 title: "Error",
                 message: "Please fill in all required fields.",
                 color: "red",
@@ -251,6 +256,7 @@ export default function SchoolsPage(): JSX.Element {
                 website: createWebsite !== "" ? createWebsite : null,
             });
             notifications.show({
+                id: "create-school-success",
                 title: "Success",
                 message: "School created successfully.",
                 color: "green",
@@ -261,6 +267,7 @@ export default function SchoolsPage(): JSX.Element {
         } catch (error) {
             console.error("Failed to create school:", error);
             notifications.show({
+                id: "create-school-error",
                 title: "Error",
                 message: "Failed to create school. Please try again later.",
                 color: "red",
