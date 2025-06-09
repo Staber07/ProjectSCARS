@@ -1,8 +1,10 @@
 "use client";
 
 import '@mantine/dates/styles.css';
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import dayjs from "dayjs";
 
 import {
@@ -33,7 +35,7 @@ interface DailyEntry {
     netIncome: number;
 }
 
-export default function SalesandPurchasesPage() {
+function SalesandPurchasesContent() {
     console.debug("Rendering SalesandPurchasesPage");
     const router = useRouter();
 
@@ -413,4 +415,12 @@ export default function SalesandPurchasesPage() {
                 </Modal>
             </Stack>
         </div>)
+}
+
+export default function SalesandPurchasesPage(): React.ReactElement {
+    return (
+        <Suspense fallback={<LoadingComponent message="Please wait..." />}>
+            <SalesandPurchasesContent />
+        </Suspense>
+    );
 }
