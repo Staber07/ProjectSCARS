@@ -16,12 +16,12 @@ import {
     NumberInput,
     Paper,
     Stack,
+    SimpleGrid,
     Table,
     Text,
     Title,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { notifications } from "@mantine/notifications";
 import { IconCalendar, IconEdit, IconHistory, IconLock, IconX } from "@tabler/icons-react";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 
@@ -113,12 +113,6 @@ export default function SalesandPurchasesPage() {
           });
       }
 
-      notifications.show({
-          title: "Entry Saved",
-          message: `Data for ${dayjs(editingEntry.date).format("MMM DD, YYYY")} has been saved.`,
-          color: "green",
-      });
-
       setModalOpened(false);
       setEditingEntry(null);
     };
@@ -205,6 +199,7 @@ export default function SalesandPurchasesPage() {
                     </Group>
                 </Card>
 
+
                 {/* Entries Table */}
                 <Card withBorder>
                     {dailyEntries.length === 0 ? (
@@ -243,17 +238,17 @@ export default function SalesandPurchasesPage() {
                                             </Group>
                                         </Table.Td>
                                         <Table.Td className="text-center">
-                                            <Text fw={entry.sales > 0 ? 600 : 400}>
+                                            <Text>
                                                 ₱{entry.sales.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className="text-center">
-                                            <Text fw={entry.purchases > 0 ? 600 : 400}>
+                                            <Text>
                                                 ₱{entry.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className="text-center">
-                                            <Text fw={600}>
+                                            <Text>
                                                 ₱{entry.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
@@ -303,6 +298,55 @@ export default function SalesandPurchasesPage() {
                         </Table>
                     )}
                 </Card>
+
+                {/* Summary Cards */}
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                    {/*Total Sales */}
+                    <Card withBorder>
+                        <Group justify="space-between" align="flex-start">
+                            <div>
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Total Sales
+                                </Text>
+                                <Text size="xl" fw={700} c="blue">
+                                    ₱{totals.sales.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                </Text>
+                            </div>
+                        </Group>
+                    </Card>
+                    
+                    {/*Total Purchases */}
+                    <Card withBorder>
+                        <Group justify="space-between" align="flex-start">
+                            <div>
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Total Purchases
+                                </Text>
+                                <Text size="xl" fw={700} c="orange">
+                                    ₱{totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                </Text>
+                            </div>
+                        </Group>
+                    </Card>
+
+                    {/*Gross Income */}
+                    <Card withBorder>
+                        <Group justify="space-between" align="flex-start">
+                            <div>
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Gross Income
+                                </Text>
+                                <Text
+                                    size="xl"
+                                    fw={700}
+                                    c={totals.netIncome >= 0 ? 'green' : 'red'}
+                                >
+                                        ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                </Text>
+                            </div>
+                        </Group>
+                    </Card>
+                </SimpleGrid>
 
                 {/* Action Buttons */}
                 <Group
