@@ -1,8 +1,10 @@
 import datetime
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, func, select
+from io import BytesIO
+from PIL import Image
 
 from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
@@ -22,6 +24,11 @@ from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.permissions import DEFAULT_ROLES
 
 logger = LoggerFactory().get_logger(__name__)
+
+MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit
+MAX_DIMENSION = 1024
+ALLOWED_IMAGE_TYPES = {"png", "jpeg", "jpg", "webp"}
+
 
 
 async def validate_username(username: str) -> bool:
@@ -135,8 +142,50 @@ async def create_user(
     return user
 
 
+async def validate_and_process_image(file: UploadFile) -> bytes:
+    contents = await file.read()  
+
+    if len(contents) > MAX_FILE_SIZE:
+        size_mb = len(contents) / (1024 * 1024)
+        raise HTTPException(
+            status_code=400,
+            detail=f"Image size {size_mb:.2f} MB exceeds the 2 MB size limit."
+        )
+
+    try:
+        image = Image.open(BytesIO(contents))
+        if image.format is None:
+            raise HTTPException(status_code=400, detail="Image format not recognized.")
+        image_format = image.format.lower()
+        format_map = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
+        save_format = format_map.get(image_format, image_format.upper())
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid image file.")
+
+    if image_format not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported image format: {image_format}. Allowed: PNG, JPG, JPEG, WEBP.",
+        )
+
+    
+    width, height = image.size
+    min_dim = min(width, height)
+    left = int((width - min_dim) / 2)
+    top = int((height - min_dim) / 2)
+    right = int((width + min_dim) / 2)
+    bottom = int((height + min_dim) / 2)
+    image = image.crop((left, top, right, bottom))
+
+    output_buffer = BytesIO()
+    image.save(output_buffer, format=save_format)
+    return output_buffer.getvalue()
+
+
+
 async def update_user_avatar(
     target_user: str, img: bytes | None, token: DecodedJWTToken, session: Session
+
 ) -> UserPublic:
     """Update the user's avatar in the database.
 
@@ -513,7 +562,7 @@ async def update_user_info(
             # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
             if (
                 session.exec(
-                    select(func.count(User.id)).where(
+                    select(func.count(User.id)).where(# type: ignore
                         User.roleId == DEFAULT_ROLES[0].id
                     )
                 ).one()

@@ -8,11 +8,13 @@ dependencies = [
     "fastapi[standard]>=0.115.12",
     "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
+    "pillow>=11.2.1",
     "psycopg[binary]>=3.2.9",
     "pymysql>=1.1.1",
     "python-jose[cryptography]>=3.4.0",
     "sqlalchemy>=2.0.40",
     "sqlmodel>=0.0.24",
+    "types-pillow>=10.2.0.20240822",
 ]
 
 [dependency-groups]

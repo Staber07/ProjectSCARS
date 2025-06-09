@@ -149,37 +149,63 @@ export default function UsersPage(): JSX.Element {
                 finishedTutorials: null,
                 password: null,
             };
-            UpdateUserInfo(newUserInfo)
-                .then(() => {
-                    notifications.show({
-                        title: "Success",
-                        message: "User information updated successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
-                    // Update the user in the list
-                    setUsers((prevUsers) => {
-                        const updatedUsers = [...prevUsers];
-                        updatedUsers[editIndex] = editUser;
-                        return updatedUsers;
-                    });
-                })
-                .catch((error) => {
-                    console.error("Failed to update user:", error);
-                    notifications.show({
-                        title: "Error",
-                        message: "Failed to update user information. Please try again later.",
-                        color: "red",
-                        icon: <IconSendOff />,
-                    });
+            UpdateUserInfo(newUserInfo);
+            try {
+                await UpdateUserInfo(newUserInfo);
+
+                notifications.show({
+                    title: "Success",
+                    message: "User information updated successfully.",
+                    color: "green",
+                    icon: <IconPencilCheck />,
                 });
-            if (editUserAvatar) {
-                console.debug("Uploading avatar...");
-                const updatedUserInfo = await UploadUserAvatar(editUser.id, editUserAvatar);
-                if (updatedUserInfo.avatarUrn) {
-                    fetchUserAvatar(updatedUserInfo.avatarUrn);
+
+                setUsers((prevUsers) => {
+                    const updatedUsers = [...prevUsers];
+                    updatedUsers[editIndex] = editUser;
+                    return updatedUsers;
+                });
+
+                if (editUserAvatar) {
+                    try {
+                        console.debug("Uploading avatar...");
+                        const updatedUserInfo = await UploadUserAvatar(editUser.id, editUserAvatar);
+
+                        if (updatedUserInfo.avatarUrn) {
+                            fetchUserAvatar(updatedUserInfo.avatarUrn);
+                            console.debug("Avatar uploaded successfully.");
+
+                            notifications.show({
+                                title: "Success",
+                                message: "Avatar uploaded successfully.",
+                                color: "green",
+                                icon: <IconPencilCheck />, // better icon for upload success
+                            });
+                        }
+                    } catch (error: any) {
+                        const detail = error?.response?.data?.detail || "Failed to upload avatar.";
+
+                        console.error("Avatar upload failed:", detail);
+                        notifications.show({
+                            title: "Avatar Upload Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                        buttonStateHandler.close();
+
+                        // Throw error to prevent continuation
+                        throw new Error(detail);
+                    }
                 }
-                console.debug("Avatar uploaded successfully.");
+            } catch (error) {
+                console.error("Update process failed:", error);
+                notifications.show({
+                    title: "Error",
+                    message: (error as Error).message || "Failed to update user information. Please try again later.",
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
             }
 
             setEditIndex(null);
@@ -190,12 +216,41 @@ export default function UsersPage(): JSX.Element {
         }
     };
 
+    const MAX_FILE_SIZE_MB = 2;
+    const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
     const setAvatar = async (file: File | null) => {
         if (file === null) {
             console.debug("No file selected, skipping upload...");
             return;
         }
+
+        
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > MAX_FILE_SIZE_MB) {
+            notifications.show({
+                title: "File Too Large",
+                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return; 
+        }
+
+        
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+            notifications.show({
+                title: "Invalid File Type",
+                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return; 
+        }
+
+        
         setEditUserAvatar(file);
+
         setEditUserAvatarUrl((prevUrl) => {
             if (prevUrl) {
                 URL.revokeObjectURL(prevUrl); // Clean up previous URL
@@ -344,7 +399,7 @@ export default function UsersPage(): JSX.Element {
     };
 
     //Function to for Hover and Mouse Tracking on User Card
-    const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null); //UserPublicType is "User" originally. However, it shows an issue so helpp
+    const [hoveredUser, setHoveredUser] = useState< UserPublicType | null>(null);
     const [mouseX, setMouseX] = useState(0);
     const [mouseY, setMouseY] = useState(0);
 
@@ -743,14 +798,20 @@ export default function UsersPage(): JSX.Element {
                             label="Deactivated"
                             checked={editUser.deactivated}
                             onChange={(e) => {
-                                setEditUser({ ...editUser, deactivated: e.currentTarget.checked });
+                                setEditUser({
+                                    ...editUser,
+                                    deactivated: e.currentTarget.checked,
+                                });
                             }}
                         />
                         <Switch
                             label="Force Update Required"
                             checked={editUser.forceUpdateInfo}
                             onChange={(e) => {
-                                setEditUser({ ...editUser, forceUpdateInfo: e.currentTarget.checked });
+                                setEditUser({
+                                    ...editUser,
+                                    forceUpdateInfo: e.currentTarget.checked,
+                                });
                             }}
                         />
                         <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
