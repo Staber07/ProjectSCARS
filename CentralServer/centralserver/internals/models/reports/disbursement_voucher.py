@@ -3,6 +3,13 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
+
+#For the new Disbursement Voucher Model
+from sqlmodel import SQLModel, Field
+from datetime import date, datetime
+from typing import Optional, List
+
+
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -95,3 +102,21 @@ class DisbursementVoucherAccountingEntry(SQLModel, table=True):
     parent_report: DisbursementVoucher = Relationship(
         back_populates="accounting_entries"
     )
+
+
+
+#New Disbursement Voucher Model for Legacy System
+class DisbursementVoucher(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    entity_name: str
+    fund_cluster: str
+    dv_number: str
+    date: date
+    mode_of_payment: str
+    ors_burs_no: str
+    payee: str
+    tin_employee_no: str
+    address: str
+    particulars: str
+    amount: float
+    created_at: datetime = Field(default_factory=datetime.utcnow)
