@@ -2,7 +2,6 @@
 
 import "@mantine/dates/styles.css";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import dayjs from "dayjs";
@@ -26,7 +25,7 @@ import {
     Title,
 } from "@mantine/core";
 import { MonthPickerInput, DateInput } from "@mantine/dates";
-import { IconCalendar, IconPlus, IconTrash, IconUpload, IconX, IconHistory, IconReceipt2 } from "@tabler/icons-react";
+import { IconCalendar, IconPlus, IconTrash, IconUpload, IconX, IconReceipt2 } from "@tabler/icons-react";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 
 interface PayrollDetails {

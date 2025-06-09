@@ -1,10 +1,10 @@
 import datetime
+from io import BytesIO
 
-from fastapi import HTTPException, status, UploadFile
+from fastapi import HTTPException, UploadFile, status
+from PIL import Image
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, func, select
-from io import BytesIO
-from PIL import Image
 
 from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
@@ -16,6 +16,8 @@ from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
+from centralserver.internals.models.role import Role
+from centralserver.internals.models.school import School
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
 from centralserver.internals.notification_handler import push_notification
@@ -26,7 +28,6 @@ logger = LoggerFactory().get_logger(__name__)
 MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit
 MAX_DIMENSION = 1024
 ALLOWED_IMAGE_TYPES = {"png", "jpeg", "jpg", "webp"}
-
 
 
 async def validate_username(username: str) -> bool:
@@ -141,13 +142,13 @@ async def create_user(
 
 
 async def validate_and_process_image(file: UploadFile) -> bytes:
-    contents = await file.read()  
+    contents = await file.read()
 
     if len(contents) > MAX_FILE_SIZE:
         size_mb = len(contents) / (1024 * 1024)
         raise HTTPException(
             status_code=400,
-            detail=f"Image size {size_mb:.2f} MB exceeds the 2 MB size limit."
+            detail=f"Image size {size_mb:.2f} MB exceeds the 2 MB size limit.",
         )
 
     try:
@@ -166,7 +167,6 @@ async def validate_and_process_image(file: UploadFile) -> bytes:
             detail=f"Unsupported image format: {image_format}. Allowed: PNG, JPG, JPEG, WEBP.",
         )
 
-    
     width, height = image.size
     min_dim = min(width, height)
     left = int((width - min_dim) / 2)
@@ -180,10 +180,8 @@ async def validate_and_process_image(file: UploadFile) -> bytes:
     return output_buffer.getvalue()
 
 
-
 async def update_user_avatar(
     target_user: str, img: bytes | None, token: DecodedJWTToken, session: Session
-
 ) -> UserPublic:
     """Update the user's avatar in the database.
 
@@ -436,6 +434,110 @@ async def update_user_info(
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
 
+    if target_user.schoolId is not None:  # Update school ID if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:school"
+                if updating_self
+                else "users:global:modify:school"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: school)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify school.",
+            )
+
+        # Check if the school exists
+        if not session.get(School, target_user.schoolId):
+            logger.warning(
+                "Failed to update user: %s (school not found)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="School not found",
+            )
+
+        logger.debug(
+            "Setting school ID for user: %s to %s",
+            target_user.id,
+            target_user.schoolId,
+        )
+        selected_user.schoolId = target_user.schoolId
+
+    if target_user.roleId is not None:  # Update role ID if provided
+        if not await verify_user_permission(
+            ("users:self:modify:role" if updating_self else "users:global:modify:role"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: role)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify role.",
+            )
+
+        # Check if the role exists
+        if not session.get(Role, target_user.roleId):
+            logger.warning("Failed to update user: %s (role not found)", target_user.id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role not found",
+            )
+
+        logger.debug(
+            "Setting role ID for user: %s to %s", target_user.id, target_user.roleId
+        )
+        if selected_user.roleId == DEFAULT_ROLES[0].id:
+            logger.warning(
+                "%s is trying to change the role of another website admin (%s)",
+                token.id,
+                selected_user.id,
+            )
+            # Make sure that there is at least one superintedent user in the database
+            # superintendent_quantity = len(
+            #     session.exec(select(User).where(User.roleId == 1)).all()
+            # )
+            # if superintendent_quantity == 1:
+            if (
+                session.exec(
+                    select(func.count(User.id)).where(  # type: ignore
+                        User.roleId == DEFAULT_ROLES[0].id
+                    )
+                ).one()
+                <= 1
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot change the role of the last admin user.",
+                )
+
+        loggedin_user = session.get(User, token.id)
+        if loggedin_user is None:
+            logger.warning("Failed to update user: %s (user not found)", target_user.id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User not found",
+            )
+
+        if loggedin_user.roleId > target_user.roleId:
+            logger.warning(
+                "Failed to update user: %s (permission denied: role change)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot change role to a higher level.",
+            )
+
+        selected_user.roleId = target_user.roleId
+
     if target_user.deactivated is not None:
         if not await verify_user_permission(
             ("users:self:deactivate" if updating_self else "users:global:deactivate"),
@@ -456,7 +558,7 @@ async def update_user_info(
             # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
             if (
                 session.exec(
-                    select(func.count(User.id)).where(# type: ignore
+                    select(func.count(User.id)).where(  # type: ignore
                         User.roleId == DEFAULT_ROLES[0].id
                     )
                 ).one()

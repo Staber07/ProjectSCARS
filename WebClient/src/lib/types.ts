@@ -13,6 +13,7 @@ export type UserPublicType = {
     nameMiddle?: string | null;
     nameLast?: string | null;
     avatarUrn?: string | null;
+    schoolId?: number | null;
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
@@ -32,6 +33,7 @@ export type UserUpdateType = {
     nameFirst?: string | null;
     nameMiddle?: string | null;
     nameLast?: string | null;
+    schoolId?: number | null;
     roleId: number;
     deactivated?: boolean | null;
     finishedTutorials?: string | null;
@@ -64,7 +66,6 @@ export type SchoolType = {
     id: number;
     name: string;
     address?: string | null;
-    coordinates?: string | null;
 
     phone?: string | null;
     email?: string | null;
@@ -76,7 +77,7 @@ export type SchoolType = {
     lastModified: Date;
 };
 
-export type SchoolUpdateType = {
+export type SchoolCreateType = {
     name: string;
     address?: string | null;
     coordinates?: string | null;
@@ -84,4 +85,17 @@ export type SchoolUpdateType = {
     phone?: string | null;
     email?: string | null;
     website?: string | null;
+};
+
+export type SchoolUpdateType = {
+    id: number;
+    name: string;
+    address?: string | null;
+    coordinates?: string | null;
+
+    phone?: string | null;
+    email?: string | null;
+    website?: string | null;
+
+    logoUrn?: string | null;
 };

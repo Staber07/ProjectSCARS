@@ -8,7 +8,7 @@ import {
     UpdateSchoolInfo,
     UploadSchoolLogo,
 } from "@/lib/api/school";
-import { SchoolType } from "@/lib/types";
+import { SchoolType, SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -75,7 +75,6 @@ export default function SchoolsPage(): JSX.Element {
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [createSchoolName, setCreateSchoolName] = useState("");
     const [createAddress, setCreateAddress] = useState("");
-    const [createCoordinates, setCreateCoordinates] = useState("");
     const [createPhone, setCreatePhone] = useState("");
     const [createEmail, setCreateEmail] = useState("");
     const [createWebsite, setCreateWebsite] = useState("");
@@ -128,11 +127,10 @@ export default function SchoolsPage(): JSX.Element {
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool) {
-            const newSchoolInfo: SchoolType = {
+            const newSchoolInfo: SchoolUpdateType = {
                 id: editSchool.id,
                 name: editSchool.name,
                 address: editSchool.address,
-                coordinates: editSchool.coordinates,
                 phone: editSchool.phone,
                 email: editSchool.email,
                 website: editSchool.website,
@@ -248,7 +246,6 @@ export default function SchoolsPage(): JSX.Element {
             const createdSchool = await CreateSchool({
                 name: createSchoolName,
                 address: createAddress !== "" ? createAddress : null,
-                coordinates: createCoordinates !== "" ? createCoordinates : null,
                 phone: createPhone !== "" ? createPhone : null,
                 email: createEmail !== "" ? createEmail : null,
                 website: createWebsite !== "" ? createWebsite : null,

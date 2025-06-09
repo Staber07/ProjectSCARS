@@ -1,15 +1,12 @@
 from io import BytesIO
 from typing import Annotated
 
-
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from fastapi.responses import StreamingResponse
 from minio.error import S3Error
 from sqlmodel import Session, func, select
 
-
 from centralserver.internals.auth_handler import (
-    get_role,
     get_user,
     verify_access_token,
     verify_user_permission,
@@ -18,7 +15,7 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserPublic, UserUpdate
-from centralserver.internals.permissions import DEFAULT_ROLES, ROLE_PERMISSIONS
+from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
@@ -250,6 +247,7 @@ async def update_user_endpoint(
         target_user=updated_user_info, token=token, session=session
     )
 
+
 @router.patch("/avatar", response_model=UserPublic)
 async def update_user_avatar_endpoint(
     user_id: str,
@@ -285,11 +283,9 @@ async def update_user_avatar_endpoint(
         )
 
     logger.debug("user %s is updating user profile of %s...", token.id, user_id)
-    
+
     processed_image_bytes = await validate_and_process_image(img)
     return await update_user_avatar(user_id, processed_image_bytes, token, session)
-
-
 
 
 @router.delete("/avatar")
@@ -322,92 +318,3 @@ async def delete_user_avatar_endpoint(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User does not have an avatar set.",
         ) from e
-
-
-@router.patch("/role")  # TODO: merge with PATCH /
-async def update_user_role_endpoint(
-    user_id: str,
-    role_id: int,
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
-    """Update a user's role.
-
-    Args:
-        user_id: The ID of the user to update.
-        role_id: The ID of the new role to assign.
-        token: The access token of the logged-in user.
-        session: The session to the database.
-
-    Returns:
-        The updated user information.
-
-    Raises:
-        HTTPException: Raised when the user does not have permission to update users' roles.
-    """
-
-    logger.debug("User %s is updating user role of %s...", token.id, user_id)
-    if not await verify_user_permission("users:global:modify", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update users' roles.",
-        )
-
-    selected_user = await get_user(user_id, session=session, by_id=True)
-    user_role = await get_role(role_id, session)
-    if not selected_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User not found.",
-        )
-    if not user_role:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid role ID provided.",
-        )
-
-    if selected_user.roleId == DEFAULT_ROLES[0].id:
-        logger.warning(
-            "%s is trying to change the role of another superintendent user (%s)",
-            token.id,
-            selected_user.id,
-        )
-        # Make sure that there is at least one superintedent user in the database
-        superintendent_quantity = len(
-            session.exec(select(User).where(User.roleId == 1)).all()
-        )
-        if superintendent_quantity == 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot change the role of the last admin user.",
-            )
-
-    logger.debug("Setting user %s role to %s", selected_user.id, user_role.id)
-    selected_user.roleId = role_id
-    session.commit()
-    session.refresh(selected_user)
-    return UserPublic.model_validate(selected_user)
-
-
-@router.patch("/update/school")
-async def update_user_school_endpoint(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-):
-    """Assign a school to a user.
-
-    Args:
-        token: The user's access token.
-        session: The database session.
-
-    Raises:
-        HTTPException: Raised when the user does not have permission to update users' assigned schools.
-    """
-
-    if not await verify_user_permission("users:global:modify", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update users' assigned schools.",
-        )
-
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)  # TODO: WIP
