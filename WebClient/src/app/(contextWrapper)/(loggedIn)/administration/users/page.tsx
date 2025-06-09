@@ -51,7 +51,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
@@ -407,18 +407,18 @@ export default function UsersPage(): JSX.Element {
     };
 
     //Function to for Hover and Mouse Tracking on User Card
-    const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
-    const [mouseX, setMouseX] = useState(0);
-    const [mouseY, setMouseY] = useState(0);
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMouseX(e.clientX);
-            setMouseY(e.clientY);
-        };
-        window.addEventListener("mousemove", handleMouseMove);
-        return () => window.removeEventListener("mousemove", handleMouseMove);
-    }, []);
+    // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
+    // const [mouseX, setMouseX] = useState(0);
+    // const [mouseY, setMouseY] = useState(0);
+    //
+    // useEffect(() => {
+    //     const handleMouseMove = (e: MouseEvent) => {
+    //         setMouseX(e.clientX);
+    //         setMouseY(e.clientY);
+    //     };
+    //     window.addEventListener("mousemove", handleMouseMove);
+    //     return () => window.removeEventListener("mousemove", handleMouseMove);
+    // }, []);
 
     console.debug("Rendering UsersPage");
     return (
@@ -459,8 +459,8 @@ export default function UsersPage(): JSX.Element {
                         <TableTr
                             key={index}
                             bg={selected.has(index) ? "gray.1" : undefined}
-                            onMouseEnter={() => setHoveredUser(user)}
-                            onMouseLeave={() => setHoveredUser(null)}
+                            // onMouseEnter={() => setHoveredUser(user)}
+                            // onMouseLeave={() => setHoveredUser(null)}
                         >
                             {/* Checkbox and Avatar */}
                             <TableTd>
@@ -604,8 +604,7 @@ export default function UsersPage(): JSX.Element {
                     ))}
                 </TableTbody>
             </Table>
-
-            <AnimatePresence>
+            {/* <AnimatePresence>
                 {hoveredUser && (
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -657,12 +656,10 @@ export default function UsersPage(): JSX.Element {
                         </Card>
                     </motion.div>
                 )}
-            </AnimatePresence>
-
+            </AnimatePresence> */}
             <Group justify="center">
                 <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
             </Group>
-
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
                 {editUser && (
                     <Flex direction="column" gap="md">
