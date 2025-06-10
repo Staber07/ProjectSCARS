@@ -85,7 +85,7 @@ export default function SchoolsPage(): JSX.Element {
         setEditIndex(index);
         setEditSchool(school);
         if (school.logoUrn) {
-            const logoUrl = fetchSchoolLogo(school.logoUrn);
+            const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
         } else {
             setEditSchoolLogo(null);
@@ -100,30 +100,30 @@ export default function SchoolsPage(): JSX.Element {
         setSelected(updated);
     };
 
-    const fetchSchoolLogo = (logoUrn: string): string | undefined => {
-        if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
-            return logos.get(logoUrn);
-        } else if (logosRequested.has(logoUrn)) {
-            return undefined; // Logo is requested but not yet available
-        }
-        setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        GetSchooLogo(logoUrn)
-            .then((blob) => {
-                const url = URL.createObjectURL(blob);
-                setLogos((prev) => new Map(prev).set(logoUrn, url));
-                return url;
-            })
-            .catch((error) => {
-                console.error("Failed to fetch school logo:", error);
-                notifications.show({
-                    title: "Error",
-                    message: "Failed to fetch school logo.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-                return undefined;
+    const fetchSchoolLogo = (logoUrn: string, schoolId: number): string | undefined => {
+    if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
+        return logos.get(logoUrn);
+    } else if (logosRequested.has(logoUrn)) {
+        return undefined; // Logo is requested but not yet available
+    }
+    setLogosRequested((prev) => new Set(prev).add(logoUrn));
+    GetSchooLogo(logoUrn, schoolId)  // <-- pass schoolId here
+        .then((blob) => {
+            const url = URL.createObjectURL(blob);
+            setLogos((prev) => new Map(prev).set(logoUrn, url));
+            return url;
+        })
+        .catch((error) => {
+            console.error("Failed to fetch school logo:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to fetch school logo.",
+                color: "red",
+                icon: <IconUserExclamation />,
             });
-    };
+            return undefined;
+        });
+};
 
     const handleSave = async () => {
         buttonStateHandler.open();
@@ -137,6 +137,8 @@ export default function SchoolsPage(): JSX.Element {
                 email: editSchool.email,
                 website: editSchool.website,
                 logoUrn: editSchool.logoUrn,
+                dateCreated: editSchool.dateCreated,
+                lastModified: editSchool.lastModified,
             };
             UpdateSchoolInfo(newSchoolInfo)
                 .then(() => {
@@ -166,7 +168,7 @@ export default function SchoolsPage(): JSX.Element {
                 console.debug("Uploading logo...");
                 const updatedSchoolInfo = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
                 if (updatedSchoolInfo.logoUrn) {
-                    fetchSchoolLogo(updatedSchoolInfo.logoUrn);
+                    fetchSchoolLogo(updatedSchoolInfo.logoUrn, editSchool.id);
                 }
                 console.debug("Logo uploaded successfully.");
             }
@@ -320,7 +322,7 @@ export default function SchoolsPage(): JSX.Element {
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
                                     {school.logoUrn ? (
-                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn)}>
+                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn, school.id)}>
                                             <IconUser />
                                         </Avatar>
                                     ) : (

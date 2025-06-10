@@ -179,7 +179,6 @@ async def validate_and_process_image(file: UploadFile) -> bytes:
     image.save(output_buffer, format=save_format)
     return output_buffer.getvalue()
 
-    #test1
 
 async def update_user_avatar(
     target_user: str, img: bytes | None, token: DecodedJWTToken, session: Session
