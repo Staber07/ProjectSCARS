@@ -197,6 +197,7 @@ export const Navbar: React.FC = () => {
                         logout();
                         console.info("User logged out");
                         notifications.show({
+                            id: "logged-out",
                             title: "Logged Out",
                             message: "You are now logged out.",
                             icon: <IconLogout stroke={1.5} />,

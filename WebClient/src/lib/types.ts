@@ -27,14 +27,14 @@ export type UserPublicType = {
 
 /** A model used when updating user information. */
 export type UserUpdateType = {
-    id: string; // The ID of the user to be updated.
-    username: string;
+    id: string;
+    username?: string | null;
     email?: string | null;
     nameFirst?: string | null;
     nameMiddle?: string | null;
     nameLast?: string | null;
     schoolId?: number | null;
-    roleId: number;
+    roleId?: number | null;
     deactivated?: boolean | null;
     finishedTutorials?: string | null;
     forceUpdateInfo?: boolean | null;

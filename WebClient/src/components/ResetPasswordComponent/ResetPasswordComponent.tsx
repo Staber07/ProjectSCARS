@@ -86,6 +86,7 @@ function ResetPasswordContent(): React.ReactElement {
         buttonStateHandler.open();
         if (!values.new_password) {
             notifications.show({
+                id: "reset-password-error",
                 title: "Password reset failed",
                 message: "Please enter a new password.",
                 color: "red",
@@ -97,6 +98,7 @@ function ResetPasswordContent(): React.ReactElement {
 
         if (!token) {
             notifications.show({
+                id: "reset-password-no-token",
                 title: "Password reset failed",
                 message: "No token provided. Please check the link you clicked.",
                 color: "red",
@@ -110,6 +112,7 @@ function ResetPasswordContent(): React.ReactElement {
             const response = await ResetPassword(token, values.new_password);
             if (response == null || response.message !== "Password reset successful.") {
                 notifications.show({
+                    id: "reset-password-failure",
                     title: "Password reset failed",
                     message: response.message,
                     color: "red",
@@ -120,6 +123,7 @@ function ResetPasswordContent(): React.ReactElement {
             } else {
                 requestSentHandler.open();
                 notifications.show({
+                    id: "reset-password-success",
                     title: "Password reset successfully",
                     message: "Please log in with your new password.",
                     color: "green",
@@ -133,6 +137,7 @@ function ResetPasswordContent(): React.ReactElement {
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 400")) {
                 notifications.show({
+                    id: "reset-password-invalid-token",
                     title: "Password reset failed",
                     message: error.message,
                     color: "red",
@@ -141,6 +146,7 @@ function ResetPasswordContent(): React.ReactElement {
             } else {
                 console.error("Error resetting password:", error);
                 notifications.show({
+                    id: "reset-password-error",
                     title: "Password reset failed",
                     message: `An error occurred while resetting your password: ${error}`,
                     color: "red",
