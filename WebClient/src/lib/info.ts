@@ -61,3 +61,8 @@ export const roles: Record<number, string> = {
     4: "Principal",
     5: "Canteen Manager",
 };
+
+export const userAvatarConfig = {
+    MAX_FILE_SIZE_MB: 2,
+    ALLOWED_FILE_TYPES: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+};

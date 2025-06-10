@@ -1,26 +1,22 @@
 "use client";
 
+import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
 import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
     Button,
-    Card,
-    Center,
     Checkbox,
-    FileButton,
     Flex,
     Group,
-    Image,
     Modal,
     Pagination,
     Select,
     Stack,
-    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -37,12 +33,10 @@ import {
     IconCheck,
     IconCircleDashedCheck,
     IconCircleDashedX,
-    IconDeviceFloppy,
     IconEdit,
     IconLock,
     IconLockOpen,
     IconMail,
-    IconPencilCheck,
     IconPlus,
     IconSearch,
     IconSendOff,
@@ -64,11 +58,6 @@ export default function UsersPage(): JSX.Element {
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
-    const [editIndex, setEditIndex] = useState<number | null>(null);
-    const [editUser, setEditUser] = useState<UserPublicType | null>(null);
-    const [editUserPrevEmail, setEditUserPrevEmail] = useState<string | null>(null);
-    const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
-    const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
@@ -76,9 +65,10 @@ export default function UsersPage(): JSX.Element {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    //Handler for User Creation
-    const [addModalOpen, setAddModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<UserPublicType | null>(null);
+    const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
+    const [addModalOpen, setAddModalOpen] = useState(false);
     const [createUserFullName, setCreateUserFullName] = useState("");
     const [createUserEmail, setCreateUserEmail] = useState("");
     const [createUserPassword, setCreateUserPassword] = useState("");
@@ -88,16 +78,9 @@ export default function UsersPage(): JSX.Element {
 
     const handleSearch = () => {};
     const handleEdit = (index: number, user: UserPublicType) => {
-        setEditIndex(index);
-        setEditUser(user);
-        setEditUserPrevEmail(user.email || null);
-        if (user.avatarUrn) {
-            const avatarUrl = fetchUserAvatar(user.avatarUrn);
-            setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
-        } else {
-            setEditUserAvatar(null);
-            setEditUserAvatarUrl(null);
-        }
+        console.debug(`Editing user ${index}`, user);
+        setSelectedUserIndex(index);
+        setSelectedUser(user);
     };
 
     const toggleSelected = (index: number) => {
@@ -106,7 +89,6 @@ export default function UsersPage(): JSX.Element {
         else updated.add(index);
         setSelected(updated);
     };
-
     const fetchUserAvatar = (avatarUrn: string): string | undefined => {
         if (avatarsRequested.has(avatarUrn) && avatars.has(avatarUrn)) {
             return avatars.get(avatarUrn);
@@ -131,134 +113,6 @@ export default function UsersPage(): JSX.Element {
                 });
                 return undefined;
             });
-    };
-
-    const handleSave = async () => {
-        buttonStateHandler.open();
-        if (editIndex !== null && editUser) {
-            const newUserInfo: UserUpdateType = {
-                id: editUser.id,
-                username: editUser.username,
-                nameFirst: editUser.nameFirst,
-                nameMiddle: editUser.nameMiddle,
-                nameLast: editUser.nameLast,
-                email: editUser.email,
-                schoolId: editUser.schoolId,
-                roleId: editUser.roleId,
-                deactivated: editUser.deactivated,
-                forceUpdateInfo: editUser.forceUpdateInfo,
-                finishedTutorials: null,
-                password: null,
-            };
-            UpdateUserInfo(newUserInfo);
-            try {
-                await UpdateUserInfo(newUserInfo);
-
-                notifications.show({
-                    id: "user-update-success",
-                    title: "Success",
-                    message: "User information updated successfully.",
-                    color: "green",
-                    icon: <IconPencilCheck />,
-                });
-
-                setUsers((prevUsers) => {
-                    const updatedUsers = [...prevUsers];
-                    updatedUsers[editIndex] = editUser;
-                    return updatedUsers;
-                });
-
-                if (editUserAvatar) {
-                    try {
-                        console.debug("Uploading avatar...");
-                        const updatedUserInfo = await UploadUserAvatar(editUser.id, editUserAvatar);
-
-                        if (updatedUserInfo.avatarUrn) {
-                            fetchUserAvatar(updatedUserInfo.avatarUrn);
-                            console.debug("Avatar uploaded successfully.");
-                            notifications.show({
-                                id: "avatar-upload-success",
-                                title: "Success",
-                                message: "Avatar uploaded successfully.",
-                                color: "green",
-                                icon: <IconPencilCheck />, // better icon for upload success
-                            });
-                        }
-                    } catch (error) {
-                        if (error instanceof Error) {
-                            const detail = error.message || "Failed to upload avatar.";
-                            console.error("Avatar upload failed:", detail);
-                            notifications.show({
-                                id: "avatar-upload-error",
-                                title: "Avatar Upload Failed",
-                                message: detail,
-                                color: "red",
-                                icon: <IconSendOff />,
-                            });
-                            throw new Error(detail);
-                        }
-                        buttonStateHandler.close();
-                    }
-                }
-            } catch (error) {
-                console.error("Update process failed:", error);
-                notifications.show({
-                    id: "user-update-error",
-                    title: "Error",
-                    message: (error as Error).message || "Failed to update user information. Please try again later.",
-                    color: "red",
-                    icon: <IconSendOff />,
-                });
-            }
-
-            setEditIndex(null);
-            setEditUser(null);
-            setEditUserAvatar(null);
-            fetchUsers(currentPage);
-            buttonStateHandler.close();
-        }
-    };
-
-    const MAX_FILE_SIZE_MB = 2;
-    const ALLOWED_FILE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-
-    const setAvatar = async (file: File | null) => {
-        if (file === null) {
-            console.debug("No file selected, skipping upload...");
-            return;
-        }
-
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (fileSizeMB > MAX_FILE_SIZE_MB) {
-            notifications.show({
-                id: "file-too-large",
-                title: "File Too Large",
-                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-
-        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-            notifications.show({
-                id: "invalid-file-type",
-                title: "Invalid File Type",
-                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-
-        setEditUserAvatar(file);
-
-        setEditUserAvatarUrl((prevUrl) => {
-            if (prevUrl) {
-                URL.revokeObjectURL(prevUrl); // Clean up previous URL
-            }
-            return URL.createObjectURL(file); // Create a new URL for the selected file
-        });
     };
 
     const fetchUsers = async (page: number) => {
@@ -298,6 +152,7 @@ export default function UsersPage(): JSX.Element {
                 }
             });
     };
+
     useEffect(() => {
         const fetchRoles = async () => {
             await GetAllRoles()
@@ -660,174 +515,20 @@ export default function UsersPage(): JSX.Element {
             <Group justify="center">
                 <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
             </Group>
-            <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
-                {editUser && (
-                    <Flex direction="column" gap="md">
-                        <Center>
-                            <Card
-                                shadow="sm"
-                                radius="xl"
-                                withBorder
-                                style={{ position: "relative", cursor: "pointer" }}
-                            >
-                                <FileButton onChange={setAvatar} accept="image/png,image/jpeg">
-                                    {(props) => (
-                                        <motion.div
-                                            whileHover={{ scale: 1.05 }}
-                                            style={{ position: "relative" }}
-                                            {...props}
-                                        >
-                                            {editUserAvatarUrl ? (
-                                                <Image
-                                                    id="edit-user-avatar"
-                                                    src={editUserAvatarUrl}
-                                                    alt="User Avatar"
-                                                    h={150}
-                                                    w={150}
-                                                    radius="xl"
-                                                />
-                                            ) : (
-                                                <IconUser size={150} color="gray" />
-                                            )}
-                                            <motion.div
-                                                initial={{ opacity: 0 }}
-                                                whileHover={{ opacity: 1 }}
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 0,
-                                                    left: 0,
-                                                    right: 0,
-                                                    bottom: 0,
-                                                    backgroundColor: "rgba(0, 0, 0, 0.5)",
-                                                    borderRadius: "var(--mantine-radius-xl)",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    color: "white",
-                                                    fontWeight: 500,
-                                                }}
-                                            >
-                                                Upload Picture
-                                            </motion.div>
-                                        </motion.div>
-                                    )}
-                                </FileButton>
-                            </Card>
-                        </Center>
-                        {editUserAvatar && (
-                            <Button
-                                variant="outline"
-                                color="red"
-                                mt="md"
-                                onClick={() => {
-                                    setEditUserAvatar(null);
-                                    setEditUserAvatarUrl(null);
-                                }}
-                            >
-                                Remove Profile Picture
-                            </Button>
-                        )}
-                        <Tooltip label="Username cannot be changed" withArrow>
-                            <TextInput // TODO: Make username editable if user has permission
-                                disabled
-                                label="Username"
-                                value={editUser.username ? editUser.username : ""}
-                                leftSection={<IconLock size={16} />}
-                                onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
-                            />
-                        </Tooltip>
-                        <TextInput
-                            label="First Name"
-                            value={editUser.nameFirst ? editUser.nameFirst : ""}
-                            onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
-                        />
-                        <TextInput
-                            label="Middle Name"
-                            value={editUser.nameMiddle ? editUser.nameMiddle : ""}
-                            onChange={(e) => setEditUser({ ...editUser, nameMiddle: e.currentTarget.value })}
-                        />
-                        <TextInput
-                            label="Last Name"
-                            value={editUser.nameLast ? editUser.nameLast : ""}
-                            onChange={(e) => setEditUser({ ...editUser, nameLast: e.currentTarget.value })}
-                        />
-                        <TextInput
-                            label="Email"
-                            value={editUser.email ? editUser.email : ""}
-                            rightSection={
-                                editUser.email &&
-                                (editUser.emailVerified && editUser.email == editUserPrevEmail ? (
-                                    <Tooltip
-                                        label="This email has been verified. You're good to go!"
-                                        withArrow
-                                        multiline
-                                        w={250}
-                                    >
-                                        <IconCircleDashedCheck size={16} color="green" />
-                                    </Tooltip>
-                                ) : (
-                                    <Tooltip label="This email has not yet been verified." withArrow multiline w={250}>
-                                        <IconCircleDashedX size={16} color="gray" />
-                                    </Tooltip>
-                                ))
-                            }
-                            onChange={(e) => {
-                                setEditUser({ ...editUser, email: e.currentTarget.value });
-                            }}
-                        />
-                        <Select
-                            label="Assigned School"
-                            placeholder="School"
-                            data={availableSchools.map(
-                                (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
-                            )}
-                            onChange={(e) => {
-                                const school = availableSchools.find(
-                                    (s) => `${s.name}${s.address ? ` (${s.address})` : ""}` === e
-                                );
-                                setEditUser({ ...editUser, schoolId: school?.id ?? null });
-                            }}
-                        />
-                        <Select
-                            label="Role"
-                            placeholder="Role"
-                            data={availableRoles.map((role) => role.description)}
-                            value={editUser.roleId ? roles[editUser.roleId] : undefined}
-                            onChange={(value) => {
-                                const role = availableRoles.find((role) => role.description === value);
-                                const selectedRoleId = role?.id;
-                                console.debug("Selected role ID:", selectedRoleId);
-                                setEditUser(
-                                    value ? { ...editUser, roleId: selectedRoleId ?? editUser.roleId } : editUser
-                                );
-                            }}
-                        />
-                        <Switch
-                            label="Deactivated"
-                            checked={editUser.deactivated}
-                            onChange={(e) => {
-                                setEditUser({
-                                    ...editUser,
-                                    deactivated: e.currentTarget.checked,
-                                });
-                            }}
-                        />
-                        <Switch
-                            label="Force Update Required"
-                            checked={editUser.forceUpdateInfo}
-                            onChange={(e) => {
-                                setEditUser({
-                                    ...editUser,
-                                    forceUpdateInfo: e.currentTarget.checked,
-                                });
-                            }}
-                        />
-                        <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
-                            Save
-                        </Button>
-                    </Flex>
-                )}
-            </Modal>
+            {selectedUserIndex !== null && selectedUser !== null && (
+                <EditUserComponent
+                    index={selectedUserIndex}
+                    user={selectedUser}
+                    availableSchools={availableSchools}
+                    availableRoles={availableRoles}
+                    currentPage={currentPage}
+                    fetchUsers={fetchUsers}
+                    setUsers={setUsers}
+                    UpdateUserInfo={UpdateUserInfo}
+                    UploadUserAvatar={UploadUserAvatar}
+                    fetchUserAvatar={fetchUserAvatar}
+                />
+            )}
 
             <Modal opened={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add New User">
                 <Stack>
