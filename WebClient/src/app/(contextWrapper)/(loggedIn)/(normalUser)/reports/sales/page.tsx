@@ -24,7 +24,7 @@ import {
     Title,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
-import { IconCalendar, IconEdit, IconHistory, IconLock, IconX } from "@tabler/icons-react";
+import { IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 
 interface DailyEntry {
@@ -46,6 +46,8 @@ function SalesandPurchasesContent() {
     const [modalOpened, setModalOpened] = useState(false);
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
+    const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
 
     const handleClose = () => {
         router.push('/reports');
@@ -123,6 +125,19 @@ function SalesandPurchasesContent() {
         const entryDate = dayjs(date);
         const today = dayjs();
         return entryDate.isSame(today, "day") || entryDate.isBefore(today, "day");
+    };
+
+    const handleDeleteEntry = (entry: DailyEntry) => {
+        setEntryToDelete(entry);
+        setDeleteModalOpened(true);
+    };
+
+    const confirmDeleteEntry = () => {
+        if (!entryToDelete) return;
+
+        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.date));
+        setDeleteModalOpened(false);
+        setEntryToDelete(null);
     };
 
     const calculateTotals = () => {
@@ -255,21 +270,31 @@ function SalesandPurchasesContent() {
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className="text-center">
-                                            <ActionIcon
-                                                variant={canEditDate(entry.date) ? "light" : "subtle"}
-                                                color={canEditDate(entry.date) ? "blue" : "gray"}
-                                                disabled={!canEditDate(entry.date)}
-                                                onClick={() => {
-                                                    if (canEditDate(entry.date)) {
-                                                        setEditingEntry(entry);
-                                                        setModalSales(entry.sales);
-                                                        setModalPurchases(entry.purchases);
-                                                        setModalOpened(true);
-                                                    }
-                                                }}
-                                            >
-                                                {canEditDate(entry.date) ? <IconEdit size={16} /> : <IconLock size={16} />}
-                                            </ActionIcon>
+                                            <Group justify="center" gap="sm">
+                                                <ActionIcon
+                                                    variant={canEditDate(entry.date) ? "light" : "subtle"}
+                                                    color={canEditDate(entry.date) ? "blue" : "gray"}
+                                                    disabled={!canEditDate(entry.date)}
+                                                    onClick={() => {
+                                                        if (canEditDate(entry.date)) {
+                                                            setEditingEntry(entry);
+                                                            setModalSales(entry.sales);
+                                                            setModalPurchases(entry.purchases);
+                                                            setModalOpened(true);
+                                                        }
+                                                    }}
+                                                >
+                                                    {canEditDate(entry.date) ? <IconEdit size={16} /> : <IconLock size={16} />}
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    variant="light"
+                                                    color="red"
+                                                    onClick={() => handleDeleteEntry(entry)}
+                                                    className="ml-2"
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
                                         </Table.Td>
                                     </Table.Tr>
                                 ))}
@@ -412,6 +437,28 @@ function SalesandPurchasesContent() {
                             <Button onClick={handleSaveEntry}>Save Entry</Button>
                         </Group>
                     </Stack>
+                </Modal>
+
+                {/* Delete Confirmation Modal */}
+                <Modal
+                    opened={deleteModalOpened}
+                    onClose={() => setDeleteModalOpened(false)}
+                    title="Confirm Deletion"
+                    centered
+                    size="sm"
+                >
+                    <Text size="sm" c="dimmed">
+                        Are you sure you want to delete the entry for{" "}
+                        {entryToDelete ? dayjs(entryToDelete.date).format("MMMM DD, YYYY") : "this date"}?
+                    </Text>
+                    <Group justify="end" mt="md">
+                        <Button variant="subtle" onClick={() => setDeleteModalOpened(false)}>
+                            Cancel
+                        </Button>
+                        <Button color="red" onClick={confirmDeleteEntry}>
+                            Delete
+                        </Button>
+                    </Group>
                 </Modal>
             </Stack>
         </div>)
