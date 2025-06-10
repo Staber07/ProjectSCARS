@@ -1,7 +1,8 @@
 "use client";
 
+import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
-import { CreateUser, GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
@@ -9,14 +10,10 @@ import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
-    Button,
     Checkbox,
     Flex,
     Group,
-    Modal,
     Pagination,
-    Select,
-    Stack,
     Table,
     TableTbody,
     TableTd,
@@ -27,7 +24,6 @@ import {
     TextInput,
     Tooltip,
 } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
     IconCheck,
@@ -41,7 +37,6 @@ import {
     IconSearch,
     IconSendOff,
     IconUser,
-    IconUserCheck,
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
@@ -58,7 +53,6 @@ export default function UsersPage(): JSX.Element {
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
-    const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
     const [fetchRolesErrorShown, setFetchRolesErrorShown] = useState(false);
@@ -68,15 +62,13 @@ export default function UsersPage(): JSX.Element {
     const [selectedUser, setSelectedUser] = useState<UserPublicType | null>(null);
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
-    const [addModalOpen, setAddModalOpen] = useState(false);
-    const [createUserFullName, setCreateUserFullName] = useState("");
-    const [createUserEmail, setCreateUserEmail] = useState("");
-    const [createUserPassword, setCreateUserPassword] = useState("");
-    const [createUserUsername, setCreateUserUsername] = useState("");
-    const [createUserAssignedSchool, setCreateUserAssignedSchool] = useState<number | null>(null);
-    const [createUserRole, setCreateUserRole] = useState<number | null>();
+    const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
 
     const handleSearch = () => {};
+    const handleCreate = () => {
+        console.debug("Creating new user");
+        setOpenCreateUserModal(true);
+    };
     const handleEdit = (index: number, user: UserPublicType) => {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
@@ -89,6 +81,7 @@ export default function UsersPage(): JSX.Element {
         else updated.add(index);
         setSelected(updated);
     };
+
     const fetchUserAvatar = (avatarUrn: string): string | undefined => {
         if (avatarsRequested.has(avatarUrn) && avatars.has(avatarUrn)) {
             return avatars.get(avatarUrn);
@@ -197,70 +190,6 @@ export default function UsersPage(): JSX.Element {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
 
-    //Function to handle user creation
-    const handleCreateUser = async () => {
-        buttonStateHandler.open();
-        if (!createUserUsername || !createUserRole || !createUserPassword) {
-            notifications.show({
-                id: "create-user-error",
-                title: "Error",
-                message: "Username, role, and password fields are required",
-                color: "red",
-                icon: <IconUserExclamation />,
-            });
-            buttonStateHandler.close();
-            return;
-        }
-
-        try {
-            const new_user = await CreateUser(createUserUsername, createUserRole, createUserPassword);
-            await UpdateUserInfo({
-                id: new_user.id,
-                username: createUserUsername,
-                email: createUserEmail === "" ? null : createUserEmail,
-                nameFirst: createUserFullName.split(" ")[0],
-                nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
-                nameLast: createUserFullName.split(" ").slice(-1)[0],
-                schoolId: createUserAssignedSchool,
-                roleId: createUserRole,
-            });
-            notifications.show({
-                id: "create-user-success",
-                title: "Success",
-                message: "User created successfully",
-                color: "green",
-                icon: <IconUserCheck />,
-            });
-            setAddModalOpen(false);
-            setCreateUserFullName("");
-            setCreateUserEmail("");
-            setCreateUserPassword("");
-            setCreateUserUsername("");
-            setCreateUserAssignedSchool(null);
-            setCreateUserRole(null);
-            fetchUsers(currentPage);
-        } catch (err) {
-            if (err instanceof Error) {
-                notifications.show({
-                    id: "create-user-error",
-                    title: "Error",
-                    message: `Failed to create user: ${err.message}`,
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-            } else {
-                notifications.show({
-                    id: "create-user-error",
-                    title: "Error",
-                    message: "Failed to create user",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-            }
-        }
-        buttonStateHandler.close();
-    };
-
     //Function to for Hover and Mouse Tracking on User Card
     // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
     // const [mouseX, setMouseX] = useState(0);
@@ -287,7 +216,7 @@ export default function UsersPage(): JSX.Element {
                     style={{ width: "400px" }}
                 />
                 <Flex ml="auto" gap="sm" align="center">
-                    <ActionIcon size="input-md" variant="filled" color="blue" onClick={() => setAddModalOpen(true)}>
+                    <ActionIcon size="input-md" variant="filled" color="blue" onClick={handleCreate}>
                         <IconPlus size={18} />
                     </ActionIcon>
                     <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
@@ -529,59 +458,17 @@ export default function UsersPage(): JSX.Element {
                     fetchUserAvatar={fetchUserAvatar}
                 />
             )}
-
-            <Modal opened={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add New User">
-                <Stack>
-                    <TextInput
-                        label="Full Name"
-                        value={createUserFullName}
-                        onChange={(e) => setCreateUserFullName(e.currentTarget.value)}
-                    />
-                    <TextInput
-                        withAsterisk
-                        label="Username"
-                        value={createUserUsername}
-                        onChange={(e) => setCreateUserUsername(e.currentTarget.value)}
-                    />
-                    <TextInput
-                        label="Email"
-                        value={createUserEmail}
-                        onChange={(e) => setCreateUserEmail(e.currentTarget.value)}
-                    />
-                    <TextInput
-                        withAsterisk
-                        label="Password"
-                        type="password"
-                        value={createUserPassword}
-                        onChange={(e) => setCreateUserPassword(e.currentTarget.value)}
-                    />
-                    <Select
-                        label="Assigned School"
-                        placeholder="School"
-                        data={availableSchools.map(
-                            (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
-                        )}
-                        onChange={(e) => {
-                            const school = availableSchools.find(
-                                (s) => `${s.name}${s.address ? ` (${s.address})` : ""}` === e
-                            );
-                            setCreateUserAssignedSchool(school?.id ?? null);
-                        }}
-                    />
-                    <Select
-                        withAsterisk
-                        label="Role"
-                        placeholder="Role"
-                        data={availableRoles.map((role) => role.description)}
-                        onChange={(e) => {
-                            setCreateUserRole(availableRoles.find((role) => role.description === e)?.id ?? null);
-                        }}
-                    />
-                    <Button loading={buttonLoading} rightSection={<IconUserCheck />} onClick={handleCreateUser}>
-                        Create User
-                    </Button>
-                </Stack>
-            </Modal>
+            {openCreateUserModal === true && (
+                <CreateUserComponent
+                    modalOpen={openCreateUserModal}
+                    setModalOpen={setOpenCreateUserModal}
+                    fetchUsers={fetchUsers}
+                    currentPage={currentPage}
+                    availableSchools={availableSchools}
+                    availableRoles={availableRoles}
+                    UpdateUserInfo={UpdateUserInfo}
+                />
+            )}
         </>
     );
 }

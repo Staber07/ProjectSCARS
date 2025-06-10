@@ -199,6 +199,7 @@ export function EditUserComponent({
             buttonStateHandler.close();
         }
     };
+
     return (
         <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
             {editUser && (
@@ -279,7 +280,7 @@ export function EditUserComponent({
                             }
                             label="Username"
                             value={editUser.username ? editUser.username : ""}
-                            onChange={(e) => setEditUser({ ...editUser, nameFirst: e.currentTarget.value })}
+                            onChange={(e) => setEditUser({ ...editUser, username: e.currentTarget.value })}
                         />
                     </Tooltip>
                     <Tooltip
