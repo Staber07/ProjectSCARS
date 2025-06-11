@@ -22,6 +22,7 @@ import {
     Title,
 } from "@mantine/core";
 import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import {
     IconCalendar,
     IconCalendarWeek,
