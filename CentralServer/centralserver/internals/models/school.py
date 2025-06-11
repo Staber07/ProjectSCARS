@@ -23,11 +23,6 @@ class School(SQLModel, table=True):
     #       multiple schools with the same name.
     name: str = Field(index=True, description="The name of the school.")
     address: str | None = Field(default=None, description="The address of the school.")
-    coordinates: str | None = Field(
-        default=None,
-        regex=r"^(-?\d+(\.\d+)?),\s*(-?\d+(\.\d+)?)$",
-        description="The coordinates of the school. (Format: `x,y`)",
-    )
 
     # NOTE: verification are not implemented for these fields.
     phone: str | None = Field(
@@ -61,7 +56,6 @@ class SchoolCreate(SQLModel):
 
     name: str
     address: str | None = None
-    coordinates: str | None = None
     phone: str | None = None
     email: EmailStr | None = None
     website: str | None = None

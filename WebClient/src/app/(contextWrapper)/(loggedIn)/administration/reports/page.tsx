@@ -1,38 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 import {
     ActionIcon,
     Badge,
-    Card,
     Checkbox,
     Flex,
-    Grid,
     Group,
     Menu,
     Pagination,
     Paper,
     Select,
+    Stack,
     Table,
+    Tabs,
     Text,
     TextInput,
-    Tabs,
-    Stack,
 } from "@mantine/core";
-import {
-    IconSearch,
-    IconFilter,
-    IconDownload,
-    IconEye,
-    IconPencil,
-    IconTrash,
-    IconDots,
-    IconCash,
-    IconReceipt,
-    IconUsers,
-} from "@tabler/icons-react";
+import { IconDots, IconDownload, IconEye, IconFilter, IconPencil, IconSearch, IconTrash } from "@tabler/icons-react";
 
 // Sample Report Submission Data
 const reportSubmissions = [
@@ -95,14 +81,14 @@ const reportSubmissions = [
 export default function ReportsPage() {
     console.debug("Rendering ReportsPage");
 
-    const router = useRouter();
+    // const router = useRouter();
 
     const [search, setSearch] = useState("");
     const [selectedReports, setSelectedReports] = useState<number[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [activeTab, setActiveTab] = useState("all");
-    const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
+    // const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
 
     const filteredReports = reportSubmissions.filter((report) => {
         const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
@@ -149,41 +135,41 @@ export default function ReportsPage() {
         }
     };
 
-    const handleNavigateToSales = () => {
-        router.push("/reports/sales");
-    };
+    // const handleNavigateToSales = () => {
+    //     router.push("/reports/sales");
+    // };
 
-    const handleCreateLiquidationReport = (category: string, path: string) => {
-        console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
-    };
+    // const handleCreateLiquidationReport = (category: string, path: string) => {
+    //     console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
+    // };
 
-    const handleNavigateToPayroll = () => {
-        router.push("/reports/payroll");
-    };
+    // const handleNavigateToPayroll = () => {
+    //     router.push("/reports/payroll");
+    // };
 
-    type QuickActionCardProps = {
-        title: string;
-        description: string;
-        icon: React.ElementType;
-        color: string;
-        onClick: () => void;
-    };
+    // type QuickActionCardProps = {
+    //     title: string;
+    //     description: string;
+    //     icon: React.ElementType;
+    //     color: string;
+    //     onClick: () => void;
+    // };
 
-    const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
-        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
-            <Group>
-                <ActionIcon size="xl" variant="light" color={color}>
-                    <Icon size={24} />
-                </ActionIcon>
-                <div>
-                    <Text fw={500}>{title}</Text>
-                    <Text size="sm" c="dimmed">
-                        {description}
-                    </Text>
-                </div>
-            </Group>
-        </Card>
-    );
+    // const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
+    //     <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
+    //         <Group>
+    //             <ActionIcon size="xl" variant="light" color={color}>
+    //                 <Icon size={24} />
+    //             </ActionIcon>
+    //             <div>
+    //                 <Text fw={500}>{title}</Text>
+    //                 <Text size="sm" c="dimmed">
+    //                     {description}
+    //                 </Text>
+    //             </div>
+    //         </Group>
+    //     </Card>
+    // );
 
     const rows = filteredReports.map((report) => (
         <Table.Tr key={report.id}>

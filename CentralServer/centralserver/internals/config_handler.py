@@ -177,9 +177,12 @@ class Security:
             allow_credentials: Whether to allow credentials to be sent.
             allow_methods: Which methods are allowed.
             allow_headers: Which headers are allowed.
-            failed_login_notify_attempts: Number of failed login attempts before notifying the user.
-            failed_login_lockout_attempts: Number of failed login attempts before locking the user out.
-            failed_login_lockout_minutes: Duration for which the user is locked out after too many failed login attempts.
+            failed_login_notify_attempts: Number of failed login attempts before
+                                           notifying the user.
+            failed_login_lockout_attempts: Number of failed login attempts
+                                           before locking the user out.
+            failed_login_lockout_minutes: Duration for which the user is locked
+                                           out after too many failed login attempts.
         """
 
         self.allow_origins: list[str] = allow_origins or ["*"]
@@ -338,11 +341,21 @@ def read_config(config: dict[str, Any]) -> AppConfig:
     match object_store_type:
         case "local":
             final_object_store_config = LocalObjectStoreAdapterConfig(
-                filepath=object_store_config.get("filepath", None)
+                max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
+                allowed_image_types=object_store_config.get(
+                    "allowed_image_types", None
+                ),
+                filepath=object_store_config.get("filepath", None),
             )
 
         case "minio":
             final_object_store_config = MinIOObjectStoreAdapterConfig(
+                max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
+                allowed_image_types=object_store_config.get(
+                    "allowed_image_types", None
+                ),
                 access_key=object_store_config.get("access_key", None),
                 secret_key=object_store_config.get("secret_key", None),
                 endpoint=object_store_config.get("endpoint", None),
@@ -351,6 +364,11 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 
         case "garage":
             final_object_store_config = GarageObjectStoreAdapterConfig(
+                max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
+                allowed_image_types=object_store_config.get(
+                    "allowed_image_types", None
+                ),
                 access_key=object_store_config.get("access_key", None),
                 secret_key=object_store_config.get("secret_key", None),
                 endpoint=object_store_config.get("endpoint", None),
