@@ -206,11 +206,13 @@ class ObjectStoreAdapterConfig(ABC):
     def __init__(
         self,
         max_file_size: int | None = None,
+        min_image_size: int | None = None,
         allowed_image_types: set[str] | None = None,
     ):
         """Adapter configuration for object store."""
 
         self.max_file_size: int = max_file_size or 2097152  # Default to 2 MB
+        self.min_image_size: int = min_image_size or 256  # Minimum image size in pixels
         self.allowed_image_types: set[str] = allowed_image_types or {
             "png",
             "jpeg",
@@ -230,11 +232,14 @@ class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     def __init__(
         self,
         max_file_size: int | None = None,
+        min_image_size: int | None = None,
         allowed_image_types: set[str] | None = None,
         filepath: str | None = None,
     ) -> None:
         super().__init__(
-            max_file_size=max_file_size, allowed_image_types=allowed_image_types
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
         )
         self.filepath: Path = Path(filepath or os.path.join(os.getcwd(), "data"))
 
@@ -255,6 +260,7 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     def __init__(
         self,
         max_file_size: int | None = None,
+        min_image_size: int | None = None,
         allowed_image_types: set[str] | None = None,
         access_key: str | None = None,
         secret_key: str | None = None,
@@ -271,7 +277,9 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
         """
 
         super().__init__(
-            max_file_size=max_file_size, allowed_image_types=allowed_image_types
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
         )
 
         if access_key is None or secret_key is None:
@@ -300,6 +308,7 @@ class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     def __init__(
         self,
         max_file_size: int | None = None,
+        min_image_size: int | None = None,
         allowed_image_types: set[str] | None = None,
         access_key: str | None = None,
         secret_key: str | None = None,
@@ -316,7 +325,9 @@ class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
         """
 
         super().__init__(
-            max_file_size=max_file_size, allowed_image_types=allowed_image_types
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
         )
 
         if access_key is None or secret_key is None:

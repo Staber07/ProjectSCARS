@@ -342,6 +342,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
         case "local":
             final_object_store_config = LocalObjectStoreAdapterConfig(
                 max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
                 allowed_image_types=object_store_config.get(
                     "allowed_image_types", None
                 ),
@@ -350,6 +351,11 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 
         case "minio":
             final_object_store_config = MinIOObjectStoreAdapterConfig(
+                max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
+                allowed_image_types=object_store_config.get(
+                    "allowed_image_types", None
+                ),
                 access_key=object_store_config.get("access_key", None),
                 secret_key=object_store_config.get("secret_key", None),
                 endpoint=object_store_config.get("endpoint", None),
@@ -358,6 +364,11 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 
         case "garage":
             final_object_store_config = GarageObjectStoreAdapterConfig(
+                max_file_size=object_store_config.get("max_file_size", None),
+                min_image_size=object_store_config.get("min_image_size", None),
+                allowed_image_types=object_store_config.get(
+                    "allowed_image_types", None
+                ),
                 access_key=object_store_config.get("access_key", None),
                 secret_key=object_store_config.get("secret_key", None),
                 endpoint=object_store_config.get("endpoint", None),

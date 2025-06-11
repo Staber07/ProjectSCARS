@@ -52,13 +52,18 @@ async def validate_and_process_image(contents: bytes) -> bytes:
 
     try:
         image = Image.open(BytesIO(contents))
+        image.load()
+        logger.debug("Image size: %s", image.size)
+        logger.debug("Image format: %s", image.format)
         if image.format is None:
             raise ValueError("Image format not recognized.")
 
-        if image.format not in app_config.object_store.allowed_image_types:
+        if image.format.lower() not in app_config.object_store.allowed_image_types:
             raise ValueError(
                 f"Unsupported image format: {image.format}. Allowed: {allowed_ft}."
             )
+
+        save_format = image.format.lower()
 
     except Exception as e:
         raise ValueError("Invalid image file.") from e
@@ -73,8 +78,15 @@ async def validate_and_process_image(contents: bytes) -> bytes:
     )
     image = image.crop(dimensions)
 
+    logger.debug("Cropped image dimensions: %s", image.size)
+    # We don't need to check image.size[1] because we are cropping it to a square.
+    if image.size[0] < app_config.object_store.min_image_size:
+        raise ValueError(
+            f"Image dimensions {image.size} are smaller than the minimum required size of {app_config.object_store.min_image_size} pixels."
+        )
+
     output_buffer = BytesIO()
-    image.save(output_buffer, format=image.format)
+    image.save(output_buffer, format=save_format)
     return output_buffer.getvalue()
 
 
