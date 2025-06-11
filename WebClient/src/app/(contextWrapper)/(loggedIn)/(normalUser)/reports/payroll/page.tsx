@@ -1,13 +1,6 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { useRouter } from "next/navigation";
-import { Suspense, useState, useEffect } from "react";
-import dayjs from "dayjs";
-import weekOfYear from "dayjs/plugin/weekOfYear";
-import isoWeek from "dayjs/plugin/isoWeek";
-import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
-import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
     ActionIcon,
@@ -28,10 +21,29 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
-import { IconCalendar, IconPlus, IconTrash, IconX, IconReceipt2, IconUser, IconUsers, IconCalendarWeek, IconInfoCircle, IconCheck, IconChevronDown, IconChevronUp, IconEdit } from "@tabler/icons-react";
-import { SplitButton } from "@/components/SplitButton/SplitButton";
-
+import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
+import {
+    IconCalendar,
+    IconCalendarWeek,
+    IconCheck,
+    IconChevronDown,
+    IconChevronUp,
+    IconEdit,
+    IconInfoCircle,
+    IconPlus,
+    IconReceipt2,
+    IconTrash,
+    IconUser,
+    IconUsers,
+    IconX,
+} from "@tabler/icons-react";
+import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -67,22 +79,20 @@ function PayrollPageContent() {
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
     const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<Date | null>(
-        reportPeriod ? dayjs(reportPeriod).toDate() : null
-    );
-    
+    const [selectedMonth, setSelectedMonth] = useState<Date | null>(reportPeriod ? dayjs(reportPeriod).toDate() : null);
+
     // Employee creation/edit states
     const [employeeModalOpened, setEmployeeModalOpened] = useState(false);
     const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
     const [newEmployeeName, setNewEmployeeName] = useState("");
     const [newEmployeeDailyRate, setNewEmployeeDailyRate] = useState<number>(0);
-    
+
     // Week creation/edit states
     const [weekModalOpened, setWeekModalOpened] = useState(false);
     const [editingWeekId, setEditingWeekId] = useState<string | null>(null);
     const [newWeekDateRange, setNewWeekDateRange] = useState<[Date | null, Date | null]>([null, null]);
     const [newWeekLabel, setNewWeekLabel] = useState("");
-    
+
     // Collapse states
     const [employeesCollapsed, setEmployeesCollapsed] = useState(false);
     const [weekPeriodsCollapsed, setWeekPeriodsCollapsed] = useState(false);
@@ -92,9 +102,9 @@ function PayrollPageContent() {
         const [startDate, endDate] = newWeekDateRange;
         if (startDate && endDate && !editingWeekId) {
             const weekNum = weekPeriods.length + 1;
-            const startMonth = dayjs(startDate).format('M');
-            const startDay = dayjs(startDate).format('D');
-            const endDay = dayjs(endDate).format('D');
+            const startMonth = dayjs(startDate).format("M");
+            const startDay = dayjs(startDate).format("D");
+            const endDay = dayjs(endDate).format("D");
             const label = `WEEK ${weekNum} /DATE COVERED: ${startMonth}/${startDay}-${endDay}`;
             setNewWeekLabel(label);
         }
@@ -128,21 +138,23 @@ function PayrollPageContent() {
         if (newEmployeeName.trim() && newEmployeeDailyRate > 0) {
             if (editingEmployeeId) {
                 // Update existing employee
-                setEmployees(employees.map(emp => 
-                    emp.id === editingEmployeeId 
-                        ? { ...emp, name: newEmployeeName.trim(), dailyRate: newEmployeeDailyRate }
-                        : emp
-                ));
+                setEmployees(
+                    employees.map((emp) =>
+                        emp.id === editingEmployeeId
+                            ? { ...emp, name: newEmployeeName.trim(), dailyRate: newEmployeeDailyRate }
+                            : emp
+                    )
+                );
             } else {
                 // Add new employee
                 const newEmployee: Employee = {
                     id: Date.now().toString(),
                     name: newEmployeeName.trim(),
-                    dailyRate: newEmployeeDailyRate
+                    dailyRate: newEmployeeDailyRate,
                 };
                 setEmployees([...employees, newEmployee]);
             }
-            
+
             // Reset form
             setNewEmployeeName("");
             setNewEmployeeDailyRate(0);
@@ -152,8 +164,8 @@ function PayrollPageContent() {
     };
 
     const removeEmployee = (employeeId: string) => {
-        setEmployees(employees.filter(emp => emp.id !== employeeId));
-        setAttendanceRecords(attendanceRecords.filter(record => record.employeeId !== employeeId));
+        setEmployees(employees.filter((emp) => emp.id !== employeeId));
+        setAttendanceRecords(attendanceRecords.filter((record) => record.employeeId !== employeeId));
     };
 
     const openWeekModal = (week?: WeekPeriod) => {
@@ -171,39 +183,40 @@ function PayrollPageContent() {
 
     const isDateInSelectedMonth = (date: Date): boolean => {
         if (!selectedMonth) return true; // If no month selected, allow all dates
-        
+
         const dateToCheck = dayjs(date);
         const monthToMatch = dayjs(selectedMonth);
-        
-        return dateToCheck.month() === monthToMatch.month() && 
-            dateToCheck.year() === monthToMatch.year();
+
+        return dateToCheck.month() === monthToMatch.month() && dateToCheck.year() === monthToMatch.year();
     };
 
     const saveWeekPeriod = () => {
         const [startDate, endDate] = newWeekDateRange;
-        
+
         if (startDate && endDate && newWeekLabel.trim()) {
             const startDay = dayjs(startDate);
             const endDay = dayjs(endDate);
-            
+
             const workingDays: Date[] = [];
             let currentDate = startDay;
-            
-            while (currentDate.isSameOrBefore(endDay, 'day')) {
+
+            while (currentDate.isSameOrBefore(endDay, "day")) {
                 // Only include weekdays (Monday to Friday)
                 if (currentDate.day() >= 1 && currentDate.day() <= 5) {
                     workingDays.push(currentDate.toDate());
                 }
-                currentDate = currentDate.add(1, 'day');
+                currentDate = currentDate.add(1, "day");
             }
 
             if (editingWeekId) {
                 // Update existing week
-                setWeekPeriods(weekPeriods.map(week => 
-                    week.id === editingWeekId 
-                        ? { ...week, label: newWeekLabel.trim(), startDate, endDate, workingDays }
-                        : week
-                ));
+                setWeekPeriods(
+                    weekPeriods.map((week) =>
+                        week.id === editingWeekId
+                            ? { ...week, label: newWeekLabel.trim(), startDate, endDate, workingDays }
+                            : week
+                    )
+                );
             } else {
                 // Add new week
                 const newWeekPeriod: WeekPeriod = {
@@ -212,13 +225,13 @@ function PayrollPageContent() {
                     startDate,
                     endDate,
                     workingDays,
-                    isCompleted: false
+                    isCompleted: false,
                 };
 
                 setWeekPeriods([...weekPeriods, newWeekPeriod]);
                 setSelectedWeekId(newWeekPeriod.id);
             }
-            
+
             // Reset form
             setNewWeekDateRange([null, null]);
             setNewWeekLabel("");
@@ -228,44 +241,38 @@ function PayrollPageContent() {
     };
 
     const removeWeekPeriod = (weekId: string) => {
-        const weekToRemove = weekPeriods.find(w => w.id === weekId);
+        const weekToRemove = weekPeriods.find((w) => w.id === weekId);
         if (weekToRemove) {
             // Remove attendance records for this week
-            const weekDates = weekToRemove.workingDays.map(date => dayjs(date).format('YYYY-MM-DD'));
-            setAttendanceRecords(records => 
-                records.filter(record => !weekDates.includes(record.date))
-            );
+            const weekDates = weekToRemove.workingDays.map((date) => dayjs(date).format("YYYY-MM-DD"));
+            setAttendanceRecords((records) => records.filter((record) => !weekDates.includes(record.date)));
         }
-        
-        setWeekPeriods(weekPeriods.filter(w => w.id !== weekId));
-        
+
+        setWeekPeriods(weekPeriods.filter((w) => w.id !== weekId));
+
         // Update selected week if needed
         if (selectedWeekId === weekId) {
-            const remainingWeeks = weekPeriods.filter(w => w.id !== weekId);
+            const remainingWeeks = weekPeriods.filter((w) => w.id !== weekId);
             setSelectedWeekId(remainingWeeks.length > 0 ? remainingWeeks[0].id : null);
         }
     };
 
     const toggleWeekCompletion = (weekId: string) => {
-        setWeekPeriods(weeks =>
-            weeks.map(week =>
-                week.id === weekId
-                    ? { ...week, isCompleted: !week.isCompleted }
-                    : week
-            )
+        setWeekPeriods((weeks) =>
+            weeks.map((week) => (week.id === weekId ? { ...week, isCompleted: !week.isCompleted } : week))
         );
     };
 
     const toggleAttendance = (employeeId: string, date: Date) => {
-        const dateKey = dayjs(date).format('YYYY-MM-DD');
+        const dateKey = dayjs(date).format("YYYY-MM-DD");
         const existingRecord = attendanceRecords.find(
-            record => record.employeeId === employeeId && record.date === dateKey
+            (record) => record.employeeId === employeeId && record.date === dateKey
         );
 
         if (existingRecord) {
             // Toggle existing record
-            setAttendanceRecords(records =>
-                records.map(record =>
+            setAttendanceRecords((records) =>
+                records.map((record) =>
                     record.employeeId === employeeId && record.date === dateKey
                         ? { ...record, isPresent: !record.isPresent }
                         : record
@@ -273,32 +280,30 @@ function PayrollPageContent() {
             );
         } else {
             // Create new record
-            setAttendanceRecords(records => [
+            setAttendanceRecords((records) => [
                 ...records,
                 {
                     employeeId,
                     date: dateKey,
-                    isPresent: true
-                }
+                    isPresent: true,
+                },
             ]);
         }
     };
 
     const getAttendanceStatus = (employeeId: string, date: Date): boolean => {
-        const dateKey = dayjs(date).format('YYYY-MM-DD');
-        const record = attendanceRecords.find(
-            record => record.employeeId === employeeId && record.date === dateKey
-        );
+        const dateKey = dayjs(date).format("YYYY-MM-DD");
+        const record = attendanceRecords.find((record) => record.employeeId === employeeId && record.date === dateKey);
         return record?.isPresent || false;
     };
 
     const calculateWeeklyTotal = (employeeId: string, weekId: string): number => {
-        const employee = employees.find(emp => emp.id === employeeId);
-        const week = weekPeriods.find(w => w.id === weekId);
-        
+        const employee = employees.find((emp) => emp.id === employeeId);
+        const week = weekPeriods.find((w) => w.id === weekId);
+
         if (!employee || !week) return 0;
 
-        const presentDays = week.workingDays.filter(date => getAttendanceStatus(employeeId, date)).length;
+        const presentDays = week.workingDays.filter((date) => getAttendanceStatus(employeeId, date)).length;
         return presentDays * employee.dailyRate;
     };
 
@@ -314,8 +319,8 @@ function PayrollPageContent() {
         }, 0);
     };
 
-    const handleSubmitReport = () => {    
-        // TODO: Implement submit report functionality 
+    const handleSubmitReport = () => {
+        // TODO: Implement submit report functionality
         console.log("Submitting payroll report");
     };
 
@@ -329,17 +334,13 @@ function PayrollPageContent() {
         console.log("Previewing payroll report");
     };
 
-    const selectedWeek = weekPeriods.find(w => w.id === selectedWeekId);
+    const selectedWeek = weekPeriods.find((w) => w.id === selectedWeekId);
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
                 {/* Header */}
-                <Flex
-                    justify="space-between"
-                    align="center"
-                    className="flex-col sm:flex-row gap-4"
-                >
+                <Flex justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                     <Group gap="md">
                         <div className="p-2 bg-blue-100 rounded-lg">
                             <IconReceipt2 size={36} />
@@ -366,11 +367,7 @@ function PayrollPageContent() {
 
                 {/* Month Selection */}
                 <Card withBorder>
-                    <Group
-                        justify="space-between"
-                        align="center"
-                        className="flex-col sm:flex-row gap-4"
-                    >
+                    <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                         <Text fw={500}>Period Covered</Text>
                         <MonthPickerInput
                             placeholder="Select month"
@@ -389,10 +386,7 @@ function PayrollPageContent() {
 
                 {/* Employees Management */}
                 <Card withBorder>
-                    <Group
-                        justify="space-between"
-                        align="center" mb="md"
-                    >
+                    <Group justify="space-between" align="center" mb="md">
                         <Group gap="sm">
                             <IconUsers size={20} />
                             <Text fw={500}>Canteen Helpers</Text>
@@ -422,15 +416,15 @@ function PayrollPageContent() {
                     {!employeesCollapsed && employees.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                             {employees.map((employee) => (
-                                <Paper withBorder
-                                    key={employee.id}
-                                    p="md"
-                                    className="hover:bg-gray-50"
-                                >
+                                <Paper withBorder key={employee.id} p="md" className="hover:bg-gray-50">
                                     <Group justify="space-between">
                                         <div>
-                                            <Text fw={500} size="sm">{employee.name}</Text>
-                                            <Text size="xs" c="dimmed">₱{employee.dailyRate}/day</Text>
+                                            <Text fw={500} size="sm">
+                                                {employee.name}
+                                            </Text>
+                                            <Text size="xs" c="dimmed">
+                                                ₱{employee.dailyRate}/day
+                                            </Text>
                                         </div>
                                         <Group gap="xs">
                                             <ActionIcon
@@ -459,7 +453,7 @@ function PayrollPageContent() {
                             ))}
                         </div>
                     )}
-                    
+
                     {!employeesCollapsed && employees.length === 0 && (
                         <Text size="sm" c="dimmed" ta="center" py="xl">
                             No employees added yet.
@@ -469,19 +463,16 @@ function PayrollPageContent() {
 
                 {/* Week Periods Management */}
                 <Card withBorder>
-                    <Group
-                        justify="space-between"
-                        align="center" mb="md"
-                    >
+                    <Group justify="space-between" align="center" mb="md">
                         <Group gap="sm">
                             <IconCalendarWeek size={20} />
                             <Text fw={500}>Weekly Periods</Text>
                             <Badge variant="light" size="sm">
                                 {weekPeriods.length} weeks
                             </Badge>
-                            {weekPeriods.filter(w => w.isCompleted).length > 0 && (
+                            {weekPeriods.filter((w) => w.isCompleted).length > 0 && (
                                 <Badge color="green" size="sm">
-                                    {weekPeriods.filter(w => w.isCompleted).length} completed
+                                    {weekPeriods.filter((w) => w.isCompleted).length} completed
                                 </Badge>
                             )}
                         </Group>
@@ -507,35 +498,40 @@ function PayrollPageContent() {
                     {!weekPeriodsCollapsed && weekPeriods.length > 0 && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {weekPeriods.map((week) => (
-                                <Paper withBorder
+                                <Paper
+                                    withBorder
                                     key={week.id}
                                     p="md"
                                     className={`cursor-pointer transition-colors ${
-                                        selectedWeekId === week.id 
-                                            ? 'bg-blue-50 border-blue-300 hover:bg-blue-100' 
-                                            : 'hover:bg-gray-50'
+                                        selectedWeekId === week.id
+                                            ? "bg-blue-50 border-blue-300 hover:bg-blue-100"
+                                            : "hover:bg-gray-50"
                                     }`}
                                     onClick={() => setSelectedWeekId(week.id)}
                                 >
-                                    <Group
-                                        justify="space-between"
-                                        align="start"
-                                    >
+                                    <Group justify="space-between" align="start">
                                         <div className="flex-1">
                                             <Group gap="xs" mb="xs">
-                                                <Text fw={500} size="sm">{week.label}</Text>
+                                                <Text fw={500} size="sm">
+                                                    {week.label}
+                                                </Text>
                                                 {week.isCompleted && (
-                                                    <Badge color="green" size="xs">Completed</Badge>
+                                                    <Badge color="green" size="xs">
+                                                        Completed
+                                                    </Badge>
                                                 )}
                                                 {selectedWeekId === week.id && (
-                                                    <Badge color="blue" size="xs">Selected</Badge>
+                                                    <Badge color="blue" size="xs">
+                                                        Selected
+                                                    </Badge>
                                                 )}
                                             </Group>
                                             <Text size="xs" c="dimmed">
                                                 {week.workingDays.length} working days
                                             </Text>
                                             <Text size="xs" c="dimmed">
-                                                {dayjs(week.startDate).format('MMM DD')} - {dayjs(week.endDate).format('MMM DD, YYYY')}
+                                                {dayjs(week.startDate).format("MMM DD")} -{" "}
+                                                {dayjs(week.endDate).format("MMM DD, YYYY")}
                                             </Text>
                                         </div>
                                         <Group gap="xs">
@@ -583,7 +579,7 @@ function PayrollPageContent() {
                             ))}
                         </div>
                     )}
-                    
+
                     {!weekPeriodsCollapsed && weekPeriods.length === 0 && (
                         <Text size="sm" c="dimmed" ta="center" py="xl">
                             No weekly periods added yet.
@@ -596,17 +592,15 @@ function PayrollPageContent() {
                     <Card withBorder>
                         <Group justify="space-between" align="center" mb="md">
                             <Text fw={500}>{selectedWeek.label}</Text>
-                            {selectedWeek.isCompleted && (
-                                <Badge color="green">Completed</Badge>
-                            )}
+                            {selectedWeek.isCompleted && <Badge color="green">Completed</Badge>}
                         </Group>
-                        
+
                         {selectedWeek.isCompleted && (
                             <Alert icon={<IconInfoCircle size={16} />} mb="md" color="green">
                                 This week is marked as completed. You can still make changes if needed.
                             </Alert>
                         )}
-                        
+
                         <ScrollArea>
                             <Table striped highlightOnHover style={{ minWidth: "600px" }}>
                                 <Table.Thead>
@@ -616,10 +610,10 @@ function PayrollPageContent() {
                                             <Table.Th key={date.toISOString()} className="text-center">
                                                 <div>
                                                     <Text size="xs" fw={500}>
-                                                        {dayjs(date).format('ddd')}
+                                                        {dayjs(date).format("ddd")}
                                                     </Text>
                                                     <Text size="xs" c="dimmed">
-                                                        {dayjs(date).format('MM/DD')}
+                                                        {dayjs(date).format("MM/DD")}
                                                     </Text>
                                                 </div>
                                             </Table.Th>
@@ -632,13 +626,17 @@ function PayrollPageContent() {
                                         <Table.Tr key={employee.id}>
                                             <Table.Td>
                                                 <div>
-                                                    <Text size="sm" fw={500}>{employee.name}</Text>
-                                                    <Text size="xs" c="dimmed">₱{employee.dailyRate}/day</Text>
+                                                    <Text size="sm" fw={500}>
+                                                        {employee.name}
+                                                    </Text>
+                                                    <Text size="xs" c="dimmed">
+                                                        ₱{employee.dailyRate}/day
+                                                    </Text>
                                                 </div>
                                             </Table.Td>
                                             {selectedWeek.workingDays.map((date) => {
                                                 const isPresent = getAttendanceStatus(employee.id, date);
-                                                
+
                                                 return (
                                                     <Table.Td key={date.toISOString()} className="text-center">
                                                         <Button
@@ -649,7 +647,7 @@ function PayrollPageContent() {
                                                             className="w-16"
                                                             disabled={selectedWeek.isCompleted}
                                                         >
-                                                            {isPresent ? `₱${employee.dailyRate}` : ' - '}
+                                                            {isPresent ? `₱${employee.dailyRate}` : " - "}
                                                         </Button>
                                                     </Table.Td>
                                                 );
@@ -670,28 +668,43 @@ function PayrollPageContent() {
                 {/* Summary Cards */}
                 {employees.length > 0 && weekPeriods.length > 0 && (
                     <Card withBorder>
-                        <Text fw={500} ta="center">MONTH OF {reportPeriod ? dayjs(reportPeriod).format('MMMM, YYYY').toUpperCase() : 'SELECT MONTH'}</Text>
+                        <Text fw={500} ta="center">
+                            MONTH OF{" "}
+                            {reportPeriod ? dayjs(reportPeriod).format("MMMM, YYYY").toUpperCase() : "SELECT MONTH"}
+                        </Text>
                         <Divider my="md" />
                         <Group justify="space-between" align="center" mb="md">
                             <Text fw={500}>NAME</Text>
                             <Text fw={500}>TOTAL AMOUNT RECEIVED</Text>
                         </Group>
-                        
+
                         <div className="space-y-1">
                             {employees.map((employee, index) => (
-                                <Group key={employee.id} justify="space-between" className="border-b border-gray-200 py-2">
+                                <Group
+                                    key={employee.id}
+                                    justify="space-between"
+                                    className="border-b border-gray-200 py-2"
+                                >
                                     <Group gap="sm">
-                                        <Text size="sm" className="w-8">{index + 1}.</Text>
-                                        <Text size="sm" fw={500} className="uppercase">{employee.name}</Text>
+                                        <Text size="sm" className="w-8">
+                                            {index + 1}.
+                                        </Text>
+                                        <Text size="sm" fw={500} className="uppercase">
+                                            {employee.name}
+                                        </Text>
                                     </Group>
-                                    <Text size="sm" fw={500}>₱{calculateMonthlyTotal(employee.id).toFixed(2)}</Text>
+                                    <Text size="sm" fw={500}>
+                                        ₱{calculateMonthlyTotal(employee.id).toFixed(2)}
+                                    </Text>
                                 </Group>
                             ))}
-                            
+
                             <Divider my="md" />
                             <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
                                 <Text fw={700}>Total Amount Received:</Text>
-                                <Text fw={700} size="lg">₱{calculateTotalAmountReceived().toFixed(2)}</Text>
+                                <Text fw={700} size="lg">
+                                    ₱{calculateTotalAmountReceived().toFixed(2)}
+                                </Text>
                             </Group>
                         </div>
                     </Card>
@@ -721,7 +734,7 @@ function PayrollPageContent() {
                 title={
                     <Group gap="sm">
                         <IconCalendarWeek size={20} />
-                        <Text fw={500}>{editingWeekId ? 'Edit' : 'Add'} Weekly Period</Text>
+                        <Text fw={500}>{editingWeekId ? "Edit" : "Add"} Weekly Period</Text>
                     </Group>
                 }
                 centered
@@ -736,7 +749,7 @@ function PayrollPageContent() {
                         onChange={(value) => {
                             const converted: [Date | null, Date | null] = [
                                 value && value[0] ? new Date(value[0]) : null,
-                                value && value[1] ? new Date(value[1]) : null
+                                value && value[1] ? new Date(value[1]) : null,
                             ];
                             setNewWeekDateRange(converted);
                         }}
@@ -745,19 +758,21 @@ function PayrollPageContent() {
                             const dateObj = typeof date === "string" ? new Date(date) : date;
                             // First check if date is in selected month
                             if (!isDateInSelectedMonth(dateObj)) return true;
-                            
+
                             // Then check for overlapping week periods
                             return weekPeriods
-                                .filter(week => editingWeekId ? week.id !== editingWeekId : true)
-                                .some(week => {
+                                .filter((week) => (editingWeekId ? week.id !== editingWeekId : true))
+                                .some((week) => {
                                     const checkDate = dayjs(dateObj);
-                                    return checkDate.isSameOrAfter(dayjs(week.startDate), 'day') && 
-                                        checkDate.isSameOrBefore(dayjs(week.endDate), 'day');
+                                    return (
+                                        checkDate.isSameOrAfter(dayjs(week.startDate), "day") &&
+                                        checkDate.isSameOrBefore(dayjs(week.endDate), "day")
+                                    );
                                 });
                         }}
                         required
                     />
-                    
+
                     <TextInput
                         label="Week Label"
                         placeholder="Week 1"
@@ -765,7 +780,7 @@ function PayrollPageContent() {
                         onChange={(e) => setNewWeekLabel(e.currentTarget.value)}
                         required
                     />
-                    
+
                     {/* {newWeekDateRange[0] && newWeekDateRange[1] && (
                         <Alert icon={<IconInfoCircle size={16} />}>
                             This week period will include {
@@ -788,20 +803,17 @@ function PayrollPageContent() {
                             )}
                         </Alert>
                     )} */}
-                    
+
                     <Group justify="flex-end" gap="md" mt="md">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setWeekModalOpened(false)}
-                        >
+                        <Button variant="outline" onClick={() => setWeekModalOpened(false)}>
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             onClick={saveWeekPeriod}
                             disabled={!newWeekDateRange[0] || !newWeekDateRange[1] || !newWeekLabel.trim()}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {editingWeekId ? 'Update' : 'Save'} Week
+                            {editingWeekId ? "Update" : "Save"} Week
                         </Button>
                     </Group>
                 </Stack>
@@ -814,7 +826,7 @@ function PayrollPageContent() {
                 title={
                     <Group gap="sm">
                         <IconUser size={20} />
-                        <Text fw={500}>{editingEmployeeId ? 'Edit' : 'Add'} Employee</Text>
+                        <Text fw={500}>{editingEmployeeId ? "Edit" : "Add"} Employee</Text>
                     </Group>
                 }
                 centered
@@ -828,30 +840,29 @@ function PayrollPageContent() {
                         onChange={(e) => setNewEmployeeName(e.currentTarget.value)}
                         required
                     />
-                    
+
                     <NumberInput
                         label="Daily Rate"
                         placeholder="Enter daily rate"
                         value={newEmployeeDailyRate}
-                        onChange={(value) => setNewEmployeeDailyRate(typeof value === "number" ? value : Number(value) || 0)}
+                        onChange={(value) =>
+                            setNewEmployeeDailyRate(typeof value === "number" ? value : Number(value) || 0)
+                        }
                         min={0}
                         prefix="₱"
                         required
                     />
-                    
+
                     <Group justify="flex-end" gap="md" mt="md">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => setEmployeeModalOpened(false)}
-                        >
+                        <Button variant="outline" onClick={() => setEmployeeModalOpened(false)}>
                             Cancel
                         </Button>
-                        <Button 
+                        <Button
                             onClick={saveEmployee}
                             disabled={!newEmployeeName.trim() || newEmployeeDailyRate <= 0}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
-                            {editingEmployeeId ? 'Update' : 'Add'} Employee
+                            {editingEmployeeId ? "Update" : "Add"} Employee
                         </Button>
                     </Group>
                 </Stack>
