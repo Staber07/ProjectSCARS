@@ -444,15 +444,21 @@ export function EditUserComponent({
                             }
                             label="Role"
                             placeholder="Role"
-                            data={availableRoles.map((role) => role.description)}
-                            value={editUser.roleId ? roles[editUser.roleId] : undefined}
+                            data={availableRoles.map((role) => ({
+                                value: role.id.toString(),
+                                label: role.description,
+                            }))}
+                            value={editUser.roleId?.toString()}
                             onChange={(value) => {
-                                const role = availableRoles.find((role) => role.description === value);
-                                const selectedRoleId = role?.id;
-                                console.debug("Selected role ID:", selectedRoleId);
-                                setEditUser(
-                                    value ? { ...editUser, roleId: selectedRoleId ?? editUser.roleId } : editUser
-                                );
+                                if (value) {
+                                    const roleId = parseInt(value);
+                                    setEditUser({ ...editUser, roleId });
+                                    // Also update userChanges to ensure the change is tracked
+                                    setUserChanges((prev) => ({
+                                        ...(prev ?? { id: user.id }),
+                                        roleId,
+                                    }));
+                                }
                             }}
                         />
                     </Tooltip>
