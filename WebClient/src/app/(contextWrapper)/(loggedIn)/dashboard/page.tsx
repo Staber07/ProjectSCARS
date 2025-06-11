@@ -26,14 +26,6 @@ import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/ico
 import Link from "next/link";
 import React, { Suspense, useEffect, useState } from "react";
 
-import AboutBento from "@/components/AboutBento"; // Import the AboutBento component
-
-interface BentoInfo {
-    title: string;
-    description: string;
-    features: { title: string; description: string; link: string }[];
-}
-
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
     ["Complete your profile information", false],
@@ -46,7 +38,6 @@ function DashboardContent() {
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
-    const [bentoInfo, setBentoInfo] = useState<BentoInfo | null>(null); // Bento Info State
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
@@ -82,20 +73,6 @@ function DashboardContent() {
         };
         fetchNotifications();
     });
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await fetch("/api/bento_info"); // Adjust URL if needed
-                const data: BentoInfo = await response.json();
-                setBentoInfo(data);
-            } catch (error) {
-                console.error("Error fetching Bento info:", error);
-            }
-        };
-
-        fetchData();
-    }, []);
 
     useEffect(() => {
         if (userCtx.userInfo) {
@@ -223,8 +200,6 @@ function DashboardContent() {
                         </Text>
                     )}
                 </Card>
-                <hr /> {/* Divider */}
-                {bentoInfo && <AboutBento bentoInfo={bentoInfo} />}
             </Container>
         </Container>
     );
