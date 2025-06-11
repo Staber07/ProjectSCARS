@@ -24,7 +24,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, memo, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -164,7 +164,7 @@ function DashboardContent() {
                                 <Text size="sm" c="dimmed">
                                     Complete your profile, set up security features, and customize your preferences.
                                 </Text>
-                                <List spacing="xs" center>
+                                {/* <List spacing="xs" center>
                                     {stepsToComplete.map(([step, completed], index) => (
                                         <List.Item
                                             key={index}
@@ -183,7 +183,7 @@ function DashboardContent() {
                                             </Text>
                                         </List.Item>
                                     ))}
-                                </List>
+                                </List> */}
                             </Stack>
                         </Flex>
                         <Text
@@ -233,6 +233,46 @@ function DashboardContent() {
         </Container>
     );
 }
+
+// Memoize the setup steps component
+const SetupSteps = memo(({ steps }: { steps: [string, boolean][] }) => (
+    <List spacing="xs" center>
+        {steps.map(([step, completed], index) => (
+            <List.Item
+                key={index}
+                icon={
+                    <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
+                        {completed ? <IconCircleCheck /> : <IconCircleDashed />}
+                    </ThemeIcon>
+                }
+                c={completed ? "gray" : "dark"}
+            >
+                <Text size="sm" style={{ textDecoration: completed ? "line-through" : "none" }}>
+                    {step}
+                </Text>
+            </List.Item>
+        ))}
+    </List>
+));
+
+// Memoize the notification card
+const NotificationCard = memo(({ notification }: { notification: NotificationType }) => (
+    <Link href="/account/notifications" style={{ textDecoration: "none" }}>
+        <Card withBorder radius="md" p="md">
+            <Group>
+                <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
+                    {notificationIcons[notification.type]?.[0] &&
+                        React.createElement(notificationIcons[notification.type][0])}
+                </Avatar>
+                <Text size="sm">{notification.content}</Text>
+            </Group>
+            <Text size="xs" c="dimmed" ta="right" mt={5}>
+                {new Date(notification.created).toLocaleString()}
+            </Text>
+        </Card>
+    </Link>
+));
+
 export default function DashboardPage() {
     return (
         <Suspense fallback={<LoadingComponent message="Loading dashboard..." withBorder={false} />}>
