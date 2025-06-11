@@ -101,7 +101,7 @@ export default function UsersPage(): JSX.Element {
             await Promise.all(
                 selectedUsers.map((user) =>
                     UpdateUserInfo({
-                        ...user,
+                        id: user.id,
                         deactivated: isDeactivate,
                     })
                 )
@@ -127,6 +127,7 @@ export default function UsersPage(): JSX.Element {
                 icon: isDeactivate ? <IconUserOff /> : <IconUserCheck />,
             });
         } catch (error) {
+            console.error("Bulk action error:", error);
             notifications.show({
                 title: "Error",
                 message: `Failed to ${isDeactivate ? "deactivate" : "reactivate"} users`,
