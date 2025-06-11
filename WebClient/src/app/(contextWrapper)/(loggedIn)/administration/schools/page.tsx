@@ -106,7 +106,7 @@ export default function SchoolsPage(): JSX.Element {
             return undefined; // Logo is requested but not yet available
         }
         setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        GetSchooLogo(logoUrn, schoolId)  // <-- pass schoolId here
+        GetSchooLogo(logoUrn, schoolId)
             .then((blob) => {
                 const url = URL.createObjectURL(blob);
                 setLogos((prev) => new Map(prev).set(logoUrn, url));
@@ -135,8 +135,6 @@ export default function SchoolsPage(): JSX.Element {
                 email: editSchool.email,
                 website: editSchool.website,
                 logoUrn: editSchool.logoUrn,
-                dateCreated: editSchool.dateCreated,
-                lastModified: editSchool.lastModified,
             };
             UpdateSchoolInfo(newSchoolInfo)
                 .then(() => {
@@ -265,15 +263,39 @@ export default function SchoolsPage(): JSX.Element {
             });
             setSchools((prevSchools) => [...prevSchools, createdSchool]);
             setAddModalOpen(false);
+            setCreateSchoolName("");
+            setCreateAddress("");
+            setCreatePhone("");
+            setCreateEmail("");
+            setCreateWebsite("");
         } catch (error) {
             console.error("Failed to create school:", error);
-            notifications.show({
-                id: "create-school-error",
-                title: "Error",
-                message: "Failed to create school. Please try again later.",
-                color: "red",
-                icon: <IconSendOff />,
-            });
+            if (error instanceof Error && error.message.includes("already exists")) {
+                notifications.show({
+                    id: "create-school-exists",
+                    title: "Error",
+                    message: "A school with this name already exists.",
+                    color: "orange",
+                    icon: <IconUserExclamation />,
+                });
+            } else if (error instanceof Error) {
+                notifications.show({
+                    id: "create-school-error",
+                    title: "Error",
+                    message: error.message,
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+            } else {
+                console.error("Unexpected error:", error);
+                notifications.show({
+                    id: "create-school-unexpected-error",
+                    title: "Error",
+                    message: "An unexpected error occurred while creating the school.",
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+            }
         } finally {
             buttonStateHandler.close();
         }
@@ -281,7 +303,7 @@ export default function SchoolsPage(): JSX.Element {
 
     useEffect(() => {
         fetchSchools(currentPage);
-    }, []);
+    }, [currentPage]);
 
     console.debug("Rendering SchoolsPage");
     return (
@@ -334,10 +356,18 @@ export default function SchoolsPage(): JSX.Element {
                                 </Group>
                             </TableTd>
                             <TableTd>{school.name}</TableTd>
-                            <TableTd>{school.address ? school.address : "N/A"}</TableTd>
-                            <TableTd>{school.phone ? school.phone : "N/A"}</TableTd>
-                            <TableTd>{school.email ? school.email : "N/A"}</TableTd>
-                            <TableTd>{school.website ? school.website : "N/A"}</TableTd>
+                            <TableTd c={school.address ? undefined : "dimmed"}>
+                                {school.address ? school.address : "N/A"}
+                            </TableTd>
+                            <TableTd c={school.phone ? undefined : "dimmed"}>
+                                {school.phone ? school.phone : "N/A"}
+                            </TableTd>
+                            <TableTd c={school.email ? undefined : "dimmed"}>
+                                {school.email ? school.email : "N/A"}
+                            </TableTd>
+                            <TableTd c={school.website ? undefined : "dimmed"}>
+                                {school.website ? school.website : "N/A"}
+                            </TableTd>
                             <Tooltip
                                 label={
                                     school.lastModified
@@ -345,14 +375,18 @@ export default function SchoolsPage(): JSX.Element {
                                         : "N/A"
                                 }
                             >
-                                <TableTd>{school.lastModified ? dayjs(school.lastModified).fromNow() : "N/A"}</TableTd>
+                                <TableTd c={school.lastModified ? undefined : "dimmed"}>
+                                    {school.lastModified ? dayjs(school.lastModified).fromNow() : "N/A"}
+                                </TableTd>
                             </Tooltip>
                             <Tooltip
                                 label={
                                     school.dateCreated ? dayjs(school.dateCreated).format("YYYY-MM-DD HH:mm:ss") : "N/A"
                                 }
                             >
-                                <TableTd>{school.dateCreated ? dayjs(school.dateCreated).fromNow() : "N/A"}</TableTd>
+                                <TableTd c={school.dateCreated ? undefined : "dimmed"}>
+                                    {school.dateCreated ? dayjs(school.dateCreated).fromNow() : "N/A"}
+                                </TableTd>
                             </Tooltip>
                             <TableTd>
                                 <Tooltip label="Edit School" position="bottom" openDelay={500} withArrow>
@@ -365,11 +399,9 @@ export default function SchoolsPage(): JSX.Element {
                     ))}
                 </TableTbody>
             </Table>
-
             <Group justify="center">
                 <Pagination value={currentPage} onChange={fetchSchools} total={totalPages} mt="md" />
             </Group>
-
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit School" centered>
                 {editSchool && (
                     <Flex direction="column" gap="md">
