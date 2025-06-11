@@ -27,6 +27,7 @@ import {
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useForm } from "@mantine/form";
 
 interface EditUserProps {
     index: number;
@@ -62,6 +63,21 @@ export function EditUserComponent({
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
     const userCtx = useUser();
+
+    const form = useForm({
+        initialValues: {
+            id: user.id,
+            username: user.username || "",
+            nameFirst: user.nameFirst || "",
+            nameMiddle: user.nameMiddle || "",
+            nameLast: user.nameLast || "",
+            email: user.email || "",
+            schoolId: user.schoolId || null,
+            roleId: user.roleId || null,
+            deactivated: user.deactivated || false,
+            forceUpdateInfo: user.forceUpdateInfo || false,
+        },
+    });
 
     useEffect(() => {
         setEditIndex(index);
