@@ -5,6 +5,7 @@ from io import BytesIO
 from typing import Final, override
 
 from minio import Minio
+from PIL import Image
 
 from centralserver.internals.adapters.config import (
     GarageObjectStoreAdapterConfig,
@@ -12,6 +13,7 @@ from centralserver.internals.adapters.config import (
     MinIOObjectStoreAdapterConfig,
     ObjectStoreAdapterConfig,
 )
+from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.object_store import BucketObject
 
@@ -24,6 +26,56 @@ class BucketNames(Enum):
     AVATARS = "centralserver-avatars"  # Contains user profile pictures
     SCHOOL_LOGOS = "centralserver-school-logos"  # Contains school logos
     REPORT_EXPORTS = "centralserver-reports"  # Contains exported reports
+
+
+async def validate_and_process_image(contents: bytes) -> bytes:
+    """Validate and process an image file.
+
+    Args:
+        contents: The raw bytes of the image file.
+
+    Returns:
+        The processed image bytes.
+
+    Raises:
+        ValueError: If the image is invalid or exceeds the size limit.
+    """
+
+    allowed_fs = app_config.object_store.max_file_size / (1024 * 1024)
+    allowed_ft = ", ".join(app_config.object_store.allowed_image_types)
+
+    if len(contents) > app_config.object_store.max_file_size:
+        size_mb = len(contents) / (1024 * 1024)
+        raise ValueError(
+            f"Image size {size_mb:.2f} MB exceeds the {allowed_fs:.2f} MB size limit."
+        )
+
+    try:
+        image = Image.open(BytesIO(contents))
+        if image.format is None:
+            raise ValueError("Image format not recognized.")
+
+        if image.format not in app_config.object_store.allowed_image_types:
+            raise ValueError(
+                f"Unsupported image format: {image.format}. Allowed: {allowed_ft}."
+            )
+
+    except Exception as e:
+        raise ValueError("Invalid image file.") from e
+
+    width, height = image.size
+    min_dim = min(width, height)
+    dimensions = (
+        int((width - min_dim) / 2),  # left
+        int((height - min_dim) / 2),  # top
+        int((width + min_dim) / 2),  # right
+        int((height + min_dim) / 2),  # bottom
+    )
+    image = image.crop(dimensions)
+
+    output_buffer = BytesIO()
+    image.save(output_buffer, format=image.format)
+    return output_buffer.getvalue()
 
 
 class ObjectStoreAdapter(ABC):

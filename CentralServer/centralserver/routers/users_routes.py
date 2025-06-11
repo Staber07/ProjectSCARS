@@ -16,11 +16,11 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserPublic, UserUpdate
 from centralserver.internals.permissions import ROLE_PERMISSIONS
+from centralserver.internals.adapters.object_store import validate_and_process_image
 from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
     update_user_info,
-    validate_and_process_image,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -283,9 +283,7 @@ async def update_user_avatar_endpoint(
         )
 
     logger.debug("user %s is updating user profile of %s...", token.id, user_id)
-
-    processed_image_bytes = await validate_and_process_image(img)
-    return await update_user_avatar(user_id, processed_image_bytes, token, session)
+    return await update_user_avatar(user_id, img, session)
 
 
 @router.delete("/avatar")

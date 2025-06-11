@@ -8,6 +8,7 @@ from minio.error import S3Error
 from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
+    get_user,
     verify_access_token,
     verify_user_permission,
 )
@@ -20,7 +21,6 @@ from centralserver.internals.school_handler import (
     create_school,
     get_school_logo,
     update_school_logo,
-    validate_and_process_image,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -159,32 +159,25 @@ async def get_school_logo_endpoint(
 ) -> StreamingResponse:
     """Get the school's logo image by filename."""
 
-    school_id_value = getattr(token, "school_id", None)
-    if school_id_value is None:
+    logged_in_user = await get_user(token.id, session=session, by_id=True)
+    if not logged_in_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token does not contain a valid school_id.",
-        )
-    school_id: int = int(school_id_value)
-    school = session.exec(select(School).where(School.id == school_id)).first()
-    if not school:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="School not found.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
         )
 
-    if not await verify_user_permission(
-        (
+    required_permission = (
+        "schools:global:read"
+        if logged_in_user.school is None
+        else (
             "schools:self:read"
-            if getattr(school, "logoUrn", None) == fn
+            if logged_in_user in logged_in_user.school.users
             else "schools:global:read"
-        ),
-        session,
-        token,
-    ):
+        )
+    )
+    if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this school logo.",
+            detail="You do not have permission to view this school.",
         )
 
     try:
@@ -194,6 +187,7 @@ async def get_school_logo_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="School logo not found.",
             )
+
     except S3Error as e:
         logger.error("Error fetching school logo: %s", e)
         raise HTTPException(
@@ -265,18 +259,32 @@ async def update_school_endpoint(
     return school
 
 
-@router.patch("/{school_id}/logo", response_model=School)
+@router.patch("/logo", response_model=School)
 async def patch_school_logo(
     school_id: int,
     img: UploadFile,
     token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
     session: Annotated[Session, Depends(get_db_session)],
 ) -> School:
-    if not await verify_user_permission("schools:global:modify", session, token):
+    logged_in_user = await get_user(token.id, session=session, by_id=True)
+    if not logged_in_user:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
         )
 
-    processed_image = await validate_and_process_image(img)
-    school = await update_school_logo(school_id, processed_image, token, session)
-    return school
+    required_permission = (
+        "schools:global:modify"
+        if logged_in_user.school is None
+        else (
+            "schools:self:modify"
+            if logged_in_user in logged_in_user.school.users
+            else "schools:global:modify"
+        )
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify this school.",
+        )
+
+    return await update_school_logo(school_id, img, session)
