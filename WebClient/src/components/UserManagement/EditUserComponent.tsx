@@ -195,6 +195,7 @@ export function EditUserComponent({
             setEditIndex(null);
             setEditUser(null);
             setEditUserAvatar(null);
+            fetchUserAvatar(editUser?.avatarUrn || ""); //to fix(refresh) the avatar URL in case it was changed
             fetchUsers(currentPage);
             buttonStateHandler.close();
         }
