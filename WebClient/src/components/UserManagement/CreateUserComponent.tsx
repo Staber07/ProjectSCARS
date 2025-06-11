@@ -26,7 +26,9 @@ export function CreateUserComponent({
     availableRoles,
     UpdateUserInfo,
 }: CreateUserComponentProps) {
-    const [createUserFullName, setCreateUserFullName] = useState("");
+    const [createUserFirstName, setCreateUserFirstName] = useState("");
+    const [createUserMiddleName, setCreateUserMiddleName] = useState<string | null>("");
+    const [createUserLastName, setCreateUserLastName] = useState("");
     const [createUserEmail, setCreateUserEmail] = useState("");
     const [createUserPassword, setCreateUserPassword] = useState("");
     const [createUserUsername, setCreateUserUsername] = useState("");
@@ -54,9 +56,9 @@ export function CreateUserComponent({
                 id: new_user.id,
                 username: createUserUsername,
                 email: createUserEmail === "" ? null : createUserEmail,
-                nameFirst: createUserFullName.split(" ")[0],
-                nameMiddle: createUserFullName.split(" ").slice(1, -1).join(" ") || null,
-                nameLast: createUserFullName.split(" ").slice(-1)[0],
+                nameFirst: createUserFirstName,
+                nameMiddle: createUserMiddleName,
+                nameLast: createUserLastName,
                 schoolId: createUserAssignedSchool,
                 roleId: createUserRole,
             });
@@ -68,7 +70,9 @@ export function CreateUserComponent({
                 icon: <IconUserCheck />,
             });
             setModalOpen(false);
-            setCreateUserFullName("");
+            setCreateUserFirstName("");
+            setCreateUserMiddleName("");
+            setCreateUserLastName("");
             setCreateUserEmail("");
             setCreateUserPassword("");
             setCreateUserUsername("");
@@ -101,9 +105,19 @@ export function CreateUserComponent({
         <Modal opened={modalOpen} onClose={() => setModalOpen(false)} title="Add New User">
             <Stack>
                 <TextInput
-                    label="Full Name"
-                    value={createUserFullName}
-                    onChange={(e) => setCreateUserFullName(e.currentTarget.value)}
+                    label="First Name"
+                    value={createUserFirstName}
+                    onChange={(e) => setCreateUserFirstName(e.currentTarget.value)}
+                />
+                <TextInput
+                    label="Middle Name"
+                    value={createUserMiddleName || ""}
+                    onChange={(e) => setCreateUserMiddleName(e.currentTarget.value)}
+                />
+                <TextInput
+                    label="Last Name"
+                    value={createUserLastName}
+                    onChange={(e) => setCreateUserLastName(e.currentTarget.value)}
                 />
                 <TextInput
                     withAsterisk
