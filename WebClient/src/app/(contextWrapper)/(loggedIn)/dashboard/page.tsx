@@ -60,6 +60,7 @@ function DashboardContent() {
             .catch((error) => {
                 console.error("Failed to fetch user info:", error);
                 notifications.show({
+                    id: "session-expired",
                     title: "Session expired",
                     message: "Your session has expired. Please log in again.",
                     color: "red",

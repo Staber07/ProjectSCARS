@@ -1,6 +1,6 @@
 import { GetAccessTokenHeader } from "@/lib/api/auth";
 import { Connections } from "@/lib/info";
-import { SchoolType, SchoolUpdateType } from "@/lib/types";
+import { SchoolCreateType, SchoolType, SchoolUpdateType } from "@/lib/types";
 import ky from "ky";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
@@ -37,8 +37,7 @@ export async function GetSchooLogo(fn: string, school_id: number): Promise<Blob>
     return schoolLogo;
 }
 
-
-export async function UpdateSchoolInfo(school: SchoolType): Promise<SchoolType> {
+export async function UpdateSchoolInfo(school: SchoolUpdateType): Promise<SchoolType> {
     const centralServerResponse = await ky.patch(`${endpoint}/schools`, {
         headers: { Authorization: GetAccessTokenHeader() },
         json: school,
@@ -86,7 +85,7 @@ export async function GetSchoolQuantity(): Promise<number> {
     return quantity;
 }
 
-export async function CreateSchool(school: SchoolUpdateType): Promise<SchoolType> {
+export async function CreateSchool(school: SchoolCreateType): Promise<SchoolType> {
     const centralServerResponse = await ky.post(`${endpoint}/schools/create`, {
         headers: { Authorization: GetAccessTokenHeader() },
         json: school,

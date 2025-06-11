@@ -8,7 +8,7 @@ import {
     UpdateSchoolInfo,
     UploadSchoolLogo,
 } from "@/lib/api/school";
-import { SchoolType } from "@/lib/types";
+import { SchoolType, SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -75,7 +75,6 @@ export default function SchoolsPage(): JSX.Element {
     const [addModalOpen, setAddModalOpen] = useState(false);
     const [createSchoolName, setCreateSchoolName] = useState("");
     const [createAddress, setCreateAddress] = useState("");
-    const [createCoordinates, setCreateCoordinates] = useState("");
     const [createPhone, setCreatePhone] = useState("");
     const [createEmail, setCreateEmail] = useState("");
     const [createWebsite, setCreateWebsite] = useState("");
@@ -101,38 +100,37 @@ export default function SchoolsPage(): JSX.Element {
     };
 
     const fetchSchoolLogo = (logoUrn: string, schoolId: number): string | undefined => {
-    if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
-        return logos.get(logoUrn);
-    } else if (logosRequested.has(logoUrn)) {
-        return undefined; // Logo is requested but not yet available
-    }
-    setLogosRequested((prev) => new Set(prev).add(logoUrn));
-    GetSchooLogo(logoUrn, schoolId)  // <-- pass schoolId here
-        .then((blob) => {
-            const url = URL.createObjectURL(blob);
-            setLogos((prev) => new Map(prev).set(logoUrn, url));
-            return url;
-        })
-        .catch((error) => {
-            console.error("Failed to fetch school logo:", error);
-            notifications.show({
-                title: "Error",
-                message: "Failed to fetch school logo.",
-                color: "red",
-                icon: <IconUserExclamation />,
+        if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
+            return logos.get(logoUrn);
+        } else if (logosRequested.has(logoUrn)) {
+            return undefined; // Logo is requested but not yet available
+        }
+        setLogosRequested((prev) => new Set(prev).add(logoUrn));
+        GetSchooLogo(logoUrn, schoolId)  // <-- pass schoolId here
+            .then((blob) => {
+                const url = URL.createObjectURL(blob);
+                setLogos((prev) => new Map(prev).set(logoUrn, url));
+                return url;
+            })
+            .catch((error) => {
+                console.error("Failed to fetch school logo:", error);
+                notifications.show({
+                    id: "fetch-school-logo-error",
+                    title: "Error",
+                    message: "Failed to fetch school logo.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+                return undefined;
             });
-            return undefined;
-        });
-};
-
+    };
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool) {
-            const newSchoolInfo: SchoolType = {
+            const newSchoolInfo: SchoolUpdateType = {
                 id: editSchool.id,
                 name: editSchool.name,
                 address: editSchool.address,
-                coordinates: editSchool.coordinates,
                 phone: editSchool.phone,
                 email: editSchool.email,
                 website: editSchool.website,
@@ -143,6 +141,7 @@ export default function SchoolsPage(): JSX.Element {
             UpdateSchoolInfo(newSchoolInfo)
                 .then(() => {
                     notifications.show({
+                        id: "school-update-success",
                         title: "Success",
                         message: "School information updated successfully.",
                         color: "green",
@@ -158,6 +157,7 @@ export default function SchoolsPage(): JSX.Element {
                 .catch((error) => {
                     console.error("Failed to update school:", error);
                     notifications.show({
+                        id: "school-update-error",
                         title: "Error",
                         message: "Failed to update school information. Please try again later.",
                         color: "red",
@@ -205,6 +205,7 @@ export default function SchoolsPage(): JSX.Element {
             .catch((error) => {
                 console.error("Failed to fetch school quantity:", error);
                 notifications.show({
+                    id: "fetch-school-quantity-error",
                     title: "Error",
                     message: "Failed to fetch school quantity. Please try again later.",
                     color: "red",
@@ -237,6 +238,7 @@ export default function SchoolsPage(): JSX.Element {
         buttonStateHandler.open();
         if (!createSchoolName) {
             notifications.show({
+                id: "create-school-error",
                 title: "Error",
                 message: "Please fill in all required fields.",
                 color: "red",
@@ -250,12 +252,12 @@ export default function SchoolsPage(): JSX.Element {
             const createdSchool = await CreateSchool({
                 name: createSchoolName,
                 address: createAddress !== "" ? createAddress : null,
-                coordinates: createCoordinates !== "" ? createCoordinates : null,
                 phone: createPhone !== "" ? createPhone : null,
                 email: createEmail !== "" ? createEmail : null,
                 website: createWebsite !== "" ? createWebsite : null,
             });
             notifications.show({
+                id: "create-school-success",
                 title: "Success",
                 message: "School created successfully.",
                 color: "green",
@@ -266,6 +268,7 @@ export default function SchoolsPage(): JSX.Element {
         } catch (error) {
             console.error("Failed to create school:", error);
             notifications.show({
+                id: "create-school-error",
                 title: "Error",
                 message: "Failed to create school. Please try again later.",
                 color: "red",

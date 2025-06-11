@@ -50,6 +50,7 @@ export function MainLoginComponent(): React.ReactElement {
         // make sure the user has entered both username and password.
         if (!values.username || !values.password) {
             notifications.show({
+                id: "login-error",
                 title: "Login failed",
                 message: "Please enter both username and password.",
                 color: "red",
@@ -77,6 +78,7 @@ export function MainLoginComponent(): React.ReactElement {
             userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
+                id: "login-success",
                 title: "Login successful",
                 message: "You are now logged in.",
                 color: "green",
@@ -86,6 +88,7 @@ export function MainLoginComponent(): React.ReactElement {
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 401")) {
                 notifications.show({
+                    id: "login-failed",
                     title: "Login failed",
                     message: "Please check your username and password.",
                     color: "red",
@@ -93,6 +96,7 @@ export function MainLoginComponent(): React.ReactElement {
                 });
             } else if (error instanceof Error && error.message.includes("status code 429")) {
                 notifications.show({
+                    id: "login-too-many-attempts",
                     title: "Login failed",
                     message: "Too many attempts, please try again later.",
                     color: "red",
@@ -101,6 +105,7 @@ export function MainLoginComponent(): React.ReactElement {
             } else {
                 console.error("Error logging in:", error);
                 notifications.show({
+                    id: "login-error",
                     title: "Login failed",
                     message: `${error}`,
                     color: "red",

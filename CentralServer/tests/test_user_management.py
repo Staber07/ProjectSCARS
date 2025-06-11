@@ -617,8 +617,8 @@ def test_update_user_role_no_permission():
         headers=headers2,
     ).json()[0]
     response = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info["id"], "role_id": 1},
+        "/api/v1/users",
+        json={"id": user_info["id"], "roleId": 1},
         headers=headers,
     )
     assert response.status_code == 403
@@ -632,8 +632,8 @@ def test_update_user_role_invalid_user():
     login = _request_token("testuser1", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
     response = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": "blah", "role_id": 1},
+        "/api/v1/users",
+        json={"id": "blah", "roleId": 1},
         headers=headers,
     )
     assert response.status_code == 400
@@ -650,8 +650,8 @@ def test_update_user_role_invalid_role():
         headers=headers2,
     ).json()[0]
     response = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info["id"], "role_id": 0},
+        "/api/v1/users",
+        json={"id": user_info["id"], "roleId": 0},
         headers=headers,
     )
     assert response.status_code == 400
@@ -668,8 +668,8 @@ def test_update_user_role():
         headers=headers2,
     ).json()[0]
     response = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info["id"], "role_id": 1},
+        "/api/v1/users",
+        json={"id": user_info["id"], "roleId": 1},
         headers=headers,
     )
     assert response.status_code == 200
@@ -691,8 +691,8 @@ def test_update_user_role_last_superintendent():
         headers=headers2,
     ).json()[0]
     response = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info["id"], "role_id": 3},
+        "/api/v1/users",
+        json={"id": user_info["id"], "roleId": 3},
         headers=headers,
     )
     assert response.status_code == 200
@@ -709,8 +709,8 @@ def test_update_user_role_last_superintendent():
         headers=headers3,
     ).json()[0]
     response2 = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info2["id"], "role_id": 4},
+        "/api/v1/users",
+        json={"id": user_info2["id"], "roleId": 4},
         headers=headers,
     )
     assert response2.status_code == 200
@@ -724,8 +724,8 @@ def test_update_user_role_last_superintendent():
         headers=headers,
     ).json()[0]
     response3 = client.patch(
-        "/api/v1/users/role",
-        params={"user_id": user_info3["id"], "role_id": 4},
+        "/api/v1/users",
+        json={"id": user_info3["id"], "roleId": 4},
         headers=headers,
     )
     assert response3.status_code == 400

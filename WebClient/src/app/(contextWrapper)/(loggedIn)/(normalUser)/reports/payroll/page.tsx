@@ -2,7 +2,6 @@
 
 import "@mantine/dates/styles.css";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import dayjs from "dayjs";

@@ -1,6 +1,7 @@
 import { randomLoadingMessages } from "@/lib/info";
 import { Center, Container, Image, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 
 type LoadingComponentProps = {
     message?: string; // The message to display below the title
@@ -13,11 +14,15 @@ type LoadingComponentProps = {
  * @returns {JSX.Element} The loading component.
  */
 export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = null, withBorder = true }) => {
+    const [loadingMessage, setLoadingMessage] = useState(message);
     console.debug("Returning LoadingComponent", { message });
-    if (!message) {
-        message = randomLoadingMessages[Math.floor(Math.random() * randomLoadingMessages.length)];
-        console.debug("Random message: ", message);
-    }
+
+    useEffect(() => {
+        if (!message) {
+            setLoadingMessage(randomLoadingMessages[Math.floor(Math.random() * randomLoadingMessages.length)]);
+            console.debug("Random message: ", message);
+        }
+    }, [message]);
     return (
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
             <Center>
@@ -59,11 +64,9 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = nu
                         >
                             <Stack align="center" justify="center" gap="xs">
                                 {/* <Loader color="blue" type="bars" /> */}
-                                {message && (
-                                    <Text c="dimmed" ta="center" data-testid="loading-message">
-                                        {message}
-                                    </Text>
-                                )}
+                                <Text c="dimmed" ta="center" data-testid="loading-message">
+                                    {loadingMessage}
+                                </Text>
                             </Stack>
                         </motion.div>
                     </Stack>

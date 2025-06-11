@@ -66,6 +66,7 @@ export default function NotificationsPage() {
             await ArchiveNotification(id, unarchive);
             if (unarchive) {
                 notifications.show({
+                    id: `unarchive-${id}`,
                     title: "Notification Unarchived",
                     message: `The notification has been unarchived.`,
                     color: notificationIcons[notif.type]?.[1] || "gray",
@@ -73,6 +74,7 @@ export default function NotificationsPage() {
                 });
             } else {
                 notifications.show({
+                    id: `archive-${id}`,
                     title: "Notification Archived",
                     message: `The notification has been archived.`,
                     color: notificationIcons[notif.type]?.[1] || "gray",
@@ -83,6 +85,7 @@ export default function NotificationsPage() {
         } catch (error) {
             if (error instanceof Error) {
                 notifications.show({
+                    id: `error-archive-${id}`,
                     title: "Error",
                     message: `Failed to archive the notification: ${error.message}`,
                     color: "red",
@@ -90,6 +93,7 @@ export default function NotificationsPage() {
                 });
             } else {
                 notifications.show({
+                    id: `error-archive-${id}`,
                     title: "Error",
                     message: "Failed to archive the notification.",
                     color: "red",
@@ -188,6 +192,7 @@ export default function NotificationsPage() {
                                 onClick={() => {
                                     if (selected.size === 0) {
                                         notifications.show({
+                                            id: "no-notifications-selected",
                                             title: "No Notifications Selected",
                                             message: "Please select at least one notification to archive.",
                                             color: "yellow",
@@ -202,6 +207,7 @@ export default function NotificationsPage() {
                                     Promise.all(ids.map((id) => ArchiveNotification(id, allArchived)))
                                         .then(() => {
                                             notifications.show({
+                                                id: `archive-${allArchived ? "un" : ""}all`,
                                                 title: allArchived
                                                     ? "Notifications Unarchived"
                                                     : "Notifications Archived",
@@ -216,6 +222,7 @@ export default function NotificationsPage() {
                                         })
                                         .catch((error) => {
                                             notifications.show({
+                                                id: `error-archive-${allArchived ? "un" : ""}all`,
                                                 title: `Error ${
                                                     allArchived ? "Unarchiving" : "Archiving"
                                                 } Notifications`,
