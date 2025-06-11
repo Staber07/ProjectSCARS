@@ -47,20 +47,9 @@ const UserAvatar = memo(({ url, onUpload }: { url: string | null; onUpload: (fil
         <Card shadow="sm" radius="xl" withBorder style={{ position: "relative", cursor: "pointer" }}>
             <FileButton onChange={onUpload} accept="image/png,image/jpeg">
                 {(props) => (
-                    <motion.div
-                        whileHover={{ scale: 1.05 }}
-                        style={{ position: "relative" }}
-                        {...props}
-                    >
+                    <motion.div whileHover={{ scale: 1.05 }} style={{ position: "relative" }} {...props}>
                         {url ? (
-                            <Image
-                                id="edit-user-avatar"
-                                src={url}
-                                alt="User Avatar"
-                                h={150}
-                                w={150}
-                                radius="xl"
-                            />
+                            <Image id="edit-user-avatar" src={url} alt="User Avatar" h={150} w={150} radius="xl" />
                         ) : (
                             <IconUser size={150} color="gray" />
                         )}
@@ -91,28 +80,30 @@ const UserAvatar = memo(({ url, onUpload }: { url: string | null; onUpload: (fil
     </Center>
 ));
 
-const FormField = memo(({ 
-    label, 
-    value, 
-    onChange, 
-    disabled, 
-    tooltip 
-}: { 
-    label: string; 
-    value: string; 
-    onChange: (value: string) => void; 
-    disabled: boolean; 
-    tooltip: string;
-}) => (
-    <Tooltip disabled={!disabled} label={tooltip} withArrow>
-        <TextInput
-            disabled={disabled}
-            label={label}
-            value={value}
-            onChange={(e) => onChange(e.currentTarget.value)}
-        />
-    </Tooltip>
-));
+const FormField = memo(
+    ({
+        label,
+        value,
+        onChange,
+        disabled,
+        tooltip,
+    }: {
+        label: string;
+        value: string;
+        onChange: (value: string) => void;
+        disabled: boolean;
+        tooltip: string;
+    }) => (
+        <Tooltip disabled={!disabled} label={tooltip} withArrow>
+            <TextInput
+                disabled={disabled}
+                label={label}
+                value={value}
+                onChange={(e) => onChange(e.currentTarget.value)}
+            />
+        </Tooltip>
+    )
+);
 
 export function EditUserComponent({
     index,
@@ -136,36 +127,41 @@ export function EditUserComponent({
 
     const userCtx = useUser();
 
-    const formValues = useMemo(() => ({
-        id: user.id,
-        username: user.username || "",
-        nameFirst: user.nameFirst || "",
-        nameMiddle: user.nameMiddle || "",
-        nameLast: user.nameLast || "",
-        email: user.email || "",
-        schoolId: user.schoolId || null,
-        roleId: user.roleId || null,
-        deactivated: user.deactivated || false,
-        forceUpdateInfo: user.forceUpdateInfo || false,
-    }), [user]);
+    const formValues = useMemo(
+        () => ({
+            id: user.id,
+            username: user.username || "",
+            nameFirst: user.nameFirst || "",
+            nameMiddle: user.nameMiddle || "",
+            nameLast: user.nameLast || "",
+            email: user.email || "",
+            schoolId: user.schoolId || null,
+            roleId: user.roleId || null,
+            deactivated: user.deactivated || false,
+            forceUpdateInfo: user.forceUpdateInfo || false,
+        }),
+        [user]
+    );
 
     const form = useForm({
-        initialValues: formValues
+        initialValues: formValues,
     });
 
-    const schoolOptions = useMemo(() => 
-        availableSchools.map((school) => ({
-            value: school.id.toString(),
-            label: `${school.name}${school.address ? ` (${school.address})` : ""}`
-        })),
+    const schoolOptions = useMemo(
+        () =>
+            availableSchools.map((school) => ({
+                value: school.id.toString(),
+                label: `${school.name}${school.address ? ` (${school.address})` : ""}`,
+            })),
         [availableSchools]
     );
 
-    const roleOptions = useMemo(() => 
-        availableRoles.map((role) => ({
-            value: role.id.toString(),
-            label: role.description
-        })),
+    const roleOptions = useMemo(
+        () =>
+            availableRoles.map((role) => ({
+                value: role.id.toString(),
+                label: role.description,
+            })),
         [availableRoles]
     );
 
@@ -219,41 +215,44 @@ export function EditUserComponent({
         });
     };
 
-    const handleAvatarUpload = useCallback(async (file: File | null) => {
-        if (file === null) {
-            console.debug("No file selected, skipping upload...");
-            return;
-        }
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (fileSizeMB > userAvatarConfig.MAX_FILE_SIZE_MB) {
-            notifications.show({
-                id: "file-too-large",
-                title: "File Too Large",
-                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-        if (!userAvatarConfig.ALLOWED_FILE_TYPES.includes(file.type)) {
-            notifications.show({
-                id: "invalid-file-type",
-                title: "Invalid File Type",
-                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-
-        setEditUserAvatar(file);
-        setEditUserAvatarUrl((prevUrl) => {
-            if (prevUrl) {
-                URL.revokeObjectURL(prevUrl); // Clean up previous URL
+    const handleAvatarUpload = useCallback(
+        async (file: File | null) => {
+            if (file === null) {
+                console.debug("No file selected, skipping upload...");
+                return;
             }
-            return URL.createObjectURL(file); // Create a new URL for the selected file
-        });
-    }, [userAvatarConfig.MAX_FILE_SIZE_MB, userAvatarConfig.ALLOWED_FILE_TYPES]);
+            const fileSizeMB = file.size / (1024 * 1024);
+            if (fileSizeMB > userAvatarConfig.MAX_FILE_SIZE_MB) {
+                notifications.show({
+                    id: "file-too-large",
+                    title: "File Too Large",
+                    message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+                return;
+            }
+            if (!userAvatarConfig.ALLOWED_FILE_TYPES.includes(file.type)) {
+                notifications.show({
+                    id: "invalid-file-type",
+                    title: "Invalid File Type",
+                    message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+                return;
+            }
+
+            setEditUserAvatar(file);
+            setEditUserAvatarUrl((prevUrl) => {
+                if (prevUrl) {
+                    URL.revokeObjectURL(prevUrl); // Clean up previous URL
+                }
+                return URL.createObjectURL(file); // Create a new URL for the selected file
+            });
+        },
+        [userAvatarConfig.MAX_FILE_SIZE_MB, userAvatarConfig.ALLOWED_FILE_TYPES]
+    );
 
     const handleSave = useCallback(async () => {
         buttonStateHandler.open();
@@ -365,39 +364,46 @@ export function EditUserComponent({
     }, [editIndex, userChanges, editUser, editUserAvatar]);
 
     // Memoize permission checks
-    const permissions = useMemo(() => ({
-        canModifyUsername: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:modify:username")
-            : userCtx.userPermissions?.includes("users:global:modify:username"),
-        canModifyName: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:modify:name")
-            : userCtx.userPermissions?.includes("users:global:modify:name"),
-        canModifyEmail: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:modify:email")
-            : userCtx.userPermissions?.includes("users:global:modify:email"),
-        canModifySchool: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:modify:school")
-            : userCtx.userPermissions?.includes("users:global:modify:school"),
-        canModifyRole: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:modify:role")
-            : userCtx.userPermissions?.includes("users:global:modify:role"),
-        canDeactivate: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:deactivate")
-            : userCtx.userPermissions?.includes("users:global:deactivate"),
-        canForceUpdate: userCtx.userInfo?.id === userChanges?.id
-            ? userCtx.userPermissions?.includes("users:self:forceupdate")
-            : userCtx.userPermissions?.includes("users:global:forceupdate"),
-    }), [userCtx.userInfo?.id, userChanges?.id, userCtx.userPermissions]);
+    const permissions = useMemo(
+        () => ({
+            canModifyUsername:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:modify:username")
+                    : userCtx.userPermissions?.includes("users:global:modify:username"),
+            canModifyName:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:modify:name")
+                    : userCtx.userPermissions?.includes("users:global:modify:name"),
+            canModifyEmail:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:modify:email")
+                    : userCtx.userPermissions?.includes("users:global:modify:email"),
+            canModifySchool:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:modify:school")
+                    : userCtx.userPermissions?.includes("users:global:modify:school"),
+            canModifyRole:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:modify:role")
+                    : userCtx.userPermissions?.includes("users:global:modify:role"),
+            canDeactivate:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:deactivate")
+                    : userCtx.userPermissions?.includes("users:global:deactivate"),
+            canForceUpdate:
+                userCtx.userInfo?.id === userChanges?.id
+                    ? userCtx.userPermissions?.includes("users:self:forceupdate")
+                    : userCtx.userPermissions?.includes("users:global:forceupdate"),
+        }),
+        [userCtx.userInfo?.id, userChanges?.id, userCtx.userPermissions]
+    );
 
     return (
         <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit User" centered>
             {editUser && (
                 <Flex direction="column" gap="md">
-                    <UserAvatar 
-                        url={editUserAvatarUrl} 
-                        onUpload={handleAvatarUpload} 
-                    />
-                    
+                    <UserAvatar url={editUserAvatarUrl} onUpload={handleAvatarUpload} />
+
                     <FormField
                         label="Username"
                         value={editUser.username || ""}
@@ -405,7 +411,7 @@ export function EditUserComponent({
                         disabled={!permissions.canModifyUsername}
                         tooltip="Username cannot be changed"
                     />
-                    
+
                     <FormField
                         label="First Name"
                         value={editUser.nameFirst || ""}
@@ -413,7 +419,7 @@ export function EditUserComponent({
                         disabled={!permissions.canModifyName}
                         tooltip="Name cannot be changed"
                     />
-                    
+
                     <FormField
                         label="Middle Name"
                         value={editUser.nameMiddle || ""}
@@ -421,7 +427,7 @@ export function EditUserComponent({
                         disabled={!permissions.canModifyName}
                         tooltip="Name cannot be changed"
                     />
-                    
+
                     <FormField
                         label="Last Name"
                         value={editUser.nameLast || ""}
@@ -429,7 +435,7 @@ export function EditUserComponent({
                         disabled={!permissions.canModifyName}
                         tooltip="Name cannot be changed"
                     />
-                    
+
                     <Tooltip
                         disabled={
                             userCtx.userInfo?.id === userChanges?.id
