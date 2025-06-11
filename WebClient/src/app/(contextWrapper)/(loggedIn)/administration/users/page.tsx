@@ -10,9 +10,11 @@ import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
+    Button,
     Checkbox,
     Flex,
     Group,
+    Menu,
     Pagination,
     Table,
     TableTbody,
@@ -39,6 +41,8 @@ import {
     IconUser,
     IconUserExclamation,
     IconX,
+    IconUserOff,
+    IconUserCheck,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
@@ -63,6 +67,15 @@ export default function UsersPage(): JSX.Element {
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
+    const [showBulkActions, setShowBulkActions] = useState(false);
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelected(new Set(users.map((_, idx) => idx)));
+        } else {
+            setSelected(new Set());
+        }
+    };
 
     const handleSearch = () => {};
     const handleCreate = () => {
@@ -76,6 +89,21 @@ export default function UsersPage(): JSX.Element {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
         setSelectedUser(user);
+    };
+
+    // Handle bulk actions for selected users
+    const handleBulkAction = (action: "deactivate" | "reactivate") => {
+        // Example implementation: just log the action and selected users
+        const selectedUsers = Array.from(selected).map((idx) => users[idx]);
+        console.debug(`Bulk action: ${action}`, selectedUsers);
+        notifications.show({
+            id: `bulk-action-${action}`,
+            title: `Bulk ${action === "deactivate" ? "Deactivation" : "Reactivation"}`,
+            message: `Bulk ${action} for ${selectedUsers.length} user(s) is not yet implemented.`,
+            color: "blue",
+            icon: <IconUserExclamation />,
+        });
+        // TODO: Implement actual bulk action logic here
     };
 
     const toggleSelected = (index: number) => {
@@ -230,7 +258,39 @@ export default function UsersPage(): JSX.Element {
             <Table highlightOnHover stickyHeader stickyHeaderOffset={60}>
                 <TableThead>
                     <TableTr>
-                        <TableTh></TableTh> {/* Checkbox and Avatar */}
+                        <TableTh>
+                            <Group>
+                                <Checkbox
+                                    checked={selected.size === users.length && users.length > 0}
+                                    indeterminate={selected.size > 0 && selected.size < users.length}
+                                    onChange={(event) => handleSelectAll(event.currentTarget.checked)}
+                                />
+                                {selected.size > 0 && (
+                                    <Menu shadow="md" width={200}>
+                                        <Menu.Target>
+                                            <Button variant="light" size="xs">
+                                                Actions ({selected.size})
+                                            </Button>
+                                        </Menu.Target>
+                                        <Menu.Dropdown>
+                                            <Menu.Label>Bulk Actions</Menu.Label>
+                                            <Menu.Item
+                                                leftSection={<IconUserOff size={14} />}
+                                                onClick={() => handleBulkAction("deactivate")}
+                                            >
+                                                Deactivate Users
+                                            </Menu.Item>
+                                            <Menu.Item
+                                                leftSection={<IconUserCheck size={14} />}
+                                                onClick={() => handleBulkAction("reactivate")}
+                                            >
+                                                Reactivate Users
+                                            </Menu.Item>
+                                        </Menu.Dropdown>
+                                    </Menu>
+                                )}
+                            </Group>
+                        </TableTh>
                         <TableTh>Username</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Name</TableTh>
