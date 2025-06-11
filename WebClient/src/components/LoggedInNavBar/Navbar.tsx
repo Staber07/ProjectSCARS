@@ -152,7 +152,7 @@ export const Navbar: React.FC = () => {
                                 href={item.link}
                                 label={item.label}
                                 leftSection={item.icon}
-                                active={pathname === item.link}
+                                active={pathname.startsWith(item.link)}
                                 disabled={!permissionGranted}
                                 onClick={(event) => {
                                     if (!permissionGranted) {
