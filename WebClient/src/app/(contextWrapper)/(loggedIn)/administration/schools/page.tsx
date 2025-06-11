@@ -303,6 +303,7 @@ export default function SchoolsPage(): JSX.Element {
 
     useEffect(() => {
         fetchSchools(currentPage);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPage]);
 
     console.debug("Rendering SchoolsPage");
