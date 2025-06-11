@@ -236,9 +236,6 @@ async def update_school_endpoint(
     if updated_school_info.address:
         school.address = updated_school_info.address
 
-    if updated_school_info.coordinates:
-        school.coordinates = updated_school_info.coordinates
-
     if updated_school_info.phone:
         school.phone = updated_school_info.phone
 
