@@ -16,6 +16,8 @@ from centralserver.routers import (
     users_routes,
 )
 
+from pydantic import BaseModel
+
 logger = LoggerFactory(
     log_level="DEBUG" if app_config.debug.enabled else "WARN"
 ).get_logger(__name__)
@@ -41,6 +43,24 @@ app = FastAPI(
     on_startup=[startup],
     on_shutdown=[shutdown],
 )
+
+class BentoInfo(BaseModel):
+        title: str
+        description: str
+        features: list[dict[str, str]]  # List of dictionaries for features (title, description, link)
+bento_data = BentoInfo(
+        title="About ProjectSCARS (Bento)",
+        description="ProjectSCARS (Bento) is a Department of Education's (DepEd) School Canteen Automated Reporting System designed for the Schools Division Office (SDO) of the City of Baliwag.",
+        features=[
+            {"title": "Automated Reporting", "description": "Streamlines the reporting process for school canteens.", "link": "#"},
+            {"title": "Data Tracking", "description": "Provides a convenient way to track school canteen operations.", "link": "#"},
+            {"title": "Secure Access", "description": "Ensures secure access and data management.", "link": "#"},
+            {"title": "User-Friendly Interface", "description": "Easy-to-use interface for canteen managers.", "link": "#"}
+        ]
+    )
+@app.get("/api/bento_info")
+async def get_bento_info():
+        return bento_data
 
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
