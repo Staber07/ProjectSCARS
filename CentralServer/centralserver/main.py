@@ -44,6 +44,7 @@ app = FastAPI(
     on_shutdown=[shutdown],
 )
 
+# Draft Dashboard Information
 class BentoInfo(BaseModel):
         title: str
         description: str
