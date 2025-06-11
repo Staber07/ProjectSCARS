@@ -38,26 +38,37 @@ function DashboardContent() {
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
+    const [lastNotificationCheck, setLastNotificationCheck] = useState<Date>(new Date());
+    const [isLoading, setIsLoading] = useState(true);
+    const [isNotificationLoading, setIsNotificationLoading] = useState(true);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
-        setSetupCompleteDismissed(localStorage.getItem("setupCompleteDismissed") === "true");
-        GetUserInfo()
-            .then((userInfo) => {
+        const initializeDashboard = async () => {
+            setIsLoading(true);
+            // Check setup complete status only once
+            setSetupCompleteDismissed(localStorage.getItem("setupCompleteDismissed") === "true");
+
+            try {
+                // Fetch user info
+                const userInfo = await GetUserInfo();
+
                 if (userInfo[0].avatarUrn) {
-                    GetUserAvatar(userInfo[0].avatarUrn).then((userAvatar) => {
-                        if (userAvatar) {
-                            console.debug("User avatar fetched successfully", { size: userAvatar.size });
-                        } else {
-                            console.warn("No avatar found for user, using default avatar.");
-                        }
-                        userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
-                    });
+                    const userAvatar = await GetUserAvatar(userInfo[0].avatarUrn);
+                    if (userAvatar) {
+                        console.debug("User avatar fetched successfully", { size: userAvatar.size });
+                    } else {
+                        console.warn("No avatar found for user, using default avatar.");
+                    }
+                    userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
                 } else {
                     userCtx.updateUserInfo(userInfo[0], userInfo[1]);
                 }
-            })
-            .catch((error) => {
+
+                // Fetch notifications
+                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                setHVNotifications(notifications);
+            } catch (error) {
                 console.error("Failed to fetch user info:", error);
                 notifications.show({
                     id: "session-expired",
@@ -66,13 +77,13 @@ function DashboardContent() {
                     color: "red",
                     icon: <IconRefreshAlert />,
                 });
-            });
-        const fetchNotifications = async () => {
-            const notifications = await GetSelfNotifications(true, true, 0, 1);
-            setHVNotifications(notifications);
+            } finally {
+                setIsLoading(false);
+            }
         };
-        fetchNotifications();
-    });
+
+        initializeDashboard();
+    }, [userCtx]); // Only run on mount and when userCtx changes
 
     useEffect(() => {
         if (userCtx.userInfo) {
@@ -97,6 +108,24 @@ function DashboardContent() {
             setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
         }
     }, [userCtx.userInfo]);
+
+    useEffect(() => {
+        const NOTIFICATION_CHECK_INTERVAL = 60000; // Check every minute
+
+        const checkNotifications = async () => {
+            try {
+                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                setHVNotifications(notifications);
+                setLastNotificationCheck(new Date());
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+            }
+        };
+
+        const intervalId = setInterval(checkNotifications, NOTIFICATION_CHECK_INTERVAL);
+
+        return () => clearInterval(intervalId);
+    }, []); // Empty dependency array as we want this to run only once on mount
 
     console.debug("Rendering DashboardPage");
     return (
