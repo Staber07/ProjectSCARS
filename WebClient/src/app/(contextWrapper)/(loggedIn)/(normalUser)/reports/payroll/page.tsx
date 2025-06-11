@@ -1,22 +1,14 @@
 "use client";
 
-import "@mantine/dates/styles.css";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-
 import { useRouter } from "next/navigation";
 import { Suspense, useState, useEffect } from "react";
-
 import dayjs from "dayjs";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import isoWeek from "dayjs/plugin/isoWeek";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
-
-dayjs.extend(weekOfYear);
-dayjs.extend(isoWeek);
-dayjs.extend(isSameOrAfter);
-dayjs.extend(isSameOrBefore);
-
+import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
     ActionIcon,
     Alert,
@@ -39,6 +31,12 @@ import {
 import { MonthPickerInput, DatePickerInput } from "@mantine/dates";
 import { IconCalendar, IconPlus, IconTrash, IconX, IconReceipt2, IconUser, IconUsers, IconCalendarWeek, IconInfoCircle, IconCheck, IconChevronDown, IconChevronUp, IconEdit } from "@tabler/icons-react";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+
+
+dayjs.extend(weekOfYear);
+dayjs.extend(isoWeek);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 interface Employee {
     id: string;

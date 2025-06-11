@@ -1,16 +1,14 @@
 import datetime
-from typing import Annotated
 from io import BytesIO
-from fastapi import UploadFile
+from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
-from fastapi import Depends
 from minio.error import S3Error
-
 from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
+    get_user,
     verify_access_token,
     verify_user_permission,
 )
@@ -19,11 +17,11 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.school import School, SchoolCreate
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
-from centralserver.internals.school_handler import create_school
 from centralserver.internals.school_handler import (
-    update_school_logo, 
+    create_school,
     get_school_logo,
-    validate_and_process_image)
+    update_school_logo,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -74,11 +72,11 @@ async def get_schools_quantity_endpoint(
     return session.exec(select(func.count(School.id))).one()  # type: ignore
 
 
-@router.get("/me", response_model=list[School])
+@router.get("/me")
 async def get_assigned_schools_endpoint(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> list[School]:
+) -> School | None:
     """Get the list of schools assigned to the user."""
 
     if not await verify_user_permission("schools:self:read", session, token):
@@ -94,7 +92,7 @@ async def get_assigned_schools_endpoint(
             detail="User not found.",
         )
 
-    return user.schools
+    return user.school
 
 
 @router.get("/all", response_model=list[School])
@@ -152,6 +150,7 @@ async def get_school_endpoint(
 
     return school
 
+
 @router.get("/logo", response_class=StreamingResponse)
 async def get_school_logo_endpoint(
     fn: str,
@@ -160,28 +159,25 @@ async def get_school_logo_endpoint(
 ) -> StreamingResponse:
     """Get the school's logo image by filename."""
 
-    school_id_value = getattr(token, "school_id", None)
-    if school_id_value is None:
+    logged_in_user = await get_user(token.id, session=session, by_id=True)
+    if not logged_in_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token does not contain a valid school_id.",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
         )
-    school_id: int = int(school_id_value)
-    school = session.exec(select(School).where(School.id == school_id)).first()
-    if not school:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="School not found.",
+
+    required_permission = (
+        "schools:global:read"
+        if logged_in_user.school is None
+        else (
+            "schools:self:read"
+            if logged_in_user in logged_in_user.school.users
+            else "schools:global:read"
         )
-        
-    if not await verify_user_permission(
-        "schools:self:read" if getattr(school, "logoUrn", None) == fn else "schools:global:read",
-        session,
-        token,
-    ):
+    )
+    if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this school logo.",
+            detail="You do not have permission to view this school.",
         )
 
     try:
@@ -191,6 +187,7 @@ async def get_school_logo_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="School logo not found.",
             )
+
     except S3Error as e:
         logger.error("Error fetching school logo: %s", e)
         raise HTTPException(
@@ -239,9 +236,6 @@ async def update_school_endpoint(
     if updated_school_info.address:
         school.address = updated_school_info.address
 
-    if updated_school_info.coordinates:
-        school.coordinates = updated_school_info.coordinates
-
     if updated_school_info.phone:
         school.phone = updated_school_info.phone
 
@@ -261,17 +255,33 @@ async def update_school_endpoint(
     logger.debug("user %s updated school with id %s", token.id, school.id)
     return school
 
-@router.patch("/{school_id}/logo", response_model=School)
+
+@router.patch("/logo", response_model=School)
 async def patch_school_logo(
     school_id: int,
     img: UploadFile,
     token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
     session: Annotated[Session, Depends(get_db_session)],
 ) -> School:
-    if not await verify_user_permission("schools:global:modify", session, token):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+    logged_in_user = await get_user(token.id, session=session, by_id=True)
+    if not logged_in_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+        )
 
-    processed_image = await validate_and_process_image(img)
-    school = await update_school_logo(school_id, processed_image, token, session)
-    return school
+    required_permission = (
+        "schools:global:modify"
+        if logged_in_user.school is None
+        else (
+            "schools:self:modify"
+            if logged_in_user in logged_in_user.school.users
+            else "schools:global:modify"
+        )
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify this school.",
+        )
 
+    return await update_school_logo(school_id, img, session)
