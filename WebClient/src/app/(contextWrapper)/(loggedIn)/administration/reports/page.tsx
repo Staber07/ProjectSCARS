@@ -1,212 +1,353 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 import {
-  Text,
-  Flex,
-  Card,
-  Image,
-  Button,
-  Group,
-  ActionIcon,
-  TextInput,
-  Accordion
+    ActionIcon,
+    Badge,
+    Card,
+    Checkbox,
+    Flex,
+    Grid,
+    Group,
+    Menu,
+    Pagination,
+    Paper,
+    Select,
+    Table,
+    Text,
+    TextInput,
+    Tabs,
+    Stack,
 } from "@mantine/core";
-import { IconEdit, IconPlus, IconSearch } from "@tabler/icons-react";
-import classes from "./accordion.module.css";
+import {
+    IconSearch,
+    IconFilter,
+    IconDownload,
+    IconEye,
+    IconPencil,
+    IconTrash,
+    IconDots,
+    IconCash,
+    IconReceipt,
+    IconUsers,
+} from "@tabler/icons-react";
 
-
-const groceries = [
-  {
-    emoji: '⚙️',
-    value: 'Operating Expenses',
-    description:
-      'These encompass the general costs associated with running the school canteen, such as salaries of personnel, utilities (water and electricity), supplies, and insurance.',
-  },
-  {
-    emoji: '🗂️',
-    value: 'Administrative Expenses',
-    description:
-      'Administrative expenses refer to the overarching costs of business operations, including salaries, supplies, utility bills, insurance, and other general expenditures necessary for the canteen\'s functioning.',
-  },
-  {
-    emoji: '🔁',
-    value: 'Revolving Fund',
-    description:
-      'This fund serves as the working capital for the canteen, ensuring continuous operations by covering the purchase of goods and other operational needs.',
-  },
-  {
-    emoji: '🏫',
-    value: 'School Operation Fund',
-    description:
-      'Allocated 25% of the canteen\'s net income, this fund supports various school operational needs, including maintenance, minor repairs, and essential services.',
-  },
-  {
-    emoji: '🩺',
-    value: 'Clinic Fund',
-    description:
-      'Designated 5% of the canteen\'s net income, this fund supports health-related services such as medical supplies and programs for student well-being.',
-  },
-  {
-    emoji: '🧵',
-    value: 'HE Fund',
-    description:
-      'Receiving 10% of the canteen\'s net income, this fund enhances instructional materials and resources for Home Economics classes.',
-  },
-  {
-    emoji: '👨‍🏫',
-    value: 'Faculty and Student Development Fund',
-    description:
-      'Allocated 15% of the canteen\'s net income, this fund supports the professional growth of teachers and holistic student development through training and educational activities.',
-  },
-  {
-    emoji: '🥗',
-    value: 'Supplementary Feeding Fund',
-    description:
-      'This fund, comprising 35% of the canteen\'s net income, provides additional nutritious meals to undernourished pupils and students.',
-  },
+// Sample Report Submission Data
+const reportSubmissions = [
+    {
+        id: 1,
+        name: "Daily Sales Report",
+        type: "Daily Sales",
+        category: "Sales",
+        lastModified: "2025-06-05T16:30:00Z",
+        status: "Draft",
+        period: "2025-06-05",
+    },
+    {
+        id: 2,
+        name: "May Monthly Sales Summary",
+        type: "Monthly Sales",
+        category: "Sales",
+        lastModified: "2025-05-31T14:20:00Z",
+        status: "Submitted",
+        period: "2025-05",
+    },
+    {
+        id: 3,
+        name: "Operating Expenses Liquidation - May",
+        type: "Operating Expenses",
+        category: "Expenses",
+        lastModified: "2025-05-30T11:15:00Z",
+        status: "Under Review",
+        period: "2025-05",
+    },
+    {
+        id: 4,
+        name: "HE Fund Report - May",
+        type: "HE Fund",
+        category: "Expenses",
+        lastModified: "2025-05-29T10:45:00Z",
+        status: "Rejected",
+        period: "2025-05",
+    },
+    {
+        id: 5,
+        name: "Supplementary Feeding Fund - April",
+        type: "Supplementary Feeding",
+        category: "Expenses",
+        lastModified: "2025-04-30T13:00:00Z",
+        status: "Approved",
+        period: "2025-04",
+    },
+    {
+        id: 6,
+        name: "Staff Payroll - May 2025",
+        type: "Payroll",
+        category: "Payroll",
+        lastModified: "2025-05-25T09:30:00Z",
+        status: "Approved",
+        period: "2025-05",
+    },
 ];
 
-
 export default function ReportsPage() {
-  console.debug("Rendering ReportsPage");
+    console.debug("Rendering ReportsPage");
 
-  const items = groceries.map((item) => (
-    <Accordion.Item key={item.value} value={item.value}>
-      <Accordion.Control icon={item.emoji}>
-        {item.value}
-      </Accordion.Control>
-      <Accordion.Panel>{item.description}</Accordion.Panel>
-    </Accordion.Item>
-  ));
+    const router = useRouter();
 
-  return (
-    <div>
-      <Flex
-        mih={50}
-        gap="xl"
-        justify="flex-start"
-        align="center"
-        direction="row"
-        wrap="nowrap"
-      >
-        <TextInput
-          placeholder="Search for Schools"
-          size="md"
-          style={{ width: "400px" }}
-        />
+    const [search, setSearch] = useState("");
+    const [selectedReports, setSelectedReports] = useState<number[]>([]);
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState("all");
+    const [activeTab, setActiveTab] = useState("all");
+    const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
 
-        <Flex ml="auto" gap="sm" align="center">
-          <ActionIcon size="input-md" variant="default">
-            <IconSearch size={16} />
-          </ActionIcon>
+    const filteredReports = reportSubmissions.filter((report) => {
+        const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+            statusFilter === "all" || report.status.toLowerCase().replace(/\s+/g, "-") === statusFilter;
+        const matchesCategory = categoryFilter === "all" || report.category.toLowerCase() === categoryFilter;
+        const matchesTab = activeTab === "all" || report.category.toLowerCase() === activeTab;
 
-          <ActionIcon
-            size="input-md"
-            variant="default"
-            aria-label="ActionIcon the same size as inputs"
-          >
-            <IconEdit size={16} />
-          </ActionIcon>
+        return matchesSearch && matchesStatus && matchesCategory && matchesTab;
+    });
 
-          <Button leftSection={<IconPlus size={16} />} variant="filled" color="green" size="md">
-            New
-          </Button>
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "Approved":
+                return "green";
+            case "Submitted":
+                return "blue";
+            case "Under Review":
+                return "yellow";
+            case "Pending Approval":
+                return "orange";
+            case "Rejected":
+                return "red";
+            case "Draft":
+                return "gray";
+            default:
+                return "gray";
+        }
+    };
 
-        </Flex>
-      </Flex>
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedReports(filteredReports.map((r) => r.id));
+        } else {
+            setSelectedReports([]);
+        }
+    };
 
-      <Flex
-        mih={50}
-        gap="xl"
-        justify="flex-start"
-        align="center"
-        direction="row"
-        wrap="nowrap"
-        style={{ marginTop: "10px" }}
-      >
+    const handleSelectReport = (id: number, checked: boolean) => {
+        if (checked) {
+            setSelectedReports([...selectedReports, id]);
+        } else {
+            setSelectedReports(selectedReports.filter((reportId) => reportId !== id));
+        }
+    };
 
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Card.Section component="a" href="https://mantine.dev/">
-            <Image
-              src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/images/bg-8.png"
-              height={160}
-              alt="Liquidation Report"
-            />
-          </Card.Section>
+    const handleNavigateToSales = () => {
+        router.push("/reports/sales");
+    };
 
-          <Group justify="space-between" mt="md" mb="xs">
-            <Text fw={500}>Liquidation Report</Text>
-          </Group>
+    const handleCreateLiquidationReport = (category: string, path: string) => {
+        console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
+    };
 
-          <Text size="sm" c="dimmed">
-            This report provides a detailed summary of expenses and revenues associated with
-            the project/event, outlining all financial transactions to ensure transparency and
-            proper accountability during the liquidation process.
-          </Text>
+    const handleNavigateToPayroll = () => {
+        router.push("/reports/payroll");
+    };
 
-          <Button color="blue" fullWidth mt="md" radius="md">
-            Create Liquidation Report
-          </Button>
+    type QuickActionCardProps = {
+        title: string;
+        description: string;
+        icon: React.ElementType;
+        color: string;
+        onClick: () => void;
+    };
+
+    const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
+        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
+            <Group>
+                <ActionIcon size="xl" variant="light" color={color}>
+                    <Icon size={24} />
+                </ActionIcon>
+                <div>
+                    <Text fw={500}>{title}</Text>
+                    <Text size="sm" c="dimmed">
+                        {description}
+                    </Text>
+                </div>
+            </Group>
         </Card>
+    );
 
+    const rows = filteredReports.map((report) => (
+        <Table.Tr key={report.id}>
+            <Table.Td>
+                <Checkbox
+                    checked={selectedReports.includes(report.id)}
+                    onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
+                />
+            </Table.Td>
+            <Table.Td>
+                <div>
+                    <Text fw={500} size="sm">
+                        {report.name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                        {report.type}
+                    </Text>
+                </div>
+            </Table.Td>
+            <Table.Td>
+                <Badge color={getStatusColor(report.status)} variant="filled" size="sm">
+                    {report.status}
+                </Badge>
+            </Table.Td>
+            <Table.Td>
+                <div>
+                    <Text size="sm">{report.period}</Text>
+                </div>
+            </Table.Td>
+            <Table.Td>
+                <Text size="sm" c="dimmed">
+                    {new Date(report.lastModified).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "numeric",
+                    })}
+                </Text>
+            </Table.Td>
+            <Table.Td>
+                <Menu withinPortal position="bottom-end" shadow="sm">
+                    <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray">
+                            <IconDots size={16} />
+                        </ActionIcon>
+                    </Menu.Target>
+                    <Menu.Dropdown>
+                        <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
+                        <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                        <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
+                        <Menu.Divider />
+                        <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                            Delete
+                        </Menu.Item>
+                    </Menu.Dropdown>
+                </Menu>
+            </Table.Td>
+        </Table.Tr>
+    ));
 
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Card.Section component="a" href="https://mantine.dev/">
-            <Image
-              src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/images/bg-8.png"
-              height={160}
-              alt="Payroll Report"
-            />
-          </Card.Section>
+    return (
+        <Stack gap="lg">
+            {/* Filters and Search */}
+            <Paper shadow="xs" p="md">
+                <Flex gap="md" align="center" wrap="wrap">
+                    <TextInput
+                        placeholder="Type report name here"
+                        leftSection={<IconSearch size={16} />}
+                        value={search}
+                        onChange={(e) => setSearch(e.currentTarget.value)}
+                        style={{ flex: 1, minWidth: 200 }}
+                    />
+                    <Select
+                        placeholder="Filter by status"
+                        leftSection={<IconFilter size={16} />}
+                        value={statusFilter}
+                        onChange={(value) => setStatusFilter(value ?? "all")}
+                        data={[
+                            { value: "all", label: "All Status" },
+                            { value: "draft", label: "Draft" },
+                            { value: "submitted", label: "Submitted" },
+                            { value: "under-review", label: "Under Review" },
+                            { value: "pending-approval", label: "Pending Approval" },
+                            { value: "approved", label: "Approved" },
+                            { value: "rejected", label: "Rejected" },
+                        ]}
+                        w={180}
+                    />
+                    <Select
+                        placeholder="Filter by category"
+                        value={categoryFilter}
+                        onChange={(value) => setCategoryFilter(value ?? "all")}
+                        data={[
+                            { value: "all", label: "All Categories" },
+                            { value: "sales", label: "Sales" },
+                            { value: "expenses", label: "Expenses" },
+                            { value: "payroll", label: "Payroll" },
+                        ]}
+                        w={160}
+                    />
+                </Flex>
+            </Paper>
 
-          <Group justify="space-between" mt="md" mb="xs">
-            <Text fw={500}>Payroll</Text>
-          </Group>
+            {/* Tabs for Categories */}
+            <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? "all")}>
+                <Tabs.List>
+                    <Tabs.Tab value="all">All Reports</Tabs.Tab>
+                    <Tabs.Tab value="sales">Sales</Tabs.Tab>
+                    <Tabs.Tab value="expenses">Expenses</Tabs.Tab>
+                    <Tabs.Tab value="payroll">Payroll</Tabs.Tab>
+                </Tabs.List>
+            </Tabs>
 
-          <Text size="sm" c="dimmed">
-            This report summarizes employee compensation for the covered period, including salaries,
-            deductions, benefits, and net pay, ensuring accurate and transparent payroll processing.
-          </Text>
+            {/* Bulk Actions */}
+            {selectedReports.length > 0 && (
+                <Paper shadow="xs" p="md">
+                    <Flex align="center" gap="md">
+                        <Text size="sm">{selectedReports.length} reports selected</Text>
+                        <ActionIcon variant="light" size="sm" aria-label="Download">
+                            <IconDownload size={16} />
+                        </ActionIcon>
+                        <ActionIcon variant="light" color="red" size="sm" aria-label="Delete">
+                            <IconTrash size={16} />
+                        </ActionIcon>
+                    </Flex>
+                </Paper>
+            )}
 
-          <Button color="blue" fullWidth mt="md" radius="md">
-            Create Payroll
-          </Button>
-        </Card>
+            {/* Reports Table */}
+            <Paper shadow="xs">
+                <Table highlightOnHover>
+                    <Table.Thead>
+                        <Table.Tr>
+                            <Table.Th>
+                                <Checkbox
+                                    checked={
+                                        selectedReports.length === filteredReports.length && filteredReports.length > 0
+                                    }
+                                    indeterminate={
+                                        selectedReports.length > 0 && selectedReports.length < filteredReports.length
+                                    }
+                                    onChange={(e) => handleSelectAll(e.currentTarget.checked)}
+                                />
+                            </Table.Th>
+                            <Table.Th>Report Name</Table.Th>
+                            <Table.Th>Status</Table.Th>
+                            <Table.Th>Period</Table.Th>
+                            <Table.Th>Last Modified</Table.Th>
+                            <Table.Th></Table.Th>
+                        </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>{rows}</Table.Tbody>
+                </Table>
 
+                {filteredReports.length === 0 && (
+                    <Paper p="xl" ta="center">
+                        <Text c="dimmed">No reports found</Text>
+                    </Paper>
+                )}
+            </Paper>
 
-        <Card shadow="sm" padding="lg" radius="md" withBorder>
-          <Card.Section component="a" href="https://mantine.dev/">
-            <Image
-              src="https://raw.githubusercontent.com/mantinedev/mantine/master/.demo/images/bg-8.png"
-              height={160}
-              alt="Disbursement Sheet"
-            />
-          </Card.Section>
-
-          <Group justify="space-between" mt="md" mb="xs">
-            <Text fw={500}>Disbursement Voucher</Text>
-          </Group>
-
-          <Text size="sm" c="dimmed">
-            This voucher documents the release of funds for authorized expenses, detailing the purpose,
-            amount, payee, and supporting approvals to ensure proper financial accountability.
-          </Text>
-
-          <Button color="blue" fullWidth mt="md" radius="md">
-            Create Disbursement Voucher
-          </Button>
-        </Card>
-      </Flex>
-
-      <Accordion
-        style={{ marginTop: "20px" }}
-        defaultValue="Apples"
-        classNames={{ chevron: classes.chevron }}
-        chevron={<IconPlus className={classes.icon} />}
-      >
-        {items}
-      </Accordion>
-
-    </div>
-  );
+            {/* Pagination */}
+            <Group justify="center">
+                <Pagination total={Math.ceil(filteredReports.length / 10)} />
+            </Group>
+        </Stack>
+    );
 }
