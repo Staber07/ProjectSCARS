@@ -862,9 +862,9 @@ function PayrollPageContent() {
     );
 }
 
-export default function PayrollPage() {
+export default function PayrollPage(): React.ReactElement {
     return (
-        <Suspense fallback={<LoadingComponent />}>
+        <Suspense fallback={<LoadingComponent message="Please wait..." />}>
             <PayrollPageContent />
         </Suspense>
     );

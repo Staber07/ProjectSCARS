@@ -67,6 +67,9 @@ export default function UsersPage(): JSX.Element {
     const handleSearch = () => {};
     const handleCreate = () => {
         console.debug("Creating new user");
+        // Clear selected user when opening create modal
+        setSelectedUser(null);
+        setSelectedUserIndex(null);
         setOpenCreateUserModal(true);
     };
     const handleEdit = (index: number, user: UserPublicType) => {
@@ -418,7 +421,7 @@ export default function UsersPage(): JSX.Element {
                                         />
                                     )}
                                     <Stack gap={0}>
-                                        <Text fw={500}>
+                                        <Text fw={ 500}>
                                             {hoveredUser.nameFirst}{" "}
                                             {hoveredUser.nameMiddle
                                                 ? hoveredUser.nameMiddle
