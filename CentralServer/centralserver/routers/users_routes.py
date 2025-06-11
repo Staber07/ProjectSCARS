@@ -308,7 +308,7 @@ async def delete_user_avatar_endpoint(
 
     logger.debug("user %s is deleting user avatar of %s...", token.id, user_id)
     try:
-        return await update_user_avatar(user_id, None, token, session)
+        return await update_user_avatar(user_id, None, session)
 
     except ValueError as e:
         logger.warning("Error deleting user avatar: %s", e)
