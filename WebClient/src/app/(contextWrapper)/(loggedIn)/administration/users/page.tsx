@@ -92,18 +92,48 @@ export default function UsersPage(): JSX.Element {
     };
 
     // Handle bulk actions for selected users
-    const handleBulkAction = (action: "deactivate" | "reactivate") => {
-        // Example implementation: just log the action and selected users
+    const handleBulkAction = async (action: "deactivate" | "reactivate") => {
         const selectedUsers = Array.from(selected).map((idx) => users[idx]);
-        console.debug(`Bulk action: ${action}`, selectedUsers);
-        notifications.show({
-            id: `bulk-action-${action}`,
-            title: `Bulk ${action === "deactivate" ? "Deactivation" : "Reactivation"}`,
-            message: `Bulk ${action} for ${selectedUsers.length} user(s) is not yet implemented.`,
-            color: "blue",
-            icon: <IconUserExclamation />,
-        });
-        // TODO: Implement actual bulk action logic here
+        const isDeactivate = action === "deactivate";
+
+        try {
+            // Update all selected users
+            await Promise.all(
+                selectedUsers.map((user) =>
+                    UpdateUserInfo({
+                        ...user,
+                        deactivated: isDeactivate,
+                    })
+                )
+            );
+
+            // Update local state to reflect changes
+            const updatedUsers = [...users];
+            Array.from(selected).forEach((idx) => {
+                updatedUsers[idx] = {
+                    ...updatedUsers[idx],
+                    deactivated: isDeactivate,
+                };
+            });
+            setUsers(updatedUsers);
+
+            // Clear selection
+            setSelected(new Set());
+
+            notifications.show({
+                title: "Success",
+                message: `Successfully ${isDeactivate ? "deactivated" : "reactivated"} ${selectedUsers.length} user(s)`,
+                color: "green",
+                icon: isDeactivate ? <IconUserOff /> : <IconUserCheck />,
+            });
+        } catch (error) {
+            notifications.show({
+                title: "Error",
+                message: `Failed to ${isDeactivate ? "deactivate" : "reactivate"} users`,
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+        }
     };
 
     const toggleSelected = (index: number) => {
