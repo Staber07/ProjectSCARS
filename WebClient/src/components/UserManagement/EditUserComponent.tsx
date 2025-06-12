@@ -73,7 +73,7 @@ export function EditUserComponent({
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const userCtx = useUser();
     const availableSchoolNames = availableSchools.map(
-        (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
+        (school) => `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}`
     );
     const availableRoleDescriptions = availableRoles.map((role) => role.description);
     const form = useForm<EditUserValues>({
@@ -85,7 +85,15 @@ export function EditUserComponent({
             nameMiddle: user.nameMiddle || null,
             nameLast: user.nameLast || null,
             email: user.email || null,
-            school: availableSchools.find((school) => school.id === user.schoolId)?.name || null,
+            school: availableSchools.find((school) => school.id === user.schoolId)
+                ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
+                      availableSchools.find((school) => school.id === user.schoolId)!.name
+                  }${
+                      availableSchools.find((school) => school.id === user.schoolId)!.address
+                          ? ` (${availableSchools.find((school) => school.id === user.schoolId)!.address})`
+                          : ""
+                  }`
+                : null,
             role: availableRoles.find((role) => role.id === user.roleId)?.description || null,
             deactivated: user.deactivated,
             forceUpdateInfo: user.forceUpdateInfo,
@@ -142,7 +150,8 @@ export function EditUserComponent({
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
         const schoolId = availableSchools.find(
-            (school) => school.name === values.school || `${school.name} (${school.address})` === values.school
+            (school) =>
+                school.name === values.school || `[${school.id}] ${school.name} (${school.address})` === values.school
         );
         if (values.school && !schoolId) {
             notifications.show({
