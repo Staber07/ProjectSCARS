@@ -18,7 +18,6 @@ import {
     Title,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { VerifyUserEmail } from "@/lib/api/auth";
 import { UploadUserAvatar } from "@/lib/api/user";
@@ -27,11 +26,13 @@ import { useUser } from "@/lib/providers/user";
 import { notifications } from "@mantine/notifications";
 import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { EditProfileComponent } from "@/components/UserProfile/EditProfileComponent";
 
 function ProfileContent() {
     const searchParams = useSearchParams();
     const userCtx = useUser();
+    const [editProfileModalOpened, setProfileModalOpened] = useState(false);
     const [opened, { open, close }] = useDisclosure(false);
 
     const uploadAvatar = async (file: File | null) => {
@@ -47,6 +48,11 @@ function ProfileContent() {
         const updatedUserInfo = await UploadUserAvatar(userCtx.userInfo.id, file);
         userCtx.updateUserInfo(updatedUserInfo, userCtx.userPermissions, file);
         console.debug("Avatar uploaded successfully.");
+    };
+
+    const handleProfileEdit = () => {
+        console.debug("Navigating to profile edit page...");
+        setProfileModalOpened(true);
     };
 
     console.debug("Rendering ProfilePage");
@@ -120,14 +126,9 @@ function ProfileContent() {
                         </Text>
                     </Stack>
                 </Group>
-
-                <FileButton onChange={uploadAvatar} accept="image/png,image/jpeg">
-                    {(props) => (
-                        <Button {...props} variant="outline" size="sm">
-                            Edit Profile
-                        </Button>
-                    )}
-                </FileButton>
+                <Button variant="outline" size="sm" onClick={handleProfileEdit}>
+                    Edit Profile
+                </Button>
             </Flex>
 
             <Divider my="lg" />
@@ -176,6 +177,8 @@ function ProfileContent() {
                         labelProps={{ style: { marginBottom: 6 } }}
                     />
                 </Stack>
+
+                <EditProfileComponent isModalOpened={editProfileModalOpened} setIsModalOpened={setProfileModalOpened} />
 
                 <Modal opened={opened} onClose={close} title="Update Password" centered>
                     <Stack>
