@@ -12,6 +12,7 @@ import "@gfazioli/mantine-onboarding-tour/styles.css";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/spotlight/styles.css";
+import { SettingsProvider } from "@/lib/providers/settings";
 
 // Set page metadata
 export const metadata: Metadata = {
@@ -37,10 +38,12 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 <ColorSchemeScript />
             </Head>
             <body>
-                <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
-                    {children}
-                    <Notifications limit={5} autoClose={5000} />
-                </MantineProvider>
+                <SettingsProvider>
+                    <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
+                        {children}
+                        <Notifications limit={5} autoClose={5000} />
+                    </MantineProvider>
+                </SettingsProvider>
             </body>
         </html>
     );
