@@ -472,11 +472,7 @@ export default function UsersPage(): JSX.Element {
                             </TableTd>
                             <TableTd>
                                 <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
-                                    <ActionIcon
-                                        disabled={user.deactivated}
-                                        variant="light"
-                                        onClick={() => handleEdit(index, user)}
-                                    >
+                                    <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
                                         <IconEdit size={16} />
                                     </ActionIcon>
                                 </Tooltip>
@@ -548,8 +544,8 @@ export default function UsersPage(): JSX.Element {
                     availableSchools={availableSchools}
                     availableRoles={availableRoles}
                     currentPage={currentPage}
+                    setIndex={setSelectedUserIndex}
                     fetchUsers={fetchUsers}
-                    setUsers={setUsers}
                     UpdateUserInfo={UpdateUserInfo}
                     UploadUserAvatar={UploadUserAvatar}
                     fetchUserAvatar={fetchUserAvatar}
