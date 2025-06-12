@@ -230,6 +230,9 @@ function DashboardContent() {
                     )}
                 </Card>
             </Container>
+
+            {/* New home section */}
+            <HomeSection />
         </Container>
     );
 }
