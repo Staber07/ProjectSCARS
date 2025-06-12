@@ -474,7 +474,7 @@ export default function UsersPage(): JSX.Element {
                             <TableTd>
                                 <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
                                     <ActionIcon
-                                        disabled={user.deactivated ? true : false}
+                                        disabled={user.deactivated}
                                         variant="light"
                                         onClick={() => handleEdit(index, user)}
                                     >
