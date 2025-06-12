@@ -48,7 +48,7 @@ const DashboardContent = memo(function DashboardContent() {
     const handleStepClick = (index: number) => {
         switch (index) {
             case 0:
-                window.location.href = "/account/settings";
+                window.location.href = "/account/profile";
                 break;
             case 1:
                 window.location.href = "/account/profile";
@@ -57,7 +57,7 @@ const DashboardContent = memo(function DashboardContent() {
                 window.location.href = "/account/profile";
                 break;
             case 3:
-                window.location.href = "/account/security";
+                window.location.href = "/account/profile";
                 break;
             default:
                 break;
@@ -257,27 +257,6 @@ const DashboardContent = memo(function DashboardContent() {
     );
 });
 
-// Memoize the setup steps component
-const SetupSteps = memo(({ steps }: { steps: [string, boolean][] }) => (
-    <List spacing="xs" center>
-        {steps.map(([step, completed], index) => (
-            <List.Item
-                key={index}
-                icon={
-                    <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
-                        {completed ? <IconCircleCheck /> : <IconCircleDashed />}
-                    </ThemeIcon>
-                }
-                c={completed ? "gray" : "dark"}
-            >
-                <Text size="sm" style={{ textDecoration: completed ? "line-through" : "none" }}>
-                    {step}
-                </Text>
-            </List.Item>
-        ))}
-    </List>
-));
-
 // Memoize the notification card
 const NotificationCard = memo(({ notification }: { notification: NotificationType }) => (
     <Link href="/account/notifications" style={{ textDecoration: "none" }}>
@@ -295,30 +274,6 @@ const NotificationCard = memo(({ notification }: { notification: NotificationTyp
         </Card>
     </Link>
 ));
-
-// Add this component after your DashboardContent
-const NotificationSection = memo(
-    ({ notifications, isLoading }: { notifications: NotificationType[]; isLoading: boolean }) => {
-        if (isLoading) {
-            return <LoadingComponent message="Loading notifications..." withBorder={false} />;
-        }
-
-        return (
-            <Card p="md" radius="md" withBorder>
-                <Title order={4}>Important Notifications</Title>
-                {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                        <NotificationCard key={notification.id} notification={notification} />
-                    ))
-                ) : (
-                    <Text size="sm" c="dimmed" mt={10}>
-                        No important notifications at the moment.
-                    </Text>
-                )}
-            </Card>
-        );
-    }
-);
 
 export default function DashboardPage() {
     return (
