@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from minio.error import S3Error
 from sqlmodel import Session, func, select
 
+from centralserver.internals.adapters.object_store import validate_and_process_image
 from centralserver.internals.auth_handler import (
     get_user,
     verify_access_token,
@@ -20,7 +21,6 @@ from centralserver.internals.user_handler import (
     get_user_avatar,
     update_user_avatar,
     update_user_info,
-    validate_and_process_image,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -283,9 +283,7 @@ async def update_user_avatar_endpoint(
         )
 
     logger.debug("user %s is updating user profile of %s...", token.id, user_id)
-
-    processed_image_bytes = await validate_and_process_image(img)
-    return await update_user_avatar(user_id, processed_image_bytes, token, session)
+    return await update_user_avatar(user_id, img, session)
 
 
 @router.delete("/avatar")
@@ -310,7 +308,7 @@ async def delete_user_avatar_endpoint(
 
     logger.debug("user %s is deleting user avatar of %s...", token.id, user_id)
     try:
-        return await update_user_avatar(user_id, None, token, session)
+        return await update_user_avatar(user_id, None, session)
 
     except ValueError as e:
         logger.warning("Error deleting user avatar: %s", e)
