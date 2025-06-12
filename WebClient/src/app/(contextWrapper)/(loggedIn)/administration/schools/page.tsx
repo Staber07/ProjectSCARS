@@ -8,6 +8,7 @@ import {
     UpdateSchoolInfo,
     UploadSchoolLogo,
 } from "@/lib/api/school";
+import { useUser } from "@/lib/providers/user";
 import { SchoolType, SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
@@ -54,6 +55,7 @@ import { JSX, useEffect, useState } from "react";
 dayjs.extend(relativeTime);
 
 export default function SchoolsPage(): JSX.Element {
+    const userCtx = useUser();
     const schoolPerPage = 10;
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
@@ -391,7 +393,15 @@ export default function SchoolsPage(): JSX.Element {
                             </Tooltip>
                             <TableTd>
                                 <Tooltip label="Edit School" position="bottom" openDelay={500} withArrow>
-                                    <ActionIcon variant="light" onClick={() => handleEdit(index, school)}>
+                                    <ActionIcon
+                                        disabled={
+                                            userCtx.userInfo?.schoolId === school.id
+                                                ? !userCtx.userPermissions?.includes("schools:self:modify")
+                                                : !userCtx.userPermissions?.includes("schools:global:modify")
+                                        }
+                                        variant="light"
+                                        onClick={() => handleEdit(index, school)}
+                                    >
                                         <IconEdit size={16} />
                                     </ActionIcon>
                                 </Tooltip>
