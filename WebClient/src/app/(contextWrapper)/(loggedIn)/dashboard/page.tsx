@@ -25,6 +25,7 @@ import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
 import React, { Suspense, memo, useEffect, useState } from "react";
+import { HomeSection } from "@/components/Dashboard/HomeSection";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -128,110 +129,113 @@ function DashboardContent() {
     }, []); // Empty dependency array as we want this to run only once on mount
 
     console.debug("Rendering DashboardPage");
-    return (
-        <Container>
-            <SpotlightComponent />
-            <Group gap={20}>
-                <Avatar
-                    variant="light"
-                    radius="lg"
-                    size={100}
-                    color="#258ce6"
-                    src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
-                />
-                {userCtx.userInfo?.nameFirst ? (
-                    <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
-                ) : userCtx.userInfo?.username ? (
-                    <Title>Welcome, {userCtx.userInfo.username}!</Title>
-                ) : (
-                    <Title>Welcome!</Title>
-                )}
-            </Group>
-            <Container mt={20}>
-                {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
-                    <Card p="md" radius="md" withBorder>
-                        <Flex justify="space-between" align="center" mb={20}>
-                            <SemiCircleProgress
-                                fillDirection="left-to-right"
-                                orientation="up"
-                                filledSegmentColor="blue"
-                                value={profileCompletionPercentage}
-                                transitionDuration={250}
-                                label={`${profileCompletionPercentage}% Complete`}
-                            />
-                            <Stack style={{ flex: 1 }}>
-                                <Title order={4}>Set Up Your Account</Title>
-                                <Text size="sm" c="dimmed">
-                                    Complete your profile, set up security features, and customize your preferences.
-                                </Text>
-                                {/* <List spacing="xs" center>
-                                    {stepsToComplete.map(([step, completed], index) => (
-                                        <List.Item
-                                            key={index}
-                                            icon={
-                                                <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
-                                                    {completed ? <IconCircleCheck /> : <IconCircleDashed />}
-                                                </ThemeIcon>
-                                            }
-                                            c={completed ? "gray" : "dark"}
-                                        >
-                                            <Text
-                                                size="sm"
-                                                style={{ textDecoration: completed ? "line-through" : "none" }}
-                                            >
-                                                {step}
-                                            </Text>
-                                        </List.Item>
-                                    ))}
-                                </List> */}
-                            </Stack>
-                        </Flex>
-                        <Text
-                            size="xs"
-                            c="dimmed"
-                            ta="right"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => {
-                                localStorage.setItem("setupCompleteDismissed", "true");
-                                setSetupCompleteDismissed(true);
-                            }}
-                        >
-                            Dismiss
-                        </Text>
-                    </Card>
-                )}
-                <Card p="md" radius="md">
-                    <Title order={4}>Important Notifications</Title>
-                    {HVNotifications.length > 0 ? (
-                        HVNotifications.map((notification) => (
-                            <Link
-                                key={notification.id}
-                                href="/account/notifications"
-                                style={{ textDecoration: "none" }}
-                            >
-                                <Card key={notification.id} withBorder radius="md" p="md">
-                                    <Group>
-                                        <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                                            {notificationIcons[notification.type]?.[0] &&
-                                                React.createElement(notificationIcons[notification.type][0])}
-                                        </Avatar>
-                                        <Text size="sm">{notification.content}</Text>
-                                    </Group>
-                                    <Text size="xs" c="dimmed" ta="right" mt={5}>
-                                        {new Date(notification.created).toLocaleString()}
-                                    </Text>
-                                </Card>
-                            </Link>
-                        ))
-                    ) : (
-                        <Text size="sm" c="dimmed" mt={10}>
-                            No important notifications at the moment.
-                        </Text>
-                    )}
-                </Card>
-            </Container>
+    if (isLoading) {
+        return <LoadingComponent message="Loading dashboard..." withBorder={false} />;
+    }
 
-            {/* New home section */}
+    return (
+        <Container size="xl">
+            <SpotlightComponent />
+
+            {/* User Welcome Section */}
+            <Card shadow="sm" p="md" radius="md" withBorder mb="md">
+                <Group gap={20}>
+                    <Avatar variant="light" radius="lg" size={100} color="#258ce6" src={userCtx.userAvatarUrl} />
+                    <Stack>
+                        {userCtx.userInfo?.nameFirst ? (
+                            <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
+                        ) : userCtx.userInfo?.username ? (
+                            <Title>Welcome, {userCtx.userInfo.username}!</Title>
+                        ) : (
+                            <Title>Welcome!</Title>
+                        )}
+                        <Text c="dimmed">Here's what's happening with your account</Text>
+                    </Stack>
+                </Group>
+            </Card>
+
+            {/* Account Setup Section */}
+            {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
+                <Card p="md" radius="md" withBorder>
+                    <Flex justify="space-between" align="center" mb={20}>
+                        <SemiCircleProgress
+                            fillDirection="left-to-right"
+                            orientation="up"
+                            filledSegmentColor="blue"
+                            value={profileCompletionPercentage}
+                            transitionDuration={250}
+                            label={`${profileCompletionPercentage}% Complete`}
+                        />
+                        <Stack style={{ flex: 1 }}>
+                            <Title order={4}>Set Up Your Account</Title>
+                            <Text size="sm" c="dimmed">
+                                Complete your profile, set up security features, and customize your preferences.
+                            </Text>
+                            {/* <List spacing="xs" center>
+                                {stepsToComplete.map(([step, completed], index) => (
+                                    <List.Item
+                                        key={index}
+                                        icon={
+                                            <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
+                                                {completed ? <IconCircleCheck /> : <IconCircleDashed />}
+                                            </ThemeIcon>
+                                        }
+                                        c={completed ? "gray" : "dark"}
+                                    >
+                                        <Text
+                                            size="sm"
+                                            style={{ textDecoration: completed ? "line-through" : "none" }}
+                                        >
+                                            {step}
+                                        </Text>
+                                    </List.Item>
+                                ))}
+                            </List> */}
+                        </Stack>
+                    </Flex>
+                    <Text
+                        size="xs"
+                        c="dimmed"
+                        ta="right"
+                        style={{ cursor: "pointer" }}
+                        onClick={() => {
+                            localStorage.setItem("setupCompleteDismissed", "true");
+                            setSetupCompleteDismissed(true);
+                        }}
+                    >
+                        Dismiss
+                    </Text>
+                </Card>
+            )}
+
+            {/* Notifications Section */}
+            <Card p="md" radius="md" withBorder mb="xl">
+                <Title order={4}>Important Notifications</Title>
+                {HVNotifications.length > 0 ? (
+                    HVNotifications.map((notification) => (
+                        <Link key={notification.id} href="/account/notifications" style={{ textDecoration: "none" }}>
+                            <Card key={notification.id} withBorder radius="md" p="md">
+                                <Group>
+                                    <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
+                                        {notificationIcons[notification.type]?.[0] &&
+                                            React.createElement(notificationIcons[notification.type][0])}
+                                    </Avatar>
+                                    <Text size="sm">{notification.content}</Text>
+                                </Group>
+                                <Text size="xs" c="dimmed" ta="right" mt={5}>
+                                    {new Date(notification.created).toLocaleString()}
+                                </Text>
+                            </Card>
+                        </Link>
+                    ))
+                ) : (
+                    <Text size="sm" c="dimmed" mt={10}>
+                        No important notifications at the moment.
+                    </Text>
+                )}
+            </Card>
+
+            {/* Home Section */}
             <HomeSection />
         </Container>
     );
