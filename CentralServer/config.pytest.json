@@ -21,6 +21,9 @@
     "object_store": {
         "type": "local",
         "config": {
+            "max_file_size": 2097152,
+            "min_image_size": 256,
+            "allowed_image_types": ["png", "jpeg", "jpg", "webp"],
             "filepath": "./tests/data/test"
         }
     },

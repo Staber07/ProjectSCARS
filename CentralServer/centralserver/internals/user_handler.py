@@ -1,8 +1,6 @@
 import datetime
-from io import BytesIO
 
 from fastapi import HTTPException, UploadFile, status
-from PIL import Image
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, func, select
 
@@ -10,6 +8,7 @@ from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
+    validate_and_process_image,
 )
 from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
@@ -24,10 +23,6 @@ from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.permissions import DEFAULT_ROLES
 
 logger = LoggerFactory().get_logger(__name__)
-
-MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB limit
-MAX_DIMENSION = 1024
-ALLOWED_IMAGE_TYPES = {"png", "jpeg", "jpg", "webp"}
 
 
 async def validate_username(username: str) -> bool:
@@ -141,54 +136,14 @@ async def create_user(
     return user
 
 
-async def validate_and_process_image(file: UploadFile) -> bytes:
-    contents = await file.read()
-
-    if len(contents) > MAX_FILE_SIZE:
-        size_mb = len(contents) / (1024 * 1024)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Image size {size_mb:.2f} MB exceeds the 2 MB size limit.",
-        )
-
-    try:
-        image = Image.open(BytesIO(contents))
-        if image.format is None:
-            raise HTTPException(status_code=400, detail="Image format not recognized.")
-        image_format = image.format.lower()
-        format_map = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "webp": "WEBP"}
-        save_format = format_map.get(image_format, image_format.upper())
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid image file.")
-
-    if image_format not in ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported image format: {image_format}. Allowed: PNG, JPG, JPEG, WEBP.",
-        )
-
-    width, height = image.size
-    min_dim = min(width, height)
-    left = int((width - min_dim) / 2)
-    top = int((height - min_dim) / 2)
-    right = int((width + min_dim) / 2)
-    bottom = int((height + min_dim) / 2)
-    image = image.crop((left, top, right, bottom))
-
-    output_buffer = BytesIO()
-    image.save(output_buffer, format=save_format)
-    return output_buffer.getvalue()
-
-
 async def update_user_avatar(
-    target_user: str, img: bytes | None, token: DecodedJWTToken, session: Session
+    target_user: str, img: UploadFile | None, session: Session
 ) -> UserPublic:
     """Update the user's avatar in the database.
 
     Args:
         target_user: The user to update.
         img: The new avatar image.
-        token: The decoded JWT token of the user making the request.
         session: The database session to use.
 
     Returns:
@@ -204,20 +159,6 @@ async def update_user_avatar(
             detail="User not found",
         )
 
-    updating_self = selected_user.id == token.id
-    if not await verify_user_permission(
-        "users:self:modify:avatar" if updating_self else "users:global:modify:avatar",
-        session=session,
-        token=token,
-    ):
-        logger.warning(
-            "Failed to update user: %s (permission denied: avatar)", target_user
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permission denied: Cannot modify avatar.",
-        )
-
     object_store_manager = await get_object_store_handler(app_config.object_store)
     if img is None:
         logger.debug("Deleting avatar for user: %s", target_user)
@@ -229,6 +170,7 @@ async def update_user_avatar(
         selected_user.avatarUrn = None
 
     else:
+        processed_img = await validate_and_process_image(await img.read())
         if selected_user.avatarUrn is not None:
             logger.debug("Deleting old avatar for user: %s", target_user)
             await object_store_manager.delete(
@@ -237,7 +179,7 @@ async def update_user_avatar(
 
         logger.debug("Updating avatar for user: %s", target_user)
         bucket_object = await object_store_manager.put(
-            BucketNames.AVATARS, selected_user.id, img
+            BucketNames.AVATARS, selected_user.id, processed_img
         )
 
         selected_user.avatarUrn = bucket_object.fn

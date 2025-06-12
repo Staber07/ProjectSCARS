@@ -10,7 +10,7 @@ from centralserver.internals.adapters.config import (
 def test_valid_local_config():
     """Test the Local object store configuration."""
 
-    config = LocalObjectStoreAdapterConfig("pytest-path")
+    config = LocalObjectStoreAdapterConfig(filepath="pytest-path")
 
     assert config.info["filepath"] == "pytest-path"
 

@@ -80,7 +80,6 @@ export type SchoolType = {
 export type SchoolCreateType = {
     name: string;
     address?: string | null;
-    coordinates?: string | null;
 
     phone?: string | null;
     email?: string | null;
@@ -91,7 +90,6 @@ export type SchoolUpdateType = {
     id: number;
     name: string;
     address?: string | null;
-    coordinates?: string | null;
 
     phone?: string | null;
     email?: string | null;
