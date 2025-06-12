@@ -39,10 +39,10 @@ import {
     IconSearch,
     IconSendOff,
     IconUser,
-    IconUserExclamation,
-    IconX,
-    IconUserOff,
     IconUserCheck,
+    IconUserExclamation,
+    IconUserOff,
+    IconX,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
@@ -67,7 +67,6 @@ export default function UsersPage(): JSX.Element {
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
-    const [showBulkActions, setShowBulkActions] = useState(false);
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -545,8 +544,8 @@ export default function UsersPage(): JSX.Element {
                     availableSchools={availableSchools}
                     availableRoles={availableRoles}
                     currentPage={currentPage}
+                    setIndex={setSelectedUserIndex}
                     fetchUsers={fetchUsers}
-                    setUsers={setUsers}
                     UpdateUserInfo={UpdateUserInfo}
                     UploadUserAvatar={UploadUserAvatar}
                     fetchUserAvatar={fetchUserAvatar}
