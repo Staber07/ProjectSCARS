@@ -14,6 +14,7 @@
     },
     "dependencies": {
         "@gfazioli/mantine-onboarding-tour": "^2.0.3",
+        "@mantine/carousel": "^8.1.0",
         "@mantine/charts": "^8.1.0",
         "@mantine/core": "^8.1.0",
         "@mantine/dates": "^8.1.0",
@@ -31,6 +32,8 @@
         "@tiptap/react": "^2.14.0",
         "@tiptap/starter-kit": "^2.14.0",
         "dayjs": "^1.11.13",
+        "embla-carousel": "^8.6.0",
+        "embla-carousel-react": "^8.6.0",
         "ky": "^1.8.1",
         "mantine-data-grid": "^0.2.3",
         "motion": "^12.17.0",

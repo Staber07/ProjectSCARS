@@ -355,153 +355,166 @@ export default function UsersPage(): JSX.Element {
                     </TableTr>
                 </TableThead>
                 <TableTbody>
-                    {users.map((user, index) => (
-                        <TableTr
-                            key={index}
-                            bg={selected.has(index) ? "gray.1" : undefined}
-                            // onMouseEnter={() => setHoveredUser(user)}
-                            // onMouseLeave={() => setHoveredUser(null)}
-                        >
-                            {/* Checkbox and Avatar */}
-                            <TableTd>
-                                <Group>
-                                    <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
-                                    {user.avatarUrn ? (
-                                        <Avatar radius="xl" src={fetchUserAvatar(user.avatarUrn)}>
-                                            <IconUser />
-                                        </Avatar>
-                                    ) : (
-                                        <Avatar
-                                            radius="xl"
-                                            name={user.nameFirst + " " + user.nameLast}
-                                            color="initials"
+                    {users.length > 0 ? (
+                        users.map((user, index) => (
+                            <TableTr
+                                key={index}
+                                bg={selected.has(index) ? "gray.1" : undefined}
+                                // onMouseEnter={() => setHoveredUser(user)}
+                                // onMouseLeave={() => setHoveredUser(null)}
+                            >
+                                {/* Checkbox and Avatar */}
+                                <TableTd>
+                                    <Group>
+                                        <Checkbox
+                                            checked={selected.has(index)}
+                                            onChange={() => toggleSelected(index)}
                                         />
-                                    )}
-                                </Group>
-                            </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                <Group gap="xs" align="center">
-                                    {user.email &&
-                                        (user.emailVerified ? (
-                                            <Tooltip label="Email verified" position="bottom" withArrow>
-                                                <IconCircleDashedCheck size={16} color="green" />
-                                            </Tooltip>
+                                        {user.avatarUrn ? (
+                                            <Avatar radius="xl" src={fetchUserAvatar(user.avatarUrn)}>
+                                                <IconUser />
+                                            </Avatar>
                                         ) : (
-                                            <Tooltip
-                                                label="Email not verified (Click to send verification mail)"
-                                                position="bottom"
-                                                withArrow
-                                            >
-                                                <motion.div
-                                                    whileTap={{ scale: 0.9 }}
-                                                    whileHover={{ scale: 1.05 }}
-                                                    style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                    }}
+                                            <Avatar
+                                                radius="xl"
+                                                name={user.nameFirst + " " + user.nameLast}
+                                                color="initials"
+                                            />
+                                        )}
+                                    </Group>
+                                </TableTd>
+                                <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
+                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                    <Group gap="xs" align="center">
+                                        {user.email &&
+                                            (user.emailVerified ? (
+                                                <Tooltip label="Email verified" position="bottom" withArrow>
+                                                    <IconCircleDashedCheck size={16} color="green" />
+                                                </Tooltip>
+                                            ) : (
+                                                <Tooltip
+                                                    label="Email not verified (Click to send verification mail)"
+                                                    position="bottom"
+                                                    withArrow
                                                 >
-                                                    <IconCircleDashedX
-                                                        size={16}
-                                                        color="gray"
-                                                        onClick={() => {
-                                                            try {
-                                                                RequestVerificationEmail();
-                                                                notifications.show({
-                                                                    id: "verification-email-sent",
-                                                                    title: "Verification Email Sent",
-                                                                    message:
-                                                                        "Please check your email and click the link to verify your email.",
-                                                                    color: "blue",
-                                                                    icon: <IconMail />,
-                                                                });
-                                                            } catch (error) {
-                                                                if (error instanceof Error) {
-                                                                    notifications.show({
-                                                                        id: "verification-email-error",
-                                                                        title: "Error",
-                                                                        message: `Failed to send verification email: ${error.message}`,
-                                                                        color: "red",
-                                                                        icon: <IconSendOff />,
-                                                                    });
-                                                                } else {
-                                                                    notifications.show({
-                                                                        id: "verification-email-error-unknown",
-                                                                        title: "Error",
-                                                                        message:
-                                                                            "Failed to send verification email. Please try again later.",
-                                                                        color: "red",
-                                                                        icon: <IconSendOff />,
-                                                                    });
-                                                                }
-                                                            }
+                                                    <motion.div
+                                                        whileTap={{ scale: 0.9 }}
+                                                        whileHover={{ scale: 1.05 }}
+                                                        style={{
+                                                            display: "flex",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
                                                         }}
-                                                    />
-                                                </motion.div>
-                                            </Tooltip>
-                                        ))}
-                                    {user.email ? (
-                                        user.email
+                                                    >
+                                                        <IconCircleDashedX
+                                                            size={16}
+                                                            color="gray"
+                                                            onClick={() => {
+                                                                try {
+                                                                    RequestVerificationEmail();
+                                                                    notifications.show({
+                                                                        id: "verification-email-sent",
+                                                                        title: "Verification Email Sent",
+                                                                        message:
+                                                                            "Please check your email and click the link to verify your email.",
+                                                                        color: "blue",
+                                                                        icon: <IconMail />,
+                                                                    });
+                                                                } catch (error) {
+                                                                    if (error instanceof Error) {
+                                                                        notifications.show({
+                                                                            id: "verification-email-error",
+                                                                            title: "Error",
+                                                                            message: `Failed to send verification email: ${error.message}`,
+                                                                            color: "red",
+                                                                            icon: <IconSendOff />,
+                                                                        });
+                                                                    } else {
+                                                                        notifications.show({
+                                                                            id: "verification-email-error-unknown",
+                                                                            title: "Error",
+                                                                            message:
+                                                                                "Failed to send verification email. Please try again later.",
+                                                                            color: "red",
+                                                                            icon: <IconSendOff />,
+                                                                        });
+                                                                    }
+                                                                }
+                                                            }}
+                                                        />
+                                                    </motion.div>
+                                                </Tooltip>
+                                            ))}
+                                        {user.email ? (
+                                            user.email
+                                        ) : (
+                                            <Text size="sm" c="dimmed">
+                                                N/A
+                                            </Text>
+                                        )}
+                                    </Group>
+                                </TableTd>
+                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                    {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
+                                        <Text size="sm" c="dimmed">
+                                            N/A
+                                        </Text>
+                                    )}
+                                    {user.nameFirst}{" "}
+                                    {user.nameMiddle
+                                        ? user.nameMiddle
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .join(".") + ". "
+                                        : ""}
+                                    {user.nameLast}
+                                </TableTd>
+                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                    {user.schoolId ? (
+                                        availableSchools.find((school) => school.id === user.schoolId)?.name || (
+                                            <Text size="sm" c="dimmed">
+                                                N/A
+                                            </Text>
+                                        )
                                     ) : (
                                         <Text size="sm" c="dimmed">
                                             N/A
                                         </Text>
                                     )}
-                                </Group>
-                            </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
-                                    <Text size="sm" c="dimmed">
-                                        N/A
-                                    </Text>
-                                )}
-                                {user.nameFirst}{" "}
-                                {user.nameMiddle
-                                    ? user.nameMiddle
-                                          .split(" ")
-                                          .map((n) => n[0])
-                                          .join(".") + ". "
-                                    : ""}
-                                {user.nameLast}
-                            </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                {user.schoolId ? (
-                                    availableSchools.find((school) => school.id === user.schoolId)?.name || (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )
-                                ) : (
-                                    <Text size="sm" c="dimmed">
-                                        N/A
-                                    </Text>
-                                )}
-                            </TableTd>
-                            <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
-                            <TableTd>
-                                <Tooltip
-                                    label={user.deactivated ? "User is deactivated" : "User is active"}
-                                    position="bottom"
-                                    withArrow
-                                >
-                                    {user.deactivated ? <IconLock color="gray" /> : <IconLockOpen color="green" />}
-                                </Tooltip>
-                            </TableTd>
-                            <TableTd>
-                                <Tooltip label="Force Update Required" position="bottom" withArrow>
-                                    {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
-                                </Tooltip>
-                            </TableTd>
-                            <TableTd>
-                                <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
-                                    <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
-                                        <IconEdit size={16} />
-                                    </ActionIcon>
-                                </Tooltip>
+                                </TableTd>
+                                <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
+                                <TableTd>
+                                    <Tooltip
+                                        label={user.deactivated ? "User is deactivated" : "User is active"}
+                                        position="bottom"
+                                        withArrow
+                                    >
+                                        {user.deactivated ? <IconLock color="gray" /> : <IconLockOpen color="green" />}
+                                    </Tooltip>
+                                </TableTd>
+                                <TableTd>
+                                    <Tooltip label="Force Update Required" position="bottom" withArrow>
+                                        {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
+                                    </Tooltip>
+                                </TableTd>
+                                <TableTd>
+                                    <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
+                                        <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
+                                            <IconEdit size={16} />
+                                        </ActionIcon>
+                                    </Tooltip>
+                                </TableTd>
+                            </TableTr>
+                        ))
+                    ) : (
+                        <TableTr>
+                            <TableTd colSpan={9}>
+                                <Text c="dimmed" size="sm" ta="center" py="xl">
+                                    No users available
+                                </Text>
                             </TableTd>
                         </TableTr>
-                    ))}
+                    )}
                 </TableTbody>
             </Table>
             {/* <AnimatePresence>

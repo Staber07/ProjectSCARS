@@ -28,6 +28,7 @@ import {
     IconUser,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
+
 import { useEffect, useState } from "react";
 
 interface EditUserProps {
@@ -43,6 +44,7 @@ interface EditUserProps {
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
 }
 
+
 interface EditUserValues {
     id: string;
     username: string | null;
@@ -55,6 +57,7 @@ interface EditUserValues {
     deactivated: boolean;
     forceUpdateInfo: boolean;
 }
+
 
 export function EditUserComponent({
     index,
@@ -240,26 +243,29 @@ export function EditUserComponent({
             fetchUsers(currentPage);
             setIndex(null);
         } catch (error) {
-            if (error instanceof Error && error.message.includes("status code 403")) {
-                const detail = error.message || "Failed to update user information.";
+            try {
+                if (error instanceof Error && error.message.includes("status code 403")) {
+                    const detail = error.message || "Failed to update user information.";
+                    notifications.show({
+                        id: "user-update-error",
+                        title: "Error",
+                        message: detail,
+                        color: "red",
+                        icon: <IconSendOff />,
+                    });
+                }
+                console.error("Update process failed:", error);
                 notifications.show({
                     id: "user-update-error",
                     title: "Error",
-                    message: detail,
+                    message: (error as Error).message || "Failed to update user information. Please try again later.",
                     color: "red",
                     icon: <IconSendOff />,
                 });
+            } finally {
+                buttonStateHandler.close();
             }
-            console.error("Update process failed:", error);
-            notifications.show({
-                id: "user-update-error",
-                title: "Error",
-                message: (error as Error).message || "Failed to update user information. Please try again later.",
-                color: "red",
-                icon: <IconSendOff />,
-            });
         }
-        buttonStateHandler.close();
     };
 
     return (
