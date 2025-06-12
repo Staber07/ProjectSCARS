@@ -227,6 +227,7 @@ export function EditUserComponent({
                 fetchUserAvatar(updatedUser.avatarUrn);
             }
             fetchUsers(currentPage);
+            setIndex(null);
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 403")) {
                 const detail = error.message || "Failed to update user information.";
@@ -420,7 +421,7 @@ export function EditUserComponent({
                             placeholder="Email"
                             rightSection={
                                 form.values.email &&
-                                (user.emailVerified && form.values.email == user.email ? (
+                                (user.emailVerified && form.values.email === user.email ? (
                                     <Tooltip
                                         label="This email has been verified. You're good to go!"
                                         withArrow
