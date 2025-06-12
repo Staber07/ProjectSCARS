@@ -17,6 +17,8 @@ import {
     Group,
     Menu,
     Pagination,
+    Select,
+    Stack,
     Table,
     TableTbody,
     TableTd,
@@ -48,9 +50,12 @@ import {
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
+const userPerPageOptions: number[] = [10, 25, 50, 100];
+
 export default function UsersPage(): JSX.Element {
     const userCtx = useUser();
-    const userPerPage = 10; // Number of users per page
+    const [userPerPage, setUserPerPage] = useState(userPerPageOptions[0]);
+    const [totalUsers, setTotalUsers] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
@@ -171,12 +176,15 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    const fetchUsers = async (page: number) => {
+    const fetchUsers = async (page: number, pageLimit: number = userPerPage) => {
         setCurrentPage(page);
-        const pageOffset = (page - 1) * userPerPage;
-        GetUsersQuantity()
+        console.debug("user per page:", pageLimit);
+        const pageOffset = (page - 1) * pageLimit;
+        console.debug(`Fetching users for page ${page} with offset ${pageOffset} and limit ${pageLimit}`);
+        await GetUsersQuantity()
             .then((quantity) => {
-                setTotalPages(Math.ceil(quantity / userPerPage));
+                setTotalUsers(quantity);
+                setTotalPages(Math.ceil(quantity / pageLimit));
             })
             .catch((error) => {
                 console.error("Failed to fetch users quantity:", error);
@@ -189,8 +197,9 @@ export default function UsersPage(): JSX.Element {
                 });
                 setTotalPages(1); // Default to 1 page if fetching fails
             });
-        await GetAllUsers(pageOffset, userPerPage)
+        await GetAllUsers(pageOffset, pageLimit)
             .then((data) => {
+                console.debug(`Fetched ${data.length} users for page offset ${pageOffset}`);
                 setUsers(data);
             })
             .catch((error) => {
@@ -542,8 +551,35 @@ export default function UsersPage(): JSX.Element {
                     </motion.div>
                 )}
             </AnimatePresence> */}
-            <Group justify="center">
-                <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
+            <Group justify="space-between" align="center" m="md">
+                <div></div>
+                <Stack align="center" justify="center" gap="sm">
+                    <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
+                    <Text size="sm" c="dimmed">
+                        {totalUsers > 0
+                            ? `${(currentPage - 1) * userPerPage + 1}-${Math.min(
+                                  currentPage * userPerPage,
+                                  totalUsers
+                              )} of ${totalUsers} users`
+                            : "No users found"}
+                    </Text>
+                </Stack>
+                <Select
+                    value={userPerPage.toString()}
+                    onChange={async (value) => {
+                        if (value) {
+                            console.debug("Changing users per page to", value);
+                            const newUserPerPage = parseInt(value);
+                            setUserPerPage(newUserPerPage);
+                            // Reset to page 1 and fetch users with new page size
+                            await fetchUsers(1, newUserPerPage);
+                        }
+                    }}
+                    data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
+                    size="md"
+                    style={{ width: "100px" }}
+                    allowDeselect={false}
+                />
             </Group>
             {selectedUserIndex !== null && selectedUser !== null && (
                 <EditUserComponent

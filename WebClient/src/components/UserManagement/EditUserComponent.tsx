@@ -470,6 +470,7 @@ export function EditUserComponent({
                             placeholder="School"
                             data={availableSchoolNames}
                             key={form.key("school")}
+                            searchable
                             {...form.getInputProps("school")}
                         />
                     </Tooltip>
@@ -492,6 +493,7 @@ export function EditUserComponent({
                             placeholder="Role"
                             data={availableRoleDescriptions}
                             key={form.key("role")}
+                            searchable
                             {...form.getInputProps("role")}
                         />
                     </Tooltip>

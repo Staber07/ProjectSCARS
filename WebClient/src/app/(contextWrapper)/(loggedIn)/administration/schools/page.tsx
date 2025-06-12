@@ -23,6 +23,7 @@ import {
     Image,
     Modal,
     Pagination,
+    Select,
     Stack,
     Table,
     TableTbody,
@@ -30,6 +31,7 @@ import {
     TableTh,
     TableThead,
     TableTr,
+    Text,
     TextInput,
     Tooltip,
 } from "@mantine/core";
@@ -52,11 +54,14 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
+const userPerPageOptions: number[] = [10, 25, 50, 100];
+
 dayjs.extend(relativeTime);
 
 export default function SchoolsPage(): JSX.Element {
     const userCtx = useUser();
-    const schoolPerPage = 10;
+    const [schoolPerPage, setSchoolPerPage] = useState(10);
+    const [totalSchools, setTotalSchools] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
@@ -195,12 +200,13 @@ export default function SchoolsPage(): JSX.Element {
         });
     };
 
-    const fetchSchools = async (page: number) => {
+    const fetchSchools = async (page: number, pageLimit: number = schoolPerPage) => {
         setCurrentPage(page);
-        const pageOffset = (page - 1) * schoolPerPage;
+        const pageOffset = (page - 1) * pageLimit;
         GetSchoolQuantity()
             .then((quantity) => {
-                setTotalPages(Math.ceil(quantity / schoolPerPage));
+                setTotalSchools(quantity);
+                setTotalPages(Math.ceil(quantity / pageLimit));
             })
             .catch((error) => {
                 console.error("Failed to fetch school quantity:", error);
@@ -213,7 +219,7 @@ export default function SchoolsPage(): JSX.Element {
                 });
                 setTotalPages(1); // Default to 1 page if fetching fails
             });
-        await GetAllSchools(pageOffset, schoolPerPage)
+        await GetAllSchools(pageOffset, pageLimit)
             .then((data) => {
                 setSchools(data);
             })
@@ -416,8 +422,35 @@ export default function SchoolsPage(): JSX.Element {
                     ))}
                 </TableTbody>
             </Table>
-            <Group justify="center">
-                <Pagination value={currentPage} onChange={fetchSchools} total={totalPages} mt="md" />
+            <Group justify="space-between" align="center" m="md">
+                <div></div>
+                <Stack align="center" justify="center" gap="sm">
+                    <Pagination value={currentPage} onChange={fetchSchools} total={totalPages} mt="md" />
+                    <Text size="sm" c="dimmed">
+                        {totalSchools > 0
+                            ? `${(currentPage - 1) * schoolPerPage + 1}-${Math.min(
+                                  currentPage * schoolPerPage,
+                                  totalSchools
+                              )} of ${totalSchools} schools`
+                            : "No schools found"}
+                    </Text>
+                </Stack>
+                <Select
+                    value={schoolPerPage.toString()}
+                    onChange={async (value) => {
+                        if (value) {
+                            console.debug("Changing schools per page to", value);
+                            const newSchoolPerPage = parseInt(value);
+                            setSchoolPerPage(newSchoolPerPage);
+                            // Reset to page 1 and fetch users with new page size
+                            await fetchSchools(1, newSchoolPerPage);
+                        }
+                    }}
+                    data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
+                    size="md"
+                    style={{ width: "100px" }}
+                    allowDeselect={false}
+                />
             </Group>
             <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit School" centered>
                 {editSchool && (
