@@ -34,7 +34,7 @@ const stepsToComplete: [string, boolean][] = [
     ["Set up two-factor authentication", false],
 ];
 
-function DashboardContent() {
+const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
@@ -128,118 +128,129 @@ function DashboardContent() {
         return () => clearInterval(intervalId);
     }, []); // Empty dependency array as we want this to run only once on mount
 
+    // Add this near your other useEffect hooks
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            setIsNotificationLoading(true);
+            try {
+                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                setHVNotifications(notifications);
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+            } finally {
+                setIsNotificationLoading(false);
+            }
+        };
+
+        fetchNotifications();
+    }, []);
+
     console.debug("Rendering DashboardPage");
     if (isLoading) {
         return <LoadingComponent message="Loading dashboard..." withBorder={false} />;
     }
 
+    // Update the main container and layout structure
     return (
-        <Container size="xl">
-            <SpotlightComponent />
+        <Container size="xl" py="md">
+            <Stack gap="md">
+                <SpotlightComponent />
 
-            {/* User Welcome Section */}
-            <Card shadow="sm" p="md" radius="md" withBorder mb="md">
-                <Group gap={20}>
-                    <Avatar variant="light" radius="lg" size={100} color="#258ce6" src={userCtx.userAvatarUrl} />
-                    <Stack>
-                        {userCtx.userInfo?.nameFirst ? (
-                            <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
-                        ) : userCtx.userInfo?.username ? (
-                            <Title>Welcome, {userCtx.userInfo.username}!</Title>
-                        ) : (
-                            <Title>Welcome!</Title>
-                        )}
-                        <Text c="dimmed">Here's what's happening with your account</Text>
-                    </Stack>
-                </Group>
-            </Card>
-
-            {/* Account Setup Section */}
-            {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
-                <Card p="md" radius="md" withBorder>
-                    <Flex justify="space-between" align="center" mb={20}>
-                        <SemiCircleProgress
-                            fillDirection="left-to-right"
-                            orientation="up"
-                            filledSegmentColor="blue"
-                            value={profileCompletionPercentage}
-                            transitionDuration={250}
-                            label={`${profileCompletionPercentage}% Complete`}
-                        />
-                        <Stack style={{ flex: 1 }}>
-                            <Title order={4}>Set Up Your Account</Title>
-                            <Text size="sm" c="dimmed">
-                                Complete your profile, set up security features, and customize your preferences.
-                            </Text>
-                            {/* <List spacing="xs" center>
-                                {stepsToComplete.map(([step, completed], index) => (
-                                    <List.Item
-                                        key={index}
-                                        icon={
-                                            <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
-                                                {completed ? <IconCircleCheck /> : <IconCircleDashed />}
-                                            </ThemeIcon>
-                                        }
-                                        c={completed ? "gray" : "dark"}
-                                    >
-                                        <Text
-                                            size="sm"
-                                            style={{ textDecoration: completed ? "line-through" : "none" }}
-                                        >
-                                            {step}
-                                        </Text>
-                                    </List.Item>
-                                ))}
-                            </List> */}
+                {/* User Welcome Section */}
+                <Card shadow="sm" p="md" radius="md" withBorder>
+                    <Group gap={20}>
+                        <Avatar variant="light" radius="lg" size={100} color="#258ce6" src={userCtx.userAvatarUrl} />
+                        <Stack gap="xs">
+                            {userCtx.userInfo?.nameFirst ? (
+                                <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
+                            ) : userCtx.userInfo?.username ? (
+                                <Title>Welcome, {userCtx.userInfo.username}!</Title>
+                            ) : (
+                                <Title>Welcome!</Title>
+                            )}
+                            <Text c="dimmed">Here's what's happening with your account</Text>
                         </Stack>
-                    </Flex>
-                    <Text
-                        size="xs"
-                        c="dimmed"
-                        ta="right"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => {
-                            localStorage.setItem("setupCompleteDismissed", "true");
-                            setSetupCompleteDismissed(true);
-                        }}
-                    >
-                        Dismiss
-                    </Text>
+                    </Group>
                 </Card>
-            )}
 
-            {/* Notifications Section */}
-            <Card p="md" radius="md" withBorder mb="xl">
-                <Title order={4}>Important Notifications</Title>
-                {HVNotifications.length > 0 ? (
-                    HVNotifications.map((notification) => (
-                        <Link key={notification.id} href="/account/notifications" style={{ textDecoration: "none" }}>
-                            <Card key={notification.id} withBorder radius="md" p="md">
-                                <Group>
-                                    <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                                        {notificationIcons[notification.type]?.[0] &&
-                                            React.createElement(notificationIcons[notification.type][0])}
-                                    </Avatar>
-                                    <Text size="sm">{notification.content}</Text>
-                                </Group>
-                                <Text size="xs" c="dimmed" ta="right" mt={5}>
-                                    {new Date(notification.created).toLocaleString()}
+                {/* Account Setup Section */}
+                {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
+                    <Card p="md" radius="md" withBorder>
+                        <Flex justify="space-between" align="center" mb={20}>
+                            <SemiCircleProgress
+                                fillDirection="left-to-right"
+                                orientation="up"
+                                filledSegmentColor="blue"
+                                value={profileCompletionPercentage}
+                                transitionDuration={250}
+                                label={`${profileCompletionPercentage}% Complete`}
+                            />
+                            <Stack style={{ flex: 1 }}>
+                                <Title order={4}>Set Up Your Account</Title>
+                                <Text size="sm" c="dimmed">
+                                    Complete your profile, set up security features, and customize your preferences.
                                 </Text>
-                            </Card>
-                        </Link>
-                    ))
-                ) : (
-                    <Text size="sm" c="dimmed" mt={10}>
-                        No important notifications at the moment.
-                    </Text>
+                                <List spacing="xs" center>
+                                    {stepsToComplete.map(([step, completed], index) => (
+                                        <List.Item
+                                            key={index}
+                                            icon={
+                                                <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
+                                                    {completed ? <IconCircleCheck /> : <IconCircleDashed />}
+                                                </ThemeIcon>
+                                            }
+                                            c={completed ? "gray" : "dark"}
+                                        >
+                                            <Text
+                                                size="sm"
+                                                style={{ textDecoration: completed ? "line-through" : "none" }}
+                                            >
+                                                {step}
+                                            </Text>
+                                        </List.Item>
+                                    ))}
+                                </List>
+                            </Stack>
+                        </Flex>
+                        <Text
+                            size="xs"
+                            c="dimmed"
+                            ta="right"
+                            style={{ cursor: "pointer" }}
+                            onClick={() => {
+                                localStorage.setItem("setupCompleteDismissed", "true");
+                                setSetupCompleteDismissed(true);
+                            }}
+                        >
+                            Dismiss
+                        </Text>
+                    </Card>
                 )}
-            </Card>
 
-            {/* Home Section */}
-            <HomeSection />
+                {/* Notifications Section */}
+                <Card p="md" radius="md" withBorder mb="xl">
+                    <Title order={4}>Important Notifications</Title>
+                    {isNotificationLoading ? (
+                        <LoadingComponent message="Loading notifications..." withBorder={false} />
+                    ) : HVNotifications.length > 0 ? (
+                        HVNotifications.map((notification) => (
+                            <NotificationCard key={notification.id} notification={notification} />
+                        ))
+                    ) : (
+                        <Text size="sm" c="dimmed" mt={10}>
+                            No important notifications at the moment.
+                        </Text>
+                    )}
+                </Card>
+
+                {/* Home Section */}
+                <Suspense fallback={<LoadingComponent message="Loading content..." withBorder={false} />}>
+                    <HomeSection />
+                </Suspense>
+            </Stack>
         </Container>
     );
-}
+});
 
 // Memoize the setup steps component
 const SetupSteps = memo(({ steps }: { steps: [string, boolean][] }) => (

@@ -1,8 +1,7 @@
 import { memo } from "react";
-import { Card, Container, Title, Text, SimpleGrid, Button, Group, Timeline } from "@mantine/core";
-import { IconServer, IconShield, IconChartBar, IconBook, IconUsers } from "@tabler/icons-react";
+import { Card, Container, Title, Text, SimpleGrid, Button, Group } from "@mantine/core";
+import { IconServer, IconShield, IconChartBar } from "@tabler/icons-react";
 import { motion } from "framer-motion";
-import Image from "next/image";
 
 const FeatureCard = memo(
     ({ icon: Icon, title, description }: { icon: typeof IconServer; title: string; description: string }) => (
@@ -26,35 +25,17 @@ const features = [
     {
         icon: IconServer,
         title: "Asset Management",
-        description: "Track and manage school resources efficiently with our comprehensive asset management system.",
+        description: "Streamline your school's asset tracking and management with our comprehensive system.",
     },
     {
         icon: IconShield,
         title: "Secure System",
-        description: "Enhanced security measures to protect sensitive school data and financial information.",
+        description: "Enterprise-grade security to protect your institution's sensitive data.",
     },
     {
         icon: IconChartBar,
-        title: "Analytics Dashboard",
-        description: "Real-time insights and reporting tools for better decision-making.",
-    },
-];
-
-const timelineData = [
-    {
-        title: "Track Assets",
-        description: "Monitor and manage all school assets in real-time",
-        icon: IconServer,
-    },
-    {
-        title: "Generate Reports",
-        description: "Create comprehensive financial and asset reports",
-        icon: IconBook,
-    },
-    {
-        title: "Collaborate",
-        description: "Work together with your team efficiently",
-        icon: IconUsers,
+        title: "Real-time Analytics",
+        description: "Make informed decisions with instant access to vital statistics and reports.",
     },
 ];
 
@@ -63,12 +44,12 @@ export const HomeSection = memo(() => {
         <Container size="xl" mt={50}>
             {/* Hero Section */}
             <Card shadow="sm" p="xl" radius="md" withBorder mb={50}>
-                <Group align="flex-start" style={{ gap: 50 }}>
+                <Group align="flex-start" gap={50}>
                     <div style={{ flex: 1 }}>
                         <Title mb="md">School Capital Asset Recording System</Title>
                         <Text size="lg" c="dimmed" mb="xl">
-                            Streamline your school's asset management with our comprehensive digital solution. Track,
-                            manage, and report on all your institution's resources in one place.
+                            Transform your school's asset management with our state-of-the-art digital solution. Track,
+                            manage, and generate reports for all your institution's resources in one place.
                         </Text>
                         <Button
                             component="a"
@@ -80,15 +61,18 @@ export const HomeSection = memo(() => {
                             Learn More
                         </Button>
                     </div>
-                    <div style={{ position: "relative", width: 400, height: 300 }}>
-                        <Image
-                            src="/dashboard-hero.svg"
-                            alt="Dashboard Hero"
-                            fill
-                            style={{ objectFit: "contain" }}
-                            priority
-                        />
-                    </div>
+                    <Card
+                        w={400}
+                        h={300}
+                        bg="gray.0"
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <IconServer size={100} opacity={0.2} />
+                    </Card>
                 </Group>
             </Card>
 
@@ -106,22 +90,6 @@ export const HomeSection = memo(() => {
                     />
                 ))}
             </SimpleGrid>
-
-            {/* How It Works Section */}
-            <Card shadow="sm" p="xl" radius="md" withBorder mt={50}>
-                <Title order={2} ta="center" mb="xl">
-                    How It Works
-                </Title>
-                <Timeline active={-1} bulletSize={24} lineWidth={2}>
-                    {timelineData.map((item, index) => (
-                        <Timeline.Item key={index} bullet={<item.icon size={12} />} title={item.title}>
-                            <Text size="sm" mt={4}>
-                                {item.description}
-                            </Text>
-                        </Timeline.Item>
-                    ))}
-                </Timeline>
-            </Card>
         </Container>
     );
 });
