@@ -142,40 +142,87 @@ const DashboardContent = memo(function DashboardContent() {
         }
     }, [userCtx.userInfo]);
 
+    // Update the notification check interval useEffect
     useEffect(() => {
         const NOTIFICATION_CHECK_INTERVAL = 60000; // Check every minute
 
         const checkNotifications = async () => {
             try {
+                // Check if user is authenticated
+                if (!userCtx.userInfo) {
+                    return;
+                }
+
                 const notifications = await GetSelfNotifications(true, true, 0, 1);
                 setHVNotifications(notifications);
                 setLastNotificationCheck(new Date());
             } catch (error) {
                 console.error("Failed to fetch notifications:", error);
+                // Clear interval if unauthorized
+                if (
+                    typeof error === "object" &&
+                    error !== null &&
+                    "response" in error &&
+                    typeof (error as any).response === "object" &&
+                    (error as any).response !== null &&
+                    "status" in (error as any).response &&
+                    (error as any).response.status === 401
+                ) {
+                    clearInterval(intervalId);
+                }
             }
         };
 
         const intervalId = setInterval(checkNotifications, NOTIFICATION_CHECK_INTERVAL);
 
+        // Cleanup
         return () => clearInterval(intervalId);
-    }, []); // Empty dependency array as we want this to run only once on mount
+    }, [userCtx.userInfo]); // Add userCtx.userInfo as dependency
 
-    // Add this near your other useEffect hooks
+    // Update the fetchNotifications function in the useEffect
     useEffect(() => {
         const fetchNotifications = async () => {
             setIsNotificationLoading(true);
             try {
+                // Check if user is authenticated
+                if (!userCtx.userInfo) {
+                    throw new Error("User not authenticated");
+                }
+
                 const notifications = await GetSelfNotifications(true, true, 0, 1);
                 setHVNotifications(notifications);
             } catch (error) {
                 console.error("Failed to fetch notifications:", error);
+                // Handle unauthorized error
+                if (
+                    typeof error === "object" &&
+                    error !== null &&
+                    "response" in error &&
+                    typeof (error as any).response === "object" &&
+                    (error as any).response !== null &&
+                    "status" in (error as any).response &&
+                    (error as any).response.status === 401
+                ) {
+                    notifications.show({
+                        id: "unauthorized",
+                        title: "Session Expired",
+                        message: "Please log in again to view notifications",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                    // Optionally redirect to login
+                    // window.location.href = '/auth/login';
+                }
             } finally {
                 setIsNotificationLoading(false);
             }
         };
 
-        fetchNotifications();
-    }, []);
+        // Only fetch if user is authenticated
+        if (userCtx.userInfo) {
+            fetchNotifications();
+        }
+    }, [userCtx.userInfo]); // Add userCtx.userInfo as dependency
 
     console.debug("Rendering DashboardPage");
     if (isLoading) {
