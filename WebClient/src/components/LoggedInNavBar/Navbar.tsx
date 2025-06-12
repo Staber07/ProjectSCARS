@@ -96,8 +96,8 @@ export const Navbar: React.FC = () => {
                 key: "adminSchools",
                 link: "/administration/schools",
                 label: "School Management",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "schools:global:read",
+                disabledReason: "You do not have permission to view the schools list.",
                 icon: <IconBuilding stroke={1.5} />,
             },
             {
@@ -131,25 +131,20 @@ export const Navbar: React.FC = () => {
         ];
         fetchNotificationsQuantity();
         setLinks(() => {
-            return navbarContents.map((item) => {
-                const permissionGranted =
-                    !item.requiredPermission || userCtx.userPermissions?.includes(item.requiredPermission);
-                console.debug("Checking permission for item", {
-                    key: item.key,
-                    requiredPermission: item.requiredPermission,
-                    hasPermission: permissionGranted,
-                });
-                return (
-                    <Tooltip
-                        key={item.key}
-                        label={item.disabledReason}
-                        position="bottom"
-                        disabled={permissionGranted}
-                        withArrow
-                    >
-                        <span>
+            return navbarContents
+                .map((item) => {
+                    const permissionGranted =
+                        !item.requiredPermission || userCtx.userPermissions?.includes(item.requiredPermission);
+                    console.debug("Checking permission for item", {
+                        key: item.key,
+                        requiredPermission: item.requiredPermission,
+                        hasPermission: permissionGranted,
+                    });
+                    if (permissionGranted) {
+                        return (
                             <NavLink
                                 href={item.link}
+                                key={item.key}
                                 label={item.label}
                                 leftSection={item.icon}
                                 active={pathname.startsWith(item.link)}
@@ -162,10 +157,10 @@ export const Navbar: React.FC = () => {
                                     }
                                 }}
                             />
-                        </span>
-                    </Tooltip>
-                );
-            });
+                        );
+                    }
+                })
+                .filter((item): item is JSX.Element => item !== undefined);
         });
     }, [notificationsQuantity, pathname, router, userCtx.userPermissions]);
 
