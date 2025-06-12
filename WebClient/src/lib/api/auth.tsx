@@ -34,7 +34,7 @@ export async function LoginUser(username: string, password: string): Promise<Tok
     loginFormData.set("password", password);
 
     console.debug("Logging in user", { username });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/token`, {
+    const centralServerResponse = await ky.post(`${endpoint}/auth/login`, {
         body: loginFormData,
         throwHttpErrors: false,
     });
