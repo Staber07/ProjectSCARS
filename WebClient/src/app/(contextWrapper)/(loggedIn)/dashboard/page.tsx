@@ -43,6 +43,13 @@ const DashboardContent = memo(function DashboardContent() {
     const [isLoading, setIsLoading] = useState(true);
     const [isNotificationLoading, setIsNotificationLoading] = useState(true);
 
+    // Handle step click (placeholder, update as needed)
+    const handleStepClick = (index: number) => {
+        // You can add navigation or logic for each step here
+        // For now, just log the step index
+        console.log(`Step ${index} clicked`);
+    };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         const initializeDashboard = async () => {
@@ -86,27 +93,52 @@ const DashboardContent = memo(function DashboardContent() {
         initializeDashboard();
     }, [userCtx]); // Only run on mount and when userCtx changes
 
+    // Update the profile completion calculation in useEffect
     useEffect(() => {
         if (userCtx.userInfo) {
-            const totalSteps = stepsToComplete.length;
-            let completedSteps = 0;
+            const calculateSteps = async () => {
+                const totalSteps = stepsToComplete.length;
+                let completedSteps = 0;
+                const updatedSteps = [...stepsToComplete];
 
-            if (userCtx.userInfo?.emailVerified) {
-                completedSteps++;
-                stepsToComplete[0][1] = true;
-            }
-            if (userCtx.userInfo?.nameFirst && userCtx.userInfo?.nameLast) {
-                completedSteps++;
-                stepsToComplete[1][1] = true;
-            }
-            if (userCtx.userInfo?.avatarUrn) {
-                completedSteps++;
-                stepsToComplete[2][1] = true;
-            }
-            // TODO: Uncomment when two-factor authentication is implemented
-            // if (userCtx.userInfo.twoFactorEnabled) {completedSteps++; stepsToComplete[3][1] = true;}
+                // Step 1: Email verification
+                if (userCtx.userInfo?.emailVerified) {
+                    completedSteps++;
+                    updatedSteps[0][1] = true;
+                }
 
-            setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
+                // Step 2: Profile information
+                if (userCtx.userInfo?.nameFirst && userCtx.userInfo?.nameLast && userCtx.userInfo?.email) {
+                    completedSteps++;
+                    updatedSteps[1][1] = true;
+                }
+
+                // Step 3: Profile picture
+                if (userCtx.userInfo?.avatarUrn) {
+                    completedSteps++;
+                    updatedSteps[2][1] = true;
+                }
+
+                // Step 4: Two-factor authentication
+                try {
+                    const userInfo = await GetUserInfo();
+                    // If twoFactorEnabled is not on UserPublicType, check userInfo[1] or adjust as needed
+                    if ("twoFactorEnabled" in userInfo[1] && userInfo[1].twoFactorEnabled) {
+                        completedSteps++;
+                        updatedSteps[3][1] = true;
+                    }
+                } catch (error) {
+                    console.error("Failed to check 2FA status:", error);
+                }
+
+                // Update the completion percentage and steps
+                setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
+                stepsToComplete.forEach((_, index) => {
+                    stepsToComplete[index][1] = updatedSteps[index][1];
+                });
+            };
+
+            calculateSteps();
         }
     }, [userCtx.userInfo]);
 
@@ -200,10 +232,15 @@ const DashboardContent = memo(function DashboardContent() {
                                                 </ThemeIcon>
                                             }
                                             c={completed ? "gray" : "dark"}
+                                            style={{ cursor: completed ? "default" : "pointer" }}
+                                            onClick={() => !completed && handleStepClick(index)}
                                         >
                                             <Text
                                                 size="sm"
-                                                style={{ textDecoration: completed ? "line-through" : "none" }}
+                                                style={{
+                                                    textDecoration: completed ? "line-through" : "none",
+                                                    cursor: completed ? "default" : "pointer",
+                                                }}
                                             >
                                                 {step}
                                             </Text>
