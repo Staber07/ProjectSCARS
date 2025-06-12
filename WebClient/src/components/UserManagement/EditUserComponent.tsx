@@ -149,11 +149,11 @@ export function EditUserComponent({
     };
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
-        const schoolId = availableSchools.find(
+        const selectedSchool = availableSchools.find(
             (school) =>
                 school.name === values.school || `[${school.id}] ${school.name} (${school.address})` === values.school
         );
-        if (values.school && !schoolId) {
+        if (values.school && !selectedSchool) {
             notifications.show({
                 id: "school-not-found",
                 title: "Error",
@@ -165,8 +165,8 @@ export function EditUserComponent({
             return;
         }
 
-        const roleId = availableRoles.find((role) => role.description === values.role);
-        if (!roleId) {
+        const selectedRole = availableRoles.find((role) => role.description === values.role);
+        if (!selectedRole) {
             notifications.show({
                 id: "role-not-found",
                 title: "Error",
@@ -186,8 +186,8 @@ export function EditUserComponent({
             nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
             nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
             email: values.email !== user.email ? values.email : undefined,
-            schoolId: schoolId?.id !== user.schoolId ? schoolId?.id : undefined,
-            roleId: roleId.id !== user.roleId ? roleId.id : undefined,
+            schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
+            roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
             deactivated: values.deactivated !== user.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== user.forceUpdateInfo ? values.forceUpdateInfo : undefined,
             finishedTutorials: null,
