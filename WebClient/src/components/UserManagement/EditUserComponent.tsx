@@ -141,7 +141,9 @@ export function EditUserComponent({
     };
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
-        const schoolId = availableSchools.find((school) => school.name === values.school);
+        const schoolId = availableSchools.find(
+            (school) => school.name === values.school || `${school.name} (${school.address})` === values.school
+        );
         if (values.school && !schoolId) {
             notifications.show({
                 id: "school-not-found",

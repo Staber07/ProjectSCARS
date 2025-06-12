@@ -320,7 +320,13 @@ export default function SchoolsPage(): JSX.Element {
                     style={{ width: "400px" }}
                 />
                 <Flex ml="auto" gap="sm" align="center">
-                    <ActionIcon size="input-md" variant="filled" color="blue" onClick={() => setAddModalOpen(true)}>
+                    <ActionIcon
+                        disabled={!userCtx.userPermissions?.includes("schools:create")}
+                        size="input-md"
+                        variant="filled"
+                        color="blue"
+                        onClick={() => setAddModalOpen(true)}
+                    >
                         <IconPlus size={18} />
                     </ActionIcon>
                     <ActionIcon size="input-md" variant="default" onClick={handleSearch}>

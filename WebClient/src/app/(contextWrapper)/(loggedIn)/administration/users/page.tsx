@@ -6,6 +6,7 @@ import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
+import { useUser } from "@/lib/providers/user";
 import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
@@ -48,6 +49,7 @@ import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
 
 export default function UsersPage(): JSX.Element {
+    const userCtx = useUser();
     const userPerPage = 10; // Number of users per page
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
@@ -277,7 +279,13 @@ export default function UsersPage(): JSX.Element {
                     style={{ width: "400px" }}
                 />
                 <Flex ml="auto" gap="sm" align="center">
-                    <ActionIcon size="input-md" variant="filled" color="blue" onClick={handleCreate}>
+                    <ActionIcon
+                        disabled={!userCtx.userPermissions?.includes("users:create")}
+                        size="input-md"
+                        variant="filled"
+                        color="blue"
+                        onClick={handleCreate}
+                    >
                         <IconPlus size={18} />
                     </ActionIcon>
                     <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
