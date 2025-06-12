@@ -76,7 +76,7 @@ export function EditUserComponent({
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const userCtx = useUser();
     const availableSchoolNames = availableSchools.map(
-        (school) => `${school.name}${school.address ? ` (${school.address})` : ""}`
+        (school) => `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}`
     );
     const availableRoleDescriptions = availableRoles.map((role) => role.description);
     const form = useForm<EditUserValues>({
@@ -88,7 +88,15 @@ export function EditUserComponent({
             nameMiddle: user.nameMiddle || null,
             nameLast: user.nameLast || null,
             email: user.email || null,
-            school: availableSchools.find((school) => school.id === user.schoolId)?.name || null,
+            school: availableSchools.find((school) => school.id === user.schoolId)
+                ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
+                      availableSchools.find((school) => school.id === user.schoolId)!.name
+                  }${
+                      availableSchools.find((school) => school.id === user.schoolId)!.address
+                          ? ` (${availableSchools.find((school) => school.id === user.schoolId)!.address})`
+                          : ""
+                  }`
+                : null,
             role: availableRoles.find((role) => role.id === user.roleId)?.description || null,
             deactivated: user.deactivated,
             forceUpdateInfo: user.forceUpdateInfo,
@@ -144,8 +152,11 @@ export function EditUserComponent({
     };
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
-        const schoolId = availableSchools.find((school) => school.name === values.school);
-        if (values.school && !schoolId) {
+        const selectedSchool = availableSchools.find(
+            (school) =>
+                school.name === values.school || `[${school.id}] ${school.name} (${school.address})` === values.school
+        );
+        if (values.school && !selectedSchool) {
             notifications.show({
                 id: "school-not-found",
                 title: "Error",
@@ -157,8 +168,8 @@ export function EditUserComponent({
             return;
         }
 
-        const roleId = availableRoles.find((role) => role.description === values.role);
-        if (!roleId) {
+        const selectedRole = availableRoles.find((role) => role.description === values.role);
+        if (!selectedRole) {
             notifications.show({
                 id: "role-not-found",
                 title: "Error",
@@ -178,8 +189,8 @@ export function EditUserComponent({
             nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
             nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
             email: values.email !== user.email ? values.email : undefined,
-            schoolId: schoolId?.id !== user.schoolId ? schoolId?.id : undefined,
-            roleId: roleId.id !== user.roleId ? roleId.id : undefined,
+            schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
+            roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
             deactivated: values.deactivated !== user.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== user.forceUpdateInfo ? values.forceUpdateInfo : undefined,
             finishedTutorials: null,
@@ -465,6 +476,7 @@ export function EditUserComponent({
                             placeholder="School"
                             data={availableSchoolNames}
                             key={form.key("school")}
+                            searchable
                             {...form.getInputProps("school")}
                         />
                     </Tooltip>
@@ -487,6 +499,7 @@ export function EditUserComponent({
                             placeholder="Role"
                             data={availableRoleDescriptions}
                             key={form.key("role")}
+                            searchable
                             {...form.getInputProps("role")}
                         />
                     </Tooltip>
