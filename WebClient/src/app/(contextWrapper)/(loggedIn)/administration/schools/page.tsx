@@ -74,7 +74,6 @@ export default function SchoolsPage(): JSX.Element {
     const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(null);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
-    const [fetchSchoolsErrorShown, setFetchSchoolsErrorShown] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
@@ -203,6 +202,10 @@ export default function SchoolsPage(): JSX.Element {
     const fetchSchools = async (page: number, pageLimit: number = schoolPerPage) => {
         setCurrentPage(page);
         const pageOffset = (page - 1) * pageLimit;
+
+        // deselect all schools when fetching new page
+        setSelected(new Set());
+
         GetSchoolQuantity()
             .then((quantity) => {
                 setTotalSchools(quantity);
@@ -225,17 +228,14 @@ export default function SchoolsPage(): JSX.Element {
             })
             .catch((error) => {
                 console.error("Failed to fetch schools:", error);
-                if (!fetchSchoolsErrorShown) {
-                    setFetchSchoolsErrorShown(true);
-                    notifications.show({
-                        id: "fetch-schools-error",
-                        title: "Failed to fetch schools list",
-                        message: "Please try again later.",
-                        color: "red",
-                        icon: <IconUserExclamation />,
-                    });
-                    setSchools([]);
-                }
+                notifications.show({
+                    id: "fetch-schools-error",
+                    title: "Failed to fetch schools list",
+                    message: "Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+                setSchools([]);
             });
     };
 

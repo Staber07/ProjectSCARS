@@ -181,6 +181,12 @@ export default function UsersPage(): JSX.Element {
         console.debug("user per page:", pageLimit);
         const pageOffset = (page - 1) * pageLimit;
         console.debug(`Fetching users for page ${page} with offset ${pageOffset} and limit ${pageLimit}`);
+
+        // deselect all users when fetching new page
+        setSelected(new Set());
+        setSelectedUser(null);
+        setSelectedUserIndex(null);
+
         await GetUsersQuantity()
             .then((quantity) => {
                 setTotalUsers(quantity);
