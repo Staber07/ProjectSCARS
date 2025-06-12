@@ -1,5 +1,4 @@
 import argparse
-from ast import parse
 import asyncio
 import getpass
 import random
@@ -9,7 +8,6 @@ from urllib.parse import urljoin
 
 import httpx
 from faker import Faker
-
 
 f = Faker()
 
@@ -106,6 +104,14 @@ async def add_sample_users(endpoint: str, token: str) -> bool:
     add_user_sample_endpoint = urljoin(endpoint, "v1/auth/create")
     update_user_sample_endpoint = urljoin(endpoint, "v1/users/")
     users_to_create: list[UserData] = []
+    school_quantity_resp = httpx.get("v1/schools/quantity", headers=headers)
+    if school_quantity_resp.status_code != 200:
+        print(
+            f"Error fetching school quantity: {school_quantity_resp.status_code} - {school_quantity_resp.text}"
+        )
+        return False
+
+    school_quantity = school_quantity_resp.json().get("quantity", 0)
 
     for _ in range(100):
         # Generate unique username
@@ -122,8 +128,9 @@ async def add_sample_users(endpoint: str, token: str) -> bool:
                 name_first=f.first_name() if random.choice([True, False]) else None,
                 name_middle=f.last_name() if random.choice([True, False]) else None,
                 name_last=f.last_name() if random.choice([True, False]) else None,
-                school_id=random.randint(
-                    0, 100  # Assuming 100 schools were created, 0 means no school
+                school_id=random.randint(  # 0 means no school
+                    0,
+                    school_quantity,
                 ),
             )
         )
