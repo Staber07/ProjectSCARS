@@ -47,7 +47,7 @@ function LoggedInContent({ children }: { children: React.ReactNode }) {
             }}
             padding="md"
         >
-            <AppShell.Navbar p="md">
+            <AppShell.Navbar>
                 <ScrollArea scrollbars="y">
                     <Navbar />
                 </ScrollArea>
