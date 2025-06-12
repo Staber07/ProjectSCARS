@@ -142,7 +142,7 @@ export function EditUserComponent({
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
         const schoolId = availableSchools.find((school) => school.name === values.school);
-        if (!schoolId) {
+        if (values.school && !schoolId) {
             notifications.show({
                 id: "school-not-found",
                 title: "Error",
@@ -175,7 +175,7 @@ export function EditUserComponent({
             nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
             nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
             email: values.email !== user.email ? values.email : undefined,
-            schoolId: schoolId?.id !== user.schoolId ? schoolId.id : undefined,
+            schoolId: schoolId?.id !== user.schoolId ? schoolId?.id : undefined,
             roleId: roleId.id !== user.roleId ? roleId.id : undefined,
             deactivated: values.deactivated !== user.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== user.forceUpdateInfo ? values.forceUpdateInfo : undefined,
@@ -226,6 +226,16 @@ export function EditUserComponent({
             fetchUserAvatar(updatedUser.avatarUrn || "");
             fetchUsers(currentPage);
         } catch (error) {
+            if (error instanceof Error && error.message.includes("status code 403")) {
+                const detail = error.message || "Failed to update user information.";
+                notifications.show({
+                    id: "user-update-error",
+                    title: "Error",
+                    message: detail,
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+            }
             console.error("Update process failed:", error);
             notifications.show({
                 id: "user-update-error",
