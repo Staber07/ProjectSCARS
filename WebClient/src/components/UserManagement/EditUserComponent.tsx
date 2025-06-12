@@ -502,7 +502,6 @@ export function EditUserComponent({
                                 }
                                 label="Deactivated"
                                 placeholder="Deactivated"
-                                checked={user.deactivated}
                                 key={form.key("deactivated")}
                                 {...form.getInputProps("deactivated", { type: "checkbox" })}
                             />
@@ -524,7 +523,6 @@ export function EditUserComponent({
                                 }
                                 label="Force Update Required"
                                 placeholder="Force Update Required"
-                                checked={user.forceUpdateInfo}
                                 key={form.key("forceUpdateInfo")}
                                 {...form.getInputProps("forceUpdateInfo", { type: "checkbox" })}
                             />
