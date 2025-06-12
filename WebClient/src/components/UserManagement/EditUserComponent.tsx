@@ -223,7 +223,9 @@ export function EditUserComponent({
                     buttonStateHandler.close();
                 }
             }
-            fetchUserAvatar(updatedUser.avatarUrn || "");
+            if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "") {
+                fetchUserAvatar(updatedUser.avatarUrn);
+            }
             fetchUsers(currentPage);
         } catch (error) {
             console.error("Update process failed:", error);
