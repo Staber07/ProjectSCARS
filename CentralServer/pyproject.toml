@@ -1,6 +1,6 @@
 [project]
 name = "centralserver"
-version = "0.3.6"
+version = "0.3.8"
 description = "The central server for the project"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -8,16 +8,19 @@ dependencies = [
     "fastapi[standard]>=0.115.12",
     "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
+    "pillow>=11.2.1",
     "psycopg[binary]>=3.2.9",
     "pymysql>=1.1.1",
     "python-jose[cryptography]>=3.4.0",
     "sqlalchemy>=2.0.40",
     "sqlmodel>=0.0.24",
+    "types-pillow>=10.2.0.20240822",
 ]
 
 [dependency-groups]
 dev = [
     "black>=25.1.0",
+    "faker>=37.4.0",
     "httpx>=0.28.1",
     "isort>=6.0.1",
     "pylint>=3.3.6",
@@ -33,4 +36,4 @@ addopts = "--cache-clear --color=yes --code-highlight=yes --cov=centralserver --
 testpaths = ["tests"]
 env_files = [".pytest.env"]
 asyncio_mode = "auto"
-asyncio_default_fixture_loop_scope="function"
+asyncio_default_fixture_loop_scope = "function"

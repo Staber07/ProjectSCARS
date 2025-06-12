@@ -1,18 +1,26 @@
 import datetime
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session, select
+from sqlmodel import Session, func, select
 
+from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
+    validate_and_process_image,
 )
-from centralserver.internals.auth_handler import crypt_ctx
+from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
+from centralserver.internals.models.role import Role
+from centralserver.internals.models.school import School
+from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
+from centralserver.internals.notification_handler import push_notification
+from centralserver.internals.permissions import DEFAULT_ROLES
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -29,8 +37,8 @@ async def validate_username(username: str) -> bool:
 
     return (
         all(c.isalnum() or c in ("_", "-") for c in username)
-        and len(username) > 3
-        and len(username) < 22
+        and len(username) >= 3
+        and len(username) <= 22
     )
 
 
@@ -115,12 +123,21 @@ async def create_user(
     session.commit()
     session.refresh(user)
 
+    await push_notification(
+        owner_id=user.id,
+        title="Please add an email address",
+        content=f"Welcome to {Program.name}! Please add an email address to your account to receive important notifications.",
+        important=True,
+        notification_type=NotificationType.MAIL,
+        session=session,
+    )
+
     logger.info("User `%s` created.", new_user.username)
     return user
 
 
 async def update_user_avatar(
-    target_user: str, img: bytes | None, session: Session
+    target_user: str, img: UploadFile | None, session: Session
 ) -> UserPublic:
     """Update the user's avatar in the database.
 
@@ -153,16 +170,19 @@ async def update_user_avatar(
         selected_user.avatarUrn = None
 
     else:
-        logger.debug("Updating avatar for user: %s", target_user)
-        object = await object_store_manager.put(
-            BucketNames.AVATARS, selected_user.id, img
-        )
-        if selected_user.avatarUrn is not None:  # Delete old avatar if it exists
+        processed_img = await validate_and_process_image(await img.read())
+        if selected_user.avatarUrn is not None:
+            logger.debug("Deleting old avatar for user: %s", target_user)
             await object_store_manager.delete(
                 BucketNames.AVATARS, selected_user.avatarUrn
             )
 
-        selected_user.avatarUrn = object.fn
+        logger.debug("Updating avatar for user: %s", target_user)
+        bucket_object = await object_store_manager.put(
+            BucketNames.AVATARS, selected_user.id, processed_img
+        )
+
+        selected_user.avatarUrn = bucket_object.fn
 
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
@@ -172,14 +192,18 @@ async def update_user_avatar(
     return UserPublic.model_validate(selected_user)
 
 
-async def update_user_info(target_user: UserUpdate, session: Session) -> UserPublic:
+async def update_user_info(
+    target_user: UserUpdate, token: DecodedJWTToken, session: Session
+) -> UserPublic:
     """Update the user's information in the database.
 
     Args:
         target_user: The user to update with new info.
+        token: The decoded JWT token of the user making the request.
         session: The database session to use.
     """
 
+    email_changed = False
     selected_user = session.get(User, target_user.id)
 
     if not selected_user:  # Check if user exists
@@ -189,7 +213,26 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
             detail="User not found",
         )
 
+    updating_self = selected_user.id == token.id
     if target_user.username:  # Update username if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:username"
+                if updating_self
+                else "users:global:modify:username"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: username)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify username.",
+            )
+
         logger.debug("Updating username for user: %s", target_user.id)
         # Check username availability
         if target_user.username != selected_user.username:
@@ -223,22 +266,101 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
         selected_user.username = target_user.username
 
     if target_user.email:  # Update email if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:email"
+                if updating_self
+                else "users:global:modify:email"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: email)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify email.",
+            )
         logger.debug("Updating email for user: %s", target_user.id)
-        selected_user.email = target_user.email
+        if selected_user.email == target_user.email:
+            logger.debug(
+                "Email for user %s is already set to %s",
+                target_user.id,
+                target_user.email,
+            )
+
+        else:
+            selected_user.email = target_user.email
+            selected_user.emailVerified = False  # Reset email verification status
+            email_changed = True
 
     if target_user.nameFirst:  # Update first name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating first name for user: %s", target_user.id)
         selected_user.nameFirst = target_user.nameFirst
 
     if target_user.nameMiddle:  # Update middle name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating middle name for user: %s", target_user.id)
         selected_user.nameMiddle = target_user.nameMiddle
 
     if target_user.nameLast:  # Update last name if provided
+        if not await verify_user_permission(
+            ("users:self:modify:name" if updating_self else "users:global:modify:name"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: name)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify name.",
+            )
         logger.debug("Updating last name for user: %s", target_user.id)
         selected_user.nameLast = target_user.nameLast
 
     if target_user.password:  # Update password if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:password"
+                if updating_self
+                else "users:global:modify:password"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: password)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify password.",
+            )
         logger.debug("Updating password for user: %s", target_user.id)
         # Validate password
         password_is_valid, password_err = await validate_password(target_user.password)
@@ -253,6 +375,144 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
 
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
+
+    if target_user.schoolId is not None:  # Update school ID if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:school"
+                if updating_self
+                else "users:global:modify:school"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: school)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify school.",
+            )
+
+        # Check if the school exists
+        if not session.get(School, target_user.schoolId):
+            logger.warning(
+                "Failed to update user: %s (school not found)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="School not found",
+            )
+
+        logger.debug(
+            "Setting school ID for user: %s to %s",
+            target_user.id,
+            target_user.schoolId,
+        )
+        selected_user.schoolId = target_user.schoolId
+
+    if target_user.roleId is not None:  # Update role ID if provided
+        if not await verify_user_permission(
+            ("users:self:modify:role" if updating_self else "users:global:modify:role"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: role)", target_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify role.",
+            )
+
+        # Check if the role exists
+        if not session.get(Role, target_user.roleId):
+            logger.warning("Failed to update user: %s (role not found)", target_user.id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role not found",
+            )
+
+        logger.debug(
+            "Setting role ID for user: %s to %s", target_user.id, target_user.roleId
+        )
+        if selected_user.roleId == DEFAULT_ROLES[0].id:
+            logger.warning(
+                "%s is trying to change the role of another website admin (%s)",
+                token.id,
+                selected_user.id,
+            )
+            # Make sure that there is at least one superintedent user in the database
+            # superintendent_quantity = len(
+            #     session.exec(select(User).where(User.roleId == 1)).all()
+            # )
+            # if superintendent_quantity == 1:
+            if (
+                session.exec(
+                    select(func.count(User.id)).where(  # type: ignore
+                        User.roleId == DEFAULT_ROLES[0].id
+                    )
+                ).one()
+                <= 1
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot change the role of the last admin user.",
+                )
+
+        loggedin_user = session.get(User, token.id)
+        if loggedin_user is None:
+            logger.warning("Failed to update user: %s (user not found)", target_user.id)
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User not found",
+            )
+
+        if loggedin_user.roleId > target_user.roleId:
+            logger.warning(
+                "Failed to update user: %s (permission denied: role change)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot change role to a higher level.",
+            )
+
+        selected_user.roleId = target_user.roleId
+
+    if target_user.deactivated is not None:
+        if not await verify_user_permission(
+            ("users:self:deactivate" if updating_self else "users:global:deactivate"),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: deactivated status)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify deactivated status.",
+            )
+
+        if selected_user.roleId == DEFAULT_ROLES[0].id:
+            # Make sure that there is at least one superintendent user in the database
+            # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
+            if (
+                session.exec(
+                    select(func.count(User.id)).where(  # type: ignore
+                        User.roleId == DEFAULT_ROLES[0].id
+                    )
+                ).one()
+                <= 1
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot set deactivated status of the last admin user.",
+                )
+
+        logger.debug("Updating deactivated status for user: %s", target_user.id)
+        selected_user.deactivated = target_user.deactivated
 
     if (  # Update onboarding status if provided
         target_user.finishedTutorials is not None
@@ -273,10 +533,35 @@ async def update_user_info(target_user: UserUpdate, session: Session) -> UserPub
         )
         selected_user.finishedTutorials = target_user.finishedTutorials
 
+    if target_user.forceUpdateInfo is not None:
+        if not await verify_user_permission(
+            "users:global:forceupdate", session=session, token=token
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: force update)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot force update.",
+            )
+
+        logger.debug("Setting force update info for user: %s", target_user.id)
+        selected_user.forceUpdateInfo = target_user.forceUpdateInfo
+
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
     session.commit()
     session.refresh(selected_user)
+    if email_changed:
+        await push_notification(
+            owner_id=selected_user.id,
+            title="Email address updated",
+            content="Your email address has been updated. Please verify it to receive notifications.",
+            important=True,
+            notification_type=NotificationType.MAIL,
+            session=session,
+        )
     logger.info("User info for `%s` updated.", selected_user.username)
     return UserPublic.model_validate(selected_user)
 

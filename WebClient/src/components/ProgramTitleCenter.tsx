@@ -1,8 +1,8 @@
 "use client";
 
-import { Title, Flex, Image, Text } from "@mantine/core";
-import { AnimationControls, motion } from "motion/react";
 import { Program } from "@/lib/info";
+import { Flex, Image, Text, Title } from "@mantine/core";
+import { AnimationControls, motion } from "motion/react";
 import Link from "next/link";
 
 interface ProgramTitleCenterProps {

@@ -7,7 +7,14 @@ from centralserver.internals.adapters.object_store import get_object_store_handl
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import populate_db
 from centralserver.internals.logger import LoggerFactory, log_app_info
-from centralserver.routers import auth_routes, misc_routes, reports_routes, users_routes
+from centralserver.routers import (
+    auth_routes,
+    misc_routes,
+    notification_routes,
+    reports_routes,
+    schools_routes,
+    users_routes,
+)
 
 logger = LoggerFactory(
     log_level="DEBUG" if app_config.debug.enabled else "WARN"
@@ -37,6 +44,8 @@ app = FastAPI(
 
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
+app.include_router(schools_routes.router)
+app.include_router(notification_routes.router)
 app.include_router(reports_routes.router)
 app.include_router(misc_routes.router)
 

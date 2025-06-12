@@ -153,17 +153,30 @@ def main() -> int:
         except FileNotFoundError:
             print(f"{osrootpath} does not exist, skipping...")
 
-    elif config["object_store"]["type"] == "minio":
+    elif config["object_store"]["type"] in {"minio", "garage"}:
         client = Minio(
             config["object_store"]["config"]["endpoint"],
             access_key=config["object_store"]["config"]["access_key"],
             secret_key=config["object_store"]["config"]["secret_key"],
             secure=config["object_store"]["config"]["secure"],
+            region="garage" if config["object_store"]["type"] == "garage" else None,
         )
-        buckets = {"centralserver-avatars", "centralserver-reports"}
+        buckets = {
+            "centralserver-avatars",
+            "centralserver-reports",
+            "centralserver-school-logos",
+        }
         for bucket in buckets:
             try:
                 if client.bucket_exists(bucket):
+                    files = client.list_objects(bucket, recursive=True)
+                    for file in files:
+                        print(
+                            f"Removing file {file.object_name} from bucket {bucket}..."
+                        )
+                        if file.object_name:
+                            client.remove_object(bucket, file.object_name)
+
                     print(f"Removing bucket {bucket}...")
                     client.remove_bucket(bucket)
 

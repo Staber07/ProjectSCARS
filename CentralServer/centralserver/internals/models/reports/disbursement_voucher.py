@@ -70,6 +70,7 @@ class DisbursementVoucherEntry(SQLModel, table=True):
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="disbursementVouchers.parent"
     )
+    # to be edited for specific inputs based on the report requirements
     date: datetime.datetime
     receipt: str
     particulars: str

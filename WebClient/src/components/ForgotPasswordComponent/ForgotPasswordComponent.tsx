@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { CentralServerRequestPasswordRecovery } from "@/lib/api/auth";
+import { RequestPasswordRecovery } from "@/lib/api/auth";
 import { Button, Container, Paper, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -46,6 +46,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
         // make sure the user has entered both username and email.
         if (!values.username || !values.email) {
             notifications.show({
+                id: "forgot-password-error",
                 title: "Account recovery failed",
                 message: "Please enter both username and email.",
                 color: "red",
@@ -57,6 +58,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
 
         if (!values.email.includes("@")) {
             notifications.show({
+                id: "forgot-password-invalid-email",
                 title: "Account recovery failed",
                 message: "Please enter a valid email address.",
                 color: "red",
@@ -66,10 +68,11 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        const response = await CentralServerRequestPasswordRecovery(values.email, values.username);
+        const response = await RequestPasswordRecovery(values.email, values.username);
         if (response?.message === "ok") {
             requestSentHandler.open();
             notifications.show({
+                id: "forgot-password-success",
                 title: "Account recovery email request sent",
                 message:
                     "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
@@ -77,8 +80,18 @@ export function ForgotPasswordComponent(): React.ReactElement {
                 icon: <IconMail />,
             });
             buttonStateHandler.close();
+        } else if (response?.message === "User not found.") {
+            notifications.show({
+                id: "forgot-password-user-not-found",
+                title: "Account recovery failed",
+                message: "The provided username does not exist.",
+                color: "red",
+                icon: <IconX />,
+            });
+            buttonStateHandler.close();
         } else if (response?.message === "The user does not have an email address set for password recovery.") {
             notifications.show({
+                id: "forgot-password-no-email",
                 title: "Account recovery failed",
                 message: "No recovery email found for the provided username.",
                 color: "red",
@@ -87,6 +100,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             buttonStateHandler.close();
         } else if (response?.message === "Email does not match the user's email address.") {
             notifications.show({
+                id: "forgot-password-email-mismatch",
                 title: "Account recovery failed",
                 message: "The provided email does not match the user's email address.",
                 color: "red",
@@ -95,6 +109,7 @@ export function ForgotPasswordComponent(): React.ReactElement {
             buttonStateHandler.close();
         } else {
             notifications.show({
+                id: "forgot-password-error",
                 title: "Account recovery failed",
                 message: "An error occurred while sending the recovery email. Please try again.",
                 color: "red",

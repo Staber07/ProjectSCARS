@@ -2,8 +2,8 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { CentralServerResetPassword } from "@/lib/api/auth";
-import { Button, Container, Paper, PasswordInput, Text } from "@mantine/core";
+import { ResetPassword } from "@/lib/api/auth";
+import { Box, Button, Container, Paper, PasswordInput, Progress, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -19,6 +19,41 @@ interface ResetPasswordValues {
 }
 
 /**
+ * A component that displays password requirements and checks if the password meets them.
+ * @param {Object} props - The component props.
+ * @param {boolean} props.meets - Whether the password meets the requirement.
+ * @param {string} props.label - The label for the password requirement.
+ * @returns {JSX.Element} The rendered component.
+ */
+function PasswordRequirement({ meets, label }: { meets: boolean; label: string }) {
+    return (
+        <Text c={meets ? "teal" : "red"} style={{ display: "flex", alignItems: "center" }} mt={7} size="sm">
+            {meets ? <IconCheck size={14} /> : <IconX size={14} />}
+            <Box ml={10}>{label}</Box>
+        </Text>
+    );
+}
+
+const requirements = [
+    { re: /.{8,}/, label: "At least 8 characters" },
+    { re: /[0-9]/, label: "Includes number" },
+    { re: /[a-z]/, label: "Includes lowercase letter" },
+    { re: /[A-Z]/, label: "Includes uppercase letter" },
+];
+
+function getStrength(password: string) {
+    let multiplier = password.length > 5 ? 0 : 1;
+
+    requirements.forEach((requirement) => {
+        if (!requirement.re.test(password)) {
+            multiplier += 1;
+        }
+    });
+
+    return Math.max(100 - (100 / (requirements.length + 1)) * multiplier, 10);
+}
+
+/**
  * The actual component that uses useSearchParams
  */
 function ResetPasswordContent(): React.ReactElement {
@@ -28,10 +63,18 @@ function ResetPasswordContent(): React.ReactElement {
     const [token, setToken] = useState<string | null>();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const searchParams = useSearchParams();
+    const [pwValue, setPwValue] = useState("");
+    const [pwConfValue, setPwConfValue] = useState("");
+    const [pwVisible, { toggle: pwVisibilityToggle }] = useDisclosure(false);
     const form = useForm<ResetPasswordValues>({
-        mode: "uncontrolled",
+        mode: "controlled",
         initialValues: { new_password: "" },
     });
+    const checks = requirements.map((requirement, index) => (
+        <PasswordRequirement key={index} label={requirement.label} meets={requirement.re.test(pwValue)} />
+    ));
+    const pwStrength = getStrength(pwValue);
+    const meterColor = pwStrength === 100 ? "teal" : pwStrength > 50 ? "yellow" : "red";
 
     /**
      * Handles the password reset process.
@@ -43,6 +86,7 @@ function ResetPasswordContent(): React.ReactElement {
         buttonStateHandler.open();
         if (!values.new_password) {
             notifications.show({
+                id: "reset-password-error",
                 title: "Password reset failed",
                 message: "Please enter a new password.",
                 color: "red",
@@ -54,6 +98,7 @@ function ResetPasswordContent(): React.ReactElement {
 
         if (!token) {
             notifications.show({
+                id: "reset-password-no-token",
                 title: "Password reset failed",
                 message: "No token provided. Please check the link you clicked.",
                 color: "red",
@@ -64,9 +109,10 @@ function ResetPasswordContent(): React.ReactElement {
         }
 
         try {
-            const response = await CentralServerResetPassword(token, values.new_password);
+            const response = await ResetPassword(token, values.new_password);
             if (response == null || response.message !== "Password reset successful.") {
                 notifications.show({
+                    id: "reset-password-failure",
                     title: "Password reset failed",
                     message: response.message,
                     color: "red",
@@ -77,6 +123,7 @@ function ResetPasswordContent(): React.ReactElement {
             } else {
                 requestSentHandler.open();
                 notifications.show({
+                    id: "reset-password-success",
                     title: "Password reset successfully",
                     message: "Please log in with your new password.",
                     color: "green",
@@ -90,6 +137,7 @@ function ResetPasswordContent(): React.ReactElement {
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 400")) {
                 notifications.show({
+                    id: "reset-password-invalid-token",
                     title: "Password reset failed",
                     message: error.message,
                     color: "red",
@@ -98,6 +146,7 @@ function ResetPasswordContent(): React.ReactElement {
             } else {
                 console.error("Error resetting password:", error);
                 notifications.show({
+                    id: "reset-password-error",
                     title: "Password reset failed",
                     message: `An error occurred while resetting your password: ${error}`,
                     color: "red",
@@ -123,18 +172,45 @@ function ResetPasswordContent(): React.ReactElement {
                     <Paper withBorder shadow="md" p={30} mt={30} radius="md">
                         <form onSubmit={form.onSubmit(resetPassword)}>
                             <PasswordInput
+                                withAsterisk
                                 label="New Password"
+                                value={pwValue}
                                 placeholder="Your new password"
                                 key={form.key("new_password")}
                                 {...form.getInputProps("new_password")}
                                 mt="md"
+                                onChange={(event) => {
+                                    setPwValue(event.currentTarget.value);
+                                    form.setFieldValue("new_password", event.currentTarget.value);
+                                }}
+                                onVisibilityChange={pwVisibilityToggle}
                             />
+                            <TextInput
+                                withAsterisk
+                                type={pwVisible ? "text" : "password"}
+                                label="Confirm Password"
+                                value={pwConfValue}
+                                placeholder="Confirm your new password"
+                                mt="md"
+                                onChange={(event) => {
+                                    setPwConfValue(event.currentTarget.value);
+                                }}
+                                error={
+                                    pwValue !== pwConfValue && pwConfValue.length > 0 ? "Passwords do not match" : null
+                                }
+                            />
+                            <Text size="sm" mb={5} c="dimmed" pt={25}>
+                                Please choose a strong but memorable password.
+                            </Text>
+                            <Progress color={meterColor} value={pwStrength} size={5} mb="xs" />
+                            {checks}
                             <Container style={{ display: "flex", gap: "1rem" }}>
                                 <Button
                                     id="reset-password-button"
                                     type="submit"
                                     fullWidth
                                     mt="xl"
+                                    disabled={pwValue !== pwConfValue || pwStrength !== 100}
                                     loading={buttonLoading}
                                     rightSection={<IconSend />}
                                     component={motion.button}

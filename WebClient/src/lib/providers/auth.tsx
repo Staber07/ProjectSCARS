@@ -22,14 +22,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * @param {AuthProviderProps} props - The properties for the AuthProvider component.
  * @return {React.FC<AuthProviderProps>} The AuthProvider component.
  */
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
         if (typeof window === "undefined") {
             console.debug("Window is undefined");
             return false; // Server-side rendering
         }
 
-        const stored_auth_state = localStorage.getItem(LocalStorage.access_token);
+        const stored_auth_state = localStorage.getItem(LocalStorage.accessToken);
         return stored_auth_state !== null;
     });
 
@@ -39,7 +39,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
      */
     const login = (access_token: TokenType) => {
         console.debug("Setting local login state to true");
-        localStorage.setItem(LocalStorage.access_token, JSON.stringify(access_token));
+        localStorage.setItem(LocalStorage.accessToken, JSON.stringify(access_token));
         setIsAuthenticated(true);
     };
 
@@ -49,12 +49,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const logout = () => {
         console.debug("Setting local login state to false");
         setIsAuthenticated(false);
-        localStorage.removeItem(LocalStorage.access_token);
-        localStorage.removeItem(LocalStorage.user_data);
+        localStorage.removeItem(LocalStorage.accessToken);
+        localStorage.removeItem(LocalStorage.userData);
+        localStorage.removeItem(LocalStorage.userPermissions);
+        localStorage.removeItem(LocalStorage.userAvatar);
+        localStorage.removeItem(LocalStorage.setupCompleteDismissed);
     };
 
     return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>;
-};
+}
 
 /**
  * Hook to access the authentication context.

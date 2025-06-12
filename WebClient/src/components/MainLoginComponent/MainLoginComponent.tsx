@@ -1,8 +1,9 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { CentralServerGetUserInfo, CentralServerLogInUser } from "@/lib/api/auth";
+import { GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
+import { useUser } from "@/lib/providers/user";
 import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -12,6 +13,7 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
+import { GetUserAvatar } from "@/lib/api/user";
 
 interface LoginFormValues {
     username: string;
@@ -25,7 +27,8 @@ interface LoginFormValues {
  */
 export function MainLoginComponent(): React.ReactElement {
     const router = useRouter();
-    const auth = useAuth();
+    const authCtx = useAuth();
+    const userCtx = useUser();
     const logoControls = useAnimation();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const form = useForm<LoginFormValues>({
@@ -47,6 +50,7 @@ export function MainLoginComponent(): React.ReactElement {
         // make sure the user has entered both username and password.
         if (!values.username || !values.password) {
             notifications.show({
+                id: "login-error",
                 title: "Login failed",
                 message: "Please enter both username and password.",
                 color: "red",
@@ -57,28 +61,51 @@ export function MainLoginComponent(): React.ReactElement {
         }
 
         try {
-            const tokens = await CentralServerLogInUser(values.username, values.password);
-            auth.login(tokens);
-            await CentralServerGetUserInfo(true);
+            const tokens = await LoginUser(values.username, values.password);
+            authCtx.login(tokens);
+
+            const [userInfo, userPermissions] = await GetUserInfo();
+            console.debug("User info fetched successfully", { id: userInfo.id, username: userInfo.username });
+            let userAvatar: Blob | null = null;
+            if (userInfo.avatarUrn) {
+                userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                if (userAvatar) {
+                    console.debug("User avatar fetched successfully", { size: userAvatar.size });
+                } else {
+                    console.warn("No avatar found for user, using default avatar.");
+                }
+            }
+            userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
             console.info(`Login successful for user ${values.username}`);
             notifications.show({
+                id: "login-success",
                 title: "Login successful",
                 message: "You are now logged in.",
                 color: "green",
                 icon: <IconCheck />,
             });
-            router.push("/");
+            router.push("/dashboard");
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 401")) {
                 notifications.show({
+                    id: "login-failed",
                     title: "Login failed",
                     message: "Please check your username and password.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else if (error instanceof Error && error.message.includes("status code 429")) {
+                notifications.show({
+                    id: "login-too-many-attempts",
+                    title: "Login failed",
+                    message: "Too many attempts, please try again later.",
                     color: "red",
                     icon: <IconX />,
                 });
             } else {
                 console.error("Error logging in:", error);
                 notifications.show({
+                    id: "login-error",
                     title: "Login failed",
                     message: `${error}`,
                     color: "red",

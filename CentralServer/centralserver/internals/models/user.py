@@ -6,9 +6,11 @@ from typing import TYPE_CHECKING, Optional
 from pydantic import EmailStr
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.school import School
+
 if TYPE_CHECKING:
+    from centralserver.internals.models.notification import Notification
     from centralserver.internals.models.role import Role
-    from centralserver.internals.models.school import School
 
 
 @dataclass(frozen=True)
@@ -34,7 +36,7 @@ class User(SQLModel, table=True):
         unique=True, index=True, description="The username of the user."
     )
     email: EmailStr | None = Field(
-        default=None, unique=True, description="The email address of the user."
+        default=None, description="The email address of the user."
     )
     nameFirst: str | None = Field(
         default=None, description="The first name of the user."
@@ -66,6 +68,18 @@ class User(SQLModel, table=True):
         default=False,
         description="Whether the user is required to update their information.",
     )
+    emailVerified: bool = Field(
+        default=False,
+        description="Whether the user's email address has been verified.",
+    )
+    verificationToken: str | None = Field(
+        default=None,
+        description="A token used for email verification, if applicable.",
+    )
+    verificationTokenExpires: datetime.datetime | None = Field(
+        default=None,
+        description="The expiration time for the verification token.",
+    )
     recoveryToken: str | None = Field(
         default=None,
         description="A token used for account recovery, if applicable.",
@@ -78,11 +92,11 @@ class User(SQLModel, table=True):
         default=0,
         description="The number of failed login attempts by the user.",
     )
-    failedLoginTime: datetime.datetime | None = Field(
+    lastFailedLoginTime: datetime.datetime | None = Field(
         default=None,
         description="The timestamp of the last failed login attempt.",
     )
-    failedLoginIp: str | None = Field(
+    lastFailedLoginIp: str | None = Field(
         default=None,
         description="The IP address from which the last failed login attempt was made.",
     )
@@ -108,10 +122,11 @@ class User(SQLModel, table=True):
         description="The last IP address the user logged in from.",
     )
 
+    role: "Role" = Relationship(back_populates="users")
+    notifications: list["Notification"] = Relationship(back_populates="owner")
     school: Optional["School"] = Relationship(
         back_populates="users",
     )
-    role: "Role" = Relationship(back_populates="users")
 
 
 class UserPublic(SQLModel):
@@ -129,6 +144,7 @@ class UserPublic(SQLModel):
     deactivated: bool
     finishedTutorials: str
     forceUpdateInfo: bool
+    emailVerified: bool
     dateCreated: datetime.datetime
     lastModified: datetime.datetime
     lastLoggedInTime: datetime.datetime | None
@@ -144,9 +160,15 @@ class UserUpdate(SQLModel):
     nameFirst: str | None = None
     nameMiddle: str | None = None
     nameLast: str | None = None
-    password: str | None = None
 
+    schoolId: int | None = None
+    roleId: int | None = None
+
+    deactivated: bool | None = None
     finishedTutorials: str | None = None
+    forceUpdateInfo: bool | None = None
+
+    password: str | None = None
 
 
 class UserCreate(SQLModel):

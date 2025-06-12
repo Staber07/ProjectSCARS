@@ -2,7 +2,7 @@
 
 import { animationConfig } from "@/lib/anim";
 import { Button, Center, Container, Stack, Text, Title } from "@mantine/core";
-import { IconError404, IconHome, IconArrowBack } from "@tabler/icons-react";
+import { IconArrowBack, IconError404, IconHome } from "@tabler/icons-react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 

@@ -1,0 +1,10 @@
+Hello {name},
+
+Someone has attempted to log in to your account on {app_name}.
+Please check your account activity and change your password if you did not initiate this login.
+
+- Login attempts: {failed_login_attempts}
+- Last login attempt time: {last_failed_login_time}
+- Last login attempt IP: {last_failed_login_ip}
+
+If you continue to experience issues, please contact support.

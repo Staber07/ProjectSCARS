@@ -1,8 +1,17 @@
+import {
+    IconAlertCircle,
+    IconCircleCheck,
+    IconInfoCircle,
+    IconInfoTriangle,
+    IconMail,
+    IconShieldLock,
+} from "@tabler/icons-react";
+
 // Used for exporting the program information and connection details into NavBar Component
 export const Program = {
     name: "BENTO",
     description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
-    version: "0.3.6",
+    version: "0.3.8",
 };
 
 export const Connections = {
@@ -12,9 +21,12 @@ export const Connections = {
 };
 
 export const LocalStorage = {
-    access_token: "at",
-    refresh_token: "rt",
-    user_data: "ud",
+    accessToken: "at",
+    refreshToken: "rt",
+    userData: "ud",
+    userPermissions: "up",
+    userAvatar: "ua",
+    setupCompleteDismissed: "setupCompleteDismissed",
 };
 
 export const randomLoadingMessages: string[] = [
@@ -32,3 +44,25 @@ export const randomLoadingMessages: string[] = [
     "Auditing the piggy bank...",
     "Making sure every cent is accounted for...",
 ];
+
+export const notificationIcons: Record<string, [React.ComponentType, string]> = {
+    info: [IconInfoCircle, "blue"],
+    warning: [IconInfoTriangle, "yellow"],
+    error: [IconAlertCircle, "red"],
+    success: [IconCircleCheck, "green"],
+    mail: [IconMail, "pink"],
+    security: [IconShieldLock, "orange"],
+};
+
+export const roles: Record<number, string> = {
+    1: "Website Administrator",
+    2: "Superintendent",
+    3: "Administrator",
+    4: "Principal",
+    5: "Canteen Manager",
+};
+
+export const userAvatarConfig = {
+    MAX_FILE_SIZE_MB: 2,
+    ALLOWED_FILE_TYPES: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+};

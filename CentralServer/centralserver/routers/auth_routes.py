@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
 from sqlmodel import Session, select
@@ -16,8 +16,10 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
+from centralserver.internals.exceptions import EmailTemplateNotFoundError
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.mail_handler import send_mail
+from centralserver.internals.mail_handler import get_template, send_mail
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import (
@@ -26,6 +28,7 @@ from centralserver.internals.models.user import (
     UserPasswordResetRequest,
     UserPublic,
 )
+from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.user_handler import (
     create_user,
     crypt_ctx,
@@ -43,12 +46,12 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/create", status_code=status.HTTP_201_CREATED, response_model=UserPublic)
+@router.post("/create", response_model=UserPublic)
 async def create_new_user(
     new_user: UserCreate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
-) -> UserPublic:
+) -> Response:
     """Create a new user in the database.
 
     Args:
@@ -60,10 +63,16 @@ async def create_new_user(
         A newly created user object.
     """
 
-    if not await verify_user_permission("users:global:create", session, token):
+    if not await verify_user_permission("users:create", session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create a user.",
+        )
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User not found."
         )
 
     user_role = session.get(Role, new_user.roleId)
@@ -73,11 +82,21 @@ async def create_new_user(
             detail="Invalid role ID provided.",
         )
 
+    if new_user.roleId < user.roleId:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create a user with this role.",
+        )
+
     logger.info("Creating new user: %s", new_user.username)
     logger.debug("Created by user: %s", token.id)
     user = UserPublic.model_validate(await create_user(new_user, session))
     logger.debug("Returning new user information: %s", user)
-    return user
+    return Response(
+        content=user.model_dump_json(),
+        status_code=status.HTTP_201_CREATED,
+        media_type="application/json",
+    )
 
 
 @router.post("/token")
@@ -135,6 +154,157 @@ async def request_access_token(
     )
 
 
+@router.post("/email/request")
+async def request_verification_email(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Send a verification email to a user.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+
+    Returns:
+        A message indicating the success of the operation.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
+    """
+
+    logger.info("Verifying email with token: %s", token)
+    user = session.get(User, token.id)
+
+    if not user:
+        logger.warning("User not found for email verification: %s", token.id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated.",
+        )
+
+    if not user.email:
+        logger.warning(
+            "User %s does not have an email address set.",
+            user.username,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The user does not have an email address set.",
+        )
+
+    session.commit()
+    session.refresh(user)
+
+    # Generate a verification token and set its expiration time
+    user.verificationToken = str(uuid.uuid4())
+    user.verificationTokenExpires = datetime.datetime.now(
+        datetime.timezone.utc
+    ) + datetime.timedelta(
+        # NOTE: Reusing recovery token expiration time for email verification
+        minutes=app_config.authentication.recovery_token_expire_minutes
+    )
+    session.commit()
+    session.refresh(user)
+    recovery_link = f"{app_config.connection.base_url}/account/profile?emailVerificationToken={user.verificationToken}"
+    logger.debug(
+        "Generated verification link for user %s: %s", user.username, recovery_link
+    )
+    logger.info("Email verified successfully for user: %s", user.username)
+    try:
+        send_mail(
+            to_address=user.email,
+            subject=f"{info.Program.name} | Email Verification Request",
+            text=get_template("email_verification.txt").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                verification_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+            html=get_template("email_verification.html").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                verification_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+        )
+
+    except EmailTemplateNotFoundError as e:
+        logger.error("Template for email verification not found.")
+        logger.debug("User's email verification link: %s", recovery_link)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to send verification email. Please contact support.",
+        ) from e
+
+    return {"message": "Email verification sent successfully."}
+
+
+@router.post("/email/verify")
+async def verify_email(
+    token: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Verify a user's email address using a verification token.
+
+    Args:
+        token: The verification token.
+        session: The database session.
+
+    Returns:
+        A message indicating the success of the operation.
+
+    Raises:
+        HTTPException: If the token is invalid or expired.
+    """
+
+    logger.info("Verifying email with token: %s", token)
+    user = session.exec(select(User).where(User.verificationToken == token)).first()
+
+    if not user or not user.verificationToken or not user.verificationTokenExpires:
+        logger.warning("Invalid or missing verification token: %s", token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing verification token.",
+        )
+
+    if user.deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated.",
+        )
+
+    if user.verificationTokenExpires.replace(
+        tzinfo=datetime.timezone.utc
+    ) < datetime.datetime.now(datetime.timezone.utc):
+        logger.warning("Expired verification token: %s", token)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Expired verification token.",
+        )
+
+    user.emailVerified = True
+    user.verificationToken = None
+    user.verificationTokenExpires = None
+    session.commit()
+    session.refresh(user)
+    await push_notification(
+        owner_id=user.id,
+        title="Email address verified!",
+        content=f"Your email address ({user.email}) has been successfully verified.",
+        notification_type=NotificationType.MAIL,
+        session=session,
+    )
+    logger.info("Email verified successfully for user: %s", user.username)
+
+    return {"message": "Email verified successfully."}
+
+
 @router.post("/recovery/request")
 async def request_password_recovery(
     username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
@@ -152,7 +322,10 @@ async def request_password_recovery(
 
     if not user:
         logger.warning("User not found for password recovery: %s", username)
-        return {"message": "ok"}
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
 
     if not user.email:
         logger.warning(
@@ -176,6 +349,16 @@ async def request_password_recovery(
             detail="Email does not match the user's email address.",
         )
 
+    if user.emailVerified is False:
+        logger.warning(
+            "User %s has not verified their email address, cannot proceed with password recovery.",
+            username,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User's email address is not verified.",
+        )
+
     # Generate a recovery token and set its expiration time
     user.recoveryToken = str(uuid.uuid4())
     user.recoveryTokenExpires = datetime.datetime.now(
@@ -190,30 +373,27 @@ async def request_password_recovery(
     )
     logger.debug("Generated recovery link for user %s: %s", username, recovery_link)
 
-    send_mail(
-        to_address=user.email,
-        subject=f"{info.Program.name} | Password Recovery Request",
-        text=f"""\
-Hello {user.nameFirst or user.username},
-You have requested a password recovery for your account on {info.Program.name}.
-Please click the link below and follow the instructions to reset your password:
+    try:
+        send_mail(
+            to_address=user.email,
+            subject=f"{info.Program.name} | Password Recovery Request",
+            text=get_template("password_recovery.txt").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                recovery_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+            html=get_template("password_recovery.html").format(
+                name=user.nameFirst or user.username,
+                app_name=info.Program.name,
+                recovery_link=recovery_link,
+                expiration_time=app_config.authentication.recovery_token_expire_minutes,
+            ),
+        )
 
-        {recovery_link}
-
-This link will expire in {app_config.authentication.recovery_token_expire_minutes} minutes.
-If you did not request this, please ignore this email.
-""",
-        html=f"""\
-<p>Hello {user.nameFirst or user.username},</p>
-<p>You have requested a password recovery for your account on {info.Program.name}.</p>
-<p>Please click the link below and follow the instructions to reset your password:</p>
-        <a href="{recovery_link}" align="center">
-            Reset Password
-        </a>
-<p>This link will expire in {app_config.authentication.recovery_token_expire_minutes} minutes.</p>
-<p>If you did not request this, please ignore this email.</p>
-""",
-    )
+    except EmailTemplateNotFoundError:
+        logger.error("Template for password recovery email not found.")
+        logger.debug("User's password recovery link: %s", recovery_link)
 
     return {"message": "ok"}
 
@@ -246,6 +426,12 @@ async def reset_password(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or missing recovery token or user.",
+        )
+
+    if user.deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is deactivated.",
         )
 
     password_is_valid, password_err = await validate_password(data.new_password)

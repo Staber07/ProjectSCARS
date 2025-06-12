@@ -21,6 +21,9 @@
     "object_store": {
         "type": "local",
         "config": {
+            "max_file_size": 2097152,
+            "min_image_size": 256,
+            "allowed_image_types": ["png", "jpeg", "jpg", "webp"],
             "filepath": "./tests/data/test"
         }
     },
@@ -34,15 +37,9 @@
         "refresh_token_expire_minutes": 10080
     },
     "security": {
-        "allow_origins": [
-            "http://localhost:8080"
-        ],
+        "allow_origins": ["http://localhost:8080"],
         "allow_credentials": true,
-        "allow_methods": [
-            "*"
-        ],
-        "allow_headers": [
-            "*"
-        ]
+        "allow_methods": ["*"],
+        "allow_headers": ["*"]
     }
 }

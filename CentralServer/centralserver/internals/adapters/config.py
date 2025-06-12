@@ -122,7 +122,7 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
     @override
     def sqlalchemy_uri(self) -> str:
         """Get the database URI for SQLAlchemy."""
-        return "mysql+pymysql://{username}:{password}@{host}:{port}/{database}".format(
+        return "mysql+pymysql://{username}:{password}@{host}:{port}/{database}".format(  # pylint: disable=C0209
             username=self.username,
             password=self.password,
             host=self.host,
@@ -203,6 +203,23 @@ class PostgreSQLDatabaseConfig(DatabaseAdapterConfig):
 class ObjectStoreAdapterConfig(ABC):
     """Superclass for object store configurations."""
 
+    def __init__(
+        self,
+        max_file_size: int | None = None,
+        min_image_size: int | None = None,
+        allowed_image_types: set[str] | None = None,
+    ):
+        """Adapter configuration for object store."""
+
+        self.max_file_size: int = max_file_size or 2097152  # Default to 2 MB
+        self.min_image_size: int = min_image_size or 256  # Minimum image size in pixels
+        self.allowed_image_types: set[str] = allowed_image_types or {
+            "png",
+            "jpeg",
+            "jpg",
+            "webp",
+        }
+
     @property
     @abstractmethod
     def info(self) -> dict[str, Any]:
@@ -212,7 +229,18 @@ class ObjectStoreAdapterConfig(ABC):
 class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     """Adapter configuration for local object store."""
 
-    def __init__(self, filepath: str | None = None) -> None:
+    def __init__(
+        self,
+        max_file_size: int | None = None,
+        min_image_size: int | None = None,
+        allowed_image_types: set[str] | None = None,
+        filepath: str | None = None,
+    ) -> None:
+        super().__init__(
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
+        )
         self.filepath: Path = Path(filepath or os.path.join(os.getcwd(), "data"))
 
     @property
@@ -231,6 +259,9 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
 
     def __init__(
         self,
+        max_file_size: int | None = None,
+        min_image_size: int | None = None,
+        allowed_image_types: set[str] | None = None,
         access_key: str | None = None,
         secret_key: str | None = None,
         endpoint: str | None = None,
@@ -242,8 +273,14 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
             access_key: The access key for MinIO. (required)
             secret_key: The secret key for MinIO. (required)
             endpoint: The URL of the MinIO server. (default: localhost:9000)
-            secure: Use secure (TLS) connection. (default: False).
+            secure: Use secure (TLS) connection. (default: False)
         """
+
+        super().__init__(
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
+        )
 
         if access_key is None or secret_key is None:
             raise ValueError("The access key and secret key are required.")
@@ -258,6 +295,54 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     def info(self) -> dict[str, Any]:
         return {
             "name": "MinIO",
+            "access_key_set": self.access_key != "",
+            "secret_key_set": self.secret_key != "",
+            "endpoint": self.endpoint,
+            "secure": self.secure,
+        }
+
+
+class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
+    """Adapter configuration for Garage."""
+
+    def __init__(
+        self,
+        max_file_size: int | None = None,
+        min_image_size: int | None = None,
+        allowed_image_types: set[str] | None = None,
+        access_key: str | None = None,
+        secret_key: str | None = None,
+        endpoint: str | None = None,
+        secure: bool | None = None,
+    ):
+        """Configuration for Garage object store adapter.
+
+        Args:
+            access_key: The access key for Garage. (required)
+            secret_key: The secret key for Garage. (required)
+            endpoint: The URL of the Garage server. (default: localhost:3900)
+            secure: Use secure (TLS) connection. (default: False)
+        """
+
+        super().__init__(
+            max_file_size=max_file_size,
+            min_image_size=min_image_size,
+            allowed_image_types=allowed_image_types,
+        )
+
+        if access_key is None or secret_key is None:
+            raise ValueError("The access key and secret key are required.")
+
+        self.access_key: str = access_key
+        self.secret_key: str = secret_key
+        self.endpoint: str = endpoint or "localhost:3900"
+        self.secure: bool = secure or False
+
+    @property
+    @override
+    def info(self) -> dict[str, Any]:
+        return {
+            "name": "Garage",
             "access_key_set": self.access_key != "",
             "secret_key_set": self.secret_key != "",
             "endpoint": self.endpoint,
