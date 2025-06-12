@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Group, Image, Indicator, NavLink, Title, Tooltip } from "@mantine/core";
+import { Code, Group, Image, Indicator, NavLink, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
