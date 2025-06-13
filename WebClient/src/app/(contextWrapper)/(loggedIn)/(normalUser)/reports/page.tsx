@@ -1,6 +1,10 @@
 "use client";
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
+import { GetLocalMonthlyReports } from "@/lib/api/report";
+import { GetSchoolInfo } from "@/lib/api/school";
+import { useUser } from "@/lib/providers/user";
+import { MonthlyReportType, ReportStatus, SchoolType } from "@/lib/types";
 import {
     ActionIcon,
     Badge,
@@ -19,6 +23,7 @@ import {
     Text,
     TextInput,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
     IconCash,
     IconDots,
@@ -31,101 +36,65 @@ import {
     IconTrash,
     IconUsers,
 } from "@tabler/icons-react";
+import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-
-// Sample Report Submission Data
-const reportSubmissions = [
-    {
-        id: 1,
-        name: "Daily Sales Report",
-        type: "Daily Sales",
-        category: "Sales",
-        lastModified: "2025-06-05T16:30:00Z",
-        status: "Draft",
-        period: "2025-06-05",
-    },
-    {
-        id: 2,
-        name: "May Monthly Sales Summary",
-        type: "Monthly Sales",
-        category: "Sales",
-        lastModified: "2025-05-31T14:20:00Z",
-        status: "Submitted",
-        period: "2025-05",
-    },
-    {
-        id: 3,
-        name: "Operating Expenses Liquidation - May",
-        type: "Operating Expenses",
-        category: "Expenses",
-        lastModified: "2025-05-30T11:15:00Z",
-        status: "Under Review",
-        period: "2025-05",
-    },
-    {
-        id: 4,
-        name: "HE Fund Report - May",
-        type: "HE Fund",
-        category: "Expenses",
-        lastModified: "2025-05-29T10:45:00Z",
-        status: "Rejected",
-        period: "2025-05",
-    },
-    {
-        id: 5,
-        name: "Supplementary Feeding Fund - April",
-        type: "Supplementary Feeding",
-        category: "Expenses",
-        lastModified: "2025-04-30T13:00:00Z",
-        status: "Approved",
-        period: "2025-04",
-    },
-    {
-        id: 6,
-        name: "Staff Payroll - May 2025",
-        type: "Payroll",
-        category: "Payroll",
-        lastModified: "2025-05-25T09:30:00Z",
-        status: "Approved",
-        period: "2025-05",
-    },
-];
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function ReportsPage() {
     console.debug("Rendering ReportsPage");
 
     const router = useRouter();
+    const userCtx = useUser();
     const [search, setSearch] = useState("");
-    const [selectedReports, setSelectedReports] = useState<number[]>([]);
+    const [selectedReports, setSelectedReports] = useState<Date[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [activeTab, setActiveTab] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
+    const [reportSubmissions, setReportSubmissions] = useState<MonthlyReportType[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [parsedSubmittedBySchools] = useState<Record<number, SchoolType>>({});
+
+    // Fetch reports on component mount
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                setLoading(true);
+                if (userCtx.userInfo?.schoolId) {
+                    const reports = await GetLocalMonthlyReports(userCtx.userInfo.schoolId, 0, 10);
+                    setReportSubmissions(reports);
+                } else {
+                    console.warn("No schoolId found in user context");
+                }
+            } catch (error) {
+                console.error("Failed to fetch reports:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReports();
+    }, [userCtx.userInfo]);
 
     const filteredReports = reportSubmissions.filter((report) => {
-        const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = report.name?.toLowerCase().includes(search.toLowerCase());
         const matchesStatus =
-            statusFilter === "all" || report.status.toLowerCase().replace(/\s+/g, "-") === statusFilter;
-        const matchesCategory = categoryFilter === "all" || report.category.toLowerCase() === categoryFilter;
-        const matchesTab = activeTab === "all" || report.category.toLowerCase() === activeTab;
+            statusFilter === "all" || report.reportStatus.toLowerCase().replace(/\s+/g, "-") === statusFilter;
 
-        return matchesSearch && matchesStatus && matchesCategory && matchesTab;
+        return matchesSearch && matchesStatus;
     });
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: ReportStatus) => {
         switch (status) {
-            case "Approved":
+            case ReportStatus.APPROVED:
                 return "green";
-            case "Submitted":
+            case ReportStatus.DRAFT:
                 return "blue";
-            case "Under Review":
+            case ReportStatus.REVIEW:
                 return "yellow";
-            case "Pending Approval":
-                return "orange";
-            case "Rejected":
+            case ReportStatus.REJECTED:
                 return "red";
-            case "Draft":
+            case ReportStatus.ARCHIVED:
                 return "gray";
             default:
                 return "gray";
@@ -140,13 +109,13 @@ export default function ReportsPage() {
         }
     };
 
-    const handleSelectReport = (id: number, checked: boolean) => {
+    const handleSelectReport = useCallback((id: Date, checked: boolean) => {
         if (checked) {
-            setSelectedReports([...selectedReports, id]);
+            setSelectedReports((prev) => [...prev, id]);
         } else {
-            setSelectedReports(selectedReports.filter((reportId) => reportId !== id));
+            setSelectedReports((prev) => prev.filter((reportId) => reportId !== id));
         }
-    };
+    }, []);
 
     const handleNavigateToSales = () => {
         router.push("/reports/sales");
@@ -184,63 +153,95 @@ export default function ReportsPage() {
         </Card>
     );
 
-    const rows = filteredReports.map((report) => (
-        <Table.Tr key={report.id}>
-            <Table.Td>
-                <Checkbox
-                    checked={selectedReports.includes(report.id)}
-                    onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
-                />
-            </Table.Td>
-            <Table.Td>
-                <div>
-                    <Text fw={500} size="sm">
-                        {report.name}
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                        {report.type}
-                    </Text>
-                </div>
-            </Table.Td>
-            <Table.Td>
-                <Badge color={getStatusColor(report.status)} variant="filled" size="sm">
-                    {report.status}
-                </Badge>
-            </Table.Td>
-            <Table.Td>
-                <div>
-                    <Text size="sm">{report.period}</Text>
-                </div>
-            </Table.Td>
-            <Table.Td>
-                <Text size="sm" c="dimmed">
-                    {new Date(report.lastModified).toLocaleDateString("en-US", {
-                        month: "2-digit",
-                        day: "2-digit",
-                        year: "numeric",
-                    })}
-                </Text>
-            </Table.Td>
-            <Table.Td>
-                <Menu withinPortal position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                        <ActionIcon variant="subtle" color="gray">
-                            <IconDots size={16} />
-                        </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                        <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
-                        <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
-                        <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
-                        <Menu.Divider />
-                        <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
-                            Delete
-                        </Menu.Item>
-                    </Menu.Dropdown>
-                </Menu>
-            </Table.Td>
-        </Table.Tr>
-    ));
+    const parseSubmittedBySchool = useCallback(
+        async (submittedBySchool: number) => {
+            try {
+                const school = await GetSchoolInfo(submittedBySchool);
+                parsedSubmittedBySchools[submittedBySchool] = school;
+                return school;
+            } catch (error) {
+                console.error("Failed to fetch school info:", error);
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to fetch school information for report submission.",
+                    color: "red",
+                });
+            }
+        },
+        [parsedSubmittedBySchools]
+    );
+
+    const rows = useMemo(
+        () =>
+            filteredReports.map((report) => {
+                parseSubmittedBySchool(report.submittedBySchool);
+                return (
+                    <Table.Tr key={`${report.id}`}>
+                        <Table.Td>
+                            <Checkbox
+                                checked={selectedReports.includes(report.id)}
+                                onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
+                            />
+                        </Table.Td>
+                        <Table.Td>
+                            <div>
+                                <Text fw={500} size="sm">
+                                    {report.name}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    {
+                                        // FIXME: This is stuck on loading
+                                        parsedSubmittedBySchools[report.submittedBySchool]
+                                            ? parsedSubmittedBySchools[report.submittedBySchool].name
+                                            : "Loading school..."
+                                    }
+                                </Text>
+                            </div>
+                        </Table.Td>
+                        <Table.Td>
+                            <Badge color={getStatusColor(report.reportStatus)} variant="filled" size="sm">
+                                {report.reportStatus}
+                            </Badge>
+                        </Table.Td>
+                        <Table.Td>
+                            <div>
+                                <Text size="sm">{dayjs(report.id).format("MMMM YYYY")}</Text>
+                            </div>
+                        </Table.Td>
+                        <Table.Td>
+                            <Text size="sm" c="dimmed">
+                                {report.lastModified
+                                    ? new Date(report.lastModified).toLocaleDateString("en-US", {
+                                          month: "2-digit",
+                                          day: "2-digit",
+                                          year: "numeric",
+                                      })
+                                    : "N/A"}
+                            </Text>
+                        </Table.Td>
+                        <Table.Td>
+                            <Menu withinPortal position="bottom-end" shadow="sm">
+                                <Menu.Target>
+                                    <ActionIcon variant="subtle" color="gray">
+                                        <IconDots size={16} />
+                                    </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
+                                    <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                                    <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
+                                    <Menu.Divider />
+                                    <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                                        Delete
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                        </Table.Td>
+                    </Table.Tr>
+                );
+            }),
+        [filteredReports, parseSubmittedBySchool, selectedReports, parsedSubmittedBySchools, handleSelectReport]
+    );
 
     return (
         <Stack gap="lg">

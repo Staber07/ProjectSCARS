@@ -99,3 +99,20 @@ export async function CreateSchool(school: SchoolCreateType): Promise<SchoolType
     const createdSchoolData: SchoolType = await centralServerResponse.json();
     return createdSchoolData;
 }
+
+export async function GetSchoolInfo(schoolId: number): Promise<SchoolType> {
+    const centralServerResponse = await ky.get(`${endpoint}/schools`, {
+        searchParams: { school_id: schoolId },
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to get school info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const schoolData: SchoolType = await centralServerResponse.json();
+    return schoolData;
+}

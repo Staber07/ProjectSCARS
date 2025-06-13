@@ -97,3 +97,31 @@ export type SchoolUpdateType = {
 
     logoUrn?: string | null;
 };
+
+export enum ReportStatus {
+    DRAFT = "draft",
+    REVIEW = "review",
+    APPROVED = "approved",
+    REJECTED = "rejected",
+    RECEIVED = "received",
+    ARCHIVED = "archived",
+}
+
+export type MonthlyReportType = {
+    id: Date;
+    name?: string;
+    submittedBySchool: number;
+    reportStatus: ReportStatus;
+    preparedBy?: string;
+    notedBy?: string;
+    lastModified?: Date;
+    receivedByDailyFinancialReport?: string;
+    receivedByOperatingExpensesReport?: string;
+    receivedByAdministrativeExpensesReport?: string;
+    receivedByClinicFundReport?: string;
+    receivedBySupplementaryFeedingFundReport?: string;
+    receivedByHEFundReport?: string;
+    receivedByFacultyAndStudentDevFundReport?: string;
+    receivedBySchoolOperationFundReport?: string;
+    receivedByRevolvingFundReport?: string;
+};

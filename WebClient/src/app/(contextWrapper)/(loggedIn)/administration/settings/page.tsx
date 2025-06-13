@@ -1,23 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-    Text,
-    Title,
-    Switch,
-    Select,
     ColorInput,
-    TextInput,
-    Stack,
-    Group,
     Container,
+    Group,
     Paper,
+    Select,
+    Stack,
+    Switch,
+    Text,
+    TextInput,
     ThemeIcon,
+    Title,
     useMantineColorScheme,
 } from "@mantine/core";
-import { IconBrandGithub, IconTool, IconInfoCircle } from "@tabler/icons-react";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
+import { IconBrandGithub, IconInfoCircle, IconTool } from "@tabler/icons-react";
+import { useEffect } from "react";
 
 interface WebsiteSettings {
     darkMode: boolean;
