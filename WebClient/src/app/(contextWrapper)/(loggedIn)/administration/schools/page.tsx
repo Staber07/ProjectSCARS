@@ -380,7 +380,12 @@ export default function SchoolsPage(): JSX.Element {
                             </TableTd>
                             <TableTd c={school.email ? undefined : "dimmed"}>
                                 {school.email ? (
-                                    <Anchor href={`mailto:${school.email}`} underline="never" size="sm">
+                                    <Anchor
+                                        href={`mailto:${school.email}`}
+                                        underline="never"
+                                        size="sm"
+                                        rel="noopener noreferrer"
+                                    >
                                         {school.email}
                                     </Anchor>
                                 ) : (
@@ -389,7 +394,13 @@ export default function SchoolsPage(): JSX.Element {
                             </TableTd>
                             <TableTd c={school.website ? undefined : "dimmed"}>
                                 {school.website ? (
-                                    <Anchor href={school.website} underline="never" size="sm" target="_blank">
+                                    <Anchor
+                                        href={school.website}
+                                        underline="never"
+                                        size="sm"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
                                         {school.website}
                                     </Anchor>
                                 ) : (

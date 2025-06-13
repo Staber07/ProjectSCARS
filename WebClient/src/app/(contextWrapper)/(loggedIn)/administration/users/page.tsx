@@ -447,7 +447,12 @@ export default function UsersPage(): JSX.Element {
                                                 </Tooltip>
                                             ))}
                                         {user.email ? (
-                                            <Anchor href={`mailto:${user.email}`} underline="never" size="sm">
+                                            <Anchor
+                                                href={`mailto:${user.email}`}
+                                                underline="never"
+                                                size="sm"
+                                                rel="noopener noreferrer"
+                                            >
                                                 {user.email}
                                             </Anchor>
                                         ) : (
