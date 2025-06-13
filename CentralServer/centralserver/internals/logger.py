@@ -3,6 +3,8 @@ import os
 from logging.handlers import RotatingFileHandler
 from time import strftime
 
+from concurrent_log_handler import ConcurrentRotatingFileHandler
+
 from centralserver import info
 from centralserver.internals.config_handler import app_config
 
@@ -48,7 +50,7 @@ class LoggerFactory:
         if not logger.handlers:
             # handlers
             stream_handler = logging.StreamHandler()
-            file_handler = RotatingFileHandler(
+            file_handler = ConcurrentRotatingFileHandler(
                 app_config.logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
                 maxBytes=app_config.logging.max_bytes,
                 backupCount=app_config.logging.backup_count,
