@@ -15,6 +15,10 @@ PERMISSIONS: Final[dict[str, str]] = {
     "notifications:self:archive": "Archive their own notifications.",
     "notifications:global:view": "View all notifications owned by any user.",
     "notifications:self:view": "View their own notifications.",
+    "reports:global:read": "View all reports in the system.",
+    "reports:local:write": "Submit daily reports and monthly expenses.",
+    "reports:local:read": "View monthly reports of their assigned school.",
+    "roles:global:read": "View all user roles.",
     "schools:create": "Create new schools in the system.",
     "schools:global:read": "View all schools in the system.",
     "schools:global:modify": "Modify any school's information.",
@@ -43,10 +47,6 @@ PERMISSIONS: Final[dict[str, str]] = {
     "users:self:modify:role": "Modify their own role in the system.",
     "users:self:deactivate": "Deactivate their own user account.",
     "users:self:read": "View their own user information.",
-    "roles:global:read": "View all user roles.",
-    #####
-    "reports:local:write": "Submit daily reports and monthly expenses.",
-    "reports:local:read": "View monthly reports of their assigned school.",
 }
 
 ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
@@ -81,6 +81,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     2: [  # Superintendent
         "notifications:self:archive",
         "notifications:self:view",
+        "reports:global:read",
         "schools:create",
         "schools:global:read",
         "schools:global:modify",
@@ -113,6 +114,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     3: [  # Administrator
         "notifications:self:archive",
         "notifications:self:view",
+        "reports:global:read",
         "schools:global:read",
         "schools:global:modify",
         "schools:self:read",
@@ -134,6 +136,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     4: [  # Principal
         "notifications:self:archive",
         "notifications:self:view",
+        "reports:local:read",
+        "reports:local:write",
         "schools:self:read",
         "schools:self:modify",
         "users:self:modify",
@@ -145,6 +149,8 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
     5: [  # Canteen Manager
         "notifications:self:archive",
         "notifications:self:view",
+        "reports:local:read",
+        "reports:local:write",
         "schools:self:read",
         "users:self:modify",
         "users:self:modify:email",
