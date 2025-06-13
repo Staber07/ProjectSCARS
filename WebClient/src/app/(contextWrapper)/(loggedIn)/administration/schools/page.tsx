@@ -12,6 +12,7 @@ import { useUser } from "@/lib/providers/user";
 import { SchoolType, SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
+    Anchor,
     Avatar,
     Button,
     Card,
@@ -340,7 +341,7 @@ export default function SchoolsPage(): JSX.Element {
                     </ActionIcon>
                 </Flex>
             </Flex>
-            <Table highlightOnHover stickyHeader stickyHeaderOffset={60}>
+            <Table highlightOnHover stickyHeader>
                 <TableThead>
                     <TableTr>
                         <TableTh></TableTh> {/* Checkbox and Logo */}
@@ -378,10 +379,22 @@ export default function SchoolsPage(): JSX.Element {
                                 {school.phone ? school.phone : "N/A"}
                             </TableTd>
                             <TableTd c={school.email ? undefined : "dimmed"}>
-                                {school.email ? school.email : "N/A"}
+                                {school.email ? (
+                                    <Anchor href={`mailto:${school.email}`} underline="never" size="sm">
+                                        {school.email}
+                                    </Anchor>
+                                ) : (
+                                    <Text size="sm">N/A</Text>
+                                )}
                             </TableTd>
                             <TableTd c={school.website ? undefined : "dimmed"}>
-                                {school.website ? school.website : "N/A"}
+                                {school.website ? (
+                                    <Anchor href={school.website} underline="never" size="sm" target="_blank">
+                                        {school.website}
+                                    </Anchor>
+                                ) : (
+                                    <Text size="sm">N/A</Text>
+                                )}
                             </TableTd>
                             <Tooltip
                                 label={
