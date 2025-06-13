@@ -5,6 +5,7 @@ import { VerifyUserEmail } from "@/lib/api/auth";
 import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
+import { UserPublicType } from "@/lib/types";
 import {
     Anchor,
     Avatar,
@@ -49,9 +50,15 @@ interface EditProfileValues {
     forceUpdateInfo: boolean;
 }
 
-function ProfileContent() {
-    const searchParams = useSearchParams();
+interface ProfileContentProps {
+    userInfo: UserPublicType | null;
+    userPermissions: string[] | null;
+    userAvatarUrl: string | null;
+}
+
+function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
     const userCtx = useUser();
+    const searchParams = useSearchParams();
     const [opened, { open, close }] = useDisclosure(false);
     const [buttonLoading, setButtonLoading] = useState(false);
     const availableSchoolNames = useRef<{ value: string; label: string }[]>([]);
@@ -67,13 +74,13 @@ function ProfileContent() {
             console.debug("No file selected, skipping upload...");
             return;
         }
-        if (userCtx.userInfo === null) {
+        if (userInfo === null) {
             console.error("User info is null, cannot upload avatar.");
             return;
         }
         console.debug("Uploading avatar...");
-        const updatedUserInfo = await UploadUserAvatar(userCtx.userInfo.id, file);
-        userCtx.updateUserInfo(updatedUserInfo, userCtx.userPermissions, file);
+        const updatedUserInfo = await UploadUserAvatar(userInfo.id, file);
+        userCtx.updateUserInfo(updatedUserInfo, userPermissions, file);
         console.debug("Avatar uploaded successfully.");
     };
 
@@ -134,24 +141,24 @@ function ProfileContent() {
                         radius="lg"
                         size={100}
                         color="#258ce6"
-                        src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
+                        src={userAvatarUrl ? userAvatarUrl : undefined}
                     />
                     <Stack gap={0}>
                         <Text size="sm" c="dimmed">
-                            {userCtx.userInfo ? roles[userCtx.userInfo?.roleId] : "Unknown Role"}
+                            {userInfo ? roles[userInfo?.roleId] : "Unknown Role"}
                         </Text>
                         <Text fw={600} size="lg">
-                            {userCtx.userInfo?.nameFirst}{" "}
-                            {userCtx.userInfo?.nameMiddle
-                                ? userCtx.userInfo?.nameMiddle
+                            {userInfo?.nameFirst}{" "}
+                            {userInfo?.nameMiddle
+                                ? userInfo?.nameMiddle
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join(".") + ". "
                                 : ""}
-                            {userCtx.userInfo?.nameLast}
+                            {userInfo?.nameLast}
                         </Text>
                         <Text size="sm" c="dimmed">
-                            @{userCtx.userInfo?.username}
+                            @{userInfo?.username}
                         </Text>
                     </Stack>
                 </Group>
@@ -175,12 +182,12 @@ function ProfileContent() {
                     Account
                 </Title>
                 <Tooltip
-                    disabled={userCtx.userPermissions?.includes("users:self:modify:username")}
+                    disabled={userPermissions?.includes("users:self:modify:username")}
                     label="Username cannot be changed"
                     withArrow
                 >
                     <TextInput
-                        disabled={!userCtx.userPermissions?.includes("users:self:modify:username")}
+                        disabled={!userPermissions?.includes("users:self:modify:username")}
                         label="Username"
                         placeholder="Username"
                         key={form.key("username")}
@@ -188,12 +195,12 @@ function ProfileContent() {
                     />
                 </Tooltip>{" "}
                 <Tooltip
-                    disabled={userCtx.userPermissions?.includes("users:self:modify:role")}
+                    disabled={userPermissions?.includes("users:self:modify:role")}
                     label="Role cannot be changed"
                     withArrow
                 >
                     <Select
-                        disabled={!userCtx.userPermissions?.includes("users:self:modify:role")}
+                        disabled={!userPermissions?.includes("users:self:modify:role")}
                         label="Role"
                         placeholder="Role"
                         data={availableRoleDescriptions.current}
@@ -203,12 +210,12 @@ function ProfileContent() {
                     />
                 </Tooltip>
                 <Tooltip
-                    disabled={userCtx.userPermissions?.includes("users:self:modify:school")}
+                    disabled={userPermissions?.includes("users:self:modify:school")}
                     label="School cannot be changed"
                     withArrow
                 >
                     <Select
-                        disabled={!userCtx.userPermissions?.includes("users:self:modify:school")}
+                        disabled={!userPermissions?.includes("users:self:modify:school")}
                         label="Assigned School"
                         placeholder="School"
                         data={availableSchoolNames.current}
@@ -219,12 +226,12 @@ function ProfileContent() {
                 </Tooltip>
                 <Group mt="md">
                     <Tooltip
-                        disabled={userCtx.userPermissions?.includes("users:self:deactivate")}
+                        disabled={userPermissions?.includes("users:self:deactivate")}
                         label="Deactivation status cannot be changed"
                         withArrow
                     >
                         <Switch
-                            disabled={!userCtx.userPermissions?.includes("users:self:deactivate")}
+                            disabled={!userPermissions?.includes("users:self:deactivate")}
                             label="Deactivated"
                             placeholder="Deactivated"
                             key={form.key("deactivated")}
@@ -232,12 +239,12 @@ function ProfileContent() {
                         />
                     </Tooltip>
                     <Tooltip
-                        disabled={userCtx.userPermissions?.includes("users:self:forceupdate")}
+                        disabled={userPermissions?.includes("users:self:forceupdate")}
                         label="Force Update Required cannot be changed"
                         withArrow
                     >
                         <Switch
-                            disabled={!userCtx.userPermissions?.includes("users:self:forceupdate")}
+                            disabled={!userPermissions?.includes("users:self:forceupdate")}
                             label="Force Update Required"
                             placeholder="Force Update Required"
                             key={form.key("forceUpdateInfo")}
@@ -250,12 +257,12 @@ function ProfileContent() {
                 </Title>
                 <Group>
                     <Tooltip
-                        disabled={userCtx.userPermissions?.includes("users:self:modify:name")}
+                        disabled={userPermissions?.includes("users:self:modify:name")}
                         label="Name cannot be changed"
                         withArrow
                     >
                         <TextInput
-                            disabled={!userCtx.userPermissions?.includes("users:self:modify:name")}
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="First Name"
                             placeholder="First Name"
                             key={form.key("nameFirst")}
@@ -263,12 +270,12 @@ function ProfileContent() {
                         />
                     </Tooltip>
                     <Tooltip
-                        disabled={userCtx.userPermissions?.includes("users:self:modify:name")}
+                        disabled={userPermissions?.includes("users:self:modify:name")}
                         label="Name cannot be changed"
                         withArrow
                     >
                         <TextInput
-                            disabled={!userCtx.userPermissions?.includes("users:self:modify:name")}
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="Middle Name"
                             placeholder="Middle Name"
                             key={form.key("nameMiddle")}
@@ -276,12 +283,12 @@ function ProfileContent() {
                         />
                     </Tooltip>
                     <Tooltip
-                        disabled={userCtx.userPermissions?.includes("users:self:modify:name")}
+                        disabled={userPermissions?.includes("users:self:modify:name")}
                         label="Name cannot be changed"
                         withArrow
                     >
                         <TextInput
-                            disabled={!userCtx.userPermissions?.includes("users:self:modify:name")}
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="Last Name"
                             placeholder="Last Name"
                             key={form.key("nameLast")}
@@ -290,17 +297,17 @@ function ProfileContent() {
                     </Tooltip>
                 </Group>
                 <Tooltip
-                    disabled={userCtx.userPermissions?.includes("users:self:modify:email")}
+                    disabled={userPermissions?.includes("users:self:modify:email")}
                     label="Email cannot be changed"
                     withArrow
                 >
                     <TextInput
-                        disabled={!userCtx.userPermissions?.includes("users:self:modify:email")}
+                        disabled={!userPermissions?.includes("users:self:modify:email")}
                         label="Email"
                         placeholder="Email"
                         rightSection={
                             form.values.email &&
-                            (userCtx.userInfo?.emailVerified && form.values.email === userCtx.userInfo?.email ? (
+                            (userInfo?.emailVerified && form.values.email === userInfo?.email ? (
                                 <Tooltip
                                     label="This email has been verified. You're good to go!"
                                     withArrow
@@ -326,7 +333,7 @@ function ProfileContent() {
                     <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                         <TextInput
                             label="Email"
-                            value={userCtx.userInfo?.email || ""}
+                            value={userInfo?.email || ""}
                             size="sm"
                             disabled
                             w="100%"
@@ -431,9 +438,14 @@ function ProfileContent() {
 }
 
 export default function ProfilePage() {
+    const userCtx = useUser();
     return (
         <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
-            <ProfileContent />
+            <ProfileContent
+                userInfo={userCtx.userInfo} // Replace with actual user info
+                userPermissions={userCtx.userPermissions} // Replace with actual user permissions
+                userAvatarUrl={userCtx.userAvatarUrl} // Replace with actual user avatar URL
+            />
         </Suspense>
     );
 }
