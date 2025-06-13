@@ -35,7 +35,7 @@ import {
     IconMailOpened,
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 interface EditProfileValues {
     id: string;
@@ -61,12 +61,8 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const searchParams = useSearchParams();
     const [opened, { open, close }] = useDisclosure(false);
     const [buttonLoading, setButtonLoading] = useState(false);
-    const availableSchoolNames = useRef<{ value: string; label: string }[]>([]);
-    const availableRoleDescriptions = useRef<{ value: string; label: string }[]>([]);
 
-    const form = useForm<EditProfileValues>({
-        mode: "uncontrolled",
-    });
+    const form = useForm<EditProfileValues>({ mode: "uncontrolled" });
 
     console.debug("Profile form initialized with values:", form.values);
     const uploadAvatar = async (file: File | null) => {
@@ -203,7 +199,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         disabled={!userPermissions?.includes("users:self:modify:role")}
                         label="Role"
                         placeholder="Role"
-                        data={availableRoleDescriptions.current}
+                        // data={}
                         key={form.key("role")}
                         searchable
                         {...form.getInputProps("role")}
@@ -218,7 +214,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         disabled={!userPermissions?.includes("users:self:modify:school")}
                         label="Assigned School"
                         placeholder="School"
-                        data={availableSchoolNames.current}
+                        // data={}
                         key={form.key("school")}
                         searchable
                         {...form.getInputProps("school")}
@@ -296,50 +292,46 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         />
                     </Tooltip>
                 </Group>
-                <Tooltip
-                    disabled={userPermissions?.includes("users:self:modify:email")}
-                    label="Email cannot be changed"
-                    withArrow
-                >
-                    <TextInput
-                        disabled={!userPermissions?.includes("users:self:modify:email")}
-                        label="Email"
-                        placeholder="Email"
-                        rightSection={
-                            form.values.email &&
-                            (userInfo?.emailVerified && form.values.email === userInfo?.email ? (
-                                <Tooltip
-                                    label="This email has been verified. You're good to go!"
-                                    withArrow
-                                    multiline
-                                    w={250}
-                                >
-                                    <IconCircleDashedCheck size={16} color="green" />
-                                </Tooltip>
-                            ) : (
-                                <Tooltip label="This email has not yet been verified." withArrow multiline w={250}>
-                                    <IconCircleDashedX size={16} color="gray" />
-                                </Tooltip>
-                            ))
-                        }
-                        key={form.key("email")}
-                        {...form.getInputProps("email")}
-                    />
-                </Tooltip>
                 <Title order={4} mb="sm" mt="lg">
                     Account Security
                 </Title>
                 <Flex justify="space-between" align="end" w="100%" gap="lg">
                     <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
-                        <TextInput
-                            label="Email"
-                            value={userInfo?.email || ""}
-                            size="sm"
-                            disabled
-                            w="100%"
-                            style={{ flexGrow: 1, minWidth: 0 }}
-                            labelProps={{ style: { marginBottom: 6 } }}
-                        />
+                        <Tooltip
+                            disabled={userPermissions?.includes("users:self:modify:email")}
+                            label="Email cannot be changed"
+                            withArrow
+                        >
+                            <TextInput
+                                disabled={!userPermissions?.includes("users:self:modify:email")}
+                                label="Email"
+                                placeholder="Email"
+                                rightSection={
+                                    form.values.email &&
+                                    (userInfo?.emailVerified && form.values.email === userInfo?.email ? (
+                                        <Tooltip
+                                            label="This email has been verified. You're good to go!"
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedCheck size={16} color="green" />
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip
+                                            label="This email has not yet been verified."
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedX size={16} color="gray" />
+                                        </Tooltip>
+                                    ))
+                                }
+                                key={form.key("email")}
+                                {...form.getInputProps("email")}
+                            />
+                        </Tooltip>{" "}
                     </Stack>
 
                     <Button
@@ -440,11 +432,11 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 export default function ProfilePage() {
     const userCtx = useUser();
     return (
-        <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
+        <Suspense fallback={<LoadingComponent message="Loading your profile..." withBorder={false} />}>
             <ProfileContent
-                userInfo={userCtx.userInfo} // Replace with actual user info
-                userPermissions={userCtx.userPermissions} // Replace with actual user permissions
-                userAvatarUrl={userCtx.userAvatarUrl} // Replace with actual user avatar URL
+                userInfo={userCtx.userInfo}
+                userPermissions={userCtx.userPermissions}
+                userAvatarUrl={userCtx.userAvatarUrl}
             />
         </Suspense>
     );
