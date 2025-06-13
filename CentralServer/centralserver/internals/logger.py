@@ -1,6 +1,5 @@
 import logging
 import os
-from logging.handlers import RotatingFileHandler
 from time import strftime
 
 from concurrent_log_handler import ConcurrentRotatingFileHandler
