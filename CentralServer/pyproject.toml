@@ -5,6 +5,7 @@ description = "The central server for the project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "concurrent-log-handler>=0.9.28",
     "fastapi[standard]>=0.115.12",
     "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
