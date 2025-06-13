@@ -99,7 +99,7 @@ async def create_new_user(
     )
 
 
-@router.post("/token")
+@router.post("/login")
 async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
@@ -490,3 +490,23 @@ async def get_all_roles(
 
     # NOTE: Should we include the permissions of each role in the response?
     return [role for role in session.exec(select(Role)).all()]
+
+
+@router.post("/mfa/otp/generate")
+async def generate_mfa_otp():
+    pass
+
+
+@router.post("/mfa/otp/verify")
+async def verify_mfa_otp():
+    pass
+
+
+@router.post("/mfa/otp/validate")
+async def validate_mfa_otp():
+    pass
+
+
+@router.post("/mfa/otp/disable")
+async def disable_mfa_otp():
+    pass

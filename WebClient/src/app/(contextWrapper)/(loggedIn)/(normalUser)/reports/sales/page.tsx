@@ -1,12 +1,7 @@
 "use client";
 
-import '@mantine/dates/styles.css';
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-
-import { useRouter } from "next/navigation";
-import { Suspense, useState } from "react";
-import dayjs from "dayjs";
-
+import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
     ActionIcon,
     Badge,
@@ -17,15 +12,18 @@ import {
     Modal,
     NumberInput,
     Paper,
-    Stack,
     SimpleGrid,
+    Stack,
     Table,
     Text,
     Title,
 } from "@mantine/core";
 import { DatePickerInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
 import { IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
-import { SplitButton } from "@/components/SplitButton/SplitButton";
+import dayjs from "dayjs";
+import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
 
 interface DailyEntry {
     date: string;
@@ -50,21 +48,21 @@ function SalesandPurchasesContent() {
     const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
 
     const handleClose = () => {
-        router.push('/reports');
+        router.push("/reports");
     };
 
     const handleDateSelect = (date: Date | null) => {
         if (!date) return;
-        
+
         setSelectedDate(date);
 
-        if (!dayjs(date).isSame(currentMonth, 'month')) {
+        if (!dayjs(date).isSame(currentMonth, "month")) {
             setCurrentMonth(date);
         }
 
         const dateStr = dayjs(date).format("YYYY-MM-DD");
         const existingEntry = dailyEntries.find((e) => e.date === dateStr);
-        
+
         if (existingEntry) {
             // Edit existing entry
             setEditingEntry(existingEntry);
@@ -83,7 +81,7 @@ function SalesandPurchasesContent() {
             setModalSales(0);
             setModalPurchases(0);
         }
-        
+
         setModalOpened(true);
     };
 
@@ -92,33 +90,27 @@ function SalesandPurchasesContent() {
 
         const netIncome = modalSales - modalPurchases;
         const updatedEntry = {
-              ...editingEntry,
-              sales: modalSales,
-              purchases: modalPurchases,
-              netIncome,
-      };
+            ...editingEntry,
+            sales: modalSales,
+            purchases: modalPurchases,
+            netIncome,
+        };
 
-      const existingIndex = dailyEntries.findIndex(
-          (entry) => entry.date === editingEntry.date
-      );
+        const existingIndex = dailyEntries.findIndex((entry) => entry.date === editingEntry.date);
 
-      if (existingIndex >= 0) {
-          // Update existing entry
-          setDailyEntries((prev) =>
-              prev.map((entry, index) =>
-                  index === existingIndex ? updatedEntry : entry
-              )
-          );
-      } else {
-          // Add new entry and sort by date
-          setDailyEntries((prev) => {
-              const newEntries = [...prev, updatedEntry];
-              return newEntries.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-          });
-      }
+        if (existingIndex >= 0) {
+            // Update existing entry
+            setDailyEntries((prev) => prev.map((entry, index) => (index === existingIndex ? updatedEntry : entry)));
+        } else {
+            // Add new entry and sort by date
+            setDailyEntries((prev) => {
+                const newEntries = [...prev, updatedEntry];
+                return newEntries.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+            });
+        }
 
-      setModalOpened(false);
-      setEditingEntry(null);
+        setModalOpened(false);
+        setEditingEntry(null);
     };
 
     const canEditDate = (date: string) => {
@@ -158,18 +150,14 @@ function SalesandPurchasesContent() {
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
                 {/* Header */}
-                <Flex
-                    justify="space-between"
-                    align="center"
-                    className="flex-col sm:flex-row gap-4"
-                >
+                <Flex justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                     <Group gap="md">
                         <div className="p-2 bg-blue-100 rounded-lg">
                             <IconHistory size={28} />
                         </div>
                         <div>
                             <Title order={2} className="text-gray-800">
-                                Financial Report for the Month of {dayjs(currentMonth).format('MMMM YYYY')}
+                                Financial Report for the Month of {dayjs(currentMonth).format("MMMM YYYY")}
                             </Title>
                             <Text size="sm" c="dimmed">
                                 Record daily sales and purchases
@@ -189,11 +177,7 @@ function SalesandPurchasesContent() {
 
                 {/* Date Selection */}
                 <Card withBorder>
-                    <Group
-                        justify="space-between"
-                        align="center"
-                        className="flex-col sm:flex-row gap-4"
-                    >
+                    <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                         <Text fw={500}>Select Date to Record</Text>
                         <DatePickerInput
                             placeholder="Select date"
@@ -208,14 +192,13 @@ function SalesandPurchasesContent() {
                                 } else {
                                     handleDateSelect(null);
                                 }
-                              }}
+                            }}
                             leftSection={<IconCalendar size={16} />}
                             maxDate={new Date()}
                             className="w-64"
                         />
                     </Group>
                 </Card>
-
 
                 {/* Entries Table */}
                 <Card withBorder>
@@ -244,9 +227,7 @@ function SalesandPurchasesContent() {
                                     <Table.Tr key={entry.date}>
                                         <Table.Td className="text-center">
                                             <Group justify="left" gap="xs">
-                                                <Text size="sm">
-                                                    {dayjs(entry.date).format("DD-MMM-YY")}
-                                                </Text>
+                                                <Text size="sm">{dayjs(entry.date).format("DD-MMM-YY")}</Text>
                                                 {dayjs(entry.date).isSame(dayjs(), "day") && (
                                                     <Badge size="xs" color="blue">
                                                         Today
@@ -284,7 +265,11 @@ function SalesandPurchasesContent() {
                                                         }
                                                     }}
                                                 >
-                                                    {canEditDate(entry.date) ? <IconEdit size={16} /> : <IconLock size={16} />}
+                                                    {canEditDate(entry.date) ? (
+                                                        <IconEdit size={16} />
+                                                    ) : (
+                                                        <IconLock size={16} />
+                                                    )}
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="light"
@@ -310,12 +295,14 @@ function SalesandPurchasesContent() {
                                         </Table.Td>
                                         <Table.Td className="text-center">
                                             <Text fw={700}>
-                                                ₱{totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                ₱
+                                                {totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className="text-center">
                                             <Text fw={700}>
-                                                ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                ₱
+                                                {totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td></Table.Td>
@@ -341,7 +328,7 @@ function SalesandPurchasesContent() {
                             </div>
                         </Group>
                     </Card>
-                    
+
                     {/*Total Purchases */}
                     <Card withBorder>
                         <Group justify="space-between" align="flex-start">
@@ -363,12 +350,8 @@ function SalesandPurchasesContent() {
                                 <Text size="sm" c="dimmed" fw={500}>
                                     Gross Income
                                 </Text>
-                                <Text
-                                    size="xl"
-                                    fw={700}
-                                    c={totals.netIncome >= 0 ? 'green' : 'red'}
-                                >
-                                        ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                <Text size="xl" fw={700} c={totals.netIncome >= 0 ? "green" : "red"}>
+                                    ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                 </Text>
                             </div>
                         </Group>
@@ -376,19 +359,11 @@ function SalesandPurchasesContent() {
                 </SimpleGrid>
 
                 {/* Action Buttons */}
-                <Group
-                    justify="flex-end"
-                    gap="md"
-                >
-                    <Button
-                        variant="outline"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100">
-                            Cancel
+                <Group justify="flex-end" gap="md">
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                        Cancel
                     </Button>
-                    <SplitButton>
-                        Submit
-                    </SplitButton>
+                    <SplitButton>Submit</SplitButton>
                 </Group>
 
                 {/* Edit Modal */}
@@ -396,9 +371,7 @@ function SalesandPurchasesContent() {
                     opened={modalOpened}
                     onClose={() => setModalOpened(false)}
                     title={
-                        editingEntry
-                            ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}`
-                            : "Edit Entry"
+                        editingEntry ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}` : "Edit Entry"
                     }
                     centered
                 >
@@ -427,7 +400,8 @@ function SalesandPurchasesContent() {
                         />
                         <Paper p="sm" className="bg-gray-50">
                             <Text size="sm" c="dimmed">
-                                Net Income: ₱{(modalSales - modalPurchases).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                Net Income: ₱
+                                {(modalSales - modalPurchases).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </Text>
                         </Paper>
                         <Group justify="end">
@@ -461,7 +435,8 @@ function SalesandPurchasesContent() {
                     </Group>
                 </Modal>
             </Stack>
-        </div>)
+        </div>
+    );
 }
 
 export default function SalesandPurchasesPage(): React.ReactElement {

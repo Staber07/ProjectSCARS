@@ -1,55 +1,92 @@
 "use client";
 
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { VerifyUserEmail } from "@/lib/api/auth";
+import { UploadUserAvatar } from "@/lib/api/user";
+import { roles } from "@/lib/info";
+import { useUser } from "@/lib/providers/user";
+import { UserPublicType } from "@/lib/types";
 import {
     Anchor,
     Avatar,
     Box,
     Button,
     Divider,
-    FileButton,
     Flex,
     Group,
     Modal,
+    Select,
     Space,
     Stack,
     Switch,
     Text,
     TextInput,
     Title,
+    Tooltip,
 } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
-
-import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { VerifyUserEmail } from "@/lib/api/auth";
-import { UploadUserAvatar } from "@/lib/api/user";
-import { roles } from "@/lib/info";
-import { useUser } from "@/lib/providers/user";
 import { notifications } from "@mantine/notifications";
-import { IconMailOff, IconMailOpened } from "@tabler/icons-react";
+import {
+    IconCircleDashedCheck,
+    IconCircleDashedX,
+    IconDeviceFloppy,
+    IconMailOff,
+    IconMailOpened,
+} from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-function ProfileContent() {
-    const searchParams = useSearchParams();
+interface EditProfileValues {
+    id: string;
+    username: string | null;
+    nameFirst: string | null;
+    nameMiddle: string | null;
+    nameLast: string | null;
+    email: string | null;
+    school: string | null;
+    role: string | null;
+    deactivated: boolean;
+    forceUpdateInfo: boolean;
+}
+
+interface ProfileContentProps {
+    userInfo: UserPublicType | null;
+    userPermissions: string[] | null;
+    userAvatarUrl: string | null;
+}
+
+function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
     const userCtx = useUser();
+    const searchParams = useSearchParams();
     const [opened, { open, close }] = useDisclosure(false);
+    const [buttonLoading, setButtonLoading] = useState(false);
 
+    const form = useForm<EditProfileValues>({ mode: "uncontrolled" });
+
+    console.debug("Profile form initialized with values:", form.values);
     const uploadAvatar = async (file: File | null) => {
         if (file === null) {
             console.debug("No file selected, skipping upload...");
             return;
         }
-        if (userCtx.userInfo === null) {
+        if (userInfo === null) {
             console.error("User info is null, cannot upload avatar.");
             return;
         }
         console.debug("Uploading avatar...");
-        const updatedUserInfo = await UploadUserAvatar(userCtx.userInfo.id, file);
-        userCtx.updateUserInfo(updatedUserInfo, userCtx.userPermissions, file);
+        const updatedUserInfo = await UploadUserAvatar(userInfo.id, file);
+        userCtx.updateUserInfo(updatedUserInfo, userPermissions, file);
         console.debug("Avatar uploaded successfully.");
     };
 
-    console.debug("Rendering ProfilePage");
+    const handleSave = async (values: EditProfileValues) => {
+        console.debug("Saving profile changes...", values);
+    };
+
+    const handleProfileEdit = () => {
+        console.debug("Navigating to profile edit page...");
+    };
 
     useEffect(() => {
         const emailVerificationToken = searchParams.get("emailVerificationToken");
@@ -86,6 +123,7 @@ function ProfileContent() {
                 });
         }
     }, [searchParams]);
+
     return (
         <Box mx="auto" p="lg">
             <Title order={3} mb="sm">
@@ -99,149 +137,307 @@ function ProfileContent() {
                         radius="lg"
                         size={100}
                         color="#258ce6"
-                        src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
+                        src={userAvatarUrl ? userAvatarUrl : undefined}
                     />
                     <Stack gap={0}>
                         <Text size="sm" c="dimmed">
-                            {userCtx.userInfo ? roles[userCtx.userInfo?.roleId] : "Unknown Role"}
+                            {userInfo ? roles[userInfo?.roleId] : "Unknown Role"}
                         </Text>
                         <Text fw={600} size="lg">
-                            {userCtx.userInfo?.nameFirst}{" "}
-                            {userCtx.userInfo?.nameMiddle
-                                ? userCtx.userInfo?.nameMiddle
+                            {userInfo?.nameFirst}{" "}
+                            {userInfo?.nameMiddle
+                                ? userInfo?.nameMiddle
                                       .split(" ")
                                       .map((n) => n[0])
                                       .join(".") + ". "
                                 : ""}
-                            {userCtx.userInfo?.nameLast}
+                            {userInfo?.nameLast}
                         </Text>
                         <Text size="sm" c="dimmed">
-                            @{userCtx.userInfo?.username}
+                            @{userInfo?.username}
                         </Text>
                     </Stack>
                 </Group>
-
-                <FileButton onChange={uploadAvatar} accept="image/png,image/jpeg">
-                    {(props) => (
-                        <Button {...props} variant="outline" size="sm">
-                            Edit Profile
-                        </Button>
-                    )}
-                </FileButton>
+                <Button variant="outline" size="sm" onClick={handleProfileEdit}>
+                    Edit Profile
+                </Button>
             </Flex>
 
             <Divider my="lg" />
 
-            <Title order={4} mb="sm">
-                Account Security
-            </Title>
-            <Flex justify="space-between" align="end" w="100%" gap="lg">
-                <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
-                    <TextInput
-                        label="Email"
-                        value={userCtx.userInfo?.email || ""}
-                        size="sm"
-                        disabled
-                        w="100%"
-                        style={{ flexGrow: 1, minWidth: 0 }}
-                        labelProps={{ style: { marginBottom: 6 } }}
-                    />
-                </Stack>
-
-                <Button
-                    variant="outline"
-                    size="sm"
-                    style={{
-                        height: 35,
-                        whiteSpace: "nowrap",
-                        width: 165,
-                        flexShrink: 0,
-                    }}
+            <form
+                onSubmit={form.onSubmit(handleSave)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        e.preventDefault();
+                        form.onSubmit(handleSave)();
+                    }
+                }}
+            >
+                <Title order={4} mb="sm" mt="lg">
+                    Account
+                </Title>
+                <Tooltip
+                    disabled={userPermissions?.includes("users:self:modify:username")}
+                    label="Username cannot be changed"
+                    withArrow
                 >
-                    Change email
-                </Button>
-            </Flex>
-
-            <Space h="md" />
-
-            <Flex justify="space-between" align="end" w="100%" gap="lg">
-                <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                     <TextInput
-                        label="Password"
-                        value="********"
-                        size="sm"
-                        disabled
-                        w="100%"
-                        style={{ flexGrow: 1, minWidth: 0 }}
-                        labelProps={{ style: { marginBottom: 6 } }}
+                        disabled={!userPermissions?.includes("users:self:modify:username")}
+                        label="Username"
+                        placeholder="Username"
+                        key={form.key("username")}
+                        {...form.getInputProps("username")}
                     />
-                </Stack>
-
-                <Modal opened={opened} onClose={close} title="Update Password" centered>
-                    <Stack>
-                        <TextInput label="Current Password" placeholder="" type="password" required />
-                        <TextInput label="New Password" placeholder="At least 8 characters" type="password" required />
-                        <TextInput
-                            label="Confirm Password"
-                            placeholder="At least 8 characters"
-                            type="password"
-                            required
+                </Tooltip>{" "}
+                <Tooltip
+                    disabled={userPermissions?.includes("users:self:modify:role")}
+                    label="Role cannot be changed"
+                    withArrow
+                >
+                    <Select
+                        disabled={!userPermissions?.includes("users:self:modify:role")}
+                        label="Role"
+                        placeholder="Role"
+                        // data={}
+                        key={form.key("role")}
+                        searchable
+                        {...form.getInputProps("role")}
+                    />
+                </Tooltip>
+                <Tooltip
+                    disabled={userPermissions?.includes("users:self:modify:school")}
+                    label="School cannot be changed"
+                    withArrow
+                >
+                    <Select
+                        disabled={!userPermissions?.includes("users:self:modify:school")}
+                        label="Assigned School"
+                        placeholder="School"
+                        // data={}
+                        key={form.key("school")}
+                        searchable
+                        {...form.getInputProps("school")}
+                    />
+                </Tooltip>
+                <Group mt="md">
+                    <Tooltip
+                        disabled={userPermissions?.includes("users:self:deactivate")}
+                        label="Deactivation status cannot be changed"
+                        withArrow
+                    >
+                        <Switch
+                            disabled={!userPermissions?.includes("users:self:deactivate")}
+                            label="Deactivated"
+                            placeholder="Deactivated"
+                            key={form.key("deactivated")}
+                            {...form.getInputProps("deactivated", { type: "checkbox" })}
                         />
-
-                        <Button variant="filled" color="blue">
-                            Update Password
-                        </Button>
-
-                        <Anchor
-                            size="xs"
-                            style={{
-                                color: "gray",
-                                textAlign: "center",
-                                cursor: "pointer",
-                            }}
+                    </Tooltip>
+                    <Tooltip
+                        disabled={userPermissions?.includes("users:self:forceupdate")}
+                        label="Force Update Required cannot be changed"
+                        withArrow
+                    >
+                        <Switch
+                            disabled={!userPermissions?.includes("users:self:forceupdate")}
+                            label="Force Update Required"
+                            placeholder="Force Update Required"
+                            key={form.key("forceUpdateInfo")}
+                            {...form.getInputProps("forceUpdateInfo", { type: "checkbox" })}
+                        />
+                    </Tooltip>
+                </Group>
+                <Title order={4} mb="sm" mt="lg">
+                    Personal Information
+                </Title>
+                <Group>
+                    <Tooltip
+                        disabled={userPermissions?.includes("users:self:modify:name")}
+                        label="Name cannot be changed"
+                        withArrow
+                    >
+                        <TextInput
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
+                            label="First Name"
+                            placeholder="First Name"
+                            key={form.key("nameFirst")}
+                            {...form.getInputProps("nameFirst")}
+                        />
+                    </Tooltip>
+                    <Tooltip
+                        disabled={userPermissions?.includes("users:self:modify:name")}
+                        label="Name cannot be changed"
+                        withArrow
+                    >
+                        <TextInput
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
+                            label="Middle Name"
+                            placeholder="Middle Name"
+                            key={form.key("nameMiddle")}
+                            {...form.getInputProps("nameMiddle")}
+                        />
+                    </Tooltip>
+                    <Tooltip
+                        disabled={userPermissions?.includes("users:self:modify:name")}
+                        label="Name cannot be changed"
+                        withArrow
+                    >
+                        <TextInput
+                            disabled={!userPermissions?.includes("users:self:modify:name")}
+                            label="Last Name"
+                            placeholder="Last Name"
+                            key={form.key("nameLast")}
+                            {...form.getInputProps("nameLast")}
+                        />
+                    </Tooltip>
+                </Group>
+                <Title order={4} mb="sm" mt="lg">
+                    Account Security
+                </Title>
+                <Flex justify="space-between" align="end" w="100%" gap="lg">
+                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+                        <Tooltip
+                            disabled={userPermissions?.includes("users:self:modify:email")}
+                            label="Email cannot be changed"
+                            withArrow
                         >
-                            Forgot your password?
-                        </Anchor>
+                            <TextInput
+                                disabled={!userPermissions?.includes("users:self:modify:email")}
+                                label="Email"
+                                placeholder="Email"
+                                rightSection={
+                                    form.values.email &&
+                                    (userInfo?.emailVerified && form.values.email === userInfo?.email ? (
+                                        <Tooltip
+                                            label="This email has been verified. You're good to go!"
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedCheck size={16} color="green" />
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip
+                                            label="This email has not yet been verified."
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedX size={16} color="gray" />
+                                        </Tooltip>
+                                    ))
+                                }
+                                key={form.key("email")}
+                                {...form.getInputProps("email")}
+                            />
+                        </Tooltip>{" "}
                     </Stack>
-                </Modal>
 
-                <Button
-                    variant="outline"
-                    size="sm"
-                    style={{
-                        height: 35,
-                        whiteSpace: "nowrap",
-                        width: 165,
-                        flexShrink: 0,
-                    }}
-                    onClick={open}
-                >
-                    Change password
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        style={{
+                            height: 35,
+                            whiteSpace: "nowrap",
+                            width: 165,
+                            flexShrink: 0,
+                        }}
+                    >
+                        Change email
+                    </Button>
+                </Flex>
+                <Space h="md" />
+                <Flex justify="space-between" align="end" w="100%" gap="lg">
+                    <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
+                        <TextInput
+                            label="Password"
+                            value="********"
+                            size="sm"
+                            disabled
+                            w="100%"
+                            style={{ flexGrow: 1, minWidth: 0 }}
+                            labelProps={{ style: { marginBottom: 6 } }}
+                        />
+                    </Stack>
+                    <Modal opened={opened} onClose={close} title="Update Password" centered>
+                        <Stack>
+                            <TextInput label="Current Password" placeholder="" type="password" required />
+                            <TextInput
+                                label="New Password"
+                                placeholder="At least 8 characters"
+                                type="password"
+                                required
+                            />
+                            <TextInput
+                                label="Confirm Password"
+                                placeholder="At least 8 characters"
+                                type="password"
+                                required
+                            />
+
+                            <Button variant="filled" color="blue">
+                                Update Password
+                            </Button>
+
+                            <Anchor
+                                size="xs"
+                                style={{
+                                    color: "gray",
+                                    textAlign: "center",
+                                    cursor: "pointer",
+                                }}
+                                href="/forgotPassword"
+                            >
+                                Forgot your password?
+                            </Anchor>
+                        </Stack>
+                    </Modal>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        style={{
+                            height: 35,
+                            whiteSpace: "nowrap",
+                            width: 165,
+                            flexShrink: 0,
+                        }}
+                        onClick={open}
+                    >
+                        Change password
+                    </Button>
+                </Flex>
+                <Space h="md" />
+                <Group justify="space-between" mt="md">
+                    <Box>
+                        <Text fw={500} size="sm">
+                            2-Step Verification
+                        </Text>
+                        <Text size="xs" c="dimmed">
+                            Add an additional layer of security to your account during login.
+                        </Text>
+                    </Box>
+
+                    <Switch />
+                </Group>
+                <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
+                    Save
                 </Button>
-            </Flex>
-
-            <Space h="md" />
-
-            <Group justify="space-between" mt="md">
-                <Box>
-                    <Text fw={500} size="sm">
-                        2-Step Verification
-                    </Text>
-                    <Text size="xs" c="dimmed">
-                        Add an additional layer of security to your account during login.
-                    </Text>
-                </Box>
-
-                <Switch />
-            </Group>
+            </form>
         </Box>
     );
 }
 
 export default function ProfilePage() {
+    const userCtx = useUser();
     return (
-        <Suspense fallback={<LoadingComponent message="Loading your profile..." />}>
-            <ProfileContent />
+        <Suspense fallback={<LoadingComponent message="Loading your profile..." withBorder={false} />}>
+            <ProfileContent
+                userInfo={userCtx.userInfo}
+                userPermissions={userCtx.userPermissions}
+                userAvatarUrl={userCtx.userAvatarUrl}
+            />
         </Suspense>
     );
 }

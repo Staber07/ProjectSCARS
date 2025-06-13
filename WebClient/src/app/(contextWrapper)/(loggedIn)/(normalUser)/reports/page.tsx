@@ -1,8 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
+import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import {
     ActionIcon,
     Badge,
@@ -15,14 +13,26 @@ import {
     Pagination,
     Paper,
     Select,
+    Stack,
     Table,
+    Tabs,
     Text,
     TextInput,
-    Tabs,
-    Stack
 } from "@mantine/core";
-import { IconSearch, IconFilter, IconDownload, IconEye, IconPencil, IconTrash, IconDots, IconCash, IconReceipt, IconUsers } from "@tabler/icons-react";
-import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
+import {
+    IconCash,
+    IconDots,
+    IconDownload,
+    IconEye,
+    IconFilter,
+    IconPencil,
+    IconReceipt,
+    IconSearch,
+    IconTrash,
+    IconUsers,
+} from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 // Sample Report Submission Data
 const reportSubmissions = [
@@ -33,7 +43,7 @@ const reportSubmissions = [
         category: "Sales",
         lastModified: "2025-06-05T16:30:00Z",
         status: "Draft",
-        period: "2025-06-05"
+        period: "2025-06-05",
     },
     {
         id: 2,
@@ -42,7 +52,7 @@ const reportSubmissions = [
         category: "Sales",
         lastModified: "2025-05-31T14:20:00Z",
         status: "Submitted",
-        period: "2025-05"
+        period: "2025-05",
     },
     {
         id: 3,
@@ -51,7 +61,7 @@ const reportSubmissions = [
         category: "Expenses",
         lastModified: "2025-05-30T11:15:00Z",
         status: "Under Review",
-        period: "2025-05"
+        period: "2025-05",
     },
     {
         id: 4,
@@ -60,7 +70,7 @@ const reportSubmissions = [
         category: "Expenses",
         lastModified: "2025-05-29T10:45:00Z",
         status: "Rejected",
-        period: "2025-05"
+        period: "2025-05",
     },
     {
         id: 5,
@@ -69,7 +79,7 @@ const reportSubmissions = [
         category: "Expenses",
         lastModified: "2025-04-30T13:00:00Z",
         status: "Approved",
-        period: "2025-04"
+        period: "2025-04",
     },
     {
         id: 6,
@@ -78,15 +88,14 @@ const reportSubmissions = [
         category: "Payroll",
         lastModified: "2025-05-25T09:30:00Z",
         status: "Approved",
-        period: "2025-05"
-    }
+        period: "2025-05",
+    },
 ];
 
 export default function ReportsPage() {
     console.debug("Rendering ReportsPage");
 
     const router = useRouter();
-
     const [search, setSearch] = useState("");
     const [selectedReports, setSelectedReports] = useState<number[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
@@ -96,28 +105,36 @@ export default function ReportsPage() {
 
     const filteredReports = reportSubmissions.filter((report) => {
         const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === "all" || report.status.toLowerCase().replace(/\s+/g, "-") === statusFilter;
+        const matchesStatus =
+            statusFilter === "all" || report.status.toLowerCase().replace(/\s+/g, "-") === statusFilter;
         const matchesCategory = categoryFilter === "all" || report.category.toLowerCase() === categoryFilter;
         const matchesTab = activeTab === "all" || report.category.toLowerCase() === activeTab;
-    
+
         return matchesSearch && matchesStatus && matchesCategory && matchesTab;
     });
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "Approved": return "green";
-            case "Submitted": return "blue";
-            case "Under Review": return "yellow";
-            case "Pending Approval": return "orange";
-            case "Rejected": return "red";
-            case "Draft": return "gray";
-            default: return "gray";
+            case "Approved":
+                return "green";
+            case "Submitted":
+                return "blue";
+            case "Under Review":
+                return "yellow";
+            case "Pending Approval":
+                return "orange";
+            case "Rejected":
+                return "red";
+            case "Draft":
+                return "gray";
+            default:
+                return "gray";
         }
     };
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedReports(filteredReports.map(r => r.id));
+            setSelectedReports(filteredReports.map((r) => r.id));
         } else {
             setSelectedReports([]);
         }
@@ -127,12 +144,12 @@ export default function ReportsPage() {
         if (checked) {
             setSelectedReports([...selectedReports, id]);
         } else {
-            setSelectedReports(selectedReports.filter(reportId => reportId !== id));
+            setSelectedReports(selectedReports.filter((reportId) => reportId !== id));
         }
     };
 
     const handleNavigateToSales = () => {
-        router.push('/reports/sales');
+        router.push("/reports/sales");
     };
 
     const handleCreateLiquidationReport = (category: string, path: string) => {
@@ -140,7 +157,7 @@ export default function ReportsPage() {
     };
 
     const handleNavigateToPayroll = () => {
-        router.push('/reports/payroll');
+        router.push("/reports/payroll");
     };
 
     type QuickActionCardProps = {
@@ -152,21 +169,16 @@ export default function ReportsPage() {
     };
 
     const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
-        <Card
-            shadow="sm"
-            padding="lg"
-            radius="md"
-            withBorder
-            style={{ cursor: 'pointer' }}
-            onClick={onClick}
-        >
+        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
             <Group>
                 <ActionIcon size="xl" variant="light" color={color}>
                     <Icon size={24} />
                 </ActionIcon>
                 <div>
                     <Text fw={500}>{title}</Text>
-                    <Text size="sm" c="dimmed">{description}</Text>
+                    <Text size="sm" c="dimmed">
+                        {description}
+                    </Text>
                 </div>
             </Group>
         </Card>
@@ -176,14 +188,18 @@ export default function ReportsPage() {
         <Table.Tr key={report.id}>
             <Table.Td>
                 <Checkbox
-                  checked={selectedReports.includes(report.id)}
-                  onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
+                    checked={selectedReports.includes(report.id)}
+                    onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
                 />
             </Table.Td>
             <Table.Td>
                 <div>
-                    <Text fw={500} size="sm">{report.name}</Text>
-                    <Text size="xs" c="dimmed">{report.type}</Text>
+                    <Text fw={500} size="sm">
+                        {report.name}
+                    </Text>
+                    <Text size="xs" c="dimmed">
+                        {report.type}
+                    </Text>
                 </div>
             </Table.Td>
             <Table.Td>
@@ -198,10 +214,10 @@ export default function ReportsPage() {
             </Table.Td>
             <Table.Td>
                 <Text size="sm" c="dimmed">
-                    {new Date(report.lastModified).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: 'numeric'
+                    {new Date(report.lastModified).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "numeric",
                     })}
                 </Text>
             </Table.Td>
@@ -217,17 +233,17 @@ export default function ReportsPage() {
                         <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
                         <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
                         <Menu.Divider />
-                        <Menu.Item color="red" leftSection={<IconTrash size={14} />}>Delete</Menu.Item>
+                        <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                            Delete
+                        </Menu.Item>
                     </Menu.Dropdown>
                 </Menu>
             </Table.Td>
         </Table.Tr>
     ));
 
-
     return (
         <Stack gap="lg">
-
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
@@ -283,7 +299,7 @@ export default function ReportsPage() {
                             { value: "under-review", label: "Under Review" },
                             { value: "pending-approval", label: "Pending Approval" },
                             { value: "approved", label: "Approved" },
-                            { value: "rejected", label: "Rejected" }
+                            { value: "rejected", label: "Rejected" },
                         ]}
                         w={180}
                     />
@@ -295,7 +311,7 @@ export default function ReportsPage() {
                             { value: "all", label: "All Categories" },
                             { value: "sales", label: "Sales" },
                             { value: "expenses", label: "Expenses" },
-                            { value: "payroll", label: "Payroll" }
+                            { value: "payroll", label: "Payroll" },
                         ]}
                         w={160}
                     />
@@ -334,8 +350,12 @@ export default function ReportsPage() {
                         <Table.Tr>
                             <Table.Th>
                                 <Checkbox
-                                    checked={selectedReports.length === filteredReports.length && filteredReports.length > 0}
-                                    indeterminate={selectedReports.length > 0 && selectedReports.length < filteredReports.length}
+                                    checked={
+                                        selectedReports.length === filteredReports.length && filteredReports.length > 0
+                                    }
+                                    indeterminate={
+                                        selectedReports.length > 0 && selectedReports.length < filteredReports.length
+                                    }
                                     onChange={(e) => handleSelectAll(e.currentTarget.checked)}
                                 />
                             </Table.Th>

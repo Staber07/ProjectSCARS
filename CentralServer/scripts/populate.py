@@ -39,7 +39,7 @@ def get_token(
     self_info_endpoint = urljoin(endpoint, "v1/users/me")
 
     auth_response = httpx.post(
-        urljoin(endpoint, "v1/auth/token"),
+        urljoin(endpoint, "v1/auth/login"),
         data={"username": username, "password": password},
     )
 

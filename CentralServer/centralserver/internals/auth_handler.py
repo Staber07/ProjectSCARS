@@ -19,7 +19,7 @@ from centralserver.internals.models.user import User
 
 logger = LoggerFactory().get_logger(__name__)
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
 
 async def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
