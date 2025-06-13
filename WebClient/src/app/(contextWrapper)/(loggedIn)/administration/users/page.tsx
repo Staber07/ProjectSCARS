@@ -10,6 +10,7 @@ import { useUser } from "@/lib/providers/user";
 import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
+    Anchor,
     Avatar,
     Button,
     Checkbox,
@@ -308,7 +309,7 @@ export default function UsersPage(): JSX.Element {
                     </ActionIcon>
                 </Flex>
             </Flex>
-            <Table highlightOnHover stickyHeader stickyHeaderOffset={60}>
+            <Table highlightOnHover stickyHeader>
                 <TableThead>
                     <TableTr>
                         <TableTh>
@@ -446,7 +447,14 @@ export default function UsersPage(): JSX.Element {
                                                 </Tooltip>
                                             ))}
                                         {user.email ? (
-                                            user.email
+                                            <Anchor
+                                                href={`mailto:${user.email}`}
+                                                underline="never"
+                                                size="sm"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {user.email}
+                                            </Anchor>
                                         ) : (
                                             <Text size="sm" c="dimmed">
                                                 N/A

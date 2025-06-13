@@ -134,7 +134,7 @@ const DashboardContent = memo(function DashboardContent() {
             updatedSteps[2][1] = true;
         }
 
-        if ("twoFactorEnabled" in userCtx.userInfo && (userCtx.userInfo as any).twoFactorEnabled) {
+        if ("twoFactorEnabled" in userCtx.userInfo && userCtx.userInfo.twoFactorEnabled) {
             completedSteps++;
             updatedSteps[3][1] = true;
         }
@@ -168,7 +168,7 @@ const DashboardContent = memo(function DashboardContent() {
                             ) : (
                                 <Title>Welcome!</Title>
                             )}
-                            <Text c="dimmed">Here's what's happening with your account</Text>
+                            <Text c="dimmed">Here&apos;s what&apos;s happening with your account</Text>
                         </Stack>
                     </Group>
                 </Card>
@@ -258,22 +258,24 @@ const DashboardContent = memo(function DashboardContent() {
 });
 
 // Memoize the notification card
-const NotificationCard = memo(({ notification }: { notification: NotificationType }) => (
-    <Link href="/account/notifications" style={{ textDecoration: "none" }}>
-        <Card withBorder radius="md" p="md">
-            <Group>
-                <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                    {notificationIcons[notification.type]?.[0] &&
-                        React.createElement(notificationIcons[notification.type][0])}
-                </Avatar>
-                <Text size="sm">{notification.content}</Text>
-            </Group>
-            <Text size="xs" c="dimmed" ta="right" mt={5}>
-                {new Date(notification.created).toLocaleString()}
-            </Text>
-        </Card>
-    </Link>
-));
+const NotificationCard = memo(function NotificationCard({ notification }: { notification: NotificationType }) {
+    return (
+        <Link href="/account/notifications" style={{ textDecoration: "none" }}>
+            <Card withBorder radius="md" p="md">
+                <Group>
+                    <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
+                        {notificationIcons[notification.type]?.[0] &&
+                            React.createElement(notificationIcons[notification.type][0])}
+                    </Avatar>
+                    <Text size="sm">{notification.content}</Text>
+                </Group>
+                <Text size="xs" c="dimmed" ta="right" mt={5}>
+                    {new Date(notification.created).toLocaleString()}
+                </Text>
+            </Card>
+        </Link>
+    );
+});
 
 export default function DashboardPage() {
     return (
