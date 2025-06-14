@@ -3,6 +3,7 @@ from typing import Final
 
 from centralserver.internals import config_handler
 from centralserver.internals.adapters import config
+from centralserver.internals.models.oauth import OAuthConfigs
 
 DEFAULT_VALUE: Final[str] = "UPDATE_THIS_VALUE"
 VALID_SIGNING_KEY: Final[str] = (
@@ -22,6 +23,7 @@ def test_config_authentication_all_keys_unpopulated() -> None:
             signing_secret_key=DEFAULT_VALUE,
             refresh_signing_secret_key=DEFAULT_VALUE,
             encryption_secret_key=DEFAULT_VALUE,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -39,6 +41,7 @@ def test_config_authentication_signing_key_unpopulated() -> None:
             signing_secret_key=DEFAULT_VALUE,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -56,6 +59,7 @@ def test_config_authentication_refresh_signing_key_unpopulated() -> None:
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=DEFAULT_VALUE,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -73,6 +77,7 @@ def test_config_authentication_encryption_key_unpopulated() -> None:
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=DEFAULT_VALUE,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -89,6 +94,7 @@ def test_config_authentication_signing_key_none() -> None:
         _ = config_handler.Authentication(
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -105,6 +111,7 @@ def test_config_authentication_refresh_signing_key_none() -> None:
         _ = config_handler.Authentication(
             signing_secret_key=VALID_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -121,6 +128,7 @@ def test_config_authentication_encryption_key_none() -> None:
         _ = config_handler.Authentication(
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -144,6 +152,7 @@ def test_config_authentication_signing_key_invalid() -> None:
                 signing_secret_key=key,
                 refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
                 encryption_secret_key=VALID_ENCRYPTION_KEY,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -167,6 +176,7 @@ def test_config_authentication_refresh_signing_key_invalid() -> None:
                 signing_secret_key=VALID_SIGNING_KEY,
                 refresh_signing_secret_key=key,
                 encryption_secret_key=VALID_ENCRYPTION_KEY,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -190,6 +200,7 @@ def test_config_authentication_encryption_key_invalid() -> None:
                 signing_secret_key=VALID_SIGNING_KEY,
                 refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
                 encryption_secret_key=key,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -206,6 +217,7 @@ def test_config_authentication_all_keys_valid() -> None:
         signing_secret_key=VALID_SIGNING_KEY,
         refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
         encryption_secret_key=VALID_ENCRYPTION_KEY,
+        oauth=OAuthConfigs(),
     )
 
 

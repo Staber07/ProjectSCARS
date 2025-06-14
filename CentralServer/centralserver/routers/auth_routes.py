@@ -8,9 +8,11 @@ from pydantic import EmailStr
 from sqlmodel import Session, select
 
 from centralserver import info
+from centralserver.internals.adapters.oauth import GoogleOAuthAdapter
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
+    oauth_google_authenticate,
     verify_access_token,
     verify_user_permission,
 )
@@ -44,6 +46,12 @@ router = APIRouter(
 )
 
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
+
+google_oauth_adapter = (
+    GoogleOAuthAdapter(app_config.authentication.oauth.google)
+    if app_config.authentication.oauth.google is not None
+    else None
+)
 
 
 @router.post("/create", response_model=UserPublic)
@@ -510,3 +518,86 @@ async def validate_mfa_otp():
 @router.post("/mfa/otp/disable")
 async def disable_mfa_otp():
     pass
+
+
+@router.get("/oauth/google/login")
+async def google_oauth_login():
+    """Handle Google OAuth login."""
+    if google_oauth_adapter is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth is not configured.",
+        )
+
+    return await google_oauth_adapter.get_authorization_url()
+
+
+@router.get("/oauth/google/callback")
+async def google_oauth_callback(
+    code: str,
+    session: Annotated[Session, Depends(get_db_session)],
+    request: Request,
+):
+    """Handle Google OAuth callback."""
+
+    if google_oauth_adapter is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth is not configured.",
+        )
+
+    result = await oauth_google_authenticate(
+        code=code,
+        google_oauth_adapter=google_oauth_adapter,
+        session=session,
+        request=request,
+    )
+
+    if result[0] != status.HTTP_200_OK:
+        logger.error("Google OAuth authentication failed: %s", result[1])
+        raise HTTPException(
+            status_code=result[0],
+            detail=result[1],
+        )
+
+    return Response(
+        content=result[1],
+        status_code=status.HTTP_200_OK,
+        media_type="application/json",
+    )
+
+
+@router.get("/oauth/microsoft/login")
+async def microsoft_oauth_login():
+    """Handle Microsoft OAuth login."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Microsoft OAuth login is not implemented yet.",
+    )
+
+
+@router.get("/oauth/microsoft/callback")
+async def microsoft_oauth_callback():
+    """Handle Microsoft OAuth callback."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Microsoft OAuth callback is not implemented yet.",
+    )
+
+
+@router.get("/oauth/facebook/login")
+async def facebook_oauth_login():
+    """Handle Facebook OAuth login."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Facebook OAuth login is not implemented yet.",
+    )
+
+
+@router.get("/oauth/facebook/callback")
+async def facebook_oauth_callback():
+    """Handle Facebook OAuth callback."""
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Facebook OAuth callback is not implemented yet.",
+    )
