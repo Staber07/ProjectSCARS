@@ -43,6 +43,7 @@ import {
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 
 interface EditProfileValues {
     id: string;
@@ -464,9 +465,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 <Stack>
                     <Group justify="space-between" align="center">
                         <Group>
-                            <ThemeIcon size="lg" variant="light" color="red">
-                                <IconBrandGoogle style={{ width: "70%", height: "70%" }} />
-                            </ThemeIcon>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/google.svg"
+                                    alt="Google Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
                             <div>
                                 <Text size="sm" fw={500}>
                                     Google
@@ -494,9 +501,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
                     <Group justify="space-between" align="center">
                         <Group>
-                            <ThemeIcon size="lg" variant="light" color="blue">
-                                <IconBrandFacebook style={{ width: "70%", height: "70%" }} />
-                            </ThemeIcon>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/facebook.svg"
+                                    alt="Facebook Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
                             <div>
                                 <Text size="sm" fw={500}>
                                     Facebook
@@ -524,9 +537,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
                     <Group justify="space-between" align="center">
                         <Group>
-                            <ThemeIcon size="lg" variant="light" color="indigo">
-                                <IconBrandMinecraft style={{ width: "70%", height: "70%" }} />
-                            </ThemeIcon>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/microsoft.svg"
+                                    alt="Microsoft Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
                             <div>
                                 <Text size="sm" fw={500}>
                                     Microsoft
@@ -543,7 +562,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             onClick={() => {
                                 notifications.show({
                                     title: "Coming Soon",
-                                    message: "Minecraft account linking will be available soon",
+                                    message: "Microsoft account linking will be available soon",
                                     color: "blue",
                                 });
                             }}
