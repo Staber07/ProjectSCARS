@@ -1,6 +1,6 @@
 <div align="center">
     <a href="https://github.com/Chris1320/ProjectSCARS">
-        <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/537fb4b6f6545be0758f956e4bd7ab447ff1fccc/WebClient/src/components/logos/BENTO.svg" alt="Bento Logo" width="15%" height="auto" />
+        <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/3686d8959946b31114ca8e45afde372896ad672f/WebClient/public/assets/logos/BENTO.svg" alt="Bento Logo" width="15%" height="auto" />
     </a>
     <h1>
         Bento
