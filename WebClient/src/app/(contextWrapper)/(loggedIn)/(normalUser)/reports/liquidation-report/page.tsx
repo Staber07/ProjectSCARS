@@ -1,6 +1,6 @@
 "use client";
 
-import '@mantine/dates/styles.css';
+import "@mantine/dates/styles.css";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -23,6 +23,7 @@ import {
     Table,
     Text,
     TextInput,
+    Textarea,
     Title,
 } from "@mantine/core";
 import { MonthPickerInput, DateInput } from "@mantine/dates";
@@ -40,22 +41,40 @@ const categoryLabels = {
     "revolving-fund": "Revolving Fund",
 };
 
+const QTY_UNIT_CATEGORIES = [
+    "operating-expenses"
+];
+
+const RECEIPT_VOUCHER_CATEGORIES = [
+    "revolving-fund",
+    "he-fund",
+    "clinic-fund",
+    "supplementary-feeding-fund",
+    "faculty-student-development-fund",
+    "school-operations-fund"
+];
+
+const ADMINISTRATIVE_CATEGORY = [
+    "administrative-expenses"
+];
+
 const unitOptions = [
-    { value: 'pcs', label: 'pcs' },
-    { value: 'kg', label: 'kg' },
-    { value: 'gallons', label: 'gallons' },
-    { value: 'liters', label: 'liters' },
-    { value: 'boxes', label: 'boxes' },
-    { value: 'packs', label: 'packs' },
-    { value: 'bottles', label: 'bottles' },
+    { value: "pcs", label: "pcs" },
+    { value: "kg", label: "kg" },
+    { value: "gallons", label: "gallons" },
+    { value: "liters", label: "liters" },
+    { value: "boxes", label: "boxes" },
+    { value: "packs", label: "packs" },
+    { value: "bottles", label: "bottles" },
 ];
 
 interface ExpenseDetails {
     id: string;
     date: Date | null;
     item: string;
-    quantity: number;
-    unit: string;
+    receiptVoucherNo?: string;
+    quantity?: number;
+    unit?: string;
     amount: number;
     total: number;
 }
@@ -63,33 +82,41 @@ interface ExpenseDetails {
 function LiquidationReportContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const category = searchParams.get('category');
+    const category = searchParams.get("category") || "operating-expenses";
   
     const [reportPeriod, setReportPeriod] = useState<Date | null>(new Date());
+    const [notes, setNotes] = useState<string>("");
     const [expenseItems, setExpenseItems] = useState<ExpenseDetails[]>([
         {
-            id: '1',
+            id: "1",
             date: null,
-            item: '',
+            item: "",
+            receiptVoucherNo: "",
             quantity: 1,
-            unit: 'pcs',
+            unit: "pcs",
             amount: 0,
             total: 0
         }
     ]);
     const [attachments, setAttachments] = useState<File[]>([]);
 
+    // Check category type
+    const hasQuantityUnit = QTY_UNIT_CATEGORIES.includes(category);
+    const hasReceiptVoucher = RECEIPT_VOUCHER_CATEGORIES.includes(category);
+    const forAdministrative = ADMINISTRATIVE_CATEGORY.includes(category);
+
     const handleClose = () => {
-        router.push('/reports');
+        router.push("/reports");
     };
 
     const addNewItem = () => {
         const newItem: ExpenseDetails = {
             id: Date.now().toString(),
-            date: reportPeriod ? dayjs(reportPeriod).startOf('month').toDate() : null,
-            item: '',
-            quantity: 1,
-            unit: 'pcs',
+            date: reportPeriod ? dayjs(reportPeriod).startOf("month").toDate() : null,
+            item: "",
+            receiptVoucherNo: hasReceiptVoucher ? "" : undefined,
+            quantity: hasQuantityUnit ? 1 : undefined,
+            unit: hasQuantityUnit ? "pcs" : undefined,
             amount: 0,
             total: 0
         };
@@ -111,9 +138,16 @@ function LiquidationReportContent() {
             if (item.id === id) {
                 const updatedItem = { ...item, [field]: value };
                 
-                // Recalculate total when quantity or amount changes
-                if (field === 'quantity' || field === 'amount') {
-                    updatedItem.total = updatedItem.quantity * updatedItem.amount;
+                // Recalculate total
+                if (hasQuantityUnit) {
+                    if (field === "quantity" || field === "amount") {
+                        updatedItem.total = (updatedItem.quantity || 1) * updatedItem.amount;
+                    }
+                } else {
+                    // Categories without qty, total = amount
+                    if (field === "amount") {
+                        updatedItem.total = updatedItem.amount;
+                    }
                 }
                 
                 return updatedItem;
@@ -137,43 +171,41 @@ function LiquidationReportContent() {
     };
 
     const handleSubmitReport = () => {
-        // TODO: Implement submit report functionality
-        console.log('Submitting liquidation report:', {
+        console.log("Submitting liquidation report:", {
             category,
-            month: reportPeriod ? dayjs(reportPeriod).format('MMMM YYYY') : null,
+            month: reportPeriod ? dayjs(reportPeriod).format("MMMM YYYY") : null,
             items: expenseItems,
+            notes,
             attachments,
             total: calculateTotalAmount(),
-            status: 'submitted'
+            status: "submitted"
         });
     };
 
     const handleSaveDraft = () => {
-        // TODO: Implement save draft functionality
-        console.log('Saving draft liquidation report:', {
+        console.log("Saving draft liquidation report:", {
             category,
-            month: reportPeriod ? dayjs(reportPeriod).format('MMMM YYYY') : null,
+            month: reportPeriod ? dayjs(reportPeriod).format("MMMM YYYY") : null,
             items: expenseItems,
+            notes,
             attachments,
             total: calculateTotalAmount(),
-            status: 'draft'
+            status: "draft"
         });
     }
 
     const handlePreview = () => {
-        // TODO: Implement preview functionality
-        console.log('Previewing liquidation report:', {
-        });
+        console.log("Previewing liquidation report");
     }      
 
     const getDateRange = () => {
         if (!reportPeriod) return { minDate: undefined, maxDate: undefined };
         
-        const startOfMonth = dayjs(reportPeriod).startOf('month').toDate();
-        const endOfMonth = dayjs(reportPeriod).endOf('month').toDate();
+        const startOfMonth = dayjs(reportPeriod).startOf("month").toDate();
+        const endOfMonth = dayjs(reportPeriod).endOf("month").toDate();
         
         return { minDate: startOfMonth, maxDate: endOfMonth };
-        };
+    };
 
     const { minDate, maxDate } = getDateRange();
 
@@ -231,7 +263,6 @@ function LiquidationReportContent() {
                             leftSection={<IconCalendar size={16} />}
                             className="w-full sm:w-64"
                             valueFormat="MMMM YYYY"
-                            clearable
                             required
                         />
                     </Group>
@@ -259,17 +290,37 @@ function LiquidationReportContent() {
                             <Table
                                 striped
                                 highlightOnHover
-                                className="min-w-full"
-                                style={{ minWidth: '800px' }}
+                                className={`min-w-full ${
+                                    hasQuantityUnit ? "min-w-[800px]" : 
+                                    hasReceiptVoucher ? "min-w-[600px]" : 
+                                    forAdministrative ? "min-w-[600px]" :
+                                    "min-w-[500px]"
+                                }`}
                             >
                                 <Table.Thead>
                                     <Table.Tr>
                                         <Table.Th className="w-44">Date</Table.Th>
-                                        <Table.Th className="w-52">Particulars</Table.Th>
-                                        <Table.Th className="w-32">Quantity</Table.Th>
-                                        <Table.Th className="w-32">Unit</Table.Th>
+                                        {hasReceiptVoucher && (
+                                            <Table.Th className="w-40">Receipt/Voucher No.</Table.Th>
+                                        )}
+                                        <Table.Th className={
+                                            hasQuantityUnit ? "w-52" : 
+                                            hasReceiptVoucher ? "w-64" : 
+                                            forAdministrative ? "w-64" :
+                                            "w-80"
+                                        }>
+                                            {hasReceiptVoucher ? "Item" : "Particulars"}
+                                        </Table.Th>
+                                        {hasQuantityUnit && (
+                                            <>
+                                                <Table.Th className="w-32">Quantity</Table.Th>
+                                                <Table.Th className="w-32">Unit</Table.Th>
+                                            </>
+                                        )}
                                         <Table.Th className="w-36">Amount</Table.Th>
-                                        <Table.Th className="w-36">Total</Table.Th>
+                                        {(hasQuantityUnit || forAdministrative) && (
+                                            <Table.Th className="w-36">Total</Table.Th>
+                                        )}
                                         <Table.Th className="w-16"></Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
@@ -281,54 +332,70 @@ function LiquidationReportContent() {
                                                     className="w-full"
                                                     placeholder="Select date"
                                                     value={item.date}
-                                                    onChange={(date) => updateItem(item.id, 'date', date)}
+                                                    onChange={(date) => updateItem(item.id, "date", date)}
                                                     minDate={minDate}
                                                     maxDate={maxDate}
                                                     clearable
                                                     required
                                                 />
                                             </Table.Td>
+                                            {hasReceiptVoucher && (
+                                                <Table.Td>
+                                                    <TextInput
+                                                        className="w-full"
+                                                        placeholder="Enter receipt/voucher no."
+                                                        value={item.receiptVoucherNo || ""}
+                                                        onChange={(e) => updateItem(item.id, "receiptVoucherNo", e.currentTarget.value)}
+                                                    />
+                                                </Table.Td>
+                                            )}
                                             <Table.Td>
                                                 <TextInput
                                                     className="w-full"
                                                     placeholder="Enter item description"
                                                     value={item.item}
-                                                    onChange={(e) => updateItem(item.id, 'item', e.currentTarget.value)}
+                                                    onChange={(e) => updateItem(item.id, "item", e.currentTarget.value)}
                                                     required
                                                 />
                                             </Table.Td>
-                                            <Table.Td>
-                                                <NumberInput
-                                                    className="w-full"
-                                                    placeholder="Qty"
-                                                    value={item.quantity}
-                                                    onChange={(value) => updateItem(item.id, 'quantity', Number(value) || 1)}
-                                                    min={1}
-                                                />
-                                            </Table.Td>
-                                            <Table.Td>
-                                                <Select
-                                                    className="w-full"
-                                                    placeholder="Unit"
-                                                    value={item.unit}
-                                                    onChange={(value) => updateItem(item.id, 'unit', value || 'pcs')}
-                                                    data={unitOptions}
-                                                />
-                                            </Table.Td>
+                                            {hasQuantityUnit && (
+                                                <>
+                                                    <Table.Td>
+                                                        <NumberInput
+                                                            className="w-full"
+                                                            placeholder="Qty"
+                                                            value={item.quantity}
+                                                            onChange={(value) => updateItem(item.id, "quantity", Number(value) || 1)}
+                                                            min={1}
+                                                        />
+                                                    </Table.Td>
+                                                    <Table.Td>
+                                                        <Select
+                                                            className="w-full"
+                                                            placeholder="Unit"
+                                                            value={item.unit}
+                                                            onChange={(value) => updateItem(item.id, "unit", value || "pcs")}
+                                                            data={unitOptions}
+                                                        />
+                                                    </Table.Td>
+                                                </>
+                                            )}
                                             <Table.Td>
                                                 <NumberInput
                                                     className="w-full"
                                                     placeholder="0.00"
                                                     value={item.amount}
-                                                    onChange={(value) => updateItem(item.id, 'amount', Number(value) || 0)}
+                                                    onChange={(value) => updateItem(item.id, "amount", Number(value) || 0)}
                                                     min={0}
                                                     leftSection="₱"
                                                     hideControls
                                                 />
                                             </Table.Td>
-                                            <Table.Td>
-                                                <Text fw={500}>₱{item.total.toFixed(2)}</Text>
-                                            </Table.Td>
+                                            {(hasQuantityUnit || forAdministrative) && (
+                                                <Table.Td>
+                                                    <Text fw={500}>₱{item.total.toFixed(2)}</Text>
+                                                </Table.Td>
+                                            )}
                                             <Table.Td>
                                                 <ActionIcon
                                                     color="red"
@@ -358,6 +425,20 @@ function LiquidationReportContent() {
                     </Group>
                 </Card>
 
+                {/* Notes Section */}
+                <Card withBorder>
+                    <Stack gap="md">
+                        <Text fw={500}>Memo</Text>
+                        <Textarea
+                            placeholder="Add note"
+                            value={notes}
+                            onChange={(e) => setNotes(e.currentTarget.value)}
+                            minRows={3}
+                            maxRows={6}
+                        />
+                    </Stack>
+                </Card>
+
                 {/* File Attachments */}
                 <Card withBorder>
                     <Stack gap="md">
@@ -371,12 +452,6 @@ function LiquidationReportContent() {
                             onChange={handleFileUpload}
                             className="w-full sm:w-96"
                             size="md"
-                            styles={{
-                                input: {
-                                    height: '48px',
-                                    fontSize: '14px'
-                                }
-                            }}
                         />
 
                         {attachments.length > 0 && (
