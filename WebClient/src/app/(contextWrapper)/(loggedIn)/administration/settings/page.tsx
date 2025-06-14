@@ -77,7 +77,7 @@ export default function SettingsPage() {
 
             <Paper shadow="sm" p="md" radius="md" mb="xl">
                 <Title order={4} mb="xs">
-                    🔧 Server Configuration
+                    Server Configuration
                 </Title>
                 <Switch
                     label="Enable Server Configuration"
