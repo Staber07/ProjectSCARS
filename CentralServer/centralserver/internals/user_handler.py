@@ -213,6 +213,14 @@ async def update_user_info(
             detail="User not found",
         )
 
+    loggedin_user = session.get(User, token.id)
+    if loggedin_user is None:
+        logger.warning("Failed to update user: %s (user not found)", target_user.id)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
     updating_self = selected_user.id == token.id
     if target_user.username:  # Update username if provided
         if not await verify_user_permission(
@@ -460,14 +468,7 @@ async def update_user_info(
                     detail="Cannot change the role of the last admin user.",
                 )
 
-        loggedin_user = session.get(User, token.id)
-        if loggedin_user is None:
-            logger.warning("Failed to update user: %s (user not found)", target_user.id)
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User not found",
-            )
-
+        # Prevent logged-in user from changing roles to a higher level than theirs
         if loggedin_user.roleId > target_user.roleId:
             logger.warning(
                 "Failed to update user: %s (permission denied: role change)",
@@ -476,6 +477,20 @@ async def update_user_info(
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permission denied: Cannot change role to a higher level.",
+            )
+
+        # Check if logged-in user is trying to downgrade a higher-level user
+        if (
+            selected_user.roleId < loggedin_user.roleId
+            and target_user.roleId > selected_user.roleId
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: role change)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot change role to a lower level.",
             )
 
         selected_user.roleId = target_user.roleId
@@ -510,6 +525,16 @@ async def update_user_info(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot set deactivated status of the last admin user.",
                 )
+
+        if selected_user.roleId < loggedin_user.roleId:
+            logger.warning(
+                "Failed to update user: %s (permission denied: deactivated status)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot change deactivated status of a higher-level user.",
+            )
 
         logger.debug("Updating deactivated status for user: %s", target_user.id)
         selected_user.deactivated = target_user.deactivated
