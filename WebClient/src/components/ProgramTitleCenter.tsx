@@ -21,7 +21,7 @@ export function ProgramTitleCenter({ classes, logoControls }: ProgramTitleCenter
             <Title ta="center" className={classes.title}>
                 <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
                     <Image
-                        src="/assets/BENTOLogo.svg"
+                        src="/assets/logos/BENTO.svg"
                         alt="BENTO Logo"
                         radius="md"
                         h={70}

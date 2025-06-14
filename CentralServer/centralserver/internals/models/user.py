@@ -105,6 +105,19 @@ class User(SQLModel, table=True):
         description="A list of onboarding tutorials the user has completed.",
     )
 
+    oauthLinkedGoogleId: str | None = Field(
+        default=None,
+        description="The Google ID linked to the user's OAuth account.",
+    )
+    oauthLinkedFacebookId: str | None = Field(
+        default=None,
+        description="The Facebook ID linked to the user's OAuth account.",
+    )
+    oauthLinkedMicrosoftId: str | None = Field(
+        default=None,
+        description="The Microsoft ID linked to the user's OAuth account.",
+    )
+
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
         description="The timestamp when the record was created.",

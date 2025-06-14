@@ -348,3 +348,48 @@ class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
             "endpoint": self.endpoint,
             "secure": self.secure,
         }
+
+
+class OAuthAdapterConfig(ABC):
+    """Superclass for OAuth adapter configurations."""
+
+    @property
+    @abstractmethod
+    def info(self) -> dict[str, Any]:
+        """Get the OAuth adapter information."""
+
+
+class GoogleOAuthAdapterConfig(OAuthAdapterConfig):
+    """Configuration for Google OAuth adapter."""
+
+    def __init__(
+        self,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        redirect_uri: str | None = None,
+    ):
+        """Initialize the Google OAuth adapter configuration.
+
+        Args:
+            client_id: The client ID for Google OAuth.
+            client_secret: The client secret for Google OAuth.
+            redirect_uri: The redirect URI for Google OAuth.
+        """
+
+        if client_id is None or client_secret is None or redirect_uri is None:
+            raise ValueError(
+                "The client ID, client secret, and redirect URI are required."
+            )
+
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+
+    @property
+    def info(self) -> dict[str, Any]:
+        return {
+            "name": "Google",
+            "client_id": self.client_id,
+            "client_secret_set": self.client_secret != "",
+            "redirect_uri": self.redirect_uri,
+        }

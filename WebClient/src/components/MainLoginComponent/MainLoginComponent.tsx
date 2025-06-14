@@ -4,7 +4,18 @@ import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
-import { Anchor, Button, Checkbox, Container, Group, Paper, PasswordInput, TextInput } from "@mantine/core";
+import {
+    Anchor,
+    Button,
+    Checkbox,
+    Container,
+    Divider,
+    Group,
+    Image,
+    Paper,
+    PasswordInput,
+    TextInput,
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -179,6 +190,58 @@ export function MainLoginComponent(): React.ReactElement {
                     >
                         Sign in
                     </Button>
+                    <Divider my="lg" label="Or continue with" labelPosition="center" />
+                    <Group justify="center" mt="md">
+                        <Button
+                            variant="light"
+                            onClick={async () => {
+                                try {
+                                    const response = await fetch("http://localhost:8081/v1/auth/oauth/google/login");
+                                    const data = await response.json();
+                                    if (data.url) {
+                                        window.location.href = data.url;
+                                    }
+                                } catch (error) {
+                                    console.error("Error starting OAuth:", error);
+                                    notifications.show({
+                                        title: "Login failed",
+                                        message: "Failed to start Google login process.",
+                                        color: "red",
+                                        icon: <IconX />,
+                                    });
+                                }
+                            }}
+                        >
+                            <Image
+                                src="/assets/logos/google.svg"
+                                alt="Log In with Google"
+                                height={20}
+                                width="auto"
+                                radius="sm"
+                                fit="contain"
+                            />
+                        </Button>
+                        <Button variant="light">
+                            <Image
+                                src="/assets/logos/microsoft.svg"
+                                alt="Log In with Microsoft"
+                                height={20}
+                                width="auto"
+                                radius="sm"
+                                fit="contain"
+                            />
+                        </Button>
+                        <Button variant="light">
+                            <Image
+                                src="/assets/logos/facebook.svg"
+                                alt="Log In with Facebook"
+                                height={20}
+                                width="auto"
+                                radius="sm"
+                                fit="contain"
+                            />
+                        </Button>
+                    </Group>
                 </form>
             </Paper>
         </Container>
