@@ -1,5 +1,5 @@
+import { Button, Stack, Text } from "@mantine/core";
 import React from "react";
-import { Text, Button, Stack } from "@mantine/core";
 
 interface Props {
     children: React.ReactNode;
@@ -15,7 +15,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         this.state = { hasError: false };
     }
 
-    static getDerivedStateFromError(_: Error): State {
+    static getDerivedStateFromError(): State {
         return { hasError: true };
     }
 
