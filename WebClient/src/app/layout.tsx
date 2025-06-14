@@ -3,7 +3,7 @@ import { ReactScan } from "@/components/dev/ReactScan";
 
 import { Program } from "@/lib/info";
 import { defaultColorscheme, theme } from "@/lib/theme";
-import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
+import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
 import Head from "next/head";
@@ -31,9 +31,28 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
     console.debug("Rendering RootLayout");
     return (
-        <html lang="en" {...mantineHtmlProps}>
+        <html lang="en" suppressHydrationWarning>
             <ReactScan />
             <Head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+              (function() {
+                try {
+                  const stored = localStorage.getItem('user-preferences');
+                  if (stored) {
+                    const { darkMode } = JSON.parse(stored);
+                    if (darkMode) {
+                      document.documentElement.style.colorScheme = 'dark';
+                      document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
+                      document.documentElement.style.backgroundColor = '#1A1B1E';
+                    }
+                  }
+                } catch (e) {}
+              })();
+            `,
+                    }}
+                />
                 <ColorSchemeScript />
             </Head>
             <body>
