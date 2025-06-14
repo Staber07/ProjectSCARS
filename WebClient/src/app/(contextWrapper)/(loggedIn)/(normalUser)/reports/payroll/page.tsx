@@ -4,7 +4,6 @@ import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
     ActionIcon,
-    Alert,
     Badge,
     Button,
     Card,
@@ -21,17 +20,13 @@ import {
     TextInput,
     Title,
 } from "@mantine/core";
-import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
+import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import {
     IconCalendar,
     IconCalendarWeek,
     IconCheck,
-    IconChevronDown,
-    IconChevronUp,
     IconEdit,
-    IconInfoCircle,
-    IconPlus,
     IconReceipt2,
     IconTrash,
     IconUser,
@@ -54,13 +49,14 @@ dayjs.extend(isSameOrBefore);
 interface Employee {
     id: string;
     name: string;
-    dailyRate: number;
+    defaultDailyRate: number;
 }
 
 interface AttendanceRecord {
     employeeId: string;
     date: string;
     isPresent: boolean;
+    customDailyRate?: number;
 }
 
 interface WeekPeriod {
@@ -74,49 +70,90 @@ interface WeekPeriod {
 
 function PayrollPageContent() {
     const router = useRouter();
-
-    const [reportPeriod, setReportPeriod] = useState<string | null>(dayjs().format("YYYY-MM"));
+    
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
     const [selectedWeekId, setSelectedWeekId] = useState<string | null>(null);
-    const [selectedMonth, setSelectedMonth] = useState<Date | null>(reportPeriod ? dayjs(reportPeriod).toDate() : null);
+    const [selectedMonth, setSelectedMonth] = useState<Date | null>(new Date());
+    const [workingDaysSchedule, setworkingDaysSchedule] = useState<number[]>([1, 2, 3, 4, 5]); // Monday to Friday by default
 
-    // Employee creation/edit states
     const [employeeModalOpened, setEmployeeModalOpened] = useState(false);
     const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
     const [newEmployeeName, setNewEmployeeName] = useState("");
     const [newEmployeeDailyRate, setNewEmployeeDailyRate] = useState<number>(0);
+    const [deleteEmployeeModalOpened, setDeleteEmployeeModalOpened] = useState(false);
+    const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
 
-    // Week creation/edit states
-    const [weekModalOpened, setWeekModalOpened] = useState(false);
-    const [editingWeekId, setEditingWeekId] = useState<string | null>(null);
-    const [newWeekDateRange, setNewWeekDateRange] = useState<[Date | null, Date | null]>([null, null]);
-    const [newWeekLabel, setNewWeekLabel] = useState("");
+    const [customRateModalOpened, setCustomRateModalOpened] = useState(false);
+    const [customRateEmployee, setCustomRateEmployee] = useState<{employeeId: string, date: Date} | null>(null);
+    const [customRateValue, setCustomRateValue] = useState<number>(0);
 
-    // Collapse states
-    const [employeesCollapsed, setEmployeesCollapsed] = useState(false);
-    const [weekPeriodsCollapsed, setWeekPeriodsCollapsed] = useState(false);
-
-    // Auto-generate week label when dates change (only for new weeks)
-    useEffect(() => {
-        const [startDate, endDate] = newWeekDateRange;
-        if (startDate && endDate && !editingWeekId) {
-            const weekNum = weekPeriods.length + 1;
-            const startMonth = dayjs(startDate).format("M");
-            const startDay = dayjs(startDate).format("D");
-            const endDay = dayjs(endDate).format("D");
-            const label = `WEEK ${weekNum} /DATE COVERED: ${startMonth}/${startDay}-${endDay}`;
-            setNewWeekLabel(label);
-        }
-    }, [newWeekDateRange, weekPeriods.length, editingWeekId]);
-
-    // Set selected week to first week when weeks are available
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
             setSelectedWeekId(weekPeriods[0].id);
         }
     }, [weekPeriods, selectedWeekId]);
+
+    // Auto-generate weeks when month or selected working days changes
+    useEffect(() => {
+        if (selectedMonth) {
+            const generatedWeeks = generateWeeksForMonth(selectedMonth, workingDaysSchedule);
+            setWeekPeriods(generatedWeeks);
+            setSelectedWeekId(generatedWeeks.length > 0 ? generatedWeeks[0].id : null);
+            // Clear attendance records when changing months
+            setAttendanceRecords([]);
+        }
+    }, [selectedMonth, workingDaysSchedule]);
+
+    const generateWeeksForMonth = (monthDate: Date, includedDays: number[] = [1, 2, 3, 4, 5]) => {
+        const startOfMonth = dayjs(monthDate).startOf("month");
+        const endOfMonth = dayjs(monthDate).endOf("month");
+        
+        const weeks: WeekPeriod[] = [];
+        let currentDate = startOfMonth;
+        let weekNumber = 1;
+        
+        // Group dates by week
+        while (currentDate.isSameOrBefore(endOfMonth)) {
+            const weekStart = currentDate.startOf("week").add(1, "day"); // Monday
+            const weekEnd = weekStart.add(6, "days"); // Sunday
+            
+            // Generate working days for this week, only within the month
+            const workingDays: Date[] = [];
+            let dayInWeek = weekStart;
+            
+            for (let i = 0; i < 7; i++) {
+                // Only include dates within the selected month and matching working days
+                if (dayInWeek.isSameOrAfter(startOfMonth) && 
+                    dayInWeek.isSameOrBefore(endOfMonth) &&
+                    includedDays.includes(dayInWeek.day())) {
+                    workingDays.push(dayInWeek.toDate());
+                }
+                dayInWeek = dayInWeek.add(1, "day");
+            }
+            
+            // Only create week if it has working days
+            if (workingDays.length > 0) {
+                const newWeek: WeekPeriod = {
+                    id: `${monthDate.getFullYear()}-${monthDate.getMonth()}-week-${weekNumber}`,
+                    label: `WEEK ${weekNumber} /DATE COVERED: ${workingDays[0] ? dayjs(workingDays[0]).format("M/D") : ""}-${workingDays[workingDays.length - 1] ? dayjs(workingDays[workingDays.length - 1]).format("D") : ""}`,
+                    startDate: workingDays[0] || weekStart.toDate(),
+                    endDate: workingDays[workingDays.length - 1] || weekEnd.toDate(),
+                    workingDays,
+                    isCompleted: false,
+                };
+                
+                weeks.push(newWeek);
+                weekNumber++;
+            }
+            
+            // Move to next week
+            currentDate = weekEnd.add(1, "day");
+        }
+        
+        return weeks;
+    };
 
     const handleClose = () => {
         router.push("/reports");
@@ -126,7 +163,7 @@ function PayrollPageContent() {
         if (employee) {
             setEditingEmployeeId(employee.id);
             setNewEmployeeName(employee.name);
-            setNewEmployeeDailyRate(employee.dailyRate);
+            setNewEmployeeDailyRate(employee.defaultDailyRate);
         } else {
             setEditingEmployeeId(null);
             setNewEmployeeName("");
@@ -142,7 +179,7 @@ function PayrollPageContent() {
                 setEmployees(
                     employees.map((emp) =>
                         emp.id === editingEmployeeId
-                            ? { ...emp, name: newEmployeeName.trim(), dailyRate: newEmployeeDailyRate }
+                            ? { ...emp, name: newEmployeeName.trim(), defaultDailyRate: newEmployeeDailyRate }
                             : emp
                     )
                 );
@@ -151,7 +188,7 @@ function PayrollPageContent() {
                 const newEmployee: Employee = {
                     id: Date.now().toString(),
                     name: newEmployeeName.trim(),
-                    dailyRate: newEmployeeDailyRate,
+                    defaultDailyRate: newEmployeeDailyRate,
                 };
                 setEmployees([...employees, newEmployee]);
             }
@@ -160,108 +197,20 @@ function PayrollPageContent() {
             setNewEmployeeName("");
             setNewEmployeeDailyRate(0);
             setEditingEmployeeId(null);
-            setEmployeeModalOpened(false);
+        }
+    };
+
+    const confirmDeleteEmployee = () => {
+        if (employeeToDelete) {
+            removeEmployee(employeeToDelete);
+            setDeleteEmployeeModalOpened(false);
+            setEmployeeToDelete(null);
         }
     };
 
     const removeEmployee = (employeeId: string) => {
         setEmployees(employees.filter((emp) => emp.id !== employeeId));
         setAttendanceRecords(attendanceRecords.filter((record) => record.employeeId !== employeeId));
-    };
-
-    const openWeekModal = (week?: WeekPeriod) => {
-        if (week) {
-            setEditingWeekId(week.id);
-            setNewWeekDateRange([week.startDate, week.endDate]);
-            setNewWeekLabel(week.label);
-        } else {
-            setEditingWeekId(null);
-            setNewWeekDateRange([null, null]);
-            setNewWeekLabel("");
-        }
-        setWeekModalOpened(true);
-    };
-
-    const isDateInSelectedMonth = (date: Date): boolean => {
-        if (!selectedMonth) return true; // If no month selected, allow all dates
-
-        const dateToCheck = dayjs(date);
-        const monthToMatch = dayjs(selectedMonth);
-
-        return dateToCheck.month() === monthToMatch.month() && dateToCheck.year() === monthToMatch.year();
-    };
-
-    const saveWeekPeriod = () => {
-        const [startDate, endDate] = newWeekDateRange;
-
-        if (startDate && endDate && newWeekLabel.trim()) {
-            const startDay = dayjs(startDate);
-            const endDay = dayjs(endDate);
-
-            const workingDays: Date[] = [];
-            let currentDate = startDay;
-
-            while (currentDate.isSameOrBefore(endDay, "day")) {
-                // Only include weekdays (Monday to Friday)
-                if (currentDate.day() >= 1 && currentDate.day() <= 5) {
-                    workingDays.push(currentDate.toDate());
-                }
-                currentDate = currentDate.add(1, "day");
-            }
-
-            if (editingWeekId) {
-                // Update existing week
-                setWeekPeriods(
-                    weekPeriods.map((week) =>
-                        week.id === editingWeekId
-                            ? { ...week, label: newWeekLabel.trim(), startDate, endDate, workingDays }
-                            : week
-                    )
-                );
-            } else {
-                // Add new week
-                const newWeekPeriod: WeekPeriod = {
-                    id: Date.now().toString(),
-                    label: newWeekLabel.trim(),
-                    startDate,
-                    endDate,
-                    workingDays,
-                    isCompleted: false,
-                };
-
-                setWeekPeriods([...weekPeriods, newWeekPeriod]);
-                setSelectedWeekId(newWeekPeriod.id);
-            }
-
-            // Reset form
-            setNewWeekDateRange([null, null]);
-            setNewWeekLabel("");
-            setEditingWeekId(null);
-            setWeekModalOpened(false);
-        }
-    };
-
-    const removeWeekPeriod = (weekId: string) => {
-        const weekToRemove = weekPeriods.find((w) => w.id === weekId);
-        if (weekToRemove) {
-            // Remove attendance records for this week
-            const weekDates = weekToRemove.workingDays.map((date) => dayjs(date).format("YYYY-MM-DD"));
-            setAttendanceRecords((records) => records.filter((record) => !weekDates.includes(record.date)));
-        }
-
-        setWeekPeriods(weekPeriods.filter((w) => w.id !== weekId));
-
-        // Update selected week if needed
-        if (selectedWeekId === weekId) {
-            const remainingWeeks = weekPeriods.filter((w) => w.id !== weekId);
-            setSelectedWeekId(remainingWeeks.length > 0 ? remainingWeeks[0].id : null);
-        }
-    };
-
-    const toggleWeekCompletion = (weekId: string) => {
-        setWeekPeriods((weeks) =>
-            weeks.map((week) => (week.id === weekId ? { ...week, isCompleted: !week.isCompleted } : week))
-        );
     };
 
     const toggleAttendance = (employeeId: string, date: Date) => {
@@ -292,10 +241,62 @@ function PayrollPageContent() {
         }
     };
 
+    const toggleWeekCompletion = (weekId: string) => {
+        setWeekPeriods(weekPeriods.map(week => 
+            week.id === weekId 
+                ? { ...week, isCompleted: !week.isCompleted }
+                : week
+        ));
+    };
+
     const getAttendanceStatus = (employeeId: string, date: Date): boolean => {
         const dateKey = dayjs(date).format("YYYY-MM-DD");
         const record = attendanceRecords.find((record) => record.employeeId === employeeId && record.date === dateKey);
         return record?.isPresent || false;
+    };
+
+    const openCustomRateModal = (employeeId: string, date: Date) => {
+    const employee = employees.find(emp => emp.id === employeeId);
+    if (employee) {
+        setCustomRateEmployee({ employeeId, date });
+        setCustomRateValue(employee.defaultDailyRate); // Set default value
+        setCustomRateModalOpened(true);
+    }
+};
+
+    const saveCustomRate = () => {
+        if (customRateEmployee && customRateValue > 0) {
+            const dateKey = dayjs(customRateEmployee.date).format("YYYY-MM-DD");
+            const existingRecord = attendanceRecords.find(
+                (record) => record.employeeId === customRateEmployee.employeeId && record.date === dateKey
+            );
+
+            if (existingRecord) {
+                // Update existing record with custom rate
+                setAttendanceRecords((records) =>
+                    records.map((record) =>
+                        record.employeeId === customRateEmployee.employeeId && record.date === dateKey
+                            ? { ...record, isPresent: true, customDailyRate: customRateValue }
+                            : record
+                    )
+                );
+            } else {
+                // Create new record with custom rate
+                setAttendanceRecords((records) => [
+                    ...records,
+                    {
+                        employeeId: customRateEmployee.employeeId,
+                        date: dateKey,
+                        isPresent: true,
+                        customDailyRate: customRateValue,
+                    },
+                ]);
+            }
+
+            setCustomRateModalOpened(false);
+            setCustomRateEmployee(null);
+            setCustomRateValue(0);
+        }
     };
 
     const calculateWeeklyTotal = (employeeId: string, weekId: string): number => {
@@ -304,8 +305,16 @@ function PayrollPageContent() {
 
         if (!employee || !week) return 0;
 
-        const presentDays = week.workingDays.filter((date) => getAttendanceStatus(employeeId, date)).length;
-        return presentDays * employee.dailyRate;
+        return week.workingDays.reduce((total, date) => {
+            const record = attendanceRecords.find(
+                (r) => r.employeeId === employeeId && r.date === dayjs(date).format("YYYY-MM-DD")
+            );
+
+            if (record?.isPresent) {
+                return total + (record.customDailyRate || employee.defaultDailyRate);
+            }
+            return total;
+        }, 0);
     };
 
     const calculateMonthlyTotal = (employeeId: string): number => {
@@ -366,28 +375,55 @@ function PayrollPageContent() {
                     </ActionIcon>
                 </Flex>
 
-                {/* Month Selection */}
+                {/* Month Selection & Working Days */}
                 <Card withBorder>
-                    <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
-                        <Text fw={500}>Period Covered</Text>
-                        <MonthPickerInput
-                            placeholder="Select month"
-                            value={reportPeriod}
-                            onChange={(value) => {
-                                setReportPeriod(value);
-                                setSelectedMonth(value ? dayjs(value).toDate() : null);
-                            }}
-                            leftSection={<IconCalendar size={16} />}
-                            className="w-full sm:w-64"
-                            valueFormat="MMMM YYYY"
-                            required
-                        />
-                    </Group>
+                    <Stack gap="md">
+                        <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
+                            <Text fw={500}>Period Covered</Text>
+                            <MonthPickerInput
+                                placeholder="Select month"
+                                value={selectedMonth}
+                                onChange={(value) => { 
+                                    setSelectedMonth(value ? dayjs(value).toDate() : null);
+                                }}
+                                leftSection={<IconCalendar size={16} />}
+                                className="w-full sm:w-64"
+                                valueFormat="MMMM YYYY"
+                                required
+                            />
+                        </Group>
+                        
+                        <Divider />
+                        
+                        <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
+                            <Text fw={500} size="sm">Working Days</Text>
+                            <Group gap="xs">
+                                {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                                    <ActionIcon
+                                        key={`${day}-${index}`}
+                                        size="sm"
+                                        variant={workingDaysSchedule.includes(index) ? "filled" : "outline"}
+                                        color={workingDaysSchedule.includes(index) ? "blue" : "gray"}
+                                        onClick={() => {
+                                            if (workingDaysSchedule.includes(index)) {
+                                                setworkingDaysSchedule(prev => prev.filter(d => d !== index));
+                                            } else {
+                                                setworkingDaysSchedule(prev => [...prev, index].sort());
+                                            }
+                                        }}
+                                        title={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][index]}
+                                    >
+                                        {day}
+                                    </ActionIcon>
+                                ))}
+                            </Group>
+                        </Group>
+                    </Stack>
                 </Card>
 
                 {/* Employees Management */}
                 <Card withBorder>
-                    <Group justify="space-between" align="center" mb="md">
+                    <Group justify="space-between" align="center">
                         <Group gap="sm">
                             <IconUsers size={20} />
                             <Text fw={500}>Canteen Helpers</Text>
@@ -395,71 +431,15 @@ function PayrollPageContent() {
                                 {employees.length} employees
                             </Badge>
                         </Group>
-                        <Group gap="sm">
-                            <ActionIcon
-                                variant="subtle"
-                                onClick={() => setEmployeesCollapsed(!employeesCollapsed)}
-                                title={employeesCollapsed ? "Expand" : "Collapse"}
-                            >
-                                {employeesCollapsed ? <IconChevronDown size={16} /> : <IconChevronUp size={16} />}
-                            </ActionIcon>
-                            <Button
-                                leftSection={<IconPlus size={16} />}
-                                onClick={() => openEmployeeModal()}
-                                variant="light"
-                                className="bg-blue-50 hover:bg-blue-100"
-                            >
-                                Add Employee
-                            </Button>
-                        </Group>
+                        <Button
+                            leftSection={<IconUsers size={16} />}
+                            onClick={() => setEmployeeModalOpened(true)}
+                            variant="light"
+                            className="bg-blue-50 hover:bg-blue-100"
+                        >
+                            Manage
+                        </Button>
                     </Group>
-
-                    {!employeesCollapsed && employees.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {employees.map((employee) => (
-                                <Paper withBorder key={employee.id} p="md" className="hover:bg-gray-50">
-                                    <Group justify="space-between">
-                                        <div>
-                                            <Text fw={500} size="sm">
-                                                {employee.name}
-                                            </Text>
-                                            <Text size="xs" c="dimmed">
-                                                ₱{employee.dailyRate}/day
-                                            </Text>
-                                        </div>
-                                        <Group gap="xs">
-                                            <ActionIcon
-                                                color="blue"
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={() => openEmployeeModal(employee)}
-                                                className="hover:bg-blue-50"
-                                                title="Edit employee"
-                                            >
-                                                <IconEdit size={14} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                color="red"
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={() => removeEmployee(employee.id)}
-                                                className="hover:bg-red-50"
-                                                title="Delete employee"
-                                            >
-                                                <IconTrash size={14} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Group>
-                                </Paper>
-                            ))}
-                        </div>
-                    )}
-
-                    {!employeesCollapsed && employees.length === 0 && (
-                        <Text size="sm" c="dimmed" ta="center" py="xl">
-                            No employees added yet.
-                        </Text>
-                    )}
                 </Card>
 
                 {/* Week Periods Management */}
@@ -469,144 +449,66 @@ function PayrollPageContent() {
                             <IconCalendarWeek size={20} />
                             <Text fw={500}>Weekly Periods</Text>
                             <Badge variant="light" size="sm">
-                                {weekPeriods.length} weeks
+                                {weekPeriods.filter(w => w.isCompleted).length}/{weekPeriods.length} completed
                             </Badge>
-                            {weekPeriods.filter((w) => w.isCompleted).length > 0 && (
-                                <Badge color="green" size="sm">
-                                    {weekPeriods.filter((w) => w.isCompleted).length} completed
-                                </Badge>
-                            )}
                         </Group>
-                        <Group gap="sm">
-                            <ActionIcon
-                                variant="subtle"
-                                onClick={() => setWeekPeriodsCollapsed(!weekPeriodsCollapsed)}
-                                title={weekPeriodsCollapsed ? "Expand" : "Collapse"}
-                            >
-                                {weekPeriodsCollapsed ? <IconChevronDown size={16} /> : <IconChevronUp size={16} />}
-                            </ActionIcon>
+                        
+                        {selectedWeekId && (
                             <Button
-                                leftSection={<IconPlus size={16} />}
-                                onClick={() => openWeekModal()}
+                                size="xs"
                                 variant="light"
-                                className="bg-green-50 hover:bg-green-100"
+                                color={weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "green" : "blue"}
+                                onClick={() => toggleWeekCompletion(selectedWeekId)}
                             >
-                                Add Week
+                                {weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "Mark Incomplete" : "Mark Complete"}
                             </Button>
-                        </Group>
+                        )}
                     </Group>
-
-                    {!weekPeriodsCollapsed && weekPeriods.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <ScrollArea className="flex-1">
+                        <Group gap="xs" wrap="nowrap" className="min-w-fit">
                             {weekPeriods.map((week) => (
-                                <Paper
-                                    withBorder
+                                <Button
                                     key={week.id}
-                                    p="md"
-                                    className={`cursor-pointer transition-colors ${
-                                        selectedWeekId === week.id
-                                            ? "bg-blue-50 border-blue-300 hover:bg-blue-100"
-                                            : "hover:bg-gray-50"
-                                    }`}
+                                    variant={selectedWeekId === week.id ? "filled" : "outline"}
+                                    color={week.isCompleted ? "green" : (selectedWeekId === week.id ? "blue" : "gray")}
+                                    size="sm"
                                     onClick={() => setSelectedWeekId(week.id)}
+                                    className="whitespace-nowrap flex-shrink-0"
+                                    leftSection={week.isCompleted ? <IconCheck size={14} /> : null}
                                 >
-                                    <Group justify="space-between" align="start">
-                                        <div className="flex-1">
-                                            <Group gap="xs" mb="xs">
-                                                <Text fw={500} size="sm">
-                                                    {week.label}
-                                                </Text>
-                                                {week.isCompleted && (
-                                                    <Badge color="green" size="xs">
-                                                        Completed
-                                                    </Badge>
-                                                )}
-                                                {selectedWeekId === week.id && (
-                                                    <Badge color="blue" size="xs">
-                                                        Selected
-                                                    </Badge>
-                                                )}
-                                            </Group>
-                                            <Text size="xs" c="dimmed">
-                                                {week.workingDays.length} working days
-                                            </Text>
-                                            <Text size="xs" c="dimmed">
-                                                {dayjs(week.startDate).format("MMM DD")} -{" "}
-                                                {dayjs(week.endDate).format("MMM DD, YYYY")}
-                                            </Text>
-                                        </div>
-                                        <Group gap="xs">
-                                            <ActionIcon
-                                                color={week.isCompleted ? "gray" : "green"}
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    toggleWeekCompletion(week.id);
-                                                }}
-                                                title={week.isCompleted ? "Mark as incomplete" : "Mark as completed"}
-                                            >
-                                                <IconCheck size={14} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                color="blue"
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    openWeekModal(week);
-                                                }}
-                                                title="Edit week"
-                                                className="hover:bg-blue-50"
-                                            >
-                                                <IconEdit size={14} />
-                                            </ActionIcon>
-                                            <ActionIcon
-                                                color="red"
-                                                variant="subtle"
-                                                size="sm"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    removeWeekPeriod(week.id);
-                                                }}
-                                                className="hover:bg-red-50"
-                                                title="Delete week"
-                                            >
-                                                <IconTrash size={14} />
-                                            </ActionIcon>
-                                        </Group>
-                                    </Group>
-                                </Paper>
+                                    {week.label.replace("WEEK ", "W").split(" /")[0]}
+                                </Button>
                             ))}
-                        </div>
-                    )}
-
-                    {!weekPeriodsCollapsed && weekPeriods.length === 0 && (
-                        <Text size="sm" c="dimmed" ta="center" py="xl">
-                            No weekly periods added yet.
-                        </Text>
-                    )}
+                        </Group>
+                    </ScrollArea>
                 </Card>
 
                 {/* Weekly Attendance Table */}
                 {selectedWeek && employees.length > 0 && (
                     <Card withBorder>
-                        <Group justify="space-between" align="center" mb="md">
-                            <Text fw={500}>{selectedWeek.label}</Text>
-                            {selectedWeek.isCompleted && <Badge color="green">Completed</Badge>}
+                        <Group justify="space-between" className="mb-4">
+                           <Group gap="sm">
+                                <Text fw={500}>{selectedWeek.label}</Text>
+                                {selectedWeek.isCompleted && (
+                                    <Badge color="green" variant="light" size="sm">
+                                        Completed
+                                    </Badge>
+                                )}
+                            </Group>
+                            <Text className="text-right">
+                                <Text component="span" size="sm" c="dimmed">Total Week Amount:
+                                    ₱{weekPeriods.find(w => w.id === selectedWeekId) ?
+                                    employees.reduce((total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!), 0).toFixed(2)
+                                    : "0.00"}
+                                </Text>
+                            </Text>
                         </Group>
-
-                        {selectedWeek.isCompleted && (
-                            <Alert icon={<IconInfoCircle size={16} />} mb="md" color="green">
-                                This week is marked as completed. You can still make changes if needed.
-                            </Alert>
-                        )}
-
+                        <Divider my="md" />
                         <ScrollArea>
                             <Table striped highlightOnHover style={{ minWidth: "600px" }}>
                                 <Table.Thead>
                                     <Table.Tr>
-                                        <Table.Th>Employee</Table.Th>
+                                        <Table.Th>NAME</Table.Th>
                                         {selectedWeek.workingDays.map((date) => (
                                             <Table.Th key={date.toISOString()} className="text-center">
                                                 <div>
@@ -619,7 +521,7 @@ function PayrollPageContent() {
                                                 </div>
                                             </Table.Th>
                                         ))}
-                                        <Table.Th className="text-center">Weekly Total</Table.Th>
+                                        <Table.Th className="text-center">TOTAL</Table.Th>
                                     </Table.Tr>
                                 </Table.Thead>
                                 <Table.Tbody>
@@ -631,30 +533,50 @@ function PayrollPageContent() {
                                                         {employee.name}
                                                     </Text>
                                                     <Text size="xs" c="dimmed">
-                                                        ₱{employee.dailyRate}/day
+                                                        ₱{employee.defaultDailyRate}/day
                                                     </Text>
                                                 </div>
                                             </Table.Td>
                                             {selectedWeek.workingDays.map((date) => {
                                                 const isPresent = getAttendanceStatus(employee.id, date);
+                                                const dateKey = dayjs(date).format("YYYY-MM-DD");
+                                                const record = attendanceRecords.find(
+                                                    (r) => r.employeeId === employee.id && r.date === dateKey
+                                                );
+                                                const displayRate = record?.customDailyRate || employee.defaultDailyRate;
+                                                const hasCustomRate = record?.customDailyRate !== undefined;
 
                                                 return (
                                                     <Table.Td key={date.toISOString()} className="text-center">
-                                                        <Button
-                                                            size="xs"
-                                                            variant={isPresent ? "filled" : "outline"}
-                                                            color={isPresent ? "green" : "gray"}
-                                                            onClick={() => toggleAttendance(employee.id, date)}
-                                                            className="w-16"
-                                                            disabled={selectedWeek.isCompleted}
-                                                        >
-                                                            {isPresent ? `₱${employee.dailyRate}` : " - "}
-                                                        </Button>
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="relative">
+                                                                <Button
+                                                                    size="xs"
+                                                                    variant={isPresent ? "filled" : "outline"}
+                                                                    color={isPresent ? "green" : "gray"}
+                                                                    onClick={() => toggleAttendance(employee.id, date)}
+                                                                    onContextMenu={(e) => {
+                                                                        e.preventDefault();
+                                                                        if (!selectedWeek.isCompleted) {
+                                                                            openCustomRateModal(employee.id, date);
+                                                                        }
+                                                                    }}
+                                                                    className="w-16"
+                                                                    disabled={selectedWeek.isCompleted}
+                                                                    title={selectedWeek.isCompleted ? "Week is completed" : "Left click: Mark attendance \nRight click: Set custom rate"}
+                                                                >
+                                                                    {isPresent ? `₱${displayRate}` : " - "}
+                                                                </Button>
+                                                                {hasCustomRate && (
+                                                                    <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full"></div>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </Table.Td>
                                                 );
                                             })}
                                             <Table.Td className="text-center">
-                                                <Text fw={500} c="blue">
+                                                <Text fw={500}>
                                                     ₱{calculateWeeklyTotal(employee.id, selectedWeek.id).toFixed(2)}
                                                 </Text>
                                             </Table.Td>
@@ -666,12 +588,12 @@ function PayrollPageContent() {
                     </Card>
                 )}
 
-                {/* Summary Cards */}
+                {/* Monthly Summary */}
                 {employees.length > 0 && weekPeriods.length > 0 && (
                     <Card withBorder>
                         <Text fw={500} ta="center">
                             MONTH OF{" "}
-                            {reportPeriod ? dayjs(reportPeriod).format("MMMM, YYYY").toUpperCase() : "SELECT MONTH"}
+                            {selectedMonth ? dayjs(selectedMonth).format("MMMM, YYYY").toUpperCase() : "SELECT MONTH"}
                         </Text>
                         <Divider my="md" />
                         <Group justify="space-between" align="center" mb="md">
@@ -721,149 +643,229 @@ function PayrollPageContent() {
                         onSaveDraft={handleSaveDraft}
                         onPreview={handlePreview}
                         className="bg-blue-600 hover:bg-blue-700"
-                        disabled={!reportPeriod || weekPeriods.length === 0 || employees.length === 0}
+                        disabled={!selectedMonth || weekPeriods.length === 0 || employees.length === 0}
                     >
                         Submit Report
                     </SplitButton>
                 </Group>
             </Stack>
 
-            {/* Add/Edit Week Modal */}
+            {/* Employee Management Modal */}
             <Modal
-                opened={weekModalOpened}
-                onClose={() => setWeekModalOpened(false)}
+                opened={employeeModalOpened}
+                onClose={() => {
+                    setEmployeeModalOpened(false);
+                    setEditingEmployeeId(null);
+                    setNewEmployeeName("");
+                    setNewEmployeeDailyRate(0);
+                }}
                 title={
                     <Group gap="sm">
-                        <IconCalendarWeek size={20} />
-                        <Text fw={500}>{editingWeekId ? "Edit" : "Add"} Weekly Period</Text>
+                        <IconUsers size={20} />
+                        <Text fw={500}>Manage Employees</Text>
                     </Group>
                 }
                 centered
-                size="md"
+                size="lg"
             >
                 <Stack gap="md">
-                    <DatePickerInput
-                        type="range"
-                        label="Week Date Range"
-                        placeholder="Pick start and end dates"
-                        value={newWeekDateRange}
-                        onChange={(value) => {
-                            const converted: [Date | null, Date | null] = [
-                                value && value[0] ? new Date(value[0]) : null,
-                                value && value[1] ? new Date(value[1]) : null,
-                            ];
-                            setNewWeekDateRange(converted);
-                        }}
-                        leftSection={<IconCalendar size={16} />}
-                        excludeDate={(date) => {
-                            const dateObj = typeof date === "string" ? new Date(date) : date;
-                            // First check if date is in selected month
-                            if (!isDateInSelectedMonth(dateObj)) return true;
-
-                            // Then check for overlapping week periods
-                            return weekPeriods
-                                .filter((week) => (editingWeekId ? week.id !== editingWeekId : true))
-                                .some((week) => {
-                                    const checkDate = dayjs(dateObj);
-                                    return (
-                                        checkDate.isSameOrAfter(dayjs(week.startDate), "day") &&
-                                        checkDate.isSameOrBefore(dayjs(week.endDate), "day")
-                                    );
-                                });
-                        }}
-                        required
-                    />
-
-                    <TextInput
-                        label="Week Label"
-                        placeholder="Week 1"
-                        value={newWeekLabel}
-                        onChange={(e) => setNewWeekLabel(e.currentTarget.value)}
-                        required
-                    />
-
-                    {/* {newWeekDateRange[0] && newWeekDateRange[1] && (
-                        <Alert icon={<IconInfoCircle size={16} />}>
-                            This week period will include {
-                                Array.from({ length: dayjs(newWeekDateRange[1]).diff(dayjs(newWeekDateRange[0]), 'day') + 1 }, (_, i) => 
-                                    dayjs(newWeekDateRange[0]).add(i, 'day')
-                                ).filter(date => date.day() >= 1 && date.day() <= 5).length
-                            } working days.
-                            {!selectedMonth && (
-                                <Text size="xs" c="orange" mt="xs">
-                                    Please select a month in the Period Covered section to restrict date selection.
-                                </Text>
+                    {/* Add New Employee Form */}
+                    <Card withBorder p="md">
+                        <Text fw={500} mb="md">
+                            {editingEmployeeId ? "Edit Employee" : "Add New Employee"}
+                        </Text>
+                        <Group gap="md" align="end">
+                            <TextInput
+                                label="Name"
+                                placeholder="Enter employee name"
+                                value={newEmployeeName}
+                                onChange={(e) => setNewEmployeeName(e.currentTarget.value)}
+                                style={{ flex: 1 }}
+                            />
+                            <NumberInput
+                                label="Daily Rate"
+                                placeholder="Enter daily rate"
+                                value={newEmployeeDailyRate}
+                                onChange={(value) =>
+                                    setNewEmployeeDailyRate(typeof value === "number" ? value : Number(value) || 0)
+                                }
+                                min={0}
+                                prefix="₱"
+                                w={120}
+                            />
+                            <Button
+                                onClick={saveEmployee}
+                                disabled={!newEmployeeName.trim() || newEmployeeDailyRate <= 0}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                {editingEmployeeId ? "Update" : "Add"}
+                            </Button>
+                            {editingEmployeeId && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setEditingEmployeeId(null);
+                                        setNewEmployeeName("");
+                                        setNewEmployeeDailyRate(0);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
                             )}
-                            {weekPeriods.some(week => 
-                                editingWeekId !== week.id && 
-                                (dayjs(newWeekDateRange[0]).isBefore(dayjs(week.endDate)) && dayjs(newWeekDateRange[1]).isAfter(dayjs(week.startDate)))
-                            ) && (
-                                <Text size="xs" c="red" mt="xs">
-                                    Warning: This date range overlaps with existing week periods.
-                                </Text>
-                            )}
-                        </Alert>
-                    )} */}
+                        </Group>
+                    </Card>
 
-                    <Group justify="flex-end" gap="md" mt="md">
-                        <Button variant="outline" onClick={() => setWeekModalOpened(false)}>
+                    {/* Employee List */}
+                    <div className="max-h-60 overflow-y-auto">
+                        {employees.length > 0 ? (
+                            <div className="space-y-2">
+                                {employees.map((employee) => (
+                                    <Paper withBorder key={employee.id} p="md">
+                                        <Group justify="space-between">
+                                            <div>
+                                                <Text fw={500}>{employee.name}</Text>
+                                                <Text size="sm" c="dimmed">₱{employee.defaultDailyRate}/day</Text>
+                                            </div>
+                                            <Group gap="xs">
+                                                <ActionIcon
+                                                    color="blue"
+                                                    variant="subtle"
+                                                    onClick={() => openEmployeeModal(employee)}
+                                                    title="Edit employee"
+                                                >
+                                                    <IconEdit size={16} />
+                                                </ActionIcon>
+                                                <ActionIcon
+                                                    color="red"
+                                                    variant="subtle"
+                                                    onClick={() => {
+                                                        setEmployeeToDelete(employee.id);
+                                                        setDeleteEmployeeModalOpened(true);
+                                                    }}
+                                                    title="Delete employee"
+                                                >
+                                                    <IconTrash size={16} />
+                                                </ActionIcon>
+                                            </Group>
+                                        </Group>
+                                    </Paper>
+                                ))}
+                            </div>
+                        ) : (
+                            <Text size="sm" c="dimmed" ta="center" py="xl">
+                                No employees added yet.
+                            </Text>
+                        )}
+                    </div>
+                </Stack>
+            </Modal>
+
+            {/* Delete Employee Confirmation Modal */}
+            <Modal
+                opened={deleteEmployeeModalOpened}
+                onClose={() => {
+                    setDeleteEmployeeModalOpened(false);
+                    setEmployeeToDelete(null);
+                }}
+                title="Confirm Delete"
+                centered
+                size="sm"
+            >
+                <Stack gap="md">
+                    <Text>
+                        Are you sure you want to delete this employee? This will also remove all their attendance records.
+                    </Text>
+                    <Group justify="flex-end" gap="md">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setDeleteEmployeeModalOpened(false);
+                                setEmployeeToDelete(null);
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button
-                            onClick={saveWeekPeriod}
-                            disabled={!newWeekDateRange[0] || !newWeekDateRange[1] || !newWeekLabel.trim()}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            color="red"
+                            onClick={confirmDeleteEmployee}
                         >
-                            {editingWeekId ? "Update" : "Save"} Week
+                            Delete
                         </Button>
                     </Group>
                 </Stack>
             </Modal>
 
-            {/* Add/Edit Employee Modal */}
+            {/* Custom Rate Modal */}
             <Modal
-                opened={employeeModalOpened}
-                onClose={() => setEmployeeModalOpened(false)}
+                opened={customRateModalOpened}
+                onClose={() => {
+                    setCustomRateModalOpened(false);
+                    setCustomRateEmployee(null);
+                    setCustomRateValue(0);
+                }}
                 title={
                     <Group gap="sm">
                         <IconUser size={20} />
-                        <Text fw={500}>{editingEmployeeId ? "Edit" : "Add"} Employee</Text>
+                        <Text fw={500}>Custom Daily Rate</Text>
                     </Group>
                 }
                 centered
                 size="md"
             >
                 <Stack gap="md">
-                    <TextInput
-                        label="Employee Name"
-                        placeholder="Enter employee name"
-                        value={newEmployeeName}
-                        onChange={(e) => setNewEmployeeName(e.currentTarget.value)}
-                        required
-                    />
+                    {customRateEmployee && (
+                        <>
+                            <div>
+                                <Text size="sm" c="dimmed">Employee</Text>
+                                <Text fw={500}>
+                                    {employees.find(emp => emp.id === customRateEmployee.employeeId)?.name}
+                                </Text>
+                            </div>
+                            
+                            <div>
+                                <Text size="sm" c="dimmed">Date</Text>
+                                <Text fw={500}>
+                                    {dayjs(customRateEmployee.date).format("MMMM DD, YYYY (dddd)")}
+                                </Text>
+                            </div>
+                            
+                            <div>
+                                <Text size="sm" c="dimmed">Daily Rate</Text>
+                                <Text fw={500}>
+                                    ₱{employees.find(emp => emp.id === customRateEmployee.employeeId)?.defaultDailyRate}
+                                </Text>
+                            </div>
 
-                    <NumberInput
-                        label="Daily Rate"
-                        placeholder="Enter daily rate"
-                        value={newEmployeeDailyRate}
-                        onChange={(value) =>
-                            setNewEmployeeDailyRate(typeof value === "number" ? value : Number(value) || 0)
-                        }
-                        min={0}
-                        prefix="₱"
-                        required
-                    />
+                            <NumberInput
+                                label="Modified Rate"
+                                value={customRateValue}
+                                onChange={(value) =>
+                                    setCustomRateValue(typeof value === "number" ? value : Number(value) || 0)
+                                }
+                                min={0}
+                                prefix="₱"
+                                required
+                            />
+                        </>
+                    )}
 
                     <Group justify="flex-end" gap="md" mt="md">
-                        <Button variant="outline" onClick={() => setEmployeeModalOpened(false)}>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setCustomRateModalOpened(false);
+                                setCustomRateEmployee(null);
+                                setCustomRateValue(0);
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button
-                            onClick={saveEmployee}
-                            disabled={!newEmployeeName.trim() || newEmployeeDailyRate <= 0}
-                            className="bg-blue-600 hover:bg-blue-700"
+                            onClick={saveCustomRate}
+                            disabled={customRateValue <= 0}
+                            className="bg-orange-600 hover:bg-orange-700"
                         >
-                            {editingEmployeeId ? "Update" : "Add"} Employee
+                            Apply
                         </Button>
                     </Group>
                 </Stack>
