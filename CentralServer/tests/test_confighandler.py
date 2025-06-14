@@ -1,9 +1,9 @@
 import json
 from typing import Final
 
-from centralserver.internals.models.oauth import OAuthConfigs
 from centralserver.internals import config_handler
 from centralserver.internals.adapters import config
+from centralserver.internals.models.oauth import OAuthConfigs
 
 DEFAULT_VALUE: Final[str] = "UPDATE_THIS_VALUE"
 VALID_SIGNING_KEY: Final[str] = (
