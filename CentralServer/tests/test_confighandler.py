@@ -1,7 +1,7 @@
 import json
 from typing import Final
 
-from CentralServer.centralserver.internals.models.oauth import OAuthConfigs
+from centralserver.internals.models.oauth import OAuthConfigs
 from centralserver.internals import config_handler
 from centralserver.internals.adapters import config
 
