@@ -34,46 +34,41 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <html lang="en">
             <ReactScan />
             <Head>
-                <script
-                    dangerouslySetInnerHTML={{
-                        __html: `
-              (function() {
-                let darkMode = false;
-                try {
-                  const stored = localStorage.getItem('user-preferences');
-                  if (stored) {
-                    darkMode = JSON.parse(stored).darkMode;
-                  }
-                } catch (e) {}
-                
-                if (darkMode) {
-                  document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
-                  document.documentElement.style.setProperty('--mantine-color-scheme', 'dark');
-                  document.documentElement.style.setProperty('background-color', '#1A1B1E');
-                  document.documentElement.style.setProperty('color', '#C1C2C5');
-                }
-              })();
-            `,
-                    }}
-                />
-                <style
-                    dangerouslySetInnerHTML={{
-                        __html: `
-              :root[data-mantine-color-scheme="dark"] {
-                background-color: #1A1B1E !important;
-                color: #C1C2C5 !important;
-              }
-              body[data-mantine-color-scheme="dark"] {
-                background-color: #1A1B1E !important;
-                color: #C1C2C5 !important;
-              }
-            `,
-                    }}
-                />
+                <style>{`
+                    :root[data-mantine-color-scheme="dark"] {
+                        background-color: #1A1B1E !important;
+                        color: #C1C2C5 !important;
+                    }
+                `}</style>
+                <script>{`
+                    (function() {
+                        function setTheme(darkMode) {
+                            document.documentElement.setAttribute('data-mantine-color-scheme', darkMode ? 'dark' : 'light');
+                            document.documentElement.style.backgroundColor = darkMode ? '#1A1B1E' : '#FFFFFF';
+                            document.documentElement.style.color = darkMode ? '#C1C2C5' : '#1A1B1E';
+                        }
+
+                        // Block rendering until theme is set
+                        document.documentElement.style.display = 'none';
+
+                        try {
+                            const stored = localStorage.getItem('user-preferences');
+                            if (stored) {
+                                const { darkMode } = JSON.parse(stored);
+                                setTheme(darkMode);
+                            }
+                        } catch (e) {
+                            console.error('Failed to set theme:', e);
+                        }
+
+                        // Unblock rendering
+                        document.documentElement.style.display = '';
+                    })();
+                `}</script>
                 <ColorSchemeScript />
             </Head>
             <body>
-                <MantineProvider theme={theme} defaultColorScheme="light" withCssVariables cssVariablesSelector="html">
+                <MantineProvider theme={theme} defaultColorScheme="light">
                     {children}
                     <Notifications limit={5} autoClose={5000} />
                 </MantineProvider>
