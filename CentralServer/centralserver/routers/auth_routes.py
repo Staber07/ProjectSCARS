@@ -13,6 +13,7 @@ from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
     oauth_google_authenticate,
+    oauth_google_link,
     verify_access_token,
     verify_user_permission,
 )
@@ -560,11 +561,71 @@ async def google_oauth_callback(
             detail=result[1],
         )
 
-    return Response(
-        content=result[1],
-        status_code=status.HTTP_200_OK,
-        media_type="application/json",
+    if isinstance(result[1], JWTToken):
+        return result[1]
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Unexpected response from Google OAuth authentication.",
     )
+
+
+@router.get("/oauth/google/link")
+async def oauth_link_google(
+    code: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Link a Google account for OAuth."""
+
+    if google_oauth_adapter is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth is not configured.",
+        )
+
+    if await oauth_google_link(
+        code=code,
+        user_id=token.id,
+        google_oauth_adapter=google_oauth_adapter,
+        session=session,
+    ):
+        logger.info("Google OAuth linking successful for user: %s", token.id)
+        return {"message": "Google account linked successfully."}
+
+    logger.error("Google OAuth linking failed for user: %s", token.id)
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Failed to link Google account. Please try again.",
+    )
+
+
+@router.get("/oauth/google/unlink")
+async def oauth_unlink_google(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Unlink a Google account from the user's profile."""
+
+    if google_oauth_adapter is None:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth is not configured.",
+        )
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    user.oauthLinkedGoogleId = None
+    session.commit()
+    session.refresh(user)
+
+    logger.info("Google OAuth unlinked successfully for user: %s", token.id)
+    return {"message": "Google account unlinked successfully."}
 
 
 @router.get("/oauth/microsoft/login")

@@ -191,6 +191,40 @@ export async function CreateUser(username: string, roleId: number, password: str
     return await res.json();
 }
 
+export async function OAuthGoogleLink(code: string): Promise<ServerMessageType> {
+    const res = await ky.get(`${endpoint}/auth/oauth/google/link`, {
+        searchParams: { code: code },
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!res.ok) {
+        const errorMessage = `Failed to link Google account: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await res.json()) as { detail?: string };
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    console.debug("Google account linked successfully");
+    return await res.json();
+}
+
+export async function OAuthGoogleUnlink(): Promise<ServerMessageType> {
+    const res = await ky.get(`${endpoint}/auth/oauth/google/unlink`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!res.ok) {
+        const errorMessage = `Failed to unlink Google account: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await res.json()) as { detail?: string };
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+    console.debug("Google account unlinked successfully");
+    return await res.json();
+}
+
 export async function OAuthGoogleAuthenticate(code: string): Promise<TokenType> {
     const res = await ky.get(`${endpoint}/auth/oauth/google/callback`, {
         searchParams: { code: code },
@@ -204,5 +238,9 @@ export async function OAuthGoogleAuthenticate(code: string): Promise<TokenType> 
         throw new Error(errorResponse?.detail || errorMessage);
     }
 
-    return await res.json();
+    const responseData: { access_token: string; token_type: string } = await res.json();
+    return {
+        token: responseData["access_token"],
+        type: responseData["token_type"],
+    };
 }

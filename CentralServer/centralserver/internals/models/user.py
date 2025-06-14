@@ -156,6 +156,9 @@ class UserPublic(SQLModel):
     roleId: int
     deactivated: bool
     finishedTutorials: str
+    oauthLinkedGoogleId: str | None
+    oauthLinkedFacebookId: str | None
+    oauthLinkedMicrosoftId: str | None
     forceUpdateInfo: bool
     emailVerified: bool
     dateCreated: datetime.datetime

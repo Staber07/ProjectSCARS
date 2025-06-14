@@ -17,6 +17,9 @@ export type UserPublicType = {
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
+    oauthLinkedGoogleId?: string | null;
+    oauthLinkedFacebookId?: string | null;
+    oauthLinkedMicrosoftId?: string | null;
     forceUpdateInfo: boolean;
     emailVerified: boolean;
     dateCreated: Date;

@@ -1,7 +1,8 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { VerifyUserEmail } from "@/lib/api/auth";
+import { GetAllRoles, OAuthGoogleUnlink, VerifyUserEmail } from "@/lib/api/auth";
+import { GetAllSchools } from "@/lib/api/school";
 import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
@@ -9,6 +10,7 @@ import { UserPublicType } from "@/lib/types";
 import {
     Anchor,
     Avatar,
+    Badge,
     Box,
     Button,
     ColorInput,
@@ -25,25 +27,21 @@ import {
     TextInput,
     Title,
     Tooltip,
-    ThemeIcon,
+    useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useMantineColorScheme } from "@mantine/core";
 import {
-    IconBrandFacebook,
-    IconBrandGoogle,
-    IconBrandMinecraft,
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconDeviceFloppy,
     IconMailOff,
     IconMailOpened,
 } from "@tabler/icons-react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import Image from "next/image";
 
 interface EditProfileValues {
     id: string;
@@ -76,8 +74,61 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const searchParams = useSearchParams();
     const [opened, { open, close }] = useDisclosure(false);
     const [buttonLoading, setButtonLoading] = useState(false);
+    const [availableRoles, setAvailableRoles] = useState<{ value: string; label: string }[]>([]);
+    const [availableSchools, setAvailableSchools] = useState<{ value: string; label: string }[]>([]);
 
-    const form = useForm<EditProfileValues>({ mode: "uncontrolled" });
+    const form = useForm<EditProfileValues>({
+        mode: "uncontrolled",
+        initialValues: {
+            id: userInfo?.id || "",
+            username: userInfo?.username || "",
+            nameFirst: userInfo?.nameFirst || "",
+            nameMiddle: userInfo?.nameMiddle || "",
+            nameLast: userInfo?.nameLast || "",
+            email: userInfo?.email || "",
+            school: "",
+            role: "",
+            deactivated: userInfo?.deactivated || false,
+            forceUpdateInfo: userInfo?.forceUpdateInfo || false,
+        },
+    });
+
+    // Update form when userInfo becomes available
+    useEffect(() => {
+        async function fetchData() {
+            const roles = await GetAllRoles();
+            const schools = await GetAllSchools(0, 99);
+            setAvailableRoles(
+                roles.map((role) => ({
+                    value: role.id.toString(),
+                    label: role.description,
+                }))
+            );
+            setAvailableSchools(
+                schools.map((school) => ({
+                    value: school.id.toString(),
+                    label: `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}`,
+                }))
+            );
+            if (userInfo) {
+                const new_values = {
+                    id: userInfo.id,
+                    username: userInfo.username,
+                    nameFirst: userInfo.nameFirst,
+                    nameMiddle: userInfo.nameMiddle,
+                    nameLast: userInfo.nameLast,
+                    email: userInfo.email,
+                    school: schools.find((s) => s.id === userInfo.schoolId)?.name || "",
+                    role: roles.find((r) => r.id === userInfo.roleId)?.description || "",
+                    deactivated: userInfo.deactivated,
+                    forceUpdateInfo: userInfo.forceUpdateInfo,
+                };
+                console.debug("Updating form values with userInfo:", new_values);
+                form.setValues(new_values);
+            }
+        }
+        fetchData();
+    }, [userInfo]);
 
     console.debug("Profile form initialized with values:", form.values);
     const uploadAvatar = async (file: File | null) => {
@@ -119,7 +170,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         document.documentElement.style.setProperty("--mantine-primary-color-filled", userPreferences.accentColor);
     }, [userPreferences, setColorScheme]);
 
-    const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
+    const handlePreferenceChange = (key: keyof UserPreferences, value: string | boolean | null) => {
         setUserPreferences((prev) => ({ ...prev, [key]: value }));
         notifications.show({
             title: "Preferences Updated",
@@ -239,7 +290,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         disabled={!userPermissions?.includes("users:self:modify:role")}
                         label="Role"
                         placeholder="Role"
-                        // data={}
+                        data={availableRoles}
                         key={form.key("role")}
                         searchable
                         {...form.getInputProps("role")}
@@ -254,7 +305,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         disabled={!userPermissions?.includes("users:self:modify:school")}
                         label="Assigned School"
                         placeholder="School"
-                        // data={}
+                        data={availableSchools}
                         key={form.key("school")}
                         searchable
                         {...form.getInputProps("school")}
@@ -475,28 +526,64 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 />
                             </Box>
                             <div>
-                                <Text size="sm" fw={500}>
-                                    Google
-                                </Text>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Google
+                                    </Text>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedGoogleId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedGoogleId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
                                 <Text size="xs" c="dimmed">
                                     Link your Google account for quick sign-in
                                 </Text>
                             </div>
                         </Group>
-                        <Button
-                            variant="light"
-                            color="red"
-                            size="xs"
-                            onClick={() => {
-                                notifications.show({
-                                    title: "Coming Soon",
-                                    message: "Google account linking will be available soon",
-                                    color: "blue",
-                                });
-                            }}
-                        >
-                            Link Account
-                        </Button>
+                        {userInfo?.oauthLinkedGoogleId ? (
+                            <Button
+                                variant="light"
+                                color="red"
+                                size="xs"
+                                onClick={async () => {
+                                    try {
+                                        await OAuthGoogleUnlink();
+                                    } catch {
+                                        notifications.show({
+                                            title: "Unlink Failed",
+                                            message: "Failed to unlink your Google account. Please try again later.",
+                                            color: "red",
+                                        });
+                                        return;
+                                    }
+                                    notifications.show({
+                                        title: "Unlink Successful",
+                                        message: "Your Google account has been unlinked successfully.",
+                                        color: "green",
+                                    });
+                                }}
+                            >
+                                Unlink Account
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="light"
+                                color="red"
+                                size="xs"
+                                onClick={async () => {
+                                    const response = await fetch("http://localhost:8081/v1/auth/oauth/google/login");
+                                    const data = await response.json();
+                                    if (data.url) {
+                                        window.location.href = data.url;
+                                    }
+                                }}
+                            >
+                                Link Account
+                            </Button>
+                        )}
                     </Group>
 
                     <Group justify="space-between" align="center">
@@ -511,15 +598,25 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 />
                             </Box>
                             <div>
-                                <Text size="sm" fw={500}>
-                                    Facebook
-                                </Text>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Facebook
+                                    </Text>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedFacebookId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedFacebookId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
                                 <Text size="xs" c="dimmed">
                                     Link your Facebook account for quick sign-in
                                 </Text>
                             </div>
                         </Group>
                         <Button
+                            disabled={userInfo?.oauthLinkedFacebookId !== null}
                             variant="light"
                             color="blue"
                             size="xs"
@@ -547,15 +644,25 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 />
                             </Box>
                             <div>
-                                <Text size="sm" fw={500}>
-                                    Microsoft
-                                </Text>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Microsoft
+                                    </Text>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedMicrosoftId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedMicrosoftId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
                                 <Text size="xs" c="dimmed">
                                     Link your Microsoft account for quick sign-in
                                 </Text>
                             </div>
                         </Group>
                         <Button
+                            disabled={userInfo?.oauthLinkedMicrosoftId !== null}
                             variant="light"
                             color="indigo"
                             size="xs"
