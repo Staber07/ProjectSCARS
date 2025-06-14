@@ -114,6 +114,9 @@ export type MonthlyReportType = {
     reportStatus: ReportStatus;
     preparedBy?: string;
     notedBy?: string;
+    dateCreated: Date;
+    dateApproved?: Date;
+    dateReceived?: Date;
     lastModified?: Date;
     receivedByDailyFinancialReport?: string;
     receivedByOperatingExpensesReport?: string;

@@ -24,5 +24,12 @@ export async function GetLocalMonthlyReports(
     }
 
     const data: MonthlyReportType[] = await centralServerResponse.json();
+    data.forEach((report) => {
+        report.id = new Date(report.id);
+        report.dateCreated = new Date(report.dateCreated);
+        if (report.dateApproved) report.dateApproved = new Date(report.dateApproved);
+        if (report.dateReceived) report.dateReceived = new Date(report.dateReceived);
+        if (report.lastModified) report.lastModified = new Date(report.lastModified);
+    });
     return data;
 }

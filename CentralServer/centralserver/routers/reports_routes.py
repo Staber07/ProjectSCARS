@@ -103,8 +103,8 @@ async def get_school_monthly_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
     school_id: int,
-    month: int,
     year: int,
+    month: int,
     offset: int = 0,
     limit: int = 10,
 ) -> MonthlyReport:
@@ -155,8 +155,8 @@ async def create_school_monthly_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
     school_id: int,
-    month: int,
     year: int,
+    month: int,
     name: str | None = None,
 ) -> MonthlyReport:
     """Create a monthly report of a school."""

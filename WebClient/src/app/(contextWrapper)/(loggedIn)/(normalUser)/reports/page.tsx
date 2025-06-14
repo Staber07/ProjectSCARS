@@ -45,6 +45,7 @@ export default function ReportsPage() {
 
     const router = useRouter();
     const userCtx = useUser();
+    const [userAssignedToSchool, setUserAssignedToSchool] = useState<boolean>(true);
     const [search, setSearch] = useState("");
     const [selectedReports, setSelectedReports] = useState<Date[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
@@ -52,24 +53,22 @@ export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReportType[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [parsedSubmittedBySchools] = useState<Record<number, SchoolType>>({});
+    const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, SchoolType>>({});
 
     // Fetch reports on component mount
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                setLoading(true);
                 if (userCtx.userInfo?.schoolId) {
+                    setUserAssignedToSchool(true);
                     const reports = await GetLocalMonthlyReports(userCtx.userInfo.schoolId, 0, 10);
                     setReportSubmissions(reports);
                 } else {
+                    setUserAssignedToSchool(false);
                     console.warn("No schoolId found in user context");
                 }
             } catch (error) {
                 console.error("Failed to fetch reports:", error);
-            } finally {
-                setLoading(false);
             }
         };
 
@@ -157,7 +156,10 @@ export default function ReportsPage() {
         async (submittedBySchool: number) => {
             try {
                 const school = await GetSchoolInfo(submittedBySchool);
-                parsedSubmittedBySchools[submittedBySchool] = school;
+                setParsedSubmittedBySchools((prev) => ({
+                    ...prev,
+                    [submittedBySchool]: school,
+                }));
                 return school;
             } catch (error) {
                 console.error("Failed to fetch school info:", error);
@@ -296,11 +298,11 @@ export default function ReportsPage() {
                         data={[
                             { value: "all", label: "All Status" },
                             { value: "draft", label: "Draft" },
-                            { value: "submitted", label: "Submitted" },
-                            { value: "under-review", label: "Under Review" },
-                            { value: "pending-approval", label: "Pending Approval" },
+                            { value: "review", label: "Under Review" },
                             { value: "approved", label: "Approved" },
                             { value: "rejected", label: "Rejected" },
+                            { value: "received", label: "Received" },
+                            { value: "archived", label: "Archived" },
                         ]}
                         w={180}
                     />
@@ -372,7 +374,11 @@ export default function ReportsPage() {
 
                 {filteredReports.length === 0 && (
                     <Paper p="xl" ta="center">
-                        <Text c="dimmed">No reports found</Text>
+                        {userAssignedToSchool ? (
+                            <Text c="dimmed">No reports found</Text>
+                        ) : (
+                            <Text c="dimmed">You are not assigned to any school.</Text>
+                        )}
                     </Paper>
                 )}
             </Paper>
