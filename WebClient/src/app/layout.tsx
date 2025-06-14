@@ -38,25 +38,42 @@ export default function RootLayout({ children }: RootLayoutProps) {
                     dangerouslySetInnerHTML={{
                         __html: `
               (function() {
+                let darkMode = false;
                 try {
                   const stored = localStorage.getItem('user-preferences');
                   if (stored) {
-                    const { darkMode } = JSON.parse(stored);
-                    if (darkMode) {
-                      document.documentElement.style.colorScheme = 'dark';
-                      document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
-                      document.documentElement.style.backgroundColor = '#1A1B1E';
-                    }
+                    darkMode = JSON.parse(stored).darkMode;
                   }
                 } catch (e) {}
+                
+                if (darkMode) {
+                  document.documentElement.setAttribute('data-mantine-color-scheme', 'dark');
+                  document.documentElement.style.setProperty('--mantine-color-scheme', 'dark');
+                  document.documentElement.style.setProperty('background-color', '#1A1B1E');
+                  document.documentElement.style.setProperty('color', '#C1C2C5');
+                }
               })();
+            `,
+                    }}
+                />
+                <style
+                    dangerouslySetInnerHTML={{
+                        __html: `
+              :root[data-mantine-color-scheme="dark"] {
+                background-color: #1A1B1E !important;
+                color: #C1C2C5 !important;
+              }
+              body[data-mantine-color-scheme="dark"] {
+                background-color: #1A1B1E !important;
+                color: #C1C2C5 !important;
+              }
             `,
                     }}
                 />
                 <ColorSchemeScript />
             </Head>
             <body>
-                <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
+                <MantineProvider theme={theme} defaultColorScheme="light" withCssVariables cssVariablesSelector="html">
                     {children}
                     <Notifications limit={5} autoClose={5000} />
                 </MantineProvider>
