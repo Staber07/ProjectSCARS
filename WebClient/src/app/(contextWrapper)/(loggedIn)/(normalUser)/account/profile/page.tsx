@@ -11,10 +11,12 @@ import {
     Avatar,
     Box,
     Button,
+    ColorInput,
     Divider,
     Flex,
     Group,
     Modal,
+    Paper,
     Select,
     Space,
     Stack,
@@ -23,11 +25,16 @@ import {
     TextInput,
     Title,
     Tooltip,
+    ThemeIcon,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
+import { useMantineColorScheme } from "@mantine/core";
 import {
+    IconBrandFacebook,
+    IconBrandGoogle,
+    IconBrandMinecraft,
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconDeviceFloppy,
@@ -36,6 +43,7 @@ import {
 } from "@tabler/icons-react";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import Image from "next/image";
 
 interface EditProfileValues {
     id: string;
@@ -54,6 +62,13 @@ interface ProfileContentProps {
     userInfo: UserPublicType | null;
     userPermissions: string[] | null;
     userAvatarUrl: string | null;
+}
+
+interface UserPreferences {
+    darkMode: boolean;
+    accentColor: string;
+    language: string;
+    timezone: string;
 }
 
 function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
@@ -86,6 +101,31 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const handleProfileEdit = () => {
         console.debug("Navigating to profile edit page...");
+    };
+
+    const { setColorScheme } = useMantineColorScheme();
+    const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
+        key: "user-preferences",
+        defaultValue: {
+            darkMode: false,
+            accentColor: "#228be6",
+            language: "English",
+            timezone: "UTC+8 (Philippines)",
+        },
+    });
+
+    useEffect(() => {
+        setColorScheme(userPreferences.darkMode ? "dark" : "light");
+        document.documentElement.style.setProperty("--mantine-primary-color-filled", userPreferences.accentColor);
+    }, [userPreferences, setColorScheme]);
+
+    const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
+        setUserPreferences((prev) => ({ ...prev, [key]: value }));
+        notifications.show({
+            title: "Preferences Updated",
+            message: "Your preferences have been saved",
+            color: "green",
+        });
     };
 
     useEffect(() => {
@@ -421,10 +461,160 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
                     <Switch />
                 </Group>
+                <Divider my="lg" label="Linked Accounts" labelPosition="center" />
+                <Stack>
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/google.svg"
+                                    alt="Google Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Google
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Google account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="red"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Google account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/facebook.svg"
+                                    alt="Facebook Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Facebook
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Facebook account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="blue"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Facebook account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/microsoft.svg"
+                                    alt="Microsoft Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Microsoft
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Microsoft account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="indigo"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Microsoft account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+                </Stack>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
                     Save
                 </Button>
             </form>
+
+            <Paper shadow="sm" p="md" radius="md" mt="xl">
+                <Title order={4} mb="xs">
+                    Personal Preferences
+                </Title>
+                <Stack>
+                    <Switch
+                        label="Dark Mode"
+                        checked={userPreferences.darkMode}
+                        onChange={(e) => handlePreferenceChange("darkMode", e.currentTarget.checked)}
+                    />
+                    <ColorInput
+                        label="Accent Color"
+                        value={userPreferences.accentColor}
+                        onChange={(color) => handlePreferenceChange("accentColor", color)}
+                    />
+                    <Select
+                        label="Default Language"
+                        data={[
+                            { value: "en", label: "English" },
+                            { value: "tl", label: "Tagalog" },
+                            { value: "ceb", label: "Cebuano" },
+                            { value: "fil", label: "Filipino" },
+                        ]}
+                        value={userPreferences.language}
+                        onChange={(value) => handlePreferenceChange("language", value)}
+                    />
+                    <Select
+                        label="Timezone"
+                        data={[
+                            { value: "Asia/Manila", label: "GMT+8 (Philippines)" },
+                            { value: "Asia/Singapore", label: "GMT+8 (Singapore)" },
+                            { value: "Asia/Hong_Kong", label: "GMT+8 (Hong Kong)" },
+                            { value: "Asia/Taipei", label: "GMT+8 (Taipei)" },
+                        ]}
+                        value={userPreferences.timezone}
+                        onChange={(value) => handlePreferenceChange("timezone", value)}
+                    />
+                </Stack>
+            </Paper>
         </Box>
     );
 }
