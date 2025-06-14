@@ -31,7 +31,7 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
     console.debug("Rendering RootLayout");
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang="en">
             <ReactScan />
             <Head>
                 <script
