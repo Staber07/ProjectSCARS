@@ -1,30 +1,13 @@
 "use client";
 
-import {
-    ColorInput,
-    Container,
-    Group,
-    Paper,
-    Select,
-    Stack,
-    Switch,
-    Text,
-    TextInput,
-    ThemeIcon,
-    Title,
-    useMantineColorScheme,
-} from "@mantine/core";
+import { Container, Group, Paper, Select, Stack, Switch, Text, TextInput, ThemeIcon, Title } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconBrandGithub, IconInfoCircle, IconTool } from "@tabler/icons-react";
 import { useEffect } from "react";
 
 interface WebsiteSettings {
-    darkMode: boolean;
-    accentColor: string;
     appTitle: string;
-    language: string;
-    timezone: string;
     autoSave: boolean;
     syncFrequency: string;
     developerMode: boolean;
@@ -32,17 +15,10 @@ interface WebsiteSettings {
 }
 
 export default function SettingsPage() {
-    const { setColorScheme } = useMantineColorScheme();
-
-    // Load settings from local storage or use defaults
     const [settings, setSettings] = useLocalStorage<WebsiteSettings>({
         key: "website-settings",
         defaultValue: {
-            darkMode: false,
-            accentColor: "#228be6",
             appTitle: "Project SCARS",
-            language: "English",
-            timezone: "UTC+8 (Philippines)",
             autoSave: true,
             syncFrequency: "15 min",
             developerMode: false,
@@ -50,22 +26,15 @@ export default function SettingsPage() {
         },
     });
 
-    // Apply settings on load
     useEffect(() => {
-        // Apply dark mode
-        setColorScheme(settings.darkMode ? "dark" : "light");
-
         // Apply app title
         document.title = settings.appTitle;
-
-        // Apply accent color (you'll need to implement CSS variable updates)
-        document.documentElement.style.setProperty("--mantine-primary-color-filled", settings.accentColor);
 
         // Log for developer mode
         if (settings.developerMode) {
             console.log("Developer mode enabled");
         }
-    }, [settings, setColorScheme]);
+    }, [settings]);
 
     const handleSettingChange = (key: keyof WebsiteSettings, value: any) => {
         setSettings((prev) => ({ ...prev, [key]: value }));
@@ -80,30 +49,12 @@ export default function SettingsPage() {
     return (
         <Container size="sm" pt="md">
             <Title order={2} mb="md">
-                ⚙️ Website Settings
+                Website Settings
             </Title>
 
             <Paper shadow="sm" p="md" radius="md" mb="xl">
                 <Title order={4} mb="xs">
-                    🎨 Appearance
-                </Title>
-                <Stack>
-                    <Switch
-                        label="Dark Mode"
-                        checked={settings.darkMode}
-                        onChange={(e) => handleSettingChange("darkMode", e.currentTarget.checked)}
-                    />
-                    <ColorInput
-                        label="Accent Color"
-                        value={settings.accentColor}
-                        onChange={(color) => handleSettingChange("accentColor", color)}
-                    />
-                </Stack>
-            </Paper>
-
-            <Paper shadow="sm" p="md" radius="md" mb="xl">
-                <Title order={4} mb="xs">
-                    🔧 General
+                    General
                 </Title>
                 <Stack>
                     <TextInput
@@ -112,24 +63,12 @@ export default function SettingsPage() {
                         onChange={(e) => handleSettingChange("appTitle", e.currentTarget.value)}
                         placeholder="e.g., Project SCARS"
                     />
-                    <Select
-                        label="Default Language"
-                        data={["English", "Filipino", "Spanish"]}
-                        value={settings.language}
-                        onChange={(value) => handleSettingChange("language", value)}
-                    />
-                    <Select
-                        label="Timezone"
-                        data={["UTC+8 (Philippines)", "UTC+9 (Japan)", "UTC+0 (GMT)"]}
-                        value={settings.timezone}
-                        onChange={(value) => handleSettingChange("timezone", value)}
-                    />
                 </Stack>
             </Paper>
 
             <Paper shadow="sm" p="md" radius="md" mb="xl">
                 <Title order={4} mb="xs">
-                    💾 Data & Sync
+                    Data & Sync
                 </Title>
                 <Stack>
                     <Switch
@@ -149,7 +88,7 @@ export default function SettingsPage() {
 
             <Paper shadow="sm" p="md" radius="md" mb="xl">
                 <Title order={4} mb="xs">
-                    🧪 Advanced
+                    Advanced
                 </Title>
                 <Stack>
                     <Switch

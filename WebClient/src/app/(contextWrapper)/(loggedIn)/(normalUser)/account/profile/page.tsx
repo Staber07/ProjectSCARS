@@ -11,10 +11,12 @@ import {
     Avatar,
     Box,
     Button,
+    ColorInput,
     Divider,
     Flex,
     Group,
     Modal,
+    Paper,
     Select,
     Space,
     Stack,
@@ -25,8 +27,9 @@ import {
     Tooltip,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useDisclosure } from "@mantine/hooks";
+import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
+import { useMantineColorScheme } from "@mantine/core";
 import {
     IconCircleDashedCheck,
     IconCircleDashedX,
@@ -54,6 +57,13 @@ interface ProfileContentProps {
     userInfo: UserPublicType | null;
     userPermissions: string[] | null;
     userAvatarUrl: string | null;
+}
+
+interface UserPreferences {
+    darkMode: boolean;
+    accentColor: string;
+    language: string;
+    timezone: string;
 }
 
 function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
@@ -86,6 +96,31 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const handleProfileEdit = () => {
         console.debug("Navigating to profile edit page...");
+    };
+
+    const { setColorScheme } = useMantineColorScheme();
+    const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
+        key: "user-preferences",
+        defaultValue: {
+            darkMode: false,
+            accentColor: "#228be6",
+            language: "English",
+            timezone: "UTC+8 (Philippines)",
+        },
+    });
+
+    useEffect(() => {
+        setColorScheme(userPreferences.darkMode ? "dark" : "light");
+        document.documentElement.style.setProperty("--mantine-primary-color-filled", userPreferences.accentColor);
+    }, [userPreferences, setColorScheme]);
+
+    const handlePreferenceChange = (key: keyof UserPreferences, value: any) => {
+        setUserPreferences((prev) => ({ ...prev, [key]: value }));
+        notifications.show({
+            title: "Preferences Updated",
+            message: "Your preferences have been saved",
+            color: "green",
+        });
     };
 
     useEffect(() => {
@@ -425,6 +460,46 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     Save
                 </Button>
             </form>
+
+            <Paper shadow="sm" p="md" radius="md" mt="xl">
+                <Title order={4} mb="xs">
+                    Personal Preferences
+                </Title>
+                <Stack>
+                    <Switch
+                        label="Dark Mode"
+                        checked={userPreferences.darkMode}
+                        onChange={(e) => handlePreferenceChange("darkMode", e.currentTarget.checked)}
+                    />
+                    <ColorInput
+                        label="Accent Color"
+                        value={userPreferences.accentColor}
+                        onChange={(color) => handlePreferenceChange("accentColor", color)}
+                    />
+                    <Select
+                        label="Default Language"
+                        data={[
+                            { value: "en", label: "English" },
+                            { value: "tl", label: "Tagalog" },
+                            { value: "ceb", label: "Cebuano" },
+                            { value: "fil", label: "Filipino" },
+                        ]}
+                        value={userPreferences.language}
+                        onChange={(value) => handlePreferenceChange("language", value)}
+                    />
+                    <Select
+                        label="Timezone"
+                        data={[
+                            { value: "Asia/Manila", label: "GMT+8 (Philippines)" },
+                            { value: "Asia/Singapore", label: "GMT+8 (Singapore)" },
+                            { value: "Asia/Hong_Kong", label: "GMT+8 (Hong Kong)" },
+                            { value: "Asia/Taipei", label: "GMT+8 (Taipei)" },
+                        ]}
+                        value={userPreferences.timezone}
+                        onChange={(value) => handlePreferenceChange("timezone", value)}
+                    />
+                </Stack>
+            </Paper>
         </Box>
     );
 }
