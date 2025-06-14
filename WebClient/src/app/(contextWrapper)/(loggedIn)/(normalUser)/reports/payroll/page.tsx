@@ -512,7 +512,7 @@ function PayrollPageContent() {
                                         {selectedWeek.workingDays.map((date) => (
                                             <Table.Th key={date.toISOString()} className="text-center">
                                                 <div>
-                                                    <Text size="xs" fw={500}>
+                                                    <Text size="xs" fw={600}>
                                                         {dayjs(date).format("ddd")}
                                                     </Text>
                                                     <Text size="xs" c="dimmed">
@@ -529,7 +529,7 @@ function PayrollPageContent() {
                                         <Table.Tr key={employee.id}>
                                             <Table.Td>
                                                 <div>
-                                                    <Text size="sm" fw={500}>
+                                                    <Text size="sm" fw={600}>
                                                         {employee.name}
                                                     </Text>
                                                     <Text size="xs" c="dimmed">
