@@ -398,6 +398,65 @@ async def verify_user_permission(
     return False
 
 
+async def oauth_google_link(
+    code: str,
+    user_id: str,
+    google_oauth_adapter: GoogleOAuthAdapter,
+    session: Session,
+) -> bool:
+    """Link a Google account to a user.
+
+    Args:
+        code: The authorization code received from Google.
+        user_id: The ID of the user to link the Google account to.
+        google_oauth_adapter: The Google OAuth adapter instance.
+        session: The database session to use.
+
+    Returns:
+        True if the Google account was linked successfully, False otherwise.
+    """
+
+    token_url = "https://accounts.google.com/o/oauth2/token"
+    data: dict[str, str] = {
+        "code": code,
+        "client_id": google_oauth_adapter.config.client_id,
+        "client_secret": google_oauth_adapter.config.client_secret,
+        "redirect_uri": google_oauth_adapter.config.redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    response = httpx.post(token_url, data=data)
+    if response.status_code != 200:
+        logger.error(
+            "Failed to exchange authorization code for access token: %s", response.text
+        )
+        return False
+
+    access_token = response.json().get("access_token")
+    user_info = httpx.get(
+        "https://www.googleapis.com/oauth2/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    if user_info.status_code != 200:
+        logger.error(
+            "Failed to retrieve user information from Google: %s", user_info.text
+        )
+        return False
+
+    user_data = user_info.json()
+    user = session.exec(select(User).where(User.id == user_id)).one_or_none()
+    if user is None:
+        logger.error("User with ID %s not found", user_id)
+        return False
+
+    user.oauthLinkedGoogleId = user_data.get("id", None)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    logger.info("User %s linked their Google account successfully", user.username)
+    return True
+
+
 async def oauth_google_authenticate(
     code: str,
     google_oauth_adapter: GoogleOAuthAdapter,

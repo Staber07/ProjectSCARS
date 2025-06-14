@@ -2,7 +2,7 @@
 import { ReactScan } from "@/components/dev/ReactScan";
 
 import { Program } from "@/lib/info";
-import { defaultColorscheme, theme } from "@/lib/theme";
+import { theme } from "@/lib/theme";
 import { ColorSchemeScript, MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
