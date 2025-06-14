@@ -1,20 +1,4 @@
-import { createTheme, MantineColorScheme, MantineColorsTuple, MantineThemeOverride } from "@mantine/core";
-
-// Add function to get initial color scheme
-function getInitialColorScheme(): MantineColorScheme {
-  if (typeof window !== "undefined") {
-    try {
-      const theme = localStorage.getItem("user-preferences");
-      if (theme) {
-        const { darkMode } = JSON.parse(theme);
-        return darkMode ? "dark" : "light";
-      }
-    } catch (e) {
-      console.error("Error reading theme:", e);
-    }
-  }
-  return "light";
-}
+import { createTheme, MantineColorsTuple, MantineThemeOverride } from "@mantine/core";
 
 export const defaultColorscheme = "light";
 const defaultColors: MantineColorsTuple = [
