@@ -152,26 +152,23 @@ export default function ReportsPage() {
         </Card>
     );
 
-    const parseSubmittedBySchool = useCallback(
-        async (submittedBySchool: number) => {
-            try {
-                const school = await GetSchoolInfo(submittedBySchool);
-                setParsedSubmittedBySchools((prev) => ({
-                    ...prev,
-                    [submittedBySchool]: school,
-                }));
-                return school;
-            } catch (error) {
-                console.error("Failed to fetch school info:", error);
-                notifications.show({
-                    title: "Error",
-                    message: "Failed to fetch school information for report submission.",
-                    color: "red",
-                });
-            }
-        },
-        [parsedSubmittedBySchools]
-    );
+    const parseSubmittedBySchool = useCallback(async (submittedBySchool: number) => {
+        try {
+            const school = await GetSchoolInfo(submittedBySchool);
+            setParsedSubmittedBySchools((prev) => ({
+                ...prev,
+                [submittedBySchool]: school,
+            }));
+            return school;
+        } catch (error) {
+            console.error("Failed to fetch school info:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to fetch school information for report submission.",
+                color: "red",
+            });
+        }
+    }, []);
 
     const rows = useMemo(
         () =>
