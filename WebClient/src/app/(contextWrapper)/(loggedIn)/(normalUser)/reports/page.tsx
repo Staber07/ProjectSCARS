@@ -170,10 +170,18 @@ export default function ReportsPage() {
         }
     }, []);
 
+    // Load school data for reports that don't have it cached
+    useEffect(() => {
+        filteredReports.forEach((report) => {
+            if (!parsedSubmittedBySchools[report.submittedBySchool]) {
+                parseSubmittedBySchool(report.submittedBySchool);
+            }
+        });
+    }, [filteredReports, parseSubmittedBySchool, parsedSubmittedBySchools]);
+
     const rows = useMemo(
         () =>
             filteredReports.map((report) => {
-                parseSubmittedBySchool(report.submittedBySchool);
                 return (
                     <Table.Tr key={`${report.id}`}>
                         <Table.Td>
@@ -188,12 +196,9 @@ export default function ReportsPage() {
                                     {report.name}
                                 </Text>
                                 <Text size="xs" c="dimmed">
-                                    {
-                                        // FIXME: This is stuck on loading
-                                        parsedSubmittedBySchools[report.submittedBySchool]
-                                            ? parsedSubmittedBySchools[report.submittedBySchool].name
-                                            : "Loading school..."
-                                    }
+                                    {parsedSubmittedBySchools[report.submittedBySchool]
+                                        ? parsedSubmittedBySchools[report.submittedBySchool].name
+                                        : "Loading school..."}
                                 </Text>
                             </div>
                         </Table.Td>
@@ -239,7 +244,7 @@ export default function ReportsPage() {
                     </Table.Tr>
                 );
             }),
-        [filteredReports, parseSubmittedBySchool, selectedReports, parsedSubmittedBySchools, handleSelectReport]
+        [filteredReports, selectedReports, parsedSubmittedBySchools, handleSelectReport]
     );
 
     return (
