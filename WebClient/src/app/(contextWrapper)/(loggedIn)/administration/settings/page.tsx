@@ -21,7 +21,6 @@ export default function SettingsPage() {
     });
 
     useEffect(() => {
-        // Apply app title
         document.title = settings.appTitle;
 
         // Log for developer mode
