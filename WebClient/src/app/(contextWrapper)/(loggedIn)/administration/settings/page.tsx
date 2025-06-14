@@ -1,6 +1,6 @@
 "use client";
 
-import { Container, Group, Paper, Select, Stack, Switch, Text, TextInput, ThemeIcon, Title } from "@mantine/core";
+import { Container, Group, Paper, Stack, Switch, Text, TextInput, ThemeIcon, Title } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconBrandGithub, IconInfoCircle, IconTool } from "@tabler/icons-react";
@@ -8,10 +8,7 @@ import { useEffect } from "react";
 
 interface WebsiteSettings {
     appTitle: string;
-    autoSave: boolean;
-    syncFrequency: string;
     developerMode: boolean;
-    showDebugConsole: boolean;
 }
 
 export default function SettingsPage() {
@@ -19,10 +16,7 @@ export default function SettingsPage() {
         key: "website-settings",
         defaultValue: {
             appTitle: "Project SCARS",
-            autoSave: true,
-            syncFrequency: "15 min",
             developerMode: false,
-            showDebugConsole: false,
         },
     });
 
@@ -68,26 +62,6 @@ export default function SettingsPage() {
 
             <Paper shadow="sm" p="md" radius="md" mb="xl">
                 <Title order={4} mb="xs">
-                    Data & Sync
-                </Title>
-                <Stack>
-                    <Switch
-                        label="Auto Save"
-                        checked={settings.autoSave}
-                        onChange={(e) => handleSettingChange("autoSave", e.currentTarget.checked)}
-                    />
-                    <Select
-                        label="Sync Frequency"
-                        data={["5 min", "15 min", "30 min", "Manual"]}
-                        value={settings.syncFrequency}
-                        onChange={(value) => handleSettingChange("syncFrequency", value)}
-                        disabled={!settings.autoSave}
-                    />
-                </Stack>
-            </Paper>
-
-            <Paper shadow="sm" p="md" radius="md" mb="xl">
-                <Title order={4} mb="xs">
                     Advanced
                 </Title>
                 <Stack>
@@ -95,12 +69,6 @@ export default function SettingsPage() {
                         label="Developer Mode"
                         checked={settings.developerMode}
                         onChange={(e) => handleSettingChange("developerMode", e.currentTarget.checked)}
-                    />
-                    <Switch
-                        label="Show Debug Console"
-                        checked={settings.showDebugConsole}
-                        onChange={(e) => handleSettingChange("showDebugConsole", e.currentTarget.checked)}
-                        disabled={!settings.developerMode}
                     />
                 </Stack>
             </Paper>
