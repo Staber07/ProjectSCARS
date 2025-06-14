@@ -25,12 +25,16 @@ import {
     TextInput,
     Title,
     Tooltip,
+    ThemeIcon,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { useMantineColorScheme } from "@mantine/core";
 import {
+    IconBrandFacebook,
+    IconBrandGoogle,
+    IconBrandMinecraft,
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconDeviceFloppy,
@@ -456,6 +460,98 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
                     <Switch />
                 </Group>
+                <Divider my="lg" label="Linked Accounts" labelPosition="center" />
+                <Stack>
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <ThemeIcon size="lg" variant="light" color="red">
+                                <IconBrandGoogle style={{ width: "70%", height: "70%" }} />
+                            </ThemeIcon>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Google
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Google account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="red"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Google account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <ThemeIcon size="lg" variant="light" color="blue">
+                                <IconBrandFacebook style={{ width: "70%", height: "70%" }} />
+                            </ThemeIcon>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Facebook
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Facebook account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="blue"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Facebook account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <ThemeIcon size="lg" variant="light" color="indigo">
+                                <IconBrandMinecraft style={{ width: "70%", height: "70%" }} />
+                            </ThemeIcon>
+                            <div>
+                                <Text size="sm" fw={500}>
+                                    Microsoft
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Link your Microsoft account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        <Button
+                            variant="light"
+                            color="indigo"
+                            size="xs"
+                            onClick={() => {
+                                notifications.show({
+                                    title: "Coming Soon",
+                                    message: "Minecraft account linking will be available soon",
+                                    color: "blue",
+                                });
+                            }}
+                        >
+                            Link Account
+                        </Button>
+                    </Group>
+                </Stack>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
                     Save
                 </Button>
