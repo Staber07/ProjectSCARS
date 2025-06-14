@@ -122,6 +122,8 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.recovery_token_expire_minutes=}")
+    if app_config.authentication.oauth.google is not None:
+        logger.debug(f"{app_config.authentication.oauth.google.info=}")
 
     logger.debug(f"{app_config.security.allow_origins=}")
     logger.debug(f"{app_config.security.allow_credentials=}")

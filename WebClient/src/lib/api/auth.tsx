@@ -190,3 +190,19 @@ export async function CreateUser(username: string, roleId: number, password: str
 
     return await res.json();
 }
+
+export async function OAuthGoogleAuthenticate(code: string): Promise<TokenType> {
+    const res = await ky.get(`${endpoint}/auth/oauth/google/callback`, {
+        searchParams: { code: code },
+        throwHttpErrors: false,
+    });
+
+    if (!res.ok) {
+        const errorMessage = `Failed to authenticate with Google: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        const errorResponse = (await res.json()) as { detail?: string };
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    return await res.json();
+}

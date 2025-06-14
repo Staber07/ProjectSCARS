@@ -1,7 +1,9 @@
 import datetime
+import uuid
 from typing import Annotated, Any
 
-from fastapi import Depends, HTTPException, status
+import httpx
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwe, jwt
 from jose.exceptions import JWEError
@@ -10,11 +12,12 @@ from sqlmodel import Session, select
 
 from centralserver import info
 from centralserver.internals import permissions
+from centralserver.internals.adapters.oauth import GoogleOAuthAdapter
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken
+from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import User
 
 logger = LoggerFactory().get_logger(__name__)
@@ -393,3 +396,70 @@ async def verify_user_permission(
 
     logger.error("The role %s is not defined in ROLE_PERMISSIONS", user_role.id)
     return False
+
+
+async def oauth_google_authenticate(
+    code: str,
+    google_oauth_adapter: GoogleOAuthAdapter,
+    session: Session,
+    request: Request,
+) -> tuple[int, JWTToken | str]:
+    token_url = "https://accounts.google.com/o/oauth2/token"
+    data: dict[str, str] = {
+        "code": code,
+        "client_id": google_oauth_adapter.config.client_id,
+        "client_secret": google_oauth_adapter.config.client_secret,
+        "redirect_uri": google_oauth_adapter.config.redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    response = httpx.post(token_url, data=data)
+    if response.status_code != 200:
+        logger.error(
+            "Failed to exchange authorization code for access token: %s", response.text
+        )
+        return (
+            status.HTTP_400_BAD_REQUEST,
+            "Failed to exchange authorization code for access token.",
+        )
+
+    access_token = response.json().get("access_token")
+    user_info = httpx.get(
+        "https://www.googleapis.com/oauth2/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    if user_info.status_code != 200:
+        logger.error(
+            "Failed to retrieve user information from Google: %s", user_info.text
+        )
+        return (
+            status.HTTP_400_BAD_REQUEST,
+            "Failed to retrieve user information from Google.",
+        )
+
+    user_data = user_info.json()
+    user = session.exec(
+        select(User).where(User.oauthLinkedGoogleId == user_data.get("id", None))
+    ).one_or_none()
+    if user is None:
+        return (
+            status.HTTP_404_NOT_FOUND,
+            "User not found. Please login first and link your Google account.",
+        )
+
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = request.client.host if request.client else None
+
+    return (
+        status.HTTP_200_OK,
+        JWTToken(
+            uid=uuid.uuid4(),
+            access_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.access_token_expire_minutes
+                ),
+                False,
+            ),
+            token_type="bearer",
+        ),
+    )

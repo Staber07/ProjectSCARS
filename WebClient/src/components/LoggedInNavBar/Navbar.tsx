@@ -170,7 +170,7 @@ export const Navbar: React.FC = () => {
             <div className={classes.navbarMain}>
                 <Group className={classes.header} data-onboarding-tour-id="onboarding-navbar-header">
                     <Image
-                        src="/assets/BENTOLogo.svg"
+                        src="/assets/logos/BENTO.svg"
                         alt="BENTO Logo"
                         radius="md"
                         h={70}

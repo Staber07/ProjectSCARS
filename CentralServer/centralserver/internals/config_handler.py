@@ -7,6 +7,7 @@ from centralserver import info
 from centralserver.internals.adapters.config import (
     DatabaseAdapterConfig,
     GarageObjectStoreAdapterConfig,
+    GoogleOAuthAdapterConfig,
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
     MySQLDatabaseConfig,
@@ -14,6 +15,7 @@ from centralserver.internals.adapters.config import (
     PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
+from centralserver.internals.models.oauth import OAuthConfigs
 
 
 class Debug:
@@ -103,6 +105,7 @@ class Authentication:
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
         recovery_token_expire_minutes: int | None = None,
+        oauth: OAuthConfigs | None = None,
     ):
         """Create a configuration object for authentication.
 
@@ -116,6 +119,7 @@ class Authentication:
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
             recovery_token_expire_minutes: How long the recovery token is valid in minutes.
+            oauth: OAuth configurations, if any. (Default: None)
         """
 
         if (
@@ -148,6 +152,11 @@ class Authentication:
                 "Encryption secret key is not valid. Please update the configuration file."
             )
 
+        if oauth is None:
+            raise ValueError(
+                "OAuth configurations are required in the authentication configuration."
+            )
+
         self.signing_secret_key: str = signing_secret_key
         self.refresh_signing_secret_key: str = refresh_signing_secret_key
         self.encryption_secret_key: str = encryption_secret_key
@@ -157,6 +166,7 @@ class Authentication:
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
         self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
+        self.oauth: OAuthConfigs = oauth
 
 
 class Security:
@@ -381,6 +391,25 @@ def read_config(config: dict[str, Any]) -> AppConfig:
         case _:  # Error if the object store type is not supported
             raise ValueError(f"Unsupported {object_store_type} object store type.")
 
+    oauth_config: dict[str, dict[str, str]] | None = authentication_config.get(
+        "oauth", None
+    )
+    oauth_google_config: dict[str, str] | None = (
+        oauth_config.get("google", None) if oauth_config else None
+    )
+    oauth_google_configs = (
+        GoogleOAuthAdapterConfig(
+            client_id=oauth_google_config.get("client_id", None),
+            client_secret=oauth_google_config.get("client_secret", None),
+            redirect_uri=oauth_google_config.get("redirect_uri", None),
+        )
+        if oauth_google_config
+        else None
+    )
+    oauth_configs = OAuthConfigs(
+        google=oauth_google_configs,
+    )
+
     return AppConfig(
         debug=Debug(
             enabled=debug_config.get("enabled", None),
@@ -422,6 +451,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             recovery_token_expire_minutes=authentication_config.get(
                 "recovery_token_expire_minutes", None
             ),
+            oauth=oauth_configs,
         ),
         security=Security(
             allow_origins=security_config.get("allow_origins", None),

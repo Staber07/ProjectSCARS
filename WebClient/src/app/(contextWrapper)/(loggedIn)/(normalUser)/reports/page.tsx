@@ -326,10 +326,12 @@ export default function ReportsPage() {
             {/* Tabs for Categories */}
             <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? "all")}>
                 <Tabs.List>
-                    <Tabs.Tab value="all">All Reports</Tabs.Tab>
-                    <Tabs.Tab value="sales">Sales</Tabs.Tab>
-                    <Tabs.Tab value="expenses">Expenses</Tabs.Tab>
-                    <Tabs.Tab value="payroll">Payroll</Tabs.Tab>
+                    <Tabs.Tab value="all">Monthly Reports</Tabs.Tab>
+                    <Tabs.Tab value="sales">Daily Sales & Expense Reports</Tabs.Tab>
+                    <Tabs.Tab value="expenses">Administrative Expenses</Tabs.Tab>
+                    <Tabs.Tab value="payroll">Payroll Reports</Tabs.Tab>
+                    <Tabs.Tab value="liquidation">Liquidation Reports</Tabs.Tab>
+                    <Tabs.Tab value="other">Other Reports</Tabs.Tab>
                 </Tabs.List>
             </Tabs>
 
