@@ -48,40 +48,40 @@ export const Navbar: React.FC = () => {
                 key: "dashboard",
                 link: "/dashboard",
                 label: "Dashboard",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "users:self:read",
+                showForRoles: [2, 3, 4, 5], // Superintendent, Administrator, Principal, Canteen Manager
                 icon: <IconDashboard stroke={1.5} />,
             },
             {
                 key: "statistics",
                 link: "/statistics",
                 label: "School Statistics",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "users:self:read",
+                showForRoles: [2, 3, 4, 5],
                 icon: <IconGraph stroke={1.5} />,
             },
             {
                 key: "reports",
                 link: "/reports",
                 label: "School Reports",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "reports:local:read",
+                showForRoles: [2, 3, 4, 5],
                 icon: <IconReport stroke={1.5} />,
             },
             {
                 key: "adminStatistics",
                 link: "/administration/statistics",
                 label: "Statistics Management",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "reports:global:read",
+                showForRoles: [2, 3], // Superintendent, Administrator only
                 icon: <IconGraph stroke={1.5} />,
             },
             {
                 key: "adminReports",
                 link: "/administration/reports",
                 label: "Report Management",
-                requiredPermission: null,
-                disabledReason: null,
+                requiredPermission: "reports:global:read",
+                showForRoles: [2, 3], // Superintendent, Administrator only
                 icon: <IconReport stroke={1.5} />,
             },
             {
@@ -89,7 +89,7 @@ export const Navbar: React.FC = () => {
                 link: "/administration/users",
                 label: "User Management",
                 requiredPermission: "users:global:read",
-                disabledReason: "You do not have permission to view the users list.",
+                showForRoles: [1, 2, 3], // Website Admin, Superintendent, Administrator
                 icon: <IconUser stroke={1.5} />,
             },
             {
@@ -97,7 +97,7 @@ export const Navbar: React.FC = () => {
                 link: "/administration/schools",
                 label: "School Management",
                 requiredPermission: "schools:global:read",
-                disabledReason: "You do not have permission to view the schools list.",
+                showForRoles: [2, 3], // Superintendent, Administrator only
                 icon: <IconBuilding stroke={1.5} />,
             },
             {
@@ -105,7 +105,7 @@ export const Navbar: React.FC = () => {
                 link: "/administration/settings",
                 label: "Site Management",
                 requiredPermission: "site:manage",
-                disabledReason: "You do not have permission to manage site settings.",
+                showForRoles: [1], // Website Admin only
                 icon: <IconSettings stroke={1.5} />,
             },
             {
@@ -113,7 +113,7 @@ export const Navbar: React.FC = () => {
                 link: "/account/notifications",
                 label: "Notifications",
                 requiredPermission: "notifications:self:view",
-                disabledReason: "You do not have permission to view notifications.",
+                showForRoles: [2, 3, 4, 5], // All except Website Admin
                 icon: (
                     <Indicator disabled={notificationsQuantity === 0}>
                         <IconNotification stroke={1.5} />
@@ -125,21 +125,19 @@ export const Navbar: React.FC = () => {
                 link: "/account/profile",
                 label: "Profile",
                 requiredPermission: "users:self:read",
-                disabledReason: "You do not have permission to view your profile.",
+                showForRoles: [1, 2, 3, 4, 5], // All roles
                 icon: <IconUser stroke={1.5} />,
             },
         ];
+
         fetchNotificationsQuantity();
         setLinks(() => {
             return navbarContents
                 .map((item) => {
                     const permissionGranted =
-                        !item.requiredPermission || userCtx.userPermissions?.includes(item.requiredPermission);
-                    console.debug("Checking permission for item", {
-                        key: item.key,
-                        requiredPermission: item.requiredPermission,
-                        hasPermission: permissionGranted,
-                    });
+                        userCtx.userPermissions?.includes(item.requiredPermission) &&
+                        item.showForRoles.includes(Number(userCtx.userInfo?.roleId));
+
                     if (permissionGranted) {
                         return (
                             <NavLink
@@ -148,7 +146,6 @@ export const Navbar: React.FC = () => {
                                 label={item.label}
                                 leftSection={item.icon}
                                 active={pathname.startsWith(item.link)}
-                                disabled={!permissionGranted}
                                 onClick={(event) => {
                                     if (!permissionGranted) {
                                         event.preventDefault();
@@ -162,7 +159,7 @@ export const Navbar: React.FC = () => {
                 })
                 .filter((item): item is JSX.Element => item !== undefined);
         });
-    }, [notificationsQuantity, pathname, router, userCtx.userPermissions]);
+    }, [notificationsQuantity, pathname, userCtx.userPermissions, userCtx.userInfo?.roleId]);
 
     console.debug("Returning Navbar");
     return (
