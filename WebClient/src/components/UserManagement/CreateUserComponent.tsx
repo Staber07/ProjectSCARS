@@ -1,7 +1,7 @@
 "use client";
 import { CreateUser } from "@/lib/api/auth";
 import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
-import { Button, Modal, Select, Stack, TextInput } from "@mantine/core";
+import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconUserCheck, IconUserExclamation } from "@tabler/icons-react";
@@ -121,7 +121,7 @@ export function CreateUserComponent({
                     <TextInput label="Last Name" {...form.getInputProps("lastName")} />
                     <TextInput withAsterisk label="Username" {...form.getInputProps("username")} />
                     <TextInput label="Email" {...form.getInputProps("email")} />
-                    <TextInput withAsterisk label="Password" type="password" {...form.getInputProps("password")} />
+                    <PasswordInput withAsterisk label="Password" {...form.getInputProps("password")} />
                     <Select
                         label="Assigned School"
                         placeholder="School"
