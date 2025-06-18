@@ -314,26 +314,26 @@ export default function ReportsPage() {
                         onChange={(value) => setCategoryFilter(value ?? "all")}
                         data={[
                             { value: "all", label: "All Categories" },
-                            { value: "sales", label: "Sales" },
-                            { value: "expenses", label: "Expenses" },
-                            { value: "payroll", label: "Payroll" },
+                            { value: "monthly-reports", label: "Monthly Reports" },
+                            { value: "daily-financial-reports", label: "Daily Financial Reports" },
+                            { value: "disbursement-vouchers", label: "Disbursement Vouchers" },
+                            { value: "operating-expenses", label: "Operating Expense Reports" },
+                            { value: "administrative-expenses", label: "Administrative Expense Reports" },
+                            { value: "payroll", label: "Payroll Reports" },
+                            { value: "clinic-fund", label: "Clinic Fund Reports" },
+                            { value: "supplementary-feeding-fund", label: "Supplementary Feeding Fund Reports" },
+                            { value: "he-fund", label: "HE Fund Reports" },
+                            {
+                                value: "faculty-student-development-fund",
+                                label: "Faculty & Student Development Fund Reports",
+                            },
+                            { value: "school-operation-fund", label: "School Operation Fund Reports" },
+                            { value: "revolving-fund", label: "Revolving Fund Reports" },
                         ]}
                         w={160}
                     />
                 </Flex>
             </Paper>
-
-            {/* Tabs for Categories */}
-            <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? "all")}>
-                <Tabs.List>
-                    <Tabs.Tab value="all">Monthly Reports</Tabs.Tab>
-                    <Tabs.Tab value="sales">Daily Sales & Expense Reports</Tabs.Tab>
-                    <Tabs.Tab value="expenses">Administrative Expenses</Tabs.Tab>
-                    <Tabs.Tab value="payroll">Payroll Reports</Tabs.Tab>
-                    <Tabs.Tab value="liquidation">Liquidation Reports</Tabs.Tab>
-                    <Tabs.Tab value="other">Other Reports</Tabs.Tab>
-                </Tabs.List>
-            </Tabs>
 
             {/* Bulk Actions */}
             {selectedReports.length > 0 && (
