@@ -49,7 +49,7 @@ import {
     IconX,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { JSX, useEffect, useState } from "react";
+import { JSX, useCallback, useEffect, useState } from "react";
 import { UserFilters } from "@/components/UserManagement/UserFilters";
 
 const userPerPageOptions: number[] = [10, 25, 50, 100];
@@ -183,56 +183,52 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    const fetchUsers = async (page: number, pageLimit: number = userPerPage) => {
-        setCurrentPage(page);
-        console.debug("user per page:", pageLimit);
-        const pageOffset = (page - 1) * pageLimit;
-        console.debug(`Fetching users for page ${page} with offset ${pageOffset} and limit ${pageLimit}`);
+    const applyFilters = useCallback(
+        (users: UserPublicType[]) => {
+            let filtered = [...users];
 
-        // deselect all users when fetching new page
-        setSelected(new Set());
-        setSelectedUser(null);
-        setSelectedUserIndex(null);
+            if (roleFilter) {
+                filtered = filtered.filter((user) => user.roleId.toString() === roleFilter);
+            }
+            if (schoolFilter) {
+                filtered = filtered.filter(
+                    (user) => user.schoolId != null && user.schoolId.toString() === schoolFilter
+                );
+            }
+            if (statusFilter) {
+                filtered = filtered.filter((user) =>
+                    statusFilter === "deactivated" ? user.deactivated : !user.deactivated
+                );
+            }
+            if (updateFilter) {
+                filtered = filtered.filter((user) =>
+                    updateFilter === "required" ? user.forceUpdateInfo : !user.forceUpdateInfo
+                );
+            }
 
-        await GetUsersQuantity()
-            .then((quantity) => {
-                setTotalUsers(quantity);
-                setTotalPages(Math.ceil(quantity / pageLimit));
-            })
-            .catch((error) => {
-                console.error("Failed to fetch users quantity:", error);
-                notifications.show({
-                    id: "fetch-users-quantity-error",
-                    title: "Error",
-                    message: "Failed to fetch users quantity. Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-                setTotalPages(1); // Default to 1 page if fetching fails
-            });
-        await GetAllUsers(pageOffset, pageLimit)
-            .then((data) => {
-                let filtered = data;
+            return filtered;
+        },
+        [roleFilter, schoolFilter, statusFilter, updateFilter]
+    );
 
-                // Apply filters
-                if (roleFilter) {
-                    filtered = filtered.filter((user) => user.roleId.toString() === roleFilter);
-                }
-                if (schoolFilter) {
-                    filtered = filtered.filter((user) => user.schoolId === Number(schoolFilter));
-                }
-                if (statusFilter) {
-                    filtered = filtered.filter((user) => user.deactivated === (statusFilter === "deactivated"));
-                }
-                if (updateFilter) {
-                    filtered = filtered.filter((user) => user.forceUpdateInfo === (updateFilter === "required"));
-                }
+    const fetchUsers = useCallback(
+        async (page: number, pageLimit: number = userPerPage) => {
+            setCurrentPage(page);
+            const pageOffset = (page - 1) * pageLimit;
+
+            // Reset selections
+            setSelected(new Set());
+            setSelectedUser(null);
+            setSelectedUserIndex(null);
+
+            try {
+                const data = await GetAllUsers(pageOffset, pageLimit);
+                const filtered = applyFilters(data);
 
                 setUsers(filtered);
                 setTotalUsers(filtered.length);
                 setTotalPages(Math.ceil(filtered.length / pageLimit));
-            })
-            .catch((error) => {
+            } catch (error) {
                 console.error("Failed to fetch users:", error);
                 if (!fetchUsersErrorShown) {
                     setFetchUsersErrorShown(true);
@@ -245,8 +241,10 @@ export default function UsersPage(): JSX.Element {
                     });
                     setUsers([]);
                 }
-            });
-    };
+            }
+        },
+        [userPerPage, applyFilters, fetchUsersErrorShown]
+    );
 
     useEffect(() => {
         const fetchRoles = async () => {

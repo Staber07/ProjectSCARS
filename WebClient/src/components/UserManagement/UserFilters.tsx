@@ -31,15 +31,17 @@ export function UserFilters({
     availableSchools,
     onFilterChange,
 }: UserFiltersProps) {
+    const handleFilterChange = (value: string | null, setter: (value: string | null) => void) => {
+        setter(value);
+        onFilterChange();
+    };
+
     return (
         <Group grow>
             <Select
                 placeholder="Filter by Role"
                 value={roleFilter}
-                onChange={(value) => {
-                    setRoleFilter(value);
-                    onFilterChange();
-                }}
+                onChange={(value) => handleFilterChange(value, setRoleFilter)}
                 data={[
                     { value: "", label: "All Roles" },
                     ...availableRoles.map((role) => ({
@@ -48,14 +50,12 @@ export function UserFilters({
                     })),
                 ]}
                 clearable
+                searchable
             />
             <Select
                 placeholder="Filter by School"
                 value={schoolFilter}
-                onChange={(value) => {
-                    setSchoolFilter(value);
-                    onFilterChange();
-                }}
+                onChange={(value) => handleFilterChange(value, setSchoolFilter)}
                 data={[
                     { value: "", label: "All Schools" },
                     ...availableSchools.map((school) => ({
@@ -64,14 +64,12 @@ export function UserFilters({
                     })),
                 ]}
                 clearable
+                searchable
             />
             <Select
                 placeholder="Filter by Status"
                 value={statusFilter}
-                onChange={(value) => {
-                    setStatusFilter(value);
-                    onFilterChange();
-                }}
+                onChange={(value) => handleFilterChange(value, setStatusFilter)}
                 data={[
                     { value: "", label: "All Status" },
                     { value: "active", label: "Active" },
@@ -82,10 +80,7 @@ export function UserFilters({
             <Select
                 placeholder="Filter by Update Status"
                 value={updateFilter}
-                onChange={(value) => {
-                    setUpdateFilter(value);
-                    onFilterChange();
-                }}
+                onChange={(value) => handleFilterChange(value, setUpdateFilter)}
                 data={[
                     { value: "", label: "All Update Status" },
                     { value: "required", label: "Update Required" },
