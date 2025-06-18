@@ -285,3 +285,43 @@ async def patch_school_logo(
         )
 
     return await update_school_logo(school_id, img, session)
+
+
+@router.delete("/logo", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_school_logo(
+    school_id: int,
+    token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
+    session: Annotated[Session, Depends(get_db_session)],
+) -> None:
+    """Delete the school's logo image."""
+
+    logged_in_user = await get_user(token.id, session=session, by_id=True)
+    if not logged_in_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+        )
+
+    required_permission = (
+        "schools:global:modify"
+        if logged_in_user.school is None
+        else (
+            "schools:self:modify"
+            if logged_in_user in logged_in_user.school.users
+            else "schools:global:modify"
+        )
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this school's logo.",
+        )
+
+    try:
+        await update_school_logo(school_id, None, session)
+
+    except S3Error as e:
+        logger.error("Error deleting school logo: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="School logo not found.",
+        ) from e
