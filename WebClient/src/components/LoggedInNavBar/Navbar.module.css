@@ -60,3 +60,28 @@
     width: 25px;
     height: 25px;
 }
+
+@media (max-width: 48em) {
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: var(--mantine-color-body);
+        border-bottom: 1px solid var(--mantine-color-gray-3);
+    }
+
+    .navbarMain > div:not(.header) {
+        display: none;
+    }
+
+    .navbarMain > div:not(.header)[style*="display: block"] {
+        display: block !important;
+        padding: var(--mantine-spacing-xs);
+    }
+
+    .header {
+        padding: var(--mantine-spacing-xs) var(--mantine-spacing-md);
+    }
+}
