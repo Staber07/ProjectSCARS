@@ -97,7 +97,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     useEffect(() => {
         async function fetchData() {
             const roles = await GetAllRoles();
-            const schools = await GetAllSchools(0, 99);
+            const schools = await GetAllSchools(0, 999);
             setAvailableRoles(
                 roles.map((role) => ({
                     value: role.id.toString(),
