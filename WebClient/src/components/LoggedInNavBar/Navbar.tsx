@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Group, Image, Indicator, NavLink, Title, Burger } from "@mantine/core";
+import { Code, Group, Image, Indicator, NavLink, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
@@ -25,7 +25,6 @@ import classes from "./Navbar.module.css";
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
     const [notificationsQuantity, setNotificationsQuantity] = useState<number>(0);
-    const [opened, setOpened] = useState(false);
     const userCtx = useUser();
     const router = useRouter();
     const pathname = usePathname();
@@ -183,9 +182,8 @@ export const Navbar: React.FC = () => {
                         <Title>{Program.name}</Title>
                         <Code fw={700}>{Program.version}</Code>
                     </Group>
-                    <Burger opened={opened} onClick={() => setOpened((o) => !o)} hiddenFrom="sm" size="sm" />
                 </Group>
-                <div style={{ display: opened ? "block" : undefined }}>{links}</div>
+                <div>{links}</div>
             </div>
             <div className={classes.footer}>
                 <NavLink
