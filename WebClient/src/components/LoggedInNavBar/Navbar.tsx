@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Group, Image, Indicator, NavLink, Title } from "@mantine/core";
+import { Code, Group, Image, Indicator, NavLink, Title, Burger } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
@@ -25,6 +25,7 @@ import classes from "./Navbar.module.css";
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
     const [notificationsQuantity, setNotificationsQuantity] = useState<number>(0);
+    const [opened, setOpened] = useState(false);
     const userCtx = useUser();
     const router = useRouter();
     const pathname = usePathname();
@@ -165,19 +166,26 @@ export const Navbar: React.FC = () => {
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
-                <Group className={classes.header} data-onboarding-tour-id="onboarding-navbar-header">
-                    <Image
-                        src="/assets/logos/BENTO.svg"
-                        alt="BENTO Logo"
-                        radius="md"
-                        h={70}
-                        w="auto"
-                        fit="contain"
-                    ></Image>
-                    <Title>{Program.name}</Title>
-                    <Code fw={700}>{Program.version}</Code>
+                <Group
+                    className={classes.header}
+                    justify="space-between"
+                    data-onboarding-tour-id="onboarding-navbar-header"
+                >
+                    <Group>
+                        <Image
+                            src="/assets/logos/BENTO.svg"
+                            alt="BENTO Logo"
+                            radius="md"
+                            h={70}
+                            w="auto"
+                            fit="contain"
+                        />
+                        <Title>{Program.name}</Title>
+                        <Code fw={700}>{Program.version}</Code>
+                    </Group>
+                    <Burger opened={opened} onClick={() => setOpened((o) => !o)} hiddenFrom="sm" size="sm" />
                 </Group>
-                {links}
+                <div style={{ display: opened ? "block" : undefined }}>{links}</div>
             </div>
             <div className={classes.footer}>
                 <NavLink
