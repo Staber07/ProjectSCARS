@@ -31,9 +31,11 @@ export function UserFilters({
     availableSchools,
     onFilterChange,
 }: UserFiltersProps) {
-    const handleFilterChange = (value: string | null, setter: (value: string | null) => void) => {
+    const handleFilter = (value: string | null, setter: (val: string | null) => void) => {
         setter(value);
-        onFilterChange();
+        requestAnimationFrame(() => {
+            onFilterChange();
+        });
     };
 
     return (
@@ -41,7 +43,7 @@ export function UserFilters({
             <Select
                 placeholder="Filter by Role"
                 value={roleFilter}
-                onChange={(value) => handleFilterChange(value, setRoleFilter)}
+                onChange={(value) => handleFilter(value, setRoleFilter)}
                 data={[
                     { value: "", label: "All Roles" },
                     ...availableRoles.map((role) => ({
@@ -55,7 +57,7 @@ export function UserFilters({
             <Select
                 placeholder="Filter by School"
                 value={schoolFilter}
-                onChange={(value) => handleFilterChange(value, setSchoolFilter)}
+                onChange={(value) => handleFilter(value, setSchoolFilter)}
                 data={[
                     { value: "", label: "All Schools" },
                     ...availableSchools.map((school) => ({
@@ -69,7 +71,7 @@ export function UserFilters({
             <Select
                 placeholder="Filter by Status"
                 value={statusFilter}
-                onChange={(value) => handleFilterChange(value, setStatusFilter)}
+                onChange={(value) => handleFilter(value, setStatusFilter)}
                 data={[
                     { value: "", label: "All Status" },
                     { value: "active", label: "Active" },
@@ -80,7 +82,7 @@ export function UserFilters({
             <Select
                 placeholder="Filter by Update Status"
                 value={updateFilter}
-                onChange={(value) => handleFilterChange(value, setUpdateFilter)}
+                onChange={(value) => handleFilter(value, setUpdateFilter)}
                 data={[
                     { value: "", label: "All Update Status" },
                     { value: "required", label: "Update Required" },

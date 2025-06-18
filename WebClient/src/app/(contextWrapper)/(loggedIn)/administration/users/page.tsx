@@ -82,6 +82,59 @@ export default function UsersPage(): JSX.Element {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [updateFilter, setUpdateFilter] = useState<string | null>(null);
 
+    const [allUsers, setAllUsers] = useState<UserPublicType[]>([]);
+
+    const applyFilters = (users: UserPublicType[]) => {
+        let filtered = [...users];
+
+        if (roleFilter) {
+            filtered = filtered.filter((user) => user.roleId.toString() === roleFilter);
+        }
+        if (schoolFilter) {
+            filtered = filtered.filter((user) => user.schoolId != null && user.schoolId.toString() === schoolFilter);
+        }
+        if (statusFilter) {
+            filtered = filtered.filter((user) =>
+                statusFilter === "deactivated" ? user.deactivated : !user.deactivated
+            );
+        }
+        if (updateFilter) {
+            filtered = filtered.filter((user) =>
+                updateFilter === "required" ? user.forceUpdateInfo : !user.forceUpdateInfo
+            );
+        }
+
+        return filtered;
+    };
+
+    const fetchUsers = async (page: number) => {
+        try {
+            const data = await GetAllUsers((page - 1) * userPerPage, userPerPage);
+            setAllUsers(data);
+            const filtered = applyFilters(data);
+
+            setUsers(filtered);
+            setTotalUsers(filtered.length);
+            setTotalPages(Math.ceil(filtered.length / userPerPage));
+            setCurrentPage(page);
+
+            setSelected(new Set());
+            setSelectedUser(null);
+            setSelectedUserIndex(null);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+            handleFetchError();
+        }
+    };
+
+    const handleFilterChange = () => {
+        const filtered = applyFilters(allUsers);
+        setUsers(filtered);
+        setTotalUsers(filtered.length);
+        setTotalPages(Math.ceil(filtered.length / userPerPage));
+        setCurrentPage(1);
+    };
+
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
             setSelected(new Set(users.map((_, idx) => idx)));
@@ -183,68 +236,61 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    const applyFilters = useCallback(
-        (users: UserPublicType[]) => {
-            let filtered = [...users];
+    const fetchFilteredUsers = async (page: number) => {
+        setCurrentPage(page);
+        const pageOffset = (page - 1) * userPerPage;
 
+        try {
+            const allUsers = await GetAllUsers(pageOffset, userPerPage);
+            let filteredUsers = [...allUsers];
+
+            // Apply filters
             if (roleFilter) {
-                filtered = filtered.filter((user) => user.roleId.toString() === roleFilter);
+                filteredUsers = filteredUsers.filter((user) => user.roleId.toString() === roleFilter);
             }
             if (schoolFilter) {
-                filtered = filtered.filter(
+                filteredUsers = filteredUsers.filter(
                     (user) => user.schoolId != null && user.schoolId.toString() === schoolFilter
                 );
             }
             if (statusFilter) {
-                filtered = filtered.filter((user) =>
+                filteredUsers = filteredUsers.filter((user) =>
                     statusFilter === "deactivated" ? user.deactivated : !user.deactivated
                 );
             }
             if (updateFilter) {
-                filtered = filtered.filter((user) =>
+                filteredUsers = filteredUsers.filter((user) =>
                     updateFilter === "required" ? user.forceUpdateInfo : !user.forceUpdateInfo
                 );
             }
 
-            return filtered;
-        },
-        [roleFilter, schoolFilter, statusFilter, updateFilter]
-    );
-
-    const fetchUsers = useCallback(
-        async (page: number, pageLimit: number = userPerPage) => {
-            setCurrentPage(page);
-            const pageOffset = (page - 1) * pageLimit;
+            setUsers(filteredUsers);
+            setTotalUsers(filteredUsers.length);
+            setTotalPages(Math.ceil(filteredUsers.length / userPerPage));
 
             // Reset selections
             setSelected(new Set());
             setSelectedUser(null);
             setSelectedUserIndex(null);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+            handleFetchError();
+        }
+    };
 
-            try {
-                const data = await GetAllUsers(pageOffset, pageLimit);
-                const filtered = applyFilters(data);
-
-                setUsers(filtered);
-                setTotalUsers(filtered.length);
-                setTotalPages(Math.ceil(filtered.length / pageLimit));
-            } catch (error) {
-                console.error("Failed to fetch users:", error);
-                if (!fetchUsersErrorShown) {
-                    setFetchUsersErrorShown(true);
-                    notifications.show({
-                        id: "fetch-users-error",
-                        title: "Failed to fetch users list",
-                        message: "Please try again later.",
-                        color: "red",
-                        icon: <IconUserExclamation />,
-                    });
-                    setUsers([]);
-                }
-            }
-        },
-        [userPerPage, applyFilters, fetchUsersErrorShown]
-    );
+    const handleFetchError = () => {
+        if (!fetchUsersErrorShown) {
+            setFetchUsersErrorShown(true);
+            notifications.show({
+                id: "fetch-users-error",
+                title: "Failed to fetch users list",
+                message: "Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+            setUsers([]);
+        }
+    };
 
     useEffect(() => {
         const fetchRoles = async () => {
@@ -343,7 +389,7 @@ export default function UsersPage(): JSX.Element {
                     setUpdateFilter={setUpdateFilter}
                     availableRoles={availableRoles}
                     availableSchools={availableSchools}
-                    onFilterChange={() => fetchUsers(1)}
+                    onFilterChange={handleFilterChange}
                 />
 
                 <Table highlightOnHover stickyHeader>
@@ -622,7 +668,7 @@ export default function UsersPage(): JSX.Element {
                 <Group justify="space-between" align="center" m="md">
                     <div></div>
                     <Stack align="center" justify="center" gap="sm">
-                        <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
+                        <Pagination value={currentPage} onChange={fetchFilteredUsers} total={totalPages} mt="md" />
                         <Text size="sm" c="dimmed">
                             {totalUsers > 0
                                 ? `${(currentPage - 1) * userPerPage + 1}-${Math.min(
@@ -640,7 +686,7 @@ export default function UsersPage(): JSX.Element {
                                 const newUserPerPage = parseInt(value);
                                 setUserPerPage(newUserPerPage);
                                 // Reset to page 1 and fetch users with new page size
-                                await fetchUsers(1, newUserPerPage);
+                                await fetchFilteredUsers(1);
                             }
                         }}
                         data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
@@ -657,7 +703,7 @@ export default function UsersPage(): JSX.Element {
                         availableRoles={availableRoles}
                         currentPage={currentPage}
                         setIndex={setSelectedUserIndex}
-                        fetchUsers={fetchUsers}
+                        fetchUsers={fetchFilteredUsers}
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
                         fetchUserAvatar={fetchUserAvatar}
@@ -667,7 +713,7 @@ export default function UsersPage(): JSX.Element {
                     <CreateUserComponent
                         modalOpen={openCreateUserModal}
                         setModalOpen={setOpenCreateUserModal}
-                        fetchUsers={fetchUsers}
+                        fetchUsers={fetchFilteredUsers}
                         currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
