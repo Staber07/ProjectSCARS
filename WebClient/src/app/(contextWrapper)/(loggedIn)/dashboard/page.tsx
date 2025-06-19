@@ -40,7 +40,7 @@ const DashboardContent = memo(function DashboardContent() {
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
-        () => localStorage.getItem("setupCompleteDismissed") === "true"
+        () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
     );
     const [isLoading, setIsLoading] = useState(true);
     const [isNotificationLoading, setIsNotificationLoading] = useState(true);
@@ -223,7 +223,9 @@ const DashboardContent = memo(function DashboardContent() {
                             ta="right"
                             style={{ cursor: "pointer" }}
                             onClick={() => {
-                                localStorage.setItem("setupCompleteDismissed", "true");
+                                if (typeof window !== "undefined") {
+                                    localStorage.setItem("setupCompleteDismissed", "true");
+                                }
                                 setSetupCompleteDismissed(true);
                             }}
                         >
