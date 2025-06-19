@@ -1,5 +1,7 @@
 "use client";
 
+import { HomeSection } from "@/components/Dashboard/HomeSection";
+import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import { GetUserInfo } from "@/lib/api/auth";
@@ -24,9 +26,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, memo, useEffect, useState, useCallback } from "react";
-import { HomeSection } from "@/components/Dashboard/HomeSection";
-import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
+import React, { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -110,7 +110,7 @@ const DashboardContent = memo(function DashboardContent() {
         return () => {
             mounted = false;
         };
-    }, [userCtx.userInfo]);
+    }, [userCtx.userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const calculateSteps = useCallback(() => {
         if (!userCtx.userInfo) return;
