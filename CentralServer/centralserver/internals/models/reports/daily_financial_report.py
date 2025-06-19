@@ -22,7 +22,7 @@ class DailyFinancialReport(SQLModel, table=True):
         index=True,
         foreign_key="monthlyReports.id",
     )
-    reportStatus: ReportStatus = Field(
+    reportStatus: ReportStatus | None = Field(
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
