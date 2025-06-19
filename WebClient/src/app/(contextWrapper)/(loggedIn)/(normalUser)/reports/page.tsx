@@ -19,7 +19,6 @@ import {
     Select,
     Stack,
     Table,
-    Tabs,
     Text,
     TextInput,
 } from "@mantine/core";
@@ -50,7 +49,6 @@ export default function ReportsPage() {
     const [selectedReports, setSelectedReports] = useState<Date[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
-    const [activeTab, setActiveTab] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReportType[]>([]);
     const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, SchoolType>>({});

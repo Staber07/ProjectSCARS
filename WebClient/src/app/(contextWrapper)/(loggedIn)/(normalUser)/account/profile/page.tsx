@@ -3,7 +3,6 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { GetAllRoles, OAuthGoogleUnlink, VerifyUserEmail } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
-import { UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { UserPublicType } from "@/lib/types";
@@ -70,7 +69,7 @@ interface UserPreferences {
 }
 
 function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
-    const userCtx = useUser();
+    // const userCtx = useUser();
     const searchParams = useSearchParams();
     const [opened, { open, close }] = useDisclosure(false);
     const [buttonLoading, setButtonLoading] = useState(false);
@@ -97,7 +96,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     useEffect(() => {
         async function fetchData() {
             const roles = await GetAllRoles();
-            const schools = await GetAllSchools(0, 99);
+            const schools = await GetAllSchools(0, 999);
             setAvailableRoles(
                 roles.map((role) => ({
                     value: role.id.toString(),
@@ -128,26 +127,28 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             }
         }
         fetchData();
-    }, [userInfo]);
+    }, [userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     console.debug("Profile form initialized with values:", form.values);
-    const uploadAvatar = async (file: File | null) => {
-        if (file === null) {
-            console.debug("No file selected, skipping upload...");
-            return;
-        }
-        if (userInfo === null) {
-            console.error("User info is null, cannot upload avatar.");
-            return;
-        }
-        console.debug("Uploading avatar...");
-        const updatedUserInfo = await UploadUserAvatar(userInfo.id, file);
-        userCtx.updateUserInfo(updatedUserInfo, userPermissions, file);
-        console.debug("Avatar uploaded successfully.");
-    };
+    // const uploadAvatar = async (file: File | null) => {
+    //     if (file === null) {
+    //         console.debug("No file selected, skipping upload...");
+    //         return;
+    //     }
+    //     if (userInfo === null) {
+    //         console.error("User info is null, cannot upload avatar.");
+    //         return;
+    //     }
+    //     console.debug("Uploading avatar...");
+    //     const updatedUserInfo = await UploadUserAvatar(userInfo.id, file);
+    //     userCtx.updateUserInfo(updatedUserInfo, userPermissions, file);
+    //     console.debug("Avatar uploaded successfully.");
+    // };
 
     const handleSave = async (values: EditProfileValues) => {
+        setButtonLoading(true);
         console.debug("Saving profile changes...", values);
+        setButtonLoading(false);
     };
 
     const handleProfileEdit = () => {

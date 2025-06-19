@@ -1,19 +1,19 @@
 "use client";
 
 import {
+    Accordion,
     Container,
     Group,
+    MultiSelect,
+    NumberInput,
     Paper,
+    PasswordInput,
     Stack,
     Switch,
     Text,
     TextInput,
     ThemeIcon,
     Title,
-    Accordion,
-    NumberInput,
-    PasswordInput,
-    MultiSelect,
 } from "@mantine/core";
 import { useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -45,7 +45,7 @@ export default function SettingsPage() {
         }
     }, [settings]);
 
-    const handleSettingChange = (key: keyof WebsiteSettings, value: any) => {
+    const handleSettingChange = (key: keyof WebsiteSettings, value: string | boolean) => {
         setSettings((prev) => ({ ...prev, [key]: value }));
 
         notifications.show({

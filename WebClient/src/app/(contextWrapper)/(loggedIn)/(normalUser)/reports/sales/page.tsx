@@ -146,6 +146,12 @@ function SalesandPurchasesContent() {
 
     const totals = calculateTotals();
 
+    const handleSubmit = () => {
+        // TODO: Placeholder for submit logic
+        console.log("Submit clicked");
+        handleClose();
+    };
+
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
@@ -363,7 +369,7 @@ function SalesandPurchasesContent() {
                     <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
                         Cancel
                     </Button>
-                    <SplitButton>Submit</SplitButton>
+                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
                 </Group>
 
                 {/* Edit Modal */}

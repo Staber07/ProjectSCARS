@@ -314,7 +314,7 @@ export default function UsersPage(): JSX.Element {
                 });
         };
         const fetchSchools = async () => {
-            await GetAllSchools(0, 99)
+            await GetAllSchools(0, 999)
                 .then((data) => {
                     setAvailableSchools(data);
                 })

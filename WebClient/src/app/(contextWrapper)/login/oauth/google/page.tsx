@@ -11,9 +11,9 @@ import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconX } from "@tabler/icons-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
-export default function OAuthGooglePage() {
+function OAuthGoogleContent() {
     const authCtx = useAuth();
     const userCtx = useUser();
     const router = useRouter();
@@ -135,5 +135,13 @@ export default function OAuthGooglePage() {
                 />
             )}
         </>
+    );
+}
+
+export default function OAuthGooglePage() {
+    return (
+        <Suspense fallback={<LoadingComponent withBorder={false} />}>
+            <OAuthGoogleContent />
+        </Suspense>
     );
 }
