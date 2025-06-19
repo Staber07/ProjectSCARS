@@ -1,0 +1,40 @@
+services:
+    centralserver:
+        build:
+            context: ./CentralServer
+            dockerfile: Dockerfile
+        ports:
+            - "8081:8081"
+        environment:
+            # Add any required environment variables here
+            - CENTRAL_SERVER_CONFIG_FILE=config.json
+        volumes:
+            - project_scars-centralserver:/app
+            - ./CentralServer/config.json:/app/config.json:ro
+        restart: unless-stopped
+
+    webclient:
+        build:
+            context: ./WebClient
+            dockerfile: Dockerfile
+        ports:
+            - "8080:8080"
+        environment:
+            - NODE_ENV=production
+            # Add any required environment variables here
+        volumes:
+            - project_scars-webclient:/app
+        restart: unless-stopped
+        depends_on:
+            - centralserver
+
+volumes:
+    project_scars-centralserver:
+        driver: local
+    project_scars-webclient:
+        driver: local
+
+networks:
+    default:
+        driver: bridge
+        name: project_scars_network
