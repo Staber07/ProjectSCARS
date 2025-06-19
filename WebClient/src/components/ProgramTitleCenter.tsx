@@ -2,12 +2,12 @@
 
 import { Program } from "@/lib/info";
 import { Flex, Image, Text, Title } from "@mantine/core";
-import { AnimationControls, motion } from "motion/react";
+import { animationControls, motion } from "motion/react";
 import Link from "next/link";
 
 interface ProgramTitleCenterProps {
     classes: { readonly [key: string]: string };
-    logoControls: AnimationControls;
+    logoControls: ReturnType<typeof animationControls>;
 }
 
 /**
