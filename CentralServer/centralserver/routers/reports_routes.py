@@ -28,7 +28,7 @@ router = APIRouter(
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.get("/monthly/all")
+@router.get("/monthly")
 async def get_all_monthly_reports(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],

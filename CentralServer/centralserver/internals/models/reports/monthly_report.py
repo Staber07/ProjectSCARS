@@ -1,5 +1,4 @@
 import datetime
-from enum import Enum
 
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -31,15 +30,7 @@ from centralserver.internals.models.reports.lr_school_operation_fund import (
 from centralserver.internals.models.reports.lr_supplementary_feeding_fund import (
     LiquidationReportSupplementaryFeedingFund,
 )
-
-
-class ReportStatus(Enum):
-    DRAFT = "draft"
-    REVIEW = "review"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-    RECEIVED = "received"
-    ARCHIVED = "archived"
+from centralserver.internals.models.reports.report_status import ReportStatus
 
 
 class MonthlyReport(SQLModel, table=True):

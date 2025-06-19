@@ -2,9 +2,10 @@
 
 import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
+import { UserFilters } from "@/components/UserManagement/UserFilters";
 import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
-import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
+import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
@@ -49,8 +50,7 @@ import {
     IconX,
 } from "@tabler/icons-react";
 import { motion } from "motion/react";
-import { JSX, useCallback, useEffect, useState } from "react";
-import { UserFilters } from "@/components/UserManagement/UserFilters";
+import { JSX, useEffect, useState } from "react";
 
 const userPerPageOptions: number[] = [10, 25, 50, 100];
 
@@ -314,7 +314,7 @@ export default function UsersPage(): JSX.Element {
                 });
         };
         const fetchSchools = async () => {
-            await GetAllSchools(0, 99)
+            await GetAllSchools(0, 999)
                 .then((data) => {
                     setAvailableSchools(data);
                 })

@@ -1,5 +1,7 @@
 "use client";
 
+import { HomeSection } from "@/components/Dashboard/HomeSection";
+import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import { GetUserInfo } from "@/lib/api/auth";
@@ -24,9 +26,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, memo, useEffect, useState, useCallback } from "react";
-import { HomeSection } from "@/components/Dashboard/HomeSection";
-import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
+import React, { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -40,7 +40,7 @@ const DashboardContent = memo(function DashboardContent() {
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
-        () => localStorage.getItem("setupCompleteDismissed") === "true"
+        () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
     );
     const [isLoading, setIsLoading] = useState(true);
     const [isNotificationLoading, setIsNotificationLoading] = useState(true);
@@ -110,7 +110,7 @@ const DashboardContent = memo(function DashboardContent() {
         return () => {
             mounted = false;
         };
-    }, [userCtx.userInfo]);
+    }, [userCtx.userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const calculateSteps = useCallback(() => {
         if (!userCtx.userInfo) return;
@@ -223,7 +223,9 @@ const DashboardContent = memo(function DashboardContent() {
                             ta="right"
                             style={{ cursor: "pointer" }}
                             onClick={() => {
-                                localStorage.setItem("setupCompleteDismissed", "true");
+                                if (typeof window !== "undefined") {
+                                    localStorage.setItem("setupCompleteDismissed", "true");
+                                }
                                 setSetupCompleteDismissed(true);
                             }}
                         >
