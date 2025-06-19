@@ -287,12 +287,12 @@ async def patch_school_logo(
     return await update_school_logo(school_id, img, session)
 
 
-@router.delete("/logo", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/logo", status_code=status.HTTP_200_OK)
 async def delete_school_logo(
     school_id: int,
     token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
     session: Annotated[Session, Depends(get_db_session)],
-) -> None:
+) -> School:
     """Delete the school's logo image."""
 
     logged_in_user = await get_user(token.id, session=session, by_id=True)
@@ -317,7 +317,8 @@ async def delete_school_logo(
         )
 
     try:
-        await update_school_logo(school_id, None, session)
+        updated_school = await update_school_logo(school_id, None, session)
+        return updated_school
 
     except S3Error as e:
         logger.error("Error deleting school logo: %s", e)
