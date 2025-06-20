@@ -150,9 +150,9 @@ export default function SchoolsPage(): JSX.Element {
                 }
                 return undefined;
             });
-
         return undefined;
     };
+
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool) {
@@ -488,7 +488,7 @@ export default function SchoolsPage(): JSX.Element {
                             <Tooltip
                                 label={
                                     school.lastModified
-                                        ? dayjs(school.dateCreated).format("YYYY-MM-DD HH:mm:ss")
+                                        ? dayjs(school.lastModified).format("YYYY-MM-DD HH:mm:ss")
                                         : "N/A"
                                 }
                             >

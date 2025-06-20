@@ -287,7 +287,7 @@ async def patch_school_logo(
     return await update_school_logo(school_id, img, session)
 
 
-@router.delete("/logo", status_code=status.HTTP_200_OK)
+@router.delete("/logo", response_model=School)
 async def delete_school_logo(
     school_id: int,
     token: Annotated[DecodedJWTToken, Depends(verify_access_token)],
