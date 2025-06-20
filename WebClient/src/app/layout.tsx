@@ -3,10 +3,9 @@ import { ReactScan } from "@/components/dev/ReactScan";
 
 import { Program } from "@/lib/info";
 import { theme } from "@/lib/theme";
-import { ColorSchemeScript, MantineProvider } from "@mantine/core";
+import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
-import Head from "next/head";
 
 import "@gfazioli/mantine-onboarding-tour/styles.css";
 import "@mantine/core/styles.css";
@@ -31,44 +30,43 @@ interface RootLayoutProps {
 export default function RootLayout({ children }: RootLayoutProps) {
     console.debug("Rendering RootLayout");
     return (
-        <html lang="en">
-            <ReactScan />
-            <Head>
-                <style>{`
-                    :root[data-mantine-color-scheme="dark"] {
-                        background-color: #1A1B1E !important;
-                        color: #C1C2C5 !important;
-                    }
-                `}</style>
-                <script>{`
-                    (function() {
-                        function setTheme(darkMode) {
-                            document.documentElement.setAttribute('data-mantine-color-scheme', darkMode ? 'dark' : 'light');
-                            document.documentElement.style.backgroundColor = darkMode ? '#1A1B1E' : '#FFFFFF';
-                            document.documentElement.style.color = darkMode ? '#C1C2C5' : '#1A1B1E';
-                        }
+        // Use mantineHtmlProps to handle the data-mantine-color-scheme attribute
+        // and suppress hydration warnings for the <html> element.
+        <html lang="en" {...mantineHtmlProps}>
+            <head>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            (function() {
+                                // Default to light mode if nothing is found or an error occurs
+                                let initialColorScheme = 'light';
+                                try {
+                                    const stored = localStorage.getItem('user-preferences');
+                                    if (stored) {
+                                        const { darkMode } = JSON.parse(stored);
+                                        initialColorScheme = darkMode ? 'dark' : 'light';
+                                    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                                        // Fallback to system preference if no user preference is stored
+                                        initialColorScheme = 'dark';
+                                    }
+                                } catch (e) {
+                                    console.error('Failed to read theme from localStorage:', e);
+                                }
 
-                        // Block rendering until theme is set
-                        document.documentElement.style.display = 'none';
-
-                        try {
-                            const stored = localStorage.getItem('user-preferences');
-                            if (stored) {
-                                const { darkMode } = JSON.parse(stored);
-                                setTheme(darkMode);
-                            }
-                        } catch (e) {
-                            console.error('Failed to set theme:', e);
-                        }
-
-                        // Unblock rendering
-                        document.documentElement.style.display = '';
-                    })();
-                `}</script>
+                                // Apply initial background/text color directly to html element
+                                // This prevents a white flash before Mantine's CSS loads
+                                document.documentElement.style.backgroundColor = initialColorScheme === 'dark' ? '#1A1B1E' : '#FFFFFF';
+                                document.documentElement.style.color = initialColorScheme === 'dark' ? '#C1C2C5' : '#1A1B1E';
+                                document.documentElement.setAttribute('data-mantine-color-scheme', initialColorScheme);
+                            })();
+                        `,
+                    }}
+                />
                 <ColorSchemeScript />
-            </Head>
+            </head>
             <body>
-                <MantineProvider theme={theme} defaultColorScheme="light">
+                <ReactScan />
+                <MantineProvider theme={theme} defaultColorScheme="auto">
                     {children}
                     <Notifications limit={5} autoClose={5000} />
                 </MantineProvider>

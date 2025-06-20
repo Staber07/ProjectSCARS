@@ -7,6 +7,7 @@ import {
     GetSchoolQuantity,
     UpdateSchoolInfo,
     UploadSchoolLogo,
+    RemoveSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import { SchoolType, SchoolUpdateType } from "@/lib/types";
@@ -73,6 +74,7 @@ export default function SchoolsPage(): JSX.Element {
     const [editSchool, setEditSchool] = useState<SchoolType | null>(null);
     const [editSchoolLogo, setEditSchoolLogo] = useState<File | null>(null);
     const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(null);
+    const [logoToRemove, setLogoToRemove] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
     const [currentPage, setCurrentPage] = useState(1);
@@ -90,6 +92,7 @@ export default function SchoolsPage(): JSX.Element {
     const handleEdit = (index: number, school: SchoolType) => {
         setEditIndex(index);
         setEditSchool(school);
+        setLogoToRemove(false);
         if (school.logoUrn) {
             const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
@@ -115,22 +118,41 @@ export default function SchoolsPage(): JSX.Element {
         setLogosRequested((prev) => new Set(prev).add(logoUrn));
         GetSchooLogo(logoUrn, schoolId)
             .then((blob) => {
-                const url = URL.createObjectURL(blob);
-                setLogos((prev) => new Map(prev).set(logoUrn, url));
-                return url;
+                if (blob.size > 0) {
+                    const url = URL.createObjectURL(blob);
+                    setLogos((prev) => new Map(prev).set(logoUrn, url));
+                    return url;
+                } else {
+                    console.debug("Logo file is empty, removing from cache");
+                    setLogosRequested((prev) => {
+                        const newSet = new Set(prev);
+                        newSet.delete(logoUrn);
+                        return newSet;
+                    });
+                    return undefined;
+                }
             })
             .catch((error) => {
                 console.error("Failed to fetch school logo:", error);
-                notifications.show({
-                    id: "fetch-school-logo-error",
-                    title: "Error",
-                    message: "Failed to fetch school logo.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
+                setLogosRequested((prev) => {
+                    const newSet = new Set(prev);
+                    newSet.delete(logoUrn);
+                    return newSet;
                 });
+                if (!error.message.includes("404")) {
+                    notifications.show({
+                        id: "fetch-school-logo-error",
+                        title: "Error",
+                        message: "Failed to fetch school logo.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                }
                 return undefined;
             });
+        return undefined;
     };
+
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool) {
@@ -143,46 +165,94 @@ export default function SchoolsPage(): JSX.Element {
                 website: editSchool.website,
                 logoUrn: editSchool.logoUrn,
             };
-            UpdateSchoolInfo(newSchoolInfo)
-                .then(() => {
-                    notifications.show({
-                        id: "school-update-success",
-                        title: "Success",
-                        message: "School information updated successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
-                    // Update the school in the list
-                    setSchools((prevSchools) => {
-                        const updatedSchools = [...prevSchools];
-                        updatedSchools[editIndex] = editSchool;
-                        return updatedSchools;
-                    });
-                })
-                .catch((error) => {
-                    console.error("Failed to update school:", error);
-                    notifications.show({
-                        id: "school-update-error",
-                        title: "Error",
-                        message: "Failed to update school information. Please try again later.",
-                        color: "red",
-                        icon: <IconSendOff />,
-                    });
-                });
-            if (editSchoolLogo) {
-                console.debug("Uploading logo...");
-                const updatedSchoolInfo = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
-                if (updatedSchoolInfo.logoUrn) {
-                    fetchSchoolLogo(updatedSchoolInfo.logoUrn, editSchool.id);
+            try {
+                // update school info first
+                await UpdateSchoolInfo(newSchoolInfo);
+                let updatedSchool = { ...editSchool };
+                // logo removal
+                if (logoToRemove && editSchool.logoUrn) {
+                    console.debug("Removing logo...");
+                    try {
+                        const schoolAfterLogoRemoval = await RemoveSchoolLogo(editSchool.id);
+                        if (schoolAfterLogoRemoval) {
+                            updatedSchool = schoolAfterLogoRemoval;
+                        }
+                        setLogos((prev) => {
+                            const newLogos = new Map(prev);
+                            newLogos.delete(editSchool.logoUrn!);
+                            return newLogos;
+                        });
+                        setLogosRequested((prev) => {
+                            const newSet = new Set(prev);
+                            newSet.delete(editSchool.logoUrn!);
+                            return newSet;
+                        });
+                        console.debug("Logo removed successfully.");
+                    } catch (error) {
+                        console.error("Failed to remove school logo:", error);
+                        notifications.show({
+                            id: "remove-logo-error",
+                            title: "Error",
+                            message: "Failed to remove school logo. Please try again.",
+                            color: "red",
+                            icon: <IconUserExclamation />,
+                        });
+                        buttonStateHandler.close();
+                        return;
+                    }
                 }
-                console.debug("Logo uploaded successfully.");
+                // logo upload
+                else if (editSchoolLogo) {
+                    console.debug("Uploading logo...");
+                    try {
+                        const schoolAfterLogoUpload = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
+                        updatedSchool = schoolAfterLogoUpload;
+                        if (schoolAfterLogoUpload.logoUrn) {
+                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn, editSchool.id);
+                        }
+                        console.debug("Logo uploaded successfully.");
+                    } catch (error) {
+                        console.error("Failed to upload school logo:", error);
+                        notifications.show({
+                            id: "upload-logo-error",
+                            title: "Error",
+                            message: "Failed to upload school logo. Please try again.",
+                            color: "red",
+                            icon: <IconUserExclamation />,
+                        });
+                    }
+                }
+                // Update the school in the list
+                setSchools((prevSchools) => {
+                    const updatedSchools = [...prevSchools];
+                    updatedSchools[editIndex] = updatedSchool;
+                    return updatedSchools;
+                });
+                notifications.show({
+                    id: "school-update-success",
+                    title: "Success",
+                    message: "School information updated successfully.",
+                    color: "green",
+                    icon: <IconPencilCheck />,
+                });
+            } catch (error) {
+                console.error("Failed to update school:", error);
+                notifications.show({
+                    id: "school-update-error",
+                    title: "Error",
+                    message: "Failed to update school information. Please try again later.",
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+            } finally {
+                setEditIndex(null);
+                setEditSchool(null);
+                setEditSchoolLogo(null);
+                setEditSchoolLogoUrl(null);
+                setLogoToRemove(false);
+                buttonStateHandler.close();
+                fetchSchools(currentPage);
             }
-
-            setEditIndex(null);
-            setEditSchool(null);
-            setEditSchoolLogo(null);
-            fetchSchools(currentPage);
-            buttonStateHandler.close();
         }
     };
 
@@ -200,6 +270,15 @@ export default function SchoolsPage(): JSX.Element {
         });
     };
 
+    const removeLogo = () => {
+        if (editSchoolLogoUrl) {
+            URL.revokeObjectURL(editSchoolLogoUrl);
+        }
+        setEditSchoolLogo(null);
+        setEditSchoolLogoUrl(null);
+        setLogoToRemove(true);
+    };
+
     const fetchSchools = async (page: number, pageLimit: number = schoolPerPage) => {
         setCurrentPage(page);
         const pageOffset = (page - 1) * pageLimit;
@@ -207,37 +286,36 @@ export default function SchoolsPage(): JSX.Element {
         // deselect all schools when fetching new page
         setSelected(new Set());
 
-        GetSchoolQuantity()
-            .then((quantity) => {
-                setTotalSchools(quantity);
-                setTotalPages(Math.ceil(quantity / pageLimit));
-            })
-            .catch((error) => {
-                console.error("Failed to fetch school quantity:", error);
-                notifications.show({
-                    id: "fetch-school-quantity-error",
-                    title: "Error",
-                    message: "Failed to fetch school quantity. Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-                setTotalPages(1); // Default to 1 page if fetching fails
+        try {
+            const quantity = await GetSchoolQuantity();
+            setTotalSchools(quantity);
+            setTotalPages(Math.ceil(quantity / pageLimit));
+        } catch (error) {
+            console.error("Failed to fetch school quantity:", error);
+            notifications.show({
+                id: "fetch-school-quantity-error",
+                title: "Error",
+                message: "Failed to fetch school quantity. Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
             });
-        await GetAllSchools(pageOffset, pageLimit)
-            .then((data) => {
-                setSchools(data);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch schools:", error);
-                notifications.show({
-                    id: "fetch-schools-error",
-                    title: "Failed to fetch schools list",
-                    message: "Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-                setSchools([]);
+            setTotalPages(1); // Default to 1 page if fetching fails
+        }
+
+        try {
+            const data = await GetAllSchools(pageOffset, pageLimit);
+            setSchools(data);
+        } catch (error) {
+            console.error("Failed to fetch schools:", error);
+            notifications.show({
+                id: "fetch-schools-error",
+                title: "Failed to fetch schools list",
+                message: "Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
             });
+            setSchools([]);
+        }
     };
 
     //Function to handle school creation
@@ -410,7 +488,7 @@ export default function SchoolsPage(): JSX.Element {
                             <Tooltip
                                 label={
                                     school.lastModified
-                                        ? dayjs(school.dateCreated).format("YYYY-MM-DD HH:mm:ss")
+                                        ? dayjs(school.lastModified).format("YYYY-MM-DD HH:mm:ss")
                                         : "N/A"
                                 }
                             >
@@ -530,16 +608,8 @@ export default function SchoolsPage(): JSX.Element {
                                 </FileButton>
                             </Card>
                         </Center>
-                        {editSchoolLogo && (
-                            <Button
-                                variant="outline"
-                                color="red"
-                                mt="md"
-                                onClick={() => {
-                                    setEditSchoolLogo(null);
-                                    setEditSchoolLogoUrl(null);
-                                }}
-                            >
+                        {(editSchoolLogo || editSchoolLogoUrl) && (
+                            <Button variant="outline" color="red" mt="md" onClick={removeLogo}>
                                 Remove School Logo
                             </Button>
                         )}

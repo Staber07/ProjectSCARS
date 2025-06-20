@@ -71,6 +71,21 @@ export async function UploadSchoolLogo(schoolId: number, file: File): Promise<Sc
     return updatedSchoolData;
 }
 
+export async function RemoveSchoolLogo(schoolId: number): Promise<SchoolType> {
+    const centralServerResponse = await ky.delete(`${endpoint}/schools/logo`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        searchParams: { school_id: schoolId },
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to remove school logo: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+
+    const updatedSchoolData: SchoolType = await centralServerResponse.json();
+    return updatedSchoolData;
+}
+
 export async function GetSchoolQuantity(): Promise<number> {
     const centralServerResponse = await ky.get(`${endpoint}/schools/quantity`, {
         headers: { Authorization: GetAccessTokenHeader() },
