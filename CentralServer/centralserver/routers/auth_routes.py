@@ -503,22 +503,34 @@ async def get_all_roles(
 
 @router.post("/mfa/otp/generate")
 async def generate_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP generation is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/verify")
 async def verify_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP verification is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/validate")
 async def validate_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP validation is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/disable")
 async def disable_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP disabling is not implemented yet.",
+    )
 
 
 @router.get("/oauth/google/login")

@@ -350,6 +350,9 @@ class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
         }
 
 
+###### OAuth Adapter Configurations #####
+
+
 class OAuthAdapterConfig(ABC):
     """Superclass for OAuth adapter configurations."""
 

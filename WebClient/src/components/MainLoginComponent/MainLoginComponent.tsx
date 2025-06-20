@@ -231,7 +231,7 @@ export function MainLoginComponent(): React.ReactElement {
                                 fit="contain"
                             />
                         </Button>
-                        <Button variant="light">
+                        {/* <Button variant="light">
                             <Image
                                 src="/assets/logos/facebook.svg"
                                 alt="Log In with Facebook"
@@ -240,7 +240,7 @@ export function MainLoginComponent(): React.ReactElement {
                                 radius="sm"
                                 fit="contain"
                             />
-                        </Button>
+                        </Button> */}
                     </Group>
                 </form>
             </Paper>

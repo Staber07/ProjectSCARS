@@ -18,7 +18,7 @@ export type UserPublicType = {
     deactivated: boolean;
     finishedTutorials: string;
     oauthLinkedGoogleId?: string | null;
-    oauthLinkedFacebookId?: string | null;
+    // oauthLinkedFacebookId?: string | null;
     oauthLinkedMicrosoftId?: string | null;
     forceUpdateInfo: boolean;
     emailVerified: boolean;
