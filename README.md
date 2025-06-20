@@ -66,9 +66,17 @@ To deploy the system in production mode, follow the steps below:
    cd ./ProjectSCARS
    ```
 
-3. Build the images and deploy the stack.
+3. Create a configuration file for production use and edit it with the proper values.
 
    ```bash
+   cp ./CentralServer/.config.example.json ./CentralServer/config.prod.json
+   notepad ./CentralServer/config.prod.json  # Or open and edit it with your preferred text editor
+   ```
+
+4. Build the images and deploy the stack.
+
+   ```bash
+   # The commands below will build the images and then run the compose stack.
    podman compose up -d --build # If you are using Podman
    docker compose up -d --build # If you are using Docker
    ```
