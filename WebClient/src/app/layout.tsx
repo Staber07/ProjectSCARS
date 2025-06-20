@@ -35,6 +35,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
         <html lang="en" {...mantineHtmlProps}>
             <head>
                 <script
+                    suppressHydrationWarning
                     dangerouslySetInnerHTML={{
                         __html: `
                             (function() {
@@ -53,10 +54,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
                                     console.error('Failed to read theme from localStorage:', e);
                                 }
 
-                                // Apply initial background/text color directly to html element
+                                // Apply initial background/text color using Mantine color scheme variables
                                 // This prevents a white flash before Mantine's CSS loads
-                                document.documentElement.style.backgroundColor = initialColorScheme === 'dark' ? '#1A1B1E' : '#FFFFFF';
-                                document.documentElement.style.color = initialColorScheme === 'dark' ? '#C1C2C5' : '#1A1B1E';
+                                document.documentElement.style.backgroundColor = initialColorScheme === 'dark' ? 'var(--mantine-color-dark)' : 'var(--mantine-color-light)';
+                                document.documentElement.style.color = initialColorScheme === 'dark' ? 'var(--mantine-color-dark-text)' : 'var(--mantine-color-default-color)';
                                 document.documentElement.setAttribute('data-mantine-color-scheme', initialColorScheme);
                             })();
                         `,
