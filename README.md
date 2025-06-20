@@ -49,6 +49,30 @@ the Philippines.
     </p>
 </details>
 
+## Deployment
+
+Bento provides a `compose.yml` file for [Docker](https://www.docker.com/) or [Podman](https://podman.io/).
+To deploy the system in production mode, follow the steps below:
+
+1. Clone the repository.
+
+   ```bash
+   git clone https://github.com/Chris1320/ProjectSCARS.git
+   ```
+
+2. Navigate to the repository directory.
+
+   ```bash
+   cd ./ProjectSCARS
+   ```
+
+3. Build the images and deploy the stack.
+
+   ```bash
+   podman compose up -d --build # If you are using Podman
+   docker compose up -d --build # If you are using Docker
+   ```
+
 ## Development
 
 ### Stacks
