@@ -13,4 +13,4 @@ RUN uv sync --no-dev --locked
 EXPOSE 8081
 
 # Start the server
-CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8081"]
+CMD ["uv", "run", "uvicorn", "centralserver:app", "--host", "0.0.0.0", "--port", "8081"]
