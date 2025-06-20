@@ -6,7 +6,9 @@ services:
         ports:
             - "8081:8081"
         volumes:
-            - project_scars-centralserver:/app
+            - project_scars-centralserver-data:/app/data
+            - project_scars-centralserver-db:/app/db
+            - project_scars-centralserver-logs:/app/logs
             - ./CentralServer/config.prod.json:/app/config.json:ro
         restart: unless-stopped
 
@@ -21,7 +23,11 @@ services:
             - centralserver
 
 volumes:
-    project_scars-centralserver:
+    project_scars-centralserver-data:
+        driver: local
+    project_scars-centralserver-db:
+        driver: local
+    project_scars-centralserver-logs:
         driver: local
 
 networks:

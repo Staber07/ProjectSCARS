@@ -1,14 +1,16 @@
 FROM python:3.13-slim
+COPY --from=ghcr.io/astral-sh/uv@sha256:6c1e19020ec221986a210027040044a5df8de762eb36d5240e382bc41d7a9043 /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv@sha256:6c1e19020ec221986a210027040044a5df8de762eb36d5240e382bc41d7a9043 /uv /uvx /bin/
+COPY ./centralserver ./centralserver
+COPY ./templates ./templates
+COPY ./pyproject.toml ./pyproject.toml
+COPY ./uv.lock ./uv.lock
 
-COPY ./centralserver ./
-COPY ./templates ./
-COPY ./pyproject.toml ./
-COPY ./uv.lock ./
-RUN uv sync --no-dev --locked
+RUN mkdir -p ./{db,logs}
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
 EXPOSE 8081
 

@@ -25,4 +25,5 @@ COPY --from=builder /app/.next/static /app/standalone/.next/static
 EXPOSE 8080
 
 # Start the web client
+ENV PORT=8080
 CMD ["node", "./standalone/server.js"]

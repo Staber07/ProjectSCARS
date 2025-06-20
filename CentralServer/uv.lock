@@ -102,6 +102,7 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "sqlmodel" },
     { name = "types-pillow" },
+    { name = "uvicorn" },
 ]
 
 [package.dev-dependencies]
@@ -130,6 +131,7 @@ requires-dist = [
     { name = "sqlalchemy", specifier = ">=2.0.40" },
     { name = "sqlmodel", specifier = ">=0.0.24" },
     { name = "types-pillow", specifier = ">=10.2.0.20240822" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
 [package.metadata.requires-dev]
