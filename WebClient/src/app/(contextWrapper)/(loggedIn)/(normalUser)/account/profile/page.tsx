@@ -128,43 +128,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         }
     };
 
-    const setAvatar = async (file: File | null) => {
-        if (file === null) {
-            console.debug("No file selected, skipping upload...");
-            return;
-        }
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (fileSizeMB > userAvatarConfig.MAX_FILE_SIZE_MB) {
-            notifications.show({
-                id: "file-too-large",
-                title: "File Too Large",
-                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 2 MB limit.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-        if (!userAvatarConfig.ALLOWED_FILE_TYPES.includes(file.type)) {
-            notifications.show({
-                id: "invalid-file-type",
-                title: "Invalid File Type",
-                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            return;
-        }
-
-        setAvatarRemoved(false);
-        setEditUserAvatar(file);
-        setEditUserAvatarUrl((prevUrl) => {
-            if (prevUrl && !currentAvatarUrn) {
-                URL.revokeObjectURL(prevUrl); // Clean up previous URL
-            }
-            return URL.createObjectURL(file); // Create a new URL for the selected file
-        });
-    };
-
     const handlePreferenceChange = (key: keyof UserPreferences, value: string | boolean | null) => {
         setUserPreferences((prev) => ({ ...prev, [key]: value }));
         notifications.show({
