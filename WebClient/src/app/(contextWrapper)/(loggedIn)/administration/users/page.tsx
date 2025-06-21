@@ -118,6 +118,7 @@ export default function UsersPage(): JSX.Element {
         return filtered;
     };
 
+    // Fetch users when the page loads or filters change
     const fetchUsers = async (page: number) => {
         try {
             const data = await GetAllUsers((page - 1) * userPerPage, userPerPage);
@@ -245,6 +246,7 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
+    // Function to fetch filtered users based on current filters and pagination
     const fetchFilteredUsers = async (page: number) => {
         setCurrentPage(page);
         const pageOffset = (page - 1) * userPerPage;
