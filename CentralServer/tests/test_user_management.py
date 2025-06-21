@@ -997,17 +997,11 @@ def test_get_user_avatar():
         headers=headers,
     ).json()[0]
 
-    with open(
-        "./tests/sample_data/defaultImage.small_512_512_nofilter.jpg", "rb"
-    ) as file:
-        img = file.read()
-
     response = client.get(
         f"/api/v1/users/avatar?fn={user_info["avatarUrn"]}",
         headers=headers,
     )
     assert response.status_code == 200
-    # assert response.content == img
 
 
 def test_get_user_avatar_no_current():

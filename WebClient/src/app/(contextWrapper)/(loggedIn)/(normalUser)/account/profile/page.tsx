@@ -587,7 +587,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         )}
                     </Group>
 
-                    <Group justify="space-between" align="center">
+                    {/* <Group justify="space-between" align="center">
                         <Group>
                             <Box w={30} h={30}>
                                 <Image
@@ -631,7 +631,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         >
                             Link Account
                         </Button>
-                    </Group>
+                    </Group> */}
 
                     <Group justify="space-between" align="center">
                         <Group>

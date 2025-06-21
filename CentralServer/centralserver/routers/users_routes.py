@@ -6,7 +6,6 @@ from fastapi.responses import StreamingResponse
 from minio.error import S3Error
 from sqlmodel import Session, func, select
 
-from centralserver.internals.adapters.object_store import validate_and_process_image
 from centralserver.internals.auth_handler import (
     get_user,
     verify_access_token,

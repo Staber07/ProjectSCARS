@@ -109,10 +109,6 @@ class User(SQLModel, table=True):
         default=None,
         description="The Google ID linked to the user's OAuth account.",
     )
-    oauthLinkedFacebookId: str | None = Field(
-        default=None,
-        description="The Facebook ID linked to the user's OAuth account.",
-    )
     oauthLinkedMicrosoftId: str | None = Field(
         default=None,
         description="The Microsoft ID linked to the user's OAuth account.",
@@ -157,7 +153,6 @@ class UserPublic(SQLModel):
     deactivated: bool
     finishedTutorials: str
     oauthLinkedGoogleId: str | None
-    oauthLinkedFacebookId: str | None
     oauthLinkedMicrosoftId: str | None
     forceUpdateInfo: bool
     emailVerified: bool

@@ -563,13 +563,13 @@ configuration file:
 }
 ```
 
-###### Enabling OAuth
+###### Enabling Open Authentication (OAuth)
 
-**Google OAuth Authentication**
+**Google OAuth**
 
 To enable linking a user's account with Google OAuth, follow the steps below:
 
-1. Go to [https://console.cloud.google.com/](https://console.cloud.google.com/).
+1. Go to [https://console.cloud.google.com](https://console.cloud.google.com/).
 2. Create a new project if needed. Otherwise, select an existing project.
 3. Navigate to *Google Auth Platform* and click "Get Started".
 4. Follow the steps displayed in the page.
@@ -578,6 +578,22 @@ To enable linking a user's account with Google OAuth, follow the steps below:
 7. Set the *Authorized JavaScript origins* to the web client base URL.
 8. Set the *Authorized redirect URIs* to the central server base URL.
 9. Get the client ID and client secret and paste it to `config.json`.
+
+```jsonc
+{
+   /* ... */
+   "authentication": {
+      "oauth": {
+         "google": {
+            "client_id": "UPDATE_THIS_VALUE",
+            "client_secret": "UPDATE_THIS_VALUE",
+            "redirect_uri": "http://localhost:8080/login/oauth/google"
+            }
+      }
+   }
+   /* ... */
+}
+```
 
 ###### Resetting Central Server Data
 

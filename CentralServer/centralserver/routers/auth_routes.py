@@ -501,24 +501,48 @@ async def get_all_roles(
     return [role for role in session.exec(select(Role)).all()]
 
 
+@router.get("/config/oauth", response_model=dict[str, bool])
+async def get_oauth_config() -> dict[str, bool]:
+    """Get the OAuth configuration status."""
+
+    return {
+        "google": google_oauth_adapter is not None,
+        # TODO: The OAuth adapters below are not yet implemented. See adapters/oauth.py
+        "microsoft": app_config.authentication.oauth.microsoft is not None,
+        "facebook": app_config.authentication.oauth.facebook is not None,
+    }
+
+
 @router.post("/mfa/otp/generate")
 async def generate_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP generation is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/verify")
 async def verify_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP verification is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/validate")
 async def validate_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP validation is not implemented yet.",
+    )
 
 
 @router.post("/mfa/otp/disable")
 async def disable_mfa_otp():
-    pass
+    raise HTTPException(  # TODO: WIP
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="MFA OTP disabling is not implemented yet.",
+    )
 
 
 @router.get("/oauth/google/login")
