@@ -37,6 +37,7 @@ export default function RootLayout({ children }: RootLayoutProps) {
                 <script
                     suppressHydrationWarning
                     dangerouslySetInnerHTML={{
+                        // WARNING: This script contains hardcoded logic to determine the initial color scheme.
                         __html: `
                             (function() {
                                 // Default to light mode if nothing is found or an error occurs
@@ -49,6 +50,10 @@ export default function RootLayout({ children }: RootLayoutProps) {
                                     } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                                         // Fallback to system preference if no user preference is stored
                                         initialColorScheme = 'dark';
+                                        localStorage.setItem('user-preferences', JSON.stringify({ darkMode: initialColorScheme === 'dark' }));
+                                    }
+                                    else {
+                                        localStorage.setItem('user-preferences', JSON.stringify({ darkMode: false }));
                                     }
                                 } catch (e) {
                                     console.error('Failed to read theme from localStorage:', e);
