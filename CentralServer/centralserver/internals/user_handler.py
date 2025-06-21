@@ -351,6 +351,28 @@ async def update_user_info(
         logger.debug("Updating last name for user: %s", target_user.id)
         selected_user.nameLast = target_user.nameLast
 
+    if target_user.position:  # Update position if provided
+        if not await verify_user_permission(
+            (
+                "users:self:modify:position"
+                if updating_self
+                else "users:global:modify:position"
+            ),
+            session=session,
+            token=token,
+        ):
+            logger.warning(
+                "Failed to update user: %s (permission denied: position)",
+                target_user.id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied: Cannot modify position.",
+            )
+
+        logger.debug("Updating position for user: %s", target_user.id)
+        selected_user.position = target_user.position
+
     if target_user.password:  # Update password if provided
         if not await verify_user_permission(
             (
