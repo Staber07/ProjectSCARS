@@ -65,6 +65,7 @@ export default function UsersPage(): JSX.Element {
     const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
@@ -128,10 +129,6 @@ export default function UsersPage(): JSX.Element {
     };
 
     const handleFilterChange = () => {
-        const filtered = applyFilters(allUsers);
-        setUsers(filtered);
-        setTotalUsers(filtered.length);
-        setTotalPages(Math.ceil(filtered.length / userPerPage));
         setCurrentPage(1);
     };
 
@@ -330,9 +327,19 @@ export default function UsersPage(): JSX.Element {
                 });
         };
 
+        const fetchAllUsers = async () => {
+            try {
+                const data = await GetAllUsers(0, 10000); // fetch all users, or use a large enough number
+                setAllUsers(data);
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+                handleFetchError();
+            }
+        };
+
         const timeoutId = setTimeout(() => {
             fetchRoles();
-            fetchUsers(1);
+            fetchAllUsers();
             fetchSchools();
         }, 300);
 
@@ -343,6 +350,22 @@ export default function UsersPage(): JSX.Element {
             clearTimeout(timeoutId);
         };
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        let filtered = applyFilters(allUsers);
+
+        setTotalUsers(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / userPerPage)));
+
+        // If currentPage is out of bounds, reset to 1
+        const safePage = Math.min(currentPage, Math.ceil(filtered.length / userPerPage) || 1);
+        if (safePage !== currentPage) setCurrentPage(safePage);
+
+        const start = (safePage - 1) * userPerPage;
+        const end = start + userPerPage;
+        setUsers(filtered.slice(start, end));
+        setFilteredUsers(filtered);
+    }, [allUsers, roleFilter, schoolFilter, statusFilter, updateFilter, userPerPage, currentPage]);
 
     //Function to for Hover and Mouse Tracking on User Card
     // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
@@ -676,7 +699,7 @@ export default function UsersPage(): JSX.Element {
                 <Group justify="space-between" align="center" m="md">
                     <div></div>
                     <Stack align="center" justify="center" gap="sm">
-                        <Pagination value={currentPage} onChange={fetchFilteredUsers} total={totalPages} mt="md" />
+                        <Pagination value={currentPage} onChange={setCurrentPage} total={totalPages} mt="md" />
                         <Text size="sm" c="dimmed">
                             {totalUsers > 0
                                 ? `${(currentPage - 1) * userPerPage + 1}-${Math.min(
