@@ -53,7 +53,7 @@ export const HomeSection = memo(() => {
                         </Text>
                         <Button
                             component="a"
-                            href="/documentation"
+                            href="/administration/reports"
                             size="md"
                             variant="gradient"
                             gradient={{ from: "blue", to: "cyan" }}
