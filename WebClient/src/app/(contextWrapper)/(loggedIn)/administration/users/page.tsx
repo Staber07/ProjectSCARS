@@ -105,6 +105,16 @@ export default function UsersPage(): JSX.Element {
             );
         }
 
+        if (searchTerm.trim()) {
+            const lower = searchTerm.trim().toLowerCase();
+            filtered = filtered.filter(
+                (user) =>
+                    user.username?.toLowerCase().includes(lower) ||
+                    user.nameFirst?.toLowerCase().includes(lower) ||
+                    user.nameLast?.toLowerCase().includes(lower)
+            );
+        }
+
         return filtered;
     };
 
@@ -140,7 +150,9 @@ export default function UsersPage(): JSX.Element {
         }
     };
 
-    const handleSearch = () => {};
+    const handleSearch = () => {
+        setCurrentPage(1);
+    };
     const handleCreate = () => {
         console.debug("Creating new user");
         // Clear selected user when opening create modal
