@@ -746,7 +746,7 @@ export default function UsersPage(): JSX.Element {
                         availableRoles={availableRoles}
                         currentPage={currentPage}
                         setIndex={setSelectedUserIndex}
-                        fetchUsers={fetchFilteredUsers}
+                        fetchUsers={fetchUsers}
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
                         fetchUserAvatar={fetchUserAvatar}
@@ -756,7 +756,7 @@ export default function UsersPage(): JSX.Element {
                     <CreateUserComponent
                         modalOpen={openCreateUserModal}
                         setModalOpen={setOpenCreateUserModal}
-                        fetchUsers={fetchFilteredUsers}
+                        fetchUsers={fetchUsers}
                         currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
