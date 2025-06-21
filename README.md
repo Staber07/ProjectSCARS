@@ -563,9 +563,9 @@ configuration file:
 }
 ```
 
-###### Enabling OAuth
+###### Enabling Open Authentication (OAuth)
 
-**Google OAuth Authentication**
+**Google OAuth**
 
 To enable linking a user's account with Google OAuth, follow the steps below:
 
