@@ -26,6 +26,7 @@ export const LocalStorage = {
     userData: "ud",
     userPermissions: "up",
     userAvatar: "ua",
+    userPreferences: "upref",
     setupCompleteDismissed: "setupCompleteDismissed",
 };
 

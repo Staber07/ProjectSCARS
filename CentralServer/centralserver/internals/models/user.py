@@ -45,9 +45,17 @@ class User(SQLModel, table=True):
         default=None, description="The middle name of the user."
     )
     nameLast: str | None = Field(default=None, description="The last name of the user.")
+    position: str | None = Field(
+        default=None,
+        description="The position or title of the user within the organization.",
+    )
     avatarUrn: str | None = Field(
         default=None,
         description="A link or identifier to the user's avatar within the file storage server.",
+    )
+    signatureUrn: str | None = Field(
+        default=None,
+        description="A link or identifier to the user's signature within the file storage server.",
     )
     schoolId: int | None = Field(
         default=None,
@@ -147,7 +155,9 @@ class UserPublic(SQLModel):
     nameFirst: str | None
     nameMiddle: str | None
     nameLast: str | None
+    position: str | None
     avatarUrn: str | None
+    signatureUrn: str | None
     schoolId: int | None
     roleId: int
     deactivated: bool
@@ -171,6 +181,7 @@ class UserUpdate(SQLModel):
     nameFirst: str | None = None
     nameMiddle: str | None = None
     nameLast: str | None = None
+    position: str | None = None
 
     schoolId: int | None = None
     roleId: int | None = None

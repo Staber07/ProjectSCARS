@@ -45,20 +45,19 @@ interface EditUserProps {
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
 }
 
-
 interface EditUserValues {
     id: string;
     username: string | null;
     nameFirst: string | null;
     nameMiddle: string | null;
     nameLast: string | null;
+    position: string | null;
     email: string | null;
     school: string | null;
     role: string | null;
     deactivated: boolean;
     forceUpdateInfo: boolean;
 }
-
 
 export function EditUserComponent({
     index,
@@ -90,6 +89,7 @@ export function EditUserComponent({
             nameFirst: user.nameFirst || null,
             nameMiddle: user.nameMiddle || null,
             nameLast: user.nameLast || null,
+            position: user.position || null,
             email: user.email || null,
             school: availableSchools.find((school) => school.id === user.schoolId)
                 ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
@@ -165,7 +165,7 @@ export function EditUserComponent({
             URL.revokeObjectURL(editUserAvatarUrl);
         }
         setEditUserAvatarUrl(null);
-    }
+    };
 
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
@@ -233,7 +233,7 @@ export function EditUserComponent({
                         title: "Success",
                         message: "Avatar removed successfully.",
                         color: "green",
-                        icon: <IconPencilCheck />
+                        icon: <IconPencilCheck />,
                     });
                 } catch (error) {
                     if (error instanceof Error) {
@@ -359,12 +359,7 @@ export function EditUserComponent({
                     </Card>
                 </Center>
                 {showRemoveButton && (
-                    <Button
-                        variant="outline"
-                        color="red"
-                        mt="md"
-                        onClick={removeProfilePicture}
-                    >
+                    <Button variant="outline" color="red" mt="md" onClick={removeProfilePicture}>
                         Remove Profile Picture
                     </Button>
                 )}
@@ -497,6 +492,27 @@ export function EditUserComponent({
                             }
                             key={form.key("email")}
                             {...form.getInputProps("email")}
+                        />
+                    </Tooltip>
+                    <Tooltip
+                        disabled={
+                            userCtx.userInfo?.id === user?.id
+                                ? userCtx.userPermissions?.includes("users:self:modify:position")
+                                : userCtx.userPermissions?.includes("users:global:modify:position")
+                        }
+                        label="Position cannot be changed"
+                        withArrow
+                    >
+                        <TextInput
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? !userCtx.userPermissions?.includes("users:self:modify:position")
+                                    : !userCtx.userPermissions?.includes("users:global:modify:position")
+                            }
+                            label="Position"
+                            placeholder="Position"
+                            key={form.key("position")}
+                            {...form.getInputProps("position")}
                         />
                     </Tooltip>
                     <Tooltip

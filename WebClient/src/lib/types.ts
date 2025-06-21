@@ -12,13 +12,15 @@ export type UserPublicType = {
     nameFirst?: string | null;
     nameMiddle?: string | null;
     nameLast?: string | null;
+    position?: string | null;
     avatarUrn?: string | null;
+    signatureUrn?: string | null;
     schoolId?: number | null;
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
     oauthLinkedGoogleId?: string | null;
-    // oauthLinkedFacebookId?: string | null;
+    oauthLinkedFacebookId?: string | null;
     oauthLinkedMicrosoftId?: string | null;
     forceUpdateInfo: boolean;
     emailVerified: boolean;
@@ -36,6 +38,7 @@ export type UserUpdateType = {
     nameFirst?: string | null;
     nameMiddle?: string | null;
     nameLast?: string | null;
+    position?: string | null;
     schoolId?: number | null;
     roleId?: number | null;
     deactivated?: boolean | null;
@@ -43,6 +46,13 @@ export type UserUpdateType = {
     forceUpdateInfo?: boolean | null;
     password?: string | null;
 };
+
+export interface UserPreferences {
+    darkMode: boolean;
+    accentColor: string;
+    language: string;
+    timezone: string;
+}
 
 export type ServerMessageType = {
     message: string;

@@ -35,6 +35,7 @@ export function CreateUserComponent({
             firstName: "",
             middleName: "",
             lastName: "",
+            position: "",
             email: "",
             password: "",
             username: "",
@@ -82,6 +83,7 @@ export function CreateUserComponent({
                     nameFirst: values.firstName,
                     nameMiddle: values.middleName,
                     nameLast: values.lastName,
+                    position: values.position || null,
                     schoolId: values.assignedSchool ? Number(values.assignedSchool) : null,
                     roleId: Number(values.role),
                 });
@@ -122,6 +124,7 @@ export function CreateUserComponent({
                     <TextInput withAsterisk label="Username" {...form.getInputProps("username")} />
                     <TextInput label="Email" {...form.getInputProps("email")} />
                     <PasswordInput withAsterisk label="Password" {...form.getInputProps("password")} />
+                    <TextInput label="Position" {...form.getInputProps("position")} />
                     <Select
                         label="Assigned School"
                         placeholder="School"
