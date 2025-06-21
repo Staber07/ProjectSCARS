@@ -154,6 +154,7 @@ export default function UsersPage(): JSX.Element {
     const handleSearch = () => {
         setCurrentPage(1);
     };
+
     const handleCreate = () => {
         console.debug("Creating new user");
         // Clear selected user when opening create modal
@@ -161,6 +162,7 @@ export default function UsersPage(): JSX.Element {
         setSelectedUserIndex(null);
         setOpenCreateUserModal(true);
     };
+
     const handleEdit = (index: number, user: UserPublicType) => {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
