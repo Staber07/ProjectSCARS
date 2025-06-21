@@ -113,7 +113,7 @@ export const Navbar: React.FC = () => {
                 link: "/account/notifications",
                 label: "Notifications",
                 requiredPermission: "notifications:self:view",
-                showForRoles: [2, 3, 4, 5], // All except Website Admin
+                showForRoles: [1, 2, 3, 4, 5], // All except Website Admin
                 icon: (
                     <Indicator disabled={notificationsQuantity === 0}>
                         <IconNotification stroke={1.5} />

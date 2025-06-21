@@ -158,6 +158,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:password",
         "users:self:modify:avatar",
         "users:self:read",
+        "roles:global:read",
     ],
     5: [  # Canteen Manager
         "notifications:self:archive",
@@ -170,5 +171,6 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:self:modify:password",
         "users:self:modify:avatar",
         "users:self:read",
+        "roles:global:read",
     ],
 }

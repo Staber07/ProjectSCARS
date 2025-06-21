@@ -2,7 +2,7 @@
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
-import { RemoveUserProfile } from "@/lib/api/user";
+import { RemoveUserProfile, UpdateUserInfo } from "@/lib/api/user";
 import {
     Button,
     Card,
@@ -67,7 +67,6 @@ export function EditUserComponent({
     currentPage,
     setIndex,
     fetchUsers,
-    UpdateUserInfo,
     UploadUserAvatar,
     fetchUserAvatar,
 }: EditUserProps) {
@@ -205,6 +204,7 @@ export function EditUserComponent({
             nameFirst: values.nameFirst !== user.nameFirst ? values.nameFirst : undefined,
             nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
             nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
+            position: values.position !== user.position ? values.position : undefined,
             email: values.email !== user.email ? values.email : undefined,
             schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
             roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
