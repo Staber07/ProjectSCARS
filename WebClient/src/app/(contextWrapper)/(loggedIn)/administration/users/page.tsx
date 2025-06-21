@@ -711,13 +711,11 @@ export default function UsersPage(): JSX.Element {
                     </Stack>
                     <Select
                         value={userPerPage.toString()}
-                        onChange={async (value) => {
+                        onChange={(value) => {
                             if (value) {
-                                console.debug("Changing users per page to", value);
                                 const newUserPerPage = parseInt(value);
                                 setUserPerPage(newUserPerPage);
-                                // Reset to page 1 and fetch users with new page size
-                                await fetchFilteredUsers(1);
+                                setCurrentPage(1); // Reset to first page
                             }
                         }}
                         data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
