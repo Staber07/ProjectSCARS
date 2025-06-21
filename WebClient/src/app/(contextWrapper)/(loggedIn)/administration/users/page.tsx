@@ -330,11 +330,19 @@ export default function UsersPage(): JSX.Element {
                 });
         };
 
-        fetchRoles();
-        fetchUsers(1);
-        fetchSchools();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
+        const timeoutId = setTimeout(() => {
+            fetchRoles();
+            fetchUsers(1);
+            fetchSchools();
+        }, 300);
+
+        return () => {
+            avatars.forEach((url) => URL.revokeObjectURL(url));
+            setAvatars(new Map());
+            setAvatarsRequested(new Set());
+            clearTimeout(timeoutId);
+        };
+    }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]); // eslint-disable-line react-hooks/exhaustive-deps
 
     //Function to for Hover and Mouse Tracking on User Card
     // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
