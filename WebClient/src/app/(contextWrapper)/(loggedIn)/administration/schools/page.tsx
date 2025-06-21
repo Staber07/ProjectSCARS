@@ -570,7 +570,7 @@ export default function SchoolsPage(): JSX.Element {
             <Group justify="space-between" align="center" m="md">
                 <div></div>
                 <Stack align="center" justify="center" gap="sm">
-                    <Pagination value={currentPage} onChange={fetchSchools} total={totalPages} mt="md" />
+                    <Pagination value={currentPage} onChange={setCurrentPage} total={totalPages} mt="md" />
                     <Text size="sm" c="dimmed">
                         {totalSchools > 0
                             ? `${(currentPage - 1) * schoolPerPage + 1}-${Math.min(
