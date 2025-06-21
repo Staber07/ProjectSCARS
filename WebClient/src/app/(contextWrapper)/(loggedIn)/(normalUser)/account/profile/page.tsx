@@ -105,7 +105,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const GetSelectValue = async (s: string | undefined) => {
         // get x in string "[x] y"
-        return s ? s.split("]")[0].replace("[", "") : null;
+        return s ? s.split("]")[0].replace(/\[/g, "") : null;
     };
 
     const fetchUserAvatar = async (avatarUrn: string): Promise<string | undefined> => {
