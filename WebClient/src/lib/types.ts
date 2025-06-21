@@ -9,6 +9,12 @@ export type OTPNonceType = {
     otp_nonce: string;
 };
 
+export type OTPGenDataType = {
+    secret: string;
+    recovery_code: string;
+    provisioning_uri: string;
+};
+
 /** A type representing a user without sensitive information. */
 export type UserPublicType = {
     id: string;

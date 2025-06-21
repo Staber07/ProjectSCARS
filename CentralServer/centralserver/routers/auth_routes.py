@@ -549,7 +549,7 @@ async def generate_mfa_otp(
             detail="User not found.",
         )
 
-    if user.otpSecret is not None:
+    if user.otpSecret is not None and user.otpVerified:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="MFA OTP is already enabled for this user.",
@@ -606,6 +606,33 @@ async def verify_mfa_otp(
     session.commit()
     session.refresh(user)
     logger.info("MFA OTP verified for user: %s", user.username)
+    await push_notification(
+        owner_id=user.id,
+        title="Two-Factor Authentication Enabled",
+        content="You have successfully enabled Two-Factor Authentication (2FA) for your account.",
+        notification_type=NotificationType.SECURITY,
+        session=session,
+    )
+
+    try:
+        if user.email:
+            send_mail(
+                to_address=user.email,
+                subject=f"{info.Program.name} | Two-Factor Authentication Enabled",
+                text=get_template("mfa_otp_enabled.txt").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+                html=get_template("mfa_otp_enabled.html").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+            )
+
+    except EmailTemplateNotFoundError:
+        # This is not critical, so we log the error and continue
+        logger.error("Template for MFA OTP enabled email not found.")
+
     return {"message": "MFA OTP verified successfully."}
 
 
@@ -704,6 +731,33 @@ async def disable_mfa_otp(
     session.commit()
     session.refresh(user)
     logger.info("MFA OTP disabled for user: %s", user.username)
+
+    await push_notification(
+        owner_id=user.id,
+        title="Two-Factor Authentication Disabled",
+        content="You have successfully disabled Two-Factor Authentication (2FA) for your account.",
+        notification_type=NotificationType.SECURITY,
+        session=session,
+    )
+
+    try:
+        if user.email:
+            send_mail(
+                to_address=user.email,
+                subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
+                text=get_template("mfa_otp_disabled.txt").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+                html=get_template("mfa_otp_disabled.html").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+            )
+
+    except EmailTemplateNotFoundError:
+        # This is not critical, so we log the error and continue
+        logger.error("Template for MFA OTP disabled email not found.")
 
     return {"message": "MFA OTP disabled successfully."}
 

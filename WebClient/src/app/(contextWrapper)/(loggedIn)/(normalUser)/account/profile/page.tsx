@@ -3,17 +3,19 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import {
     DisableTOTP,
+    GenerateTOTP,
     GetAllRoles,
     GetOAuthSupport,
     GetUserInfo,
     OAuthGoogleUnlink,
+    VerifyTOTP,
     VerifyUserEmail,
 } from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
+import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     Anchor,
     Avatar,
@@ -38,6 +40,7 @@ import {
     useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useQRCode } from "next-qrcode";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
@@ -79,6 +82,7 @@ interface ProfileContentProps {
 function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
     const searchParams = useSearchParams();
     const userCtx = useUser();
+    const { SVG } = useQRCode();
     const { setColorScheme } = useMantineColorScheme();
     const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
         key: LocalStorage.userPreferences,
@@ -94,6 +98,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const [otpEnabled, setOtpEnabled] = useState(false);
+    const [otpGenData, setOtpGenData] = useState<OTPGenDataType | null>(null);
+    const [showOTPModal, setShowOTPModal] = useState(false);
+    const [showOTPSecret, showOTPSecretHandler] = useDisclosure(false);
+    const [verifyOtpCode, setVerifyOtpCode] = useState("");
     const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(userAvatarUrl);
@@ -649,7 +657,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 key={form.key("email")}
                                 {...form.getInputProps("email")}
                             />
-                        </Tooltip>{" "}
+                        </Tooltip>
                     </Stack>
 
                     <Button
@@ -736,18 +744,22 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             Add an additional layer of security to your account during login.
                         </Text>
                     </Box>
-
                     <Switch
                         checked={otpEnabled}
                         onChange={async (e) => {
-                            setOtpEnabled(e.currentTarget.checked);
                             if (e.currentTarget.checked) {
-                                notifications.show({
-                                    title: "Two-Step Verification Enabled",
-                                    message: "You will now be prompted for a verification code during login.",
-                                    color: "green",
-                                    icon: <IconKey />,
-                                });
+                                if (userInfo?.otpVerified) {
+                                    notifications.show({
+                                        title: "Two-Step Verification Already Enabled",
+                                        message: "You have already enabled two-step verification.",
+                                        color: "yellow",
+                                        icon: <IconKey />,
+                                    });
+                                    return;
+                                }
+                                const otpData = await GenerateTOTP();
+                                setOtpGenData(otpData);
+                                setShowOTPModal(true);
                             } else {
                                 await DisableTOTP().then(() => {
                                     notifications.show({
@@ -761,6 +773,88 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         }}
                     />
                 </Group>
+                <Modal
+                    opened={showOTPModal}
+                    onClose={() => {
+                        showOTPSecretHandler.close();
+                        setShowOTPModal(false);
+                    }}
+                    title="Enable Two-Step Verification"
+                    centered
+                >
+                    <Stack>
+                        <Text size="sm" c="dimmed">
+                            Scan the QR code below with your authenticator app to set up two-step verification.
+                        </Text>
+                        <Box style={{ textAlign: "center" }}>
+                            <SVG text={otpGenData?.provisioning_uri || ""} />
+                        </Box>
+                        {!showOTPSecret && (
+                            <Anchor
+                                size="xs"
+                                c="dimmed"
+                                onClick={showOTPSecretHandler.open}
+                                style={{ cursor: "pointer", textAlign: "center" }}
+                            >
+                                Can&apos;t scan the QR code?
+                            </Anchor>
+                        )}
+                        {showOTPSecret && (
+                            <Anchor
+                                size="xs"
+                                c="dimmed"
+                                onClick={() => {
+                                    if (otpGenData?.secret) {
+                                        navigator.clipboard.writeText(otpGenData.secret);
+                                        // showOTPSecretHandler.close();
+                                        notifications.show({
+                                            title: "Secret Copied",
+                                            message: "The secret key has been copied to your clipboard",
+                                            color: "green",
+                                        });
+                                    }
+                                }}
+                                style={{ cursor: "pointer", textAlign: "center" }}
+                            >
+                                <strong>{otpGenData?.secret.match(/.{1,4}/g)?.join(" ") || "Error"}</strong>
+                            </Anchor>
+                        )}
+                        <TextInput
+                            label="Verification Code"
+                            placeholder="Enter the code from your authenticator app"
+                            type="text"
+                            required
+                            onChange={(e) => setVerifyOtpCode(e.currentTarget.value)}
+                        />
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            onClick={async () => {
+                                try {
+                                    await VerifyTOTP(verifyOtpCode).then(() => {
+                                        notifications.show({
+                                            title: "Two-Step Verification Enabled",
+                                            message: "You will now be prompted for a verification code during login.",
+                                            color: "green",
+                                            icon: <IconKey />,
+                                        });
+                                        setOtpEnabled(true);
+                                        setShowOTPModal(false);
+                                    });
+                                } catch (error) {
+                                    notifications.show({
+                                        title: "Error Enabling Two-Step Verification",
+                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                        color: "red",
+                                        icon: <IconX />,
+                                    });
+                                }
+                            }}
+                        >
+                            Enable Two-Step Verification
+                        </Button>
+                    </Stack>
+                </Modal>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
                     Save
                 </Button>

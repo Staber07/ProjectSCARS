@@ -1,7 +1,7 @@
 import ky from "ky";
 
 import { Connections, LocalStorage } from "@/lib/info";
-import { OTPNonceType, RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
+import { OTPGenDataType, OTPNonceType, RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -46,6 +46,45 @@ export async function LoginUser(username: string, password: string): Promise<Tok
     }
 
     const responseData: TokenType | OTPNonceType = await centralServerResponse.json();
+    return responseData;
+}
+
+export async function GenerateTOTP(): Promise<OTPGenDataType> {
+    console.debug("Generating TOTP for user");
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/generate`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to generate TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: OTPGenDataType = await centralServerResponse.json();
+    console.debug("TOTP generated successfully", responseData);
+    return responseData;
+}
+
+export async function VerifyTOTP(otp: string): Promise<{ message: string }> {
+    console.debug("Verifying TOTP for user", { otp });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/verify`, {
+        searchParams: { otp: otp },
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to verify TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: { message: string } = await centralServerResponse.json();
+    console.debug("TOTP verified successfully");
     return responseData;
 }
 
