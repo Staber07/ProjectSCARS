@@ -24,6 +24,7 @@ export type UserPublicType = {
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
+    otpVerified: boolean;
     oauthLinkedGoogleId?: string | null;
     oauthLinkedFacebookId?: string | null;
     oauthLinkedMicrosoftId?: string | null;

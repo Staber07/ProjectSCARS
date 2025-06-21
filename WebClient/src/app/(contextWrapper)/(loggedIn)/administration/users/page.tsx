@@ -37,6 +37,7 @@ import {
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconEdit,
+    IconKey,
     IconLock,
     IconLockOpen,
     IconMail,
@@ -443,6 +444,7 @@ export default function UsersPage(): JSX.Element {
                             <TableTh>Role</TableTh>
                             <TableTh></TableTh>
                             <TableTh></TableTh>
+                            <TableTh></TableTh>
                             <TableTh>Edit</TableTh>
                         </TableTr>
                     </TableThead>
@@ -593,6 +595,11 @@ export default function UsersPage(): JSX.Element {
                                             ) : (
                                                 <IconLockOpen color="green" />
                                             )}
+                                        </Tooltip>
+                                    </TableTd>
+                                    <TableTd>
+                                        <Tooltip label="Two-Factor Authentication" position="bottom" withArrow>
+                                            {user.otpVerified ? <IconKey color="green" /> : <IconKey color="gray" />}
                                         </Tooltip>
                                     </TableTd>
                                     <TableTd>

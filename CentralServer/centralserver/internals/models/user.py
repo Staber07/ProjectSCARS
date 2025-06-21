@@ -187,6 +187,7 @@ class UserPublic(SQLModel):
     roleId: int
     deactivated: bool
     finishedTutorials: str
+    otpVerified: bool
     oauthLinkedGoogleId: str | None
     oauthLinkedMicrosoftId: str | None
     forceUpdateInfo: bool
