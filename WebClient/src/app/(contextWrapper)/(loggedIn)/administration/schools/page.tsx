@@ -69,6 +69,7 @@ export default function SchoolsPage(): JSX.Element {
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
 
     const [schools, setSchools] = useState<SchoolType[]>([]);
+    const [allSchools, setAllSchools] = useState<SchoolType[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editSchool, setEditSchool] = useState<SchoolType | null>(null);
@@ -88,7 +89,9 @@ export default function SchoolsPage(): JSX.Element {
     const [createEmail, setCreateEmail] = useState("");
     const [createWebsite, setCreateWebsite] = useState("");
 
-    const handleSearch = () => {};
+    const handleSearch = () => {
+        setCurrentPage(1);
+    };
     const handleEdit = (index: number, school: SchoolType) => {
         setEditIndex(index);
         setEditSchool(school);
@@ -318,6 +321,23 @@ export default function SchoolsPage(): JSX.Element {
         }
     };
 
+    // Fetch all schools for the dropdown in the add modal
+    const fetchAllSchools = async () => {
+        try {
+            const data = await GetAllSchools(0, 10000); // fetch all schools
+            setAllSchools(data);
+        } catch (error) {
+            notifications.show({
+                id: "fetch-schools-error",
+                title: "Failed to fetch schools list",
+                message: "Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+            setAllSchools([]);
+        }
+    };
+
     //Function to handle school creation
     const handleCreateSchool = async () => {
         buttonStateHandler.open();
@@ -389,9 +409,32 @@ export default function SchoolsPage(): JSX.Element {
     };
 
     useEffect(() => {
-        fetchSchools(currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPage]);
+        fetchAllSchools();
+        // eslint-disable-next-line
+    }, []);
+
+    useEffect(() => {
+        let filtered = allSchools;
+        if (searchTerm.trim()) {
+            const lower = searchTerm.trim().toLowerCase();
+            filtered = filtered.filter(
+                (school) =>
+                    school.name?.toLowerCase().includes(lower) ||
+                    school.address?.toLowerCase().includes(lower) ||
+                    school.email?.toLowerCase().includes(lower)
+            );
+        }
+        setTotalSchools(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / schoolPerPage)));
+
+        // If currentPage is out of bounds, reset to 1
+        const safePage = Math.min(currentPage, Math.ceil(filtered.length / schoolPerPage) || 1);
+        if (safePage !== currentPage) setCurrentPage(safePage);
+
+        const start = (safePage - 1) * schoolPerPage;
+        const end = start + schoolPerPage;
+        setSchools(filtered.slice(start, end));
+    }, [allSchools, searchTerm, schoolPerPage, currentPage]);
 
     console.debug("Rendering SchoolsPage");
     return (
@@ -527,7 +570,7 @@ export default function SchoolsPage(): JSX.Element {
             <Group justify="space-between" align="center" m="md">
                 <div></div>
                 <Stack align="center" justify="center" gap="sm">
-                    <Pagination value={currentPage} onChange={fetchSchools} total={totalPages} mt="md" />
+                    <Pagination value={currentPage} onChange={setCurrentPage} total={totalPages} mt="md" />
                     <Text size="sm" c="dimmed">
                         {totalSchools > 0
                             ? `${(currentPage - 1) * schoolPerPage + 1}-${Math.min(
