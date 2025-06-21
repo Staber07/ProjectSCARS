@@ -378,8 +378,7 @@ export default function UsersPage(): JSX.Element {
         const start = (safePage - 1) * userPerPage;
         const end = start + userPerPage;
         setUsers(filtered.slice(start, end));
-        setFilteredUsers(filtered);
-    }, [allUsers, roleFilter, schoolFilter, statusFilter, updateFilter, userPerPage, currentPage]);
+    }, [allUsers, roleFilter, schoolFilter, statusFilter, updateFilter, searchTerm, userPerPage, currentPage]);
 
     //Function to for Hover and Mouse Tracking on User Card
     // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
