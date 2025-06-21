@@ -25,7 +25,12 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken, JWTToken, OTPToken
+from centralserver.internals.models.token import (
+    DecodedJWTToken,
+    JWTToken,
+    OTPToken,
+    OTPVerificationToken,
+)
 from centralserver.internals.models.user import (
     User,
     UserCreate,
@@ -157,7 +162,7 @@ async def request_access_token(
         logger.info("MFA OTP is enabled for user %s. Returning nonce", user.username)
         resp = {
             "message": "MFA OTP is enabled. Please provide your OTP to continue.",
-            "otp_provisioning_uri": otp_nonce,
+            "otp_nonce": otp_nonce,
         }
 
     else:
@@ -606,15 +611,15 @@ async def verify_mfa_otp(
 
 @router.post("/mfa/otp/validate")
 async def validate_mfa_otp(
-    token: logged_in_dep,
-    otp: str,
-    nonce: str,
+    otp_verification: OTPVerificationToken,
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
 ) -> JWTToken:
     """Validate the user's OTP for Multi-Factor Authentication."""
 
-    user = session.get(User, token.id)
+    user = session.exec(
+        select(User).where(User.otpNonce == otp_verification.nonce)
+    ).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -637,14 +642,14 @@ async def validate_mfa_otp(
             detail="OTP nonce has expired.",
         )
 
-    if user.otpNonce != nonce:
+    if user.otpNonce != otp_verification.nonce:
         logger.warning("Invalid nonce provided by user: %s", user.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid nonce provided.",
         )
 
-    if not totp.verify(otp):
+    if not totp.verify(otp_verification.otp):
         logger.warning("Invalid OTP provided by user: %s", user.username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

@@ -1,7 +1,12 @@
 /** A type representing an access token. */
 export type TokenType = {
-    token: string;
-    type: string;
+    access_token: string;
+    token_type: string;
+};
+
+export type OTPNonceType = {
+    message: string;
+    otp_nonce: string;
 };
 
 /** A type representing a user without sensitive information. */

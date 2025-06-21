@@ -24,3 +24,10 @@ class OTPToken(SQLModel):
     secret: str
     recovery_code: str
     provisioning_uri: str
+
+
+class OTPVerificationToken(SQLModel):
+    """A model representing a request to verify an OTP token."""
+
+    otp: str
+    nonce: str

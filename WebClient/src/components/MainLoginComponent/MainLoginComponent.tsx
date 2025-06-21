@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { GetOAuthSupport, GetUserInfo, LoginUser } from "@/lib/api/auth";
+import { GetOAuthSupport, GetUserInfo, LoginUser, ValidateTOTP } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -12,6 +12,7 @@ import {
     Divider,
     Group,
     Image,
+    Modal,
     Paper,
     PasswordInput,
     TextInput,
@@ -19,17 +20,19 @@ import {
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconCheck, IconLogin, IconX } from "@tabler/icons-react";
+import { IconCheck, IconKey, IconLogin, IconX } from "@tabler/icons-react";
 import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
 import { GetUserAvatar } from "@/lib/api/user";
 import { useEffect, useState } from "react";
+import { OTPNonceType, TokenType } from "@/lib/types";
 
 interface LoginFormValues {
     username: string;
     password: string;
+    otpCode?: string;
     rememberMe: boolean;
 }
 
@@ -44,6 +47,8 @@ export function MainLoginComponent(): React.ReactElement {
 
     const logoControls = useAnimation();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [showMFAInput, setShowMFAInput] = useState(false);
+    const [mfaNonce, setMFANonce] = useState<string | null>(null);
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
         google: false,
         // TODO: OAuth adapters below are not implemented yet.
@@ -53,6 +58,10 @@ export function MainLoginComponent(): React.ReactElement {
     const form = useForm<LoginFormValues>({
         mode: "uncontrolled",
         initialValues: { username: "", password: "", rememberMe: false },
+    });
+    const otpForm = useForm<LoginFormValues>({
+        mode: "uncontrolled",
+        initialValues: form.getInitialValues(),
     });
 
     /**
@@ -80,7 +89,35 @@ export function MainLoginComponent(): React.ReactElement {
         }
 
         try {
-            const tokens = await LoginUser(values.username, values.password);
+            if (values.otpCode && !mfaNonce) {
+                notifications.show({
+                    id: "mfa-nonce-error",
+                    title: "MFA Error",
+                    message: "MFA nonce is not available.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+                buttonStateHandler.close();
+                return;
+            }
+
+            const loginResponse: TokenType | OTPNonceType = !values.otpCode
+                ? await LoginUser(values.username, values.password)
+                : await ValidateTOTP(values.otpCode || "", mfaNonce || "");
+            if ("otp_nonce" in loginResponse) {
+                notifications.show({
+                    id: "otp-required",
+                    title: "OTP Required",
+                    message: "Please enter the OTP from your authenticator app.",
+                    color: "yellow",
+                    icon: <IconKey />,
+                });
+                setMFANonce(loginResponse.otp_nonce);
+                setShowMFAInput(true);
+                buttonStateHandler.close();
+                return;
+            }
+            const tokens = loginResponse as TokenType;
             authCtx.login(tokens);
 
             const [userInfo, userPermissions] = await GetUserInfo();
@@ -340,6 +377,39 @@ export function MainLoginComponent(): React.ReactElement {
                     </Group>
                 </form>
             </Paper>
+            <Modal
+                opened={showMFAInput}
+                onClose={() => setShowMFAInput(false)}
+                title="Multi-Factor Authentication"
+                centered
+                size="md"
+            >
+                <form
+                    onSubmit={otpForm.onSubmit((values) => {
+                        if (!mfaNonce) {
+                            notifications.show({
+                                id: "mfa-nonce-error",
+                                title: "MFA Error",
+                                message: "MFA nonce is not available.",
+                                color: "red",
+                                icon: <IconX />,
+                            });
+                            return;
+                        }
+                        loginUser({ ...form.values, otpCode: values.otpCode || "" });
+                    })}
+                >
+                    <TextInput
+                        label="OTP Code"
+                        placeholder="Enter your OTP code"
+                        key={otpForm.key("otpCode")}
+                        {...otpForm.getInputProps("otpCode")}
+                    />
+                    <Button type="submit" fullWidth mt="md">
+                        Submit
+                    </Button>
+                </form>
+            </Modal>
         </Container>
     );
 }
