@@ -21,6 +21,8 @@ from centralserver.internals.models.oauth import OAuthConfigs
 class Debug:
     """The debugging configuration."""
 
+    __exportable_fields = ["enabled", "logenv_optout", "show_sql"]
+
     def __init__(
         self,
         enabled: bool | None = None,
@@ -39,9 +41,20 @@ class Debug:
         self.logenv_optout: bool = logenv_optout or False
         self.show_sql: bool = show_sql or False
 
+    def export(self) -> dict[str, Any]:
+        """Export the debugging configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Debug.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Connection:
     """The connection configuration."""
+
+    __exportable_fields = ["base_url"]
 
     def __init__(
         self,
@@ -55,9 +68,27 @@ class Connection:
 
         self.base_url: str = base_url or "http://localhost:8080"
 
+    def export(self) -> dict[str, Any]:
+        """Export the connection configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Connection.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Logging:
     """The logging configuration."""
+
+    __exportable_fields = [
+        "filepath",
+        "max_bytes",
+        "backup_count",
+        "encoding",
+        "log_format",
+        "date_format",
+    ]
 
     def __init__(
         self,
@@ -90,9 +121,30 @@ class Logging:
         )
         self.date_format: str = date_format or "%d-%m-%y_%H-%M-%S"
 
+    def export(self) -> dict[str, Any]:
+        """Export the logging configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Logging.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Authentication:
     """The authentication configuration."""
+
+    __exportable_fields = [
+        "signing_secret_key",
+        "refresh_signing_secret_key",
+        "encryption_secret_key",
+        "signing_algorithm",
+        "encryption_algorithm",
+        "encoding",
+        "access_token_expire_minutes",
+        "refresh_token_expire_minutes",
+        "recovery_token_expire_minutes",
+    ]
 
     def __init__(
         self,
@@ -168,8 +220,38 @@ class Authentication:
         self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
         self.oauth: OAuthConfigs = oauth
 
+    def export(self) -> dict[str, Any]:
+        """Export the authentication configuration as a dictionary."""
+
+        export = {
+            field: getattr(self, field)
+            for field in Authentication.__exportable_fields
+            if hasattr(self, field)
+        }
+        export["oauth"] = {
+            "google": self.oauth.google.export() if self.oauth.google else None,
+            "microsoft": (
+                self.oauth.microsoft.export() if self.oauth.microsoft else None
+            ),
+            "facebook": self.oauth.facebook.export() if self.oauth.facebook else None,
+        }
+
+        return export
+
 
 class Security:
+    """The security configuration."""
+
+    __exportable_fields = [
+        "allow_origins",
+        "allow_credentials",
+        "allow_methods",
+        "allow_headers",
+        "failed_login_notify_attempts",
+        "failed_login_lockout_attempts",
+        "failed_login_lockout_minutes",
+    ]
+
     def __init__(
         self,
         allow_origins: list[str] | None = None,
@@ -203,8 +285,30 @@ class Security:
         self.failed_login_lockout_attempts: int = failed_login_lockout_attempts or 5
         self.failed_login_lockout_minutes: int = failed_login_lockout_minutes or 15
 
+    def export(self) -> dict[str, Any]:
+        """Export the security configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Security.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Mailing:
+    """The mailing configuration."""
+
+    __exportable_fields = [
+        "enabled",
+        "server",
+        "port",
+        "from_address",
+        "username",
+        "password",
+        "templates_dir",
+        "templates_encoding",
+    ]
+
     def __init__(
         self,
         enabled: bool | None = None,
@@ -229,6 +333,9 @@ class Mailing:
             templates_encoding: The encoding of the email templates. (Default: "utf-8")
         """
 
+        if enabled and (not server or not from_address or not username or not password):
+            raise ValueError("Mailing is enabled, but required values are not set.")
+
         self.enabled: bool = enabled or False
         self.server: str = server  # type: ignore
         self.port: int = port or 587
@@ -240,10 +347,14 @@ class Mailing:
         )
         self.templates_encoding: str = templates_encoding or "utf-8"
 
-        if self.enabled and (
-            not self.server or not self.port or not self.username or not self.password
-        ):
-            raise ValueError("Mailing is enabled, but required values are not set.")
+    def export(self) -> dict[str, Any]:
+        """Export the mailing configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Mailing.__exportable_fields
+            if hasattr(self, field)
+        }
 
 
 class AppConfig:
@@ -251,6 +362,8 @@ class AppConfig:
 
     def __init__(
         self,
+        fp: str | Path,
+        enc: str,
         debug: Debug | None = None,
         connection: Connection | None = None,
         logging: Logging | None = None,
@@ -263,6 +376,8 @@ class AppConfig:
         """Create a configuration object for the application.
 
         Args:
+            fp: The file path to the configuration file.
+            enc: The encoding of the configuration file.
             debug: Debugging configuration.
             connection: Connection configuration.
             logging: Logging configuration.
@@ -274,6 +389,8 @@ class AppConfig:
             mailing: Mailing configuration.
         """
 
+        self.__filepath: str | Path = fp
+        self.__enc: str = enc
         self.debug: Debug = debug or Debug()
         self.connection: Connection = connection or Connection()
         self.logging: Logging = logging or Logging()
@@ -287,11 +404,40 @@ class AppConfig:
         self.security: Security = security or Security()
         self.mailing: Mailing = mailing or Mailing()
 
+    @property
+    def filepath(self) -> str | Path:
+        """Get the file path to the configuration file."""
 
-def read_config(config: dict[str, Any]) -> AppConfig:
+        return self.__filepath
+
+    def save(self) -> None:
+        """Save the current configuration to the file.
+
+        Args:
+            enc: The encoding to use when saving the file.
+        """
+
+        new_values: dict[str, Any] = {
+            "debug": self.debug.export(),
+            "connection": self.connection.export(),
+            "logging": self.logging.export(),
+            "database": self.database.export() if self.database else None,
+            "object_store": self.object_store.export() if self.object_store else None,
+            "authentication": self.authentication.export(),
+            "security": self.security.export(),
+            "mailing": self.mailing.export(),
+        }
+
+        with open(self.filepath, "w", encoding=self.__enc) as f:
+            json.dump(new_values, f, indent=4)
+
+
+def read_config(fp: str | Path, enc: str, config: dict[str, Any]) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
     Args:
+        fp: The file path to the JSON configuration file.
+        enc: The encoding of the file.
         config: The configuration file contents.
 
     Returns:
@@ -411,6 +557,8 @@ def read_config(config: dict[str, Any]) -> AppConfig:
     )
 
     return AppConfig(
+        fp,
+        enc,
         debug=Debug(
             enabled=debug_config.get("enabled", None),
             logenv_optout=debug_config.get("logenv_optout", None),
@@ -496,7 +644,7 @@ def __read_config_file(
     """
 
     with open(fp, "r", encoding=enc) as f:
-        return read_config(json.load(f))
+        return read_config(fp, enc, json.load(f))
 
 
 # The global configuration object for the application.

@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { GetUserInfo, LoginUser } from "@/lib/api/auth";
+import { GetOAuthSupport, GetUserInfo, LoginUser } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
 import { GetUserAvatar } from "@/lib/api/user";
+import { useEffect, useState } from "react";
 
 interface LoginFormValues {
     username: string;
@@ -40,8 +41,15 @@ export function MainLoginComponent(): React.ReactElement {
     const router = useRouter();
     const authCtx = useAuth();
     const userCtx = useUser();
+
     const logoControls = useAnimation();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
+        google: false,
+        // TODO: OAuth adapters below are not implemented yet.
+        microsoft: false,
+        facebook: false,
+    });
     const form = useForm<LoginFormValues>({
         mode: "uncontrolled",
         initialValues: { username: "", password: "", rememberMe: false },
@@ -127,6 +135,42 @@ export function MainLoginComponent(): React.ReactElement {
         }
     };
 
+    useEffect(() => {
+        console.debug("MainLoginComponent mounted, checking OAuth support");
+        // Check if OAuth is supported by the server
+        GetOAuthSupport()
+            .then((response) => {
+                console.debug("OAuth support response:", response);
+                if (response) {
+                    setOAuthSupport({
+                        google: response.google,
+                        microsoft: response.microsoft,
+                        facebook: response.facebook,
+                    });
+                    console.info("OAuth support updated", response);
+                } else {
+                    console.warn("No OAuth support information received from server.");
+                    notifications.show({
+                        id: "oauth-support-error",
+                        title: "OAuth Support Error",
+                        message: "Could not retrieve OAuth support information from the server.",
+                        color: "yellow",
+                        icon: <IconX />,
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching OAuth support:", error);
+                notifications.show({
+                    id: "oauth-support-fetch-error",
+                    title: "OAuth Support Fetch Error",
+                    message: "Failed to fetch OAuth support information.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            });
+    }, []);
+
     console.debug("Returning MainLoginComponent");
     return (
         <Container size={420} my={40} style={{ paddingTop: "150px" }}>
@@ -194,6 +238,14 @@ export function MainLoginComponent(): React.ReactElement {
                     <Group justify="center" mt="md">
                         <Button
                             variant="light"
+                            disabled={!oauthSupport.google}
+                            component={motion.button}
+                            transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            drag
+                            dragElastic={0.1}
+                            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
                             onClick={async () => {
                                 try {
                                     const response = await fetch("http://localhost:8081/v1/auth/oauth/google/login");
@@ -219,9 +271,25 @@ export function MainLoginComponent(): React.ReactElement {
                                 width="auto"
                                 radius="sm"
                                 fit="contain"
+                                style={
+                                    !oauthSupport.google
+                                        ? { filter: "grayscale(100%)", pointerEvents: "none" }
+                                        : { pointerEvents: "none" }
+                                }
                             />
                         </Button>
-                        <Button variant="light">
+                        {/* TODO: Not implemented yet */}
+                        <Button
+                            variant="light"
+                            disabled={!oauthSupport.microsoft}
+                            component={motion.button}
+                            transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            drag
+                            dragElastic={0.1}
+                            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+                        >
                             <Image
                                 src="/assets/logos/microsoft.svg"
                                 alt="Log In with Microsoft"
@@ -229,9 +297,25 @@ export function MainLoginComponent(): React.ReactElement {
                                 width="auto"
                                 radius="sm"
                                 fit="contain"
+                                style={
+                                    !oauthSupport.microsoft
+                                        ? { filter: "grayscale(100%)", pointerEvents: "none" }
+                                        : { pointerEvents: "none" }
+                                }
                             />
                         </Button>
-                        {/* <Button variant="light">
+                        {/* TODO: Not implemented yet */}
+                        <Button
+                            variant="light"
+                            disabled={!oauthSupport.facebook}
+                            component={motion.button}
+                            transition={{ type: "spring", stiffness: 500, damping: 30, mass: 1 }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            drag
+                            dragElastic={0.1}
+                            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+                        >
                             <Image
                                 src="/assets/logos/facebook.svg"
                                 alt="Log In with Facebook"
@@ -239,8 +323,13 @@ export function MainLoginComponent(): React.ReactElement {
                                 width="auto"
                                 radius="sm"
                                 fit="contain"
+                                style={
+                                    !oauthSupport.facebook
+                                        ? { filter: "grayscale(100%)", pointerEvents: "none" }
+                                        : { pointerEvents: "none" }
+                                }
                             />
-                        </Button> */}
+                        </Button>
                     </Group>
                 </form>
             </Paper>

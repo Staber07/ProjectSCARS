@@ -244,3 +244,13 @@ export async function OAuthGoogleAuthenticate(code: string): Promise<TokenType> 
         type: responseData["token_type"],
     };
 }
+
+export async function GetOAuthSupport(): Promise<{ google: boolean; microsoft: boolean; facebook: boolean }> {
+    const res = await ky.get(`${endpoint}/auth/config/oauth`);
+    if (!res.ok) {
+        const errorMessage = `Failed to get OAuth support: ${res.status} ${res.statusText}`;
+        console.error(errorMessage);
+        throw new Error(errorMessage);
+    }
+    return (await res.json()) as { google: boolean; microsoft: boolean; facebook: boolean };
+}

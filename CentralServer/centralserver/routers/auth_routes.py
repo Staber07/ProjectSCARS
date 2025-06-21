@@ -501,6 +501,18 @@ async def get_all_roles(
     return [role for role in session.exec(select(Role)).all()]
 
 
+@router.get("/config/oauth", response_model=dict[str, bool])
+async def get_oauth_config() -> dict[str, bool]:
+    """Get the OAuth configuration status."""
+
+    return {
+        "google": google_oauth_adapter is not None,
+        # TODO: The OAuth adapters below are not yet implemented. See adapters/oauth.py
+        "microsoft": app_config.authentication.oauth.microsoft is not None,
+        "facebook": app_config.authentication.oauth.facebook is not None,
+    }
+
+
 @router.post("/mfa/otp/generate")
 async def generate_mfa_otp():
     raise HTTPException(  # TODO: WIP
