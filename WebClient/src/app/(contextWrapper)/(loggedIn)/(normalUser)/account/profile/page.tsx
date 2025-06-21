@@ -8,6 +8,7 @@ import {
     GetOAuthSupport,
     GetUserInfo,
     OAuthGoogleUnlink,
+    RequestVerificationEmail,
     VerifyTOTP,
     VerifyUserEmail,
 } from "@/lib/api/auth";
@@ -50,6 +51,7 @@ import {
     IconCircleDashedX,
     IconDeviceFloppy,
     IconKey,
+    IconMail,
     IconMailOff,
     IconMailOpened,
     IconPencilCheck,
@@ -103,6 +105,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [otpGenData, setOtpGenData] = useState<OTPGenDataType | null>(null);
     const [showOTPModal, setShowOTPModal] = useState(false);
     const [showOTPSecret, showOTPSecretHandler] = useDisclosure(false);
+    const [showRecoveryCodeModal, setShowRecoveryCodeModal] = useState(false);
     const [verifyOtpCode, setVerifyOtpCode] = useState("");
     const [otpVerifyHasError, setOtpVerifyHasError] = useState(false);
     const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
@@ -648,10 +651,42 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                         </Tooltip>
                                     ) : (
                                         <Tooltip
-                                            label="This email has not yet been verified."
+                                            label="This email has not yet been verified. Click to send a verification email."
                                             withArrow
                                             multiline
                                             w={250}
+                                            onClick={() => {
+                                                try {
+                                                    RequestVerificationEmail();
+                                                    notifications.show({
+                                                        id: "verification-email-sent",
+                                                        title: "Verification Email Sent",
+                                                        message:
+                                                            "Please check your email and click the link to verify your email.",
+                                                        color: "blue",
+                                                        icon: <IconMail />,
+                                                    });
+                                                } catch (error) {
+                                                    if (error instanceof Error) {
+                                                        notifications.show({
+                                                            id: "verification-email-error",
+                                                            title: "Error",
+                                                            message: `Failed to send verification email: ${error.message}`,
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    } else {
+                                                        notifications.show({
+                                                            id: "verification-email-error-unknown",
+                                                            title: "Error",
+                                                            message:
+                                                                "Failed to send verification email. Please try again later.",
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    }
+                                                }
+                                            }}
                                         >
                                             <IconCircleDashedX size={16} color="gray" />
                                         </Tooltip>
@@ -854,6 +889,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                         });
                                         setOtpEnabled(true);
                                         setShowOTPModal(false);
+                                        setShowRecoveryCodeModal(true);
                                     });
                                 } catch (error) {
                                     notifications.show({
@@ -869,6 +905,44 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             }}
                         >
                             Enable Two-Step Verification
+                        </Button>
+                    </Stack>
+                </Modal>
+                <Modal
+                    opened={showRecoveryCodeModal}
+                    onClose={() => setShowRecoveryCodeModal(false)}
+                    title="Recovery Code"
+                    centered
+                >
+                    <Stack>
+                        <Text size="sm" c="dimmed" ta="center">
+                            Store this recovery code in a safe place. They can be used to access your account if you
+                            lose access to your authenticator app.
+                        </Text>
+                        <Box ta="center">
+                            {otpGenData?.recovery_code ? (
+                                <Text size="md" fw={500}>
+                                    {otpGenData.recovery_code}
+                                </Text>
+                            ) : (
+                                <Text size="md" c="red">
+                                    No recovery code available
+                                </Text>
+                            )}
+                        </Box>
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            onClick={() => {
+                                navigator.clipboard.writeText(otpGenData?.recovery_code || "");
+                                notifications.show({
+                                    title: "Recovery Codes Copied",
+                                    message: "The recovery codes have been copied to your clipboard",
+                                    color: "green",
+                                });
+                            }}
+                        >
+                            Copy Recovery Codes
                         </Button>
                     </Stack>
                 </Modal>
