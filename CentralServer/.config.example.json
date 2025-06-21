@@ -44,8 +44,7 @@
                 "client_id": "UPDATE_THIS_VALUE",
                 "client_secret": "UPDATE_THIS_VALUE",
                 "redirect_uri": "http://localhost:8080/login/oauth/google"
-            },
-            "microsoft": {}
+            }
         }
     },
     "security": {
