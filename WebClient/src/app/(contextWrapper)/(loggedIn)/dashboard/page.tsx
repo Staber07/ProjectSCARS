@@ -169,7 +169,7 @@ const DashboardContent = memo(function DashboardContent() {
             updatedSteps[2][1] = true;
         }
 
-        if ("twoFactorEnabled" in userCtx.userInfo && userCtx.userInfo.twoFactorEnabled) {
+        if (userCtx.userInfo.otpVerified) {
             completedSteps++;
             updatedSteps[3][1] = true;
         }

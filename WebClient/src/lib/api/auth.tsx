@@ -1,7 +1,7 @@
 import ky from "ky";
 
 import { Connections, LocalStorage } from "@/lib/info";
-import { RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
+import { OTPGenDataType, OTPNonceType, RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -18,16 +18,16 @@ export function GetAccessTokenHeader(): string {
     }
 
     const accessToken: TokenType = JSON.parse(storedToken);
-    return `Bearer ${accessToken.token}`;
+    return `Bearer ${accessToken.access_token}`;
 }
 
 /**
  * Log the user in to the central server using username and password.
  * @param {string} username - The username of the user.
  * @param {string} password - The password of the user.
- * @return {Promise<TokenType>} A promise that resolves to the access token and token type.
+ * @return {Promise<TokenType | OTPNonceType>} A promise that resolves to the access token and token type or an OTP nonce type if two-factor authentication is required.
  */
-export async function LoginUser(username: string, password: string): Promise<TokenType> {
+export async function LoginUser(username: string, password: string): Promise<TokenType | OTPNonceType> {
     const loginFormData = new URLSearchParams();
     loginFormData.set("grant_type", "password");
     loginFormData.set("username", username);
@@ -45,12 +45,85 @@ export async function LoginUser(username: string, password: string): Promise<Tok
         throw new Error(errorResponse?.detail || errorMessage);
     }
 
-    const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
-    console.debug("Access and refresh tokens received");
-    return {
-        token: responseData["access_token"],
-        type: responseData["token_type"],
-    };
+    const responseData: TokenType | OTPNonceType = await centralServerResponse.json();
+    return responseData;
+}
+
+export async function GenerateTOTP(): Promise<OTPGenDataType> {
+    console.debug("Generating TOTP for user");
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/generate`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to generate TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: OTPGenDataType = await centralServerResponse.json();
+    console.debug("TOTP generated successfully", responseData);
+    return responseData;
+}
+
+export async function VerifyTOTP(otp: string): Promise<{ message: string }> {
+    console.debug("Verifying TOTP for user", { otp });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/verify`, {
+        searchParams: { otp: otp },
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to verify TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: { message: string } = await centralServerResponse.json();
+    console.debug("TOTP verified successfully");
+    return responseData;
+}
+
+export async function ValidateTOTP(otp: string, nonce: string): Promise<TokenType> {
+    console.debug("Validating TOTP for user", { otp, nonce });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/validate`, {
+        json: {
+            otp: otp,
+            nonce: nonce,
+        },
+        throwHttpErrors: false,
+    });
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to validate TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: TokenType = await centralServerResponse.json();
+    return responseData;
+}
+
+export async function DisableTOTP(): Promise<ServerMessageType> {
+    console.debug("Disabling TOTP for user");
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/disable`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to disable TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+    console.debug("TOTP disabled successfully");
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
 }
 
 /**
@@ -240,8 +313,8 @@ export async function OAuthGoogleAuthenticate(code: string): Promise<TokenType> 
 
     const responseData: { access_token: string; token_type: string } = await res.json();
     return {
-        token: responseData["access_token"],
-        type: responseData["token_type"],
+        access_token: responseData["access_token"],
+        token_type: responseData["token_type"],
     };
 }
 

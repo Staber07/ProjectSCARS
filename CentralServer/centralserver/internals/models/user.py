@@ -113,6 +113,31 @@ class User(SQLModel, table=True):
         description="A list of onboarding tutorials the user has completed.",
     )
 
+    otpSecret: str | None = Field(
+        default=None,
+        description="The Base32 secret key for the user's two-factor authentication (2FA).",
+    )
+    otpVerified: bool = Field(
+        default=False,
+        description="Whether the user's two-factor authentication (2FA) has been verified.",
+    )
+    otpNonce: str | None = Field(
+        default=None,
+        description="A nonce used for the user's two-factor authentication (2FA) to prevent replay attacks.",
+    )
+    otpNonceExpires: datetime.datetime | None = Field(
+        default=None,
+        description="The expiration time for the user's two-factor authentication (2FA) nonce.",
+    )
+    otpRecoveryCode: str | None = Field(
+        default=None,
+        description="A recovery code for the user's two-factor authentication (2FA).",
+    )
+    otpProvisioningUri: str | None = Field(
+        default=None,
+        description="A URI for provisioning the user's two-factor authentication (2FA) in an authenticator app.",
+    )
+
     oauthLinkedGoogleId: str | None = Field(
         default=None,
         description="The Google ID linked to the user's OAuth account.",
@@ -162,6 +187,7 @@ class UserPublic(SQLModel):
     roleId: int
     deactivated: bool
     finishedTutorials: str
+    otpVerified: bool
     oauthLinkedGoogleId: str | None
     oauthLinkedMicrosoftId: str | None
     forceUpdateInfo: bool

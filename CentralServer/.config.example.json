@@ -39,6 +39,7 @@
         "access_token_expire_minutes": 30,
         "refresh_token_expire_minutes": 10080,
         "recovery_token_expire_minutes": 15,
+        "otp_nonce_expire_minutes": 5,
         "oauth": {
             "google": {
                 "client_id": "UPDATE_THIS_VALUE",

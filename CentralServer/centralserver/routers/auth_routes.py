@@ -2,6 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
+import pyotp
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from pydantic import EmailStr
@@ -24,7 +25,12 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken, JWTToken
+from centralserver.internals.models.token import (
+    DecodedJWTToken,
+    JWTToken,
+    OTPToken,
+    OTPVerificationToken,
+)
 from centralserver.internals.models.user import (
     User,
     UserCreate,
@@ -113,7 +119,7 @@ async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
-) -> JWTToken:
+) -> JWTToken | dict[str, str]:
     """Get an access token for a user.
 
     Args:
@@ -122,7 +128,7 @@ async def request_access_token(
         request: The HTTP request object.
 
     Returns:
-        A JWT token.
+        A JWT token or a MFA code if MFA is enabled.
 
     Raises:
         HTTPException: If the user cannot be authenticated.
@@ -145,22 +151,38 @@ async def request_access_token(
             detail=user[1],
         )
 
-    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    user.lastLoggedInIp = request.client.host if request.client else None
+    if user.otpSecret and user.otpVerified:
+        otp_nonce = str(uuid.uuid4())
+        user.otpNonce = otp_nonce
+        user.otpNonceExpires = datetime.datetime.now(
+            datetime.timezone.utc
+        ) + datetime.timedelta(
+            minutes=app_config.authentication.otp_nonce_expire_minutes
+        )
+        logger.info("MFA OTP is enabled for user %s. Returning nonce", user.username)
+        resp = {
+            "message": "MFA OTP is enabled. Please provide your OTP to continue.",
+            "otp_nonce": otp_nonce,
+        }
+
+    else:
+        user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+        user.lastLoggedInIp = request.client.host if request.client else None
+        resp = JWTToken(
+            uid=uuid.uuid4(),
+            access_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.access_token_expire_minutes
+                ),
+                False,
+            ),
+            token_type="bearer",
+        )
+
     session.commit()
     session.refresh(user)
-
-    return JWTToken(
-        uid=uuid.uuid4(),
-        access_token=await create_access_token(
-            user.id,
-            datetime.timedelta(
-                minutes=app_config.authentication.access_token_expire_minutes
-            ),
-            False,
-        ),
-        token_type="bearer",
-    )
+    return resp
 
 
 @router.post("/email/request")
@@ -514,35 +536,230 @@ async def get_oauth_config() -> dict[str, bool]:
 
 
 @router.post("/mfa/otp/generate")
-async def generate_mfa_otp():
-    raise HTTPException(  # TODO: WIP
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="MFA OTP generation is not implemented yet.",
+async def generate_mfa_otp(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> OTPToken:
+    """Generate a new OTP secret for MFA (Multi-Factor Authentication)."""
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpSecret is not None and user.otpVerified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP is already enabled for this user.",
+        )
+
+    user.otpSecret = pyotp.random_base32()
+    user.otpVerified = False
+    user.otpRecoveryCode = str(uuid.uuid4())
+    user.otpProvisioningUri = pyotp.totp.TOTP(user.otpSecret).provisioning_uri(
+        name=user.username, issuer_name=info.Program.name
+    )
+
+    session.commit()
+    session.refresh(user)
+    logger.info("MFA OTP generated for user: %s", user.username)
+
+    return OTPToken(
+        secret=user.otpSecret,
+        recovery_code=user.otpRecoveryCode,
+        provisioning_uri=user.otpProvisioningUri,
     )
 
 
 @router.post("/mfa/otp/verify")
-async def verify_mfa_otp():
-    raise HTTPException(  # TODO: WIP
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="MFA OTP verification is not implemented yet.",
+async def verify_mfa_otp(
+    token: logged_in_dep,
+    otp: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Verify the user's OTP for Multi-Factor Authentication."""
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpSecret is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP is not enabled for this user.",
+        )
+
+    totp = pyotp.TOTP(user.otpSecret)
+    if not totp.verify(otp):
+        logger.warning("Invalid OTP provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OTP provided.",
+        )
+
+    user.otpVerified = True
+    session.commit()
+    session.refresh(user)
+    logger.info("MFA OTP verified for user: %s", user.username)
+    await push_notification(
+        owner_id=user.id,
+        title="Two-Factor Authentication Enabled",
+        content="You have successfully enabled Two-Factor Authentication (2FA) for your account.",
+        notification_type=NotificationType.SECURITY,
+        session=session,
     )
+
+    try:
+        if user.email:
+            send_mail(
+                to_address=user.email,
+                subject=f"{info.Program.name} | Two-Factor Authentication Enabled",
+                text=get_template("mfa_otp_enabled.txt").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+                html=get_template("mfa_otp_enabled.html").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+            )
+
+    except EmailTemplateNotFoundError:
+        # This is not critical, so we log the error and continue
+        logger.error("Template for MFA OTP enabled email not found.")
+
+    return {"message": "MFA OTP verified successfully."}
 
 
 @router.post("/mfa/otp/validate")
-async def validate_mfa_otp():
-    raise HTTPException(  # TODO: WIP
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="MFA OTP validation is not implemented yet.",
+async def validate_mfa_otp(
+    otp_verification: OTPVerificationToken,
+    session: Annotated[Session, Depends(get_db_session)],
+    request: Request,
+) -> JWTToken:
+    """Validate the user's OTP for Multi-Factor Authentication."""
+
+    user = session.exec(
+        select(User).where(User.otpNonce == otp_verification.nonce)
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpSecret is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP is not enabled for this user.",
+        )
+
+    totp = pyotp.TOTP(user.otpSecret)
+    if user.otpNonceExpires is None or user.otpNonceExpires.replace(
+        tzinfo=datetime.timezone.utc
+    ) < datetime.datetime.now(datetime.timezone.utc):
+        logger.warning("OTP nonce has expired for user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OTP nonce has expired.",
+        )
+
+    if user.otpNonce != otp_verification.nonce:
+        logger.warning("Invalid nonce provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid nonce provided.",
+        )
+
+    if not totp.verify(otp_verification.otp):
+        logger.warning("Invalid OTP provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid OTP provided.",
+        )
+
+    logger.info("MFA OTP validated successfully for user: %s", user.username)
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = request.client.host if request.client else None
+    user.otpNonce = None
+    user.otpNonceExpires = None
+    session.commit()
+    session.refresh(user)
+    return JWTToken(
+        uid=uuid.uuid4(),
+        access_token=await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        ),
+        token_type="bearer",
     )
 
 
 @router.post("/mfa/otp/disable")
-async def disable_mfa_otp():
-    raise HTTPException(  # TODO: WIP
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="MFA OTP disabling is not implemented yet.",
+async def disable_mfa_otp(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Disable the user's OTP for Multi-Factor Authentication."""
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpSecret is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP is not enabled for this user.",
+        )
+
+    user.otpSecret = None
+    user.otpVerified = False
+    user.otpRecoveryCode = None
+    user.otpProvisioningUri = None
+
+    session.commit()
+    session.refresh(user)
+    logger.info("MFA OTP disabled for user: %s", user.username)
+
+    await push_notification(
+        owner_id=user.id,
+        title="Two-Factor Authentication Disabled",
+        content="You have successfully disabled Two-Factor Authentication (2FA) for your account.",
+        notification_type=NotificationType.SECURITY,
+        session=session,
     )
+
+    try:
+        if user.email:
+            send_mail(
+                to_address=user.email,
+                subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
+                text=get_template("mfa_otp_disabled.txt").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+                html=get_template("mfa_otp_disabled.html").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+            )
+
+    except EmailTemplateNotFoundError:
+        # This is not critical, so we log the error and continue
+        logger.error("Template for MFA OTP disabled email not found.")
+
+    return {"message": "MFA OTP disabled successfully."}
 
 
 @router.get("/oauth/google/login")

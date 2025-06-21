@@ -1,18 +1,29 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { GetAllRoles, GetOAuthSupport, GetUserInfo, OAuthGoogleUnlink, VerifyUserEmail } from "@/lib/api/auth";
+import {
+    DisableTOTP,
+    GenerateTOTP,
+    GetAllRoles,
+    GetOAuthSupport,
+    GetUserInfo,
+    OAuthGoogleUnlink,
+    RequestVerificationEmail,
+    VerifyTOTP,
+    VerifyUserEmail,
+} from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
+import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
     Anchor,
     Avatar,
     Badge,
     Box,
     Button,
+    Center,
     ColorInput,
     Divider,
     FileButton,
@@ -20,6 +31,7 @@ import {
     Group,
     Modal,
     Paper,
+    PinInput,
     Select,
     Space,
     Stack,
@@ -31,12 +43,15 @@ import {
     useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
+import { useQRCode } from "next-qrcode";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconDeviceFloppy,
+    IconKey,
+    IconMail,
     IconMailOff,
     IconMailOpened,
     IconPencilCheck,
@@ -71,6 +86,7 @@ interface ProfileContentProps {
 function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileContentProps) {
     const searchParams = useSearchParams();
     const userCtx = useUser();
+    const { SVG } = useQRCode();
     const { setColorScheme } = useMantineColorScheme();
     const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
         key: LocalStorage.userPreferences,
@@ -85,6 +101,13 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [otpEnabled, setOtpEnabled] = useState(false);
+    const [otpGenData, setOtpGenData] = useState<OTPGenDataType | null>(null);
+    const [showOTPModal, setShowOTPModal] = useState(false);
+    const [showOTPSecret, showOTPSecretHandler] = useDisclosure(false);
+    const [showRecoveryCodeModal, setShowRecoveryCodeModal] = useState(false);
+    const [verifyOtpCode, setVerifyOtpCode] = useState("");
+    const [otpVerifyHasError, setOtpVerifyHasError] = useState(false);
     const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(userAvatarUrl);
@@ -308,6 +331,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     useEffect(() => {
         if (userInfo) {
+            setOtpEnabled(userInfo.otpVerified);
             const new_values = {
                 id: userInfo.id,
                 username: userInfo.username || "",
@@ -627,10 +651,42 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                         </Tooltip>
                                     ) : (
                                         <Tooltip
-                                            label="This email has not yet been verified."
+                                            label="This email has not yet been verified. Click to send a verification email."
                                             withArrow
                                             multiline
                                             w={250}
+                                            onClick={() => {
+                                                try {
+                                                    RequestVerificationEmail();
+                                                    notifications.show({
+                                                        id: "verification-email-sent",
+                                                        title: "Verification Email Sent",
+                                                        message:
+                                                            "Please check your email and click the link to verify your email.",
+                                                        color: "blue",
+                                                        icon: <IconMail />,
+                                                    });
+                                                } catch (error) {
+                                                    if (error instanceof Error) {
+                                                        notifications.show({
+                                                            id: "verification-email-error",
+                                                            title: "Error",
+                                                            message: `Failed to send verification email: ${error.message}`,
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    } else {
+                                                        notifications.show({
+                                                            id: "verification-email-error-unknown",
+                                                            title: "Error",
+                                                            message:
+                                                                "Failed to send verification email. Please try again later.",
+                                                            color: "red",
+                                                            icon: <IconSendOff />,
+                                                        });
+                                                    }
+                                                }
+                                            }}
                                         >
                                             <IconCircleDashedX size={16} color="gray" />
                                         </Tooltip>
@@ -639,7 +695,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 key={form.key("email")}
                                 {...form.getInputProps("email")}
                             />
-                        </Tooltip>{" "}
+                        </Tooltip>
                     </Stack>
 
                     <Button
@@ -726,9 +782,170 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             Add an additional layer of security to your account during login.
                         </Text>
                     </Box>
-
-                    <Switch />
+                    <Switch
+                        checked={otpEnabled}
+                        onChange={async (e) => {
+                            if (e.currentTarget.checked) {
+                                if (userInfo?.otpVerified) {
+                                    notifications.show({
+                                        title: "Two-Step Verification Already Enabled",
+                                        message: "You have already enabled two-step verification.",
+                                        color: "yellow",
+                                        icon: <IconKey />,
+                                    });
+                                    return;
+                                }
+                                const otpData = await GenerateTOTP();
+                                setOtpGenData(otpData);
+                                setShowOTPModal(true);
+                            } else {
+                                await DisableTOTP().then(() => {
+                                    notifications.show({
+                                        title: "Two-Step Verification Disabled",
+                                        message: "You will no longer be prompted for a verification code during login.",
+                                        color: "yellow",
+                                        icon: <IconKey />,
+                                    });
+                                    setOtpEnabled(false);
+                                });
+                            }
+                            const updatedUserInfo = await GetUserInfo();
+                            userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
+                        }}
+                    />
                 </Group>
+                <Modal
+                    opened={showOTPModal}
+                    onClose={() => {
+                        showOTPSecretHandler.close();
+                        setShowOTPModal(false);
+                    }}
+                    title="Enable Two-Step Verification"
+                    centered
+                >
+                    <Stack>
+                        <Text size="sm" c="dimmed" ta="center">
+                            Scan the QR code below with your authenticator app to set up two-step verification.
+                        </Text>
+                        <Box style={{ textAlign: "center" }}>
+                            <SVG text={otpGenData?.provisioning_uri || ""} />
+                        </Box>
+                        {!showOTPSecret && (
+                            <Anchor
+                                size="xs"
+                                c="dimmed"
+                                onClick={showOTPSecretHandler.open}
+                                style={{ cursor: "pointer", textAlign: "center" }}
+                            >
+                                Can&apos;t scan the QR code?
+                            </Anchor>
+                        )}
+                        {showOTPSecret && (
+                            <Anchor
+                                size="xs"
+                                c="dimmed"
+                                onClick={() => {
+                                    if (otpGenData?.secret) {
+                                        navigator.clipboard.writeText(otpGenData.secret);
+                                        // showOTPSecretHandler.close();
+                                        notifications.show({
+                                            title: "Secret Copied",
+                                            message: "The secret key has been copied to your clipboard",
+                                            color: "green",
+                                        });
+                                    }
+                                }}
+                                style={{ cursor: "pointer", textAlign: "center" }}
+                            >
+                                <strong>{otpGenData?.secret.match(/.{1,4}/g)?.join(" ") || "Error"}</strong>
+                            </Anchor>
+                        )}
+                        <Text size="sm" ta="center">
+                            Enter the verification code generated by your authenticator app below to complete the setup.
+                        </Text>
+                        <Center>
+                            <PinInput
+                                oneTimeCode
+                                length={6}
+                                type="number"
+                                onChange={(value) => {
+                                    setVerifyOtpCode(value);
+                                    setOtpVerifyHasError(false);
+                                }}
+                                error={otpVerifyHasError}
+                            />
+                        </Center>
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            onClick={async () => {
+                                try {
+                                    await VerifyTOTP(verifyOtpCode).then(() => {
+                                        notifications.show({
+                                            title: "Two-Step Verification Enabled",
+                                            message: "You will now be prompted for a verification code during login.",
+                                            color: "green",
+                                            icon: <IconKey />,
+                                        });
+                                        setOtpEnabled(true);
+                                        setShowOTPModal(false);
+                                        setShowRecoveryCodeModal(true);
+                                    });
+                                } catch (error) {
+                                    notifications.show({
+                                        title: "Error Enabling Two-Step Verification",
+                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                        color: "red",
+                                        icon: <IconX />,
+                                    });
+                                    setOtpVerifyHasError(true);
+                                } finally {
+                                    showOTPSecretHandler.close();
+                                }
+                            }}
+                        >
+                            Enable Two-Step Verification
+                        </Button>
+                    </Stack>
+                </Modal>
+                <Modal
+                    opened={showRecoveryCodeModal}
+                    onClose={() => setShowRecoveryCodeModal(false)}
+                    title="Recovery Code"
+                    centered
+                >
+                    <Stack>
+                        <Text size="sm" c="dimmed" ta="center">
+                            Store this recovery code in a safe place. They can be used to access your account if you
+                            lose access to your authenticator app.
+                        </Text>
+                        <Box ta="center">
+                            {otpGenData?.recovery_code ? (
+                                <Text size="md" fw={500}>
+                                    {otpGenData.recovery_code}
+                                </Text>
+                            ) : (
+                                <Text size="md" c="red">
+                                    No recovery code available
+                                </Text>
+                            )}
+                        </Box>
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            onClick={() => {
+                                navigator.clipboard.writeText(otpGenData?.recovery_code || "");
+                                notifications.show({
+                                    title: "Recovery Codes Copied",
+                                    message: "The recovery codes have been copied to your clipboard",
+                                    color: "green",
+                                });
+                            }}
+                        >
+                            Copy Recovery Codes
+                        </Button>
+                    </Stack>
+                </Modal>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
                     Save
                 </Button>

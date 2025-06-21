@@ -144,6 +144,7 @@ class Authentication:
         "access_token_expire_minutes",
         "refresh_token_expire_minutes",
         "recovery_token_expire_minutes",
+        "otp_nonce_expire_minutes",
     ]
 
     def __init__(
@@ -157,6 +158,7 @@ class Authentication:
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
         recovery_token_expire_minutes: int | None = None,
+        otp_nonce_expire_minutes: int | None = None,
         oauth: OAuthConfigs | None = None,
     ):
         """Create a configuration object for authentication.
@@ -171,6 +173,7 @@ class Authentication:
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
             recovery_token_expire_minutes: How long the recovery token is valid in minutes.
+            otp_nonce_expire_minutes: How long the OTP nonce is valid in minutes.
             oauth: OAuth configurations, if any. (Default: None)
         """
 
@@ -218,6 +221,7 @@ class Authentication:
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
         self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
+        self.otp_nonce_expire_minutes: int = otp_nonce_expire_minutes or 5
         self.oauth: OAuthConfigs = oauth
 
     def export(self) -> dict[str, Any]:
@@ -598,6 +602,9 @@ def read_config(fp: str | Path, enc: str, config: dict[str, Any]) -> AppConfig:
             ),
             recovery_token_expire_minutes=authentication_config.get(
                 "recovery_token_expire_minutes", None
+            ),
+            otp_nonce_expire_minutes=authentication_config.get(
+                "otp_nonce_expire_minutes", None
             ),
             oauth=oauth_configs,
         ),

@@ -16,3 +16,18 @@ class DecodedJWTToken(SQLModel):
 
     id: str
     is_refresh_token: bool
+
+
+class OTPToken(SQLModel):
+    """A model representing a request to create an OTP token."""
+
+    secret: str
+    recovery_code: str
+    provisioning_uri: str
+
+
+class OTPVerificationToken(SQLModel):
+    """A model representing a request to verify an OTP token."""
+
+    otp: str
+    nonce: str

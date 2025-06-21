@@ -37,6 +37,7 @@ import {
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconEdit,
+    IconKey,
     IconLock,
     IconLockOpen,
     IconMail,
@@ -443,6 +444,7 @@ export default function UsersPage(): JSX.Element {
                             <TableTh>Role</TableTh>
                             <TableTh></TableTh>
                             <TableTh></TableTh>
+                            <TableTh></TableTh>
                             <TableTh>Edit</TableTh>
                         </TableTr>
                     </TableThead>
@@ -596,13 +598,22 @@ export default function UsersPage(): JSX.Element {
                                         </Tooltip>
                                     </TableTd>
                                     <TableTd>
+                                        <Tooltip label="Two-Factor Authentication" position="bottom" withArrow>
+                                            {user.otpVerified ? <IconKey color="green" /> : <IconKey color="gray" />}
+                                        </Tooltip>
+                                    </TableTd>
+                                    <TableTd>
                                         <Tooltip label="Force Update Required" position="bottom" withArrow>
                                             {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
                                         </Tooltip>
                                     </TableTd>
                                     <TableTd>
                                         <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
-                                            <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
+                                            <ActionIcon
+                                                variant="light"
+                                                disabled={!userCtx.userPermissions?.includes("users:global:modify")}
+                                                onClick={() => handleEdit(index, user)}
+                                            >
                                                 <IconEdit size={16} />
                                             </ActionIcon>
                                         </Tooltip>

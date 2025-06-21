@@ -1,7 +1,18 @@
 /** A type representing an access token. */
 export type TokenType = {
-    token: string;
-    type: string;
+    access_token: string;
+    token_type: string;
+};
+
+export type OTPNonceType = {
+    message: string;
+    otp_nonce: string;
+};
+
+export type OTPGenDataType = {
+    secret: string;
+    recovery_code: string;
+    provisioning_uri: string;
 };
 
 /** A type representing a user without sensitive information. */
@@ -19,6 +30,7 @@ export type UserPublicType = {
     roleId: number;
     deactivated: boolean;
     finishedTutorials: string;
+    otpVerified: boolean;
     oauthLinkedGoogleId?: string | null;
     oauthLinkedFacebookId?: string | null;
     oauthLinkedMicrosoftId?: string | null;

@@ -1,6 +1,6 @@
 {
     "name": "webclient",
-    "version": "0.3.8",
+    "version": "0.4.0",
     "private": true,
     "scripts": {
         "dev": "next dev --turbopack --port 8080",
@@ -38,6 +38,7 @@
         "mantine-data-grid": "^0.2.3",
         "motion": "^12.18.1",
         "next": "15.3.4",
+        "next-qrcode": "^2.5.1",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
         "react-easy-crop": "^5.4.2",
