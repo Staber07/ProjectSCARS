@@ -64,53 +64,88 @@ const DashboardContent = memo(function DashboardContent() {
         }
     };
 
+    // Load user info and avatar
     useEffect(() => {
         let mounted = true;
 
-        const initializeDashboard = async () => {
+        const loadUserInfo = async () => {
             if (!userCtx.userInfo) return;
 
             try {
-                const [userInfo, notifications] = await Promise.all([
-                    GetUserInfo(),
-                    GetSelfNotifications(true, true, 0, 1),
-                ]);
-
+                const [userInfo, userPermissions] = await GetUserInfo();
                 if (!mounted) return;
 
-                if (userInfo[0].avatarUrn) {
-                    const userAvatar = await GetUserAvatar(userInfo[0].avatarUrn);
-                    userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
-                } else {
-                    userCtx.updateUserInfo(userInfo[0], userInfo[1]);
+                if (userInfo.avatarUrn) {
+                    const userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                    if (mounted) {
+                        userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+                    }
+                } else if (mounted) {
+                    userCtx.updateUserInfo(userInfo, userPermissions);
                 }
-
-                setHVNotifications(notifications);
             } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-                if (!mounted) return;
-
-                notifications.show({
-                    id: "dashboard-error",
-                    title: "Error",
-                    message: "Failed to load dashboard data",
-                    color: "red",
-                    icon: <IconRefreshAlert />,
-                });
+                console.error("Failed to fetch user info:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "user-info-error",
+                        title: "Error",
+                        message: "Failed to load user information",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
             } finally {
                 if (mounted) {
                     setIsLoading(false);
+                }
+            }
+        };
+
+        if (userCtx.userInfo) {
+            loadUserInfo();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => {
+            mounted = false;
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Load notifications
+    useEffect(() => {
+        let mounted = true;
+
+        const loadNotifications = async () => {
+            try {
+                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                if (mounted) {
+                    setHVNotifications(notifications);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "notifications-error",
+                        title: "Error",
+                        message: "Failed to load notifications",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
+            } finally {
+                if (mounted) {
                     setIsNotificationLoading(false);
                 }
             }
         };
 
-        initializeDashboard();
+        loadNotifications();
 
         return () => {
             mounted = false;
         };
-    }, [userCtx.userInfo]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []); // Load notifications once on mount
 
     const calculateSteps = useCallback(() => {
         if (!userCtx.userInfo) return;
