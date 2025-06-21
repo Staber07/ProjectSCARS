@@ -49,7 +49,7 @@ export const Navbar: React.FC = () => {
                 link: "/dashboard",
                 label: "Dashboard",
                 requiredPermission: "users:self:read",
-                showForRoles: [2, 3, 4, 5], // Superintendent, Administrator, Principal, Canteen Manager
+                showForRoles: [1, 2, 3, 4, 5], // Web Admin, Superintendent, Administrator, Principal, Canteen Manager
                 icon: <IconDashboard stroke={1.5} />,
             },
             {
