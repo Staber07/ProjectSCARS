@@ -246,7 +246,7 @@ export function MainLoginComponent(): React.ReactElement {
                             drag
                             dragElastic={0.1}
                             dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                            onClick={async (e) => {
+                            onClick={async (e: React.MouseEvent) => {
                                 e.preventDefault();
                                 try {
                                     const response = await fetch("http://localhost:8081/v1/auth/oauth/google/login");
@@ -290,7 +290,7 @@ export function MainLoginComponent(): React.ReactElement {
                             drag
                             dragElastic={0.1}
                             dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                            onClick={async (e) => {
+                            onClick={async (e: React.MouseEvent) => {
                                 e.preventDefault();
                             }}
                         >
@@ -319,7 +319,7 @@ export function MainLoginComponent(): React.ReactElement {
                             drag
                             dragElastic={0.1}
                             dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
-                            onClick={async (e) => {
+                            onClick={async (e: React.MouseEvent) => {
                                 e.preventDefault();
                             }}
                         >
