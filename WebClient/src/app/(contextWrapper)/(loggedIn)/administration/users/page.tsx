@@ -65,7 +65,7 @@ export default function UsersPage(): JSX.Element {
     const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
 
     const [users, setUsers] = useState<UserPublicType[]>([]);
-    const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]);
+    //const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]); remnants of previous filtering logic
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
