@@ -122,8 +122,13 @@ def log_app_info(logger: logging.Logger):
     logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
     logger.debug(f"{app_config.authentication.recovery_token_expire_minutes=}")
+    logger.debug(f"{app_config.authentication.otp_nonce_expire_minutes=}")
     if app_config.authentication.oauth.google is not None:
         logger.debug(f"{app_config.authentication.oauth.google.info=}")
+    if app_config.authentication.oauth.microsoft is not None:
+        logger.debug(f"{app_config.authentication.oauth.microsoft.info=}")
+    if app_config.authentication.oauth.facebook is not None:
+        logger.debug(f"{app_config.authentication.oauth.facebook.info=}")
 
     logger.debug(f"{app_config.security.allow_origins=}")
     logger.debug(f"{app_config.security.allow_credentials=}")
