@@ -1,12 +1,13 @@
 "use client";
 import { CreateUser } from "@/lib/api/auth";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { UpdateUserInfo } from "@/lib/api/user";
+import { RoleType, SchoolType } from "@/lib/types";
 import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconUserCheck, IconUserExclamation } from "@tabler/icons-react";
-import { useMemo, useCallback } from "react";
-import { useForm } from "@mantine/form";
+import { useCallback, useMemo } from "react";
 
 interface CreateUserComponentProps {
     modalOpen: boolean;
@@ -15,7 +16,6 @@ interface CreateUserComponentProps {
     currentPage: number;
     availableSchools: SchoolType[];
     availableRoles: RoleType[];
-    UpdateUserInfo: (user: UserUpdateType) => Promise<UserPublicType>;
 }
 
 export function CreateUserComponent({
@@ -25,7 +25,6 @@ export function CreateUserComponent({
     currentPage,
     availableSchools,
     availableRoles,
-    UpdateUserInfo,
 }: CreateUserComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
@@ -35,6 +34,7 @@ export function CreateUserComponent({
             firstName: "",
             middleName: "",
             lastName: "",
+            position: "",
             email: "",
             password: "",
             username: "",
@@ -82,6 +82,7 @@ export function CreateUserComponent({
                     nameFirst: values.firstName,
                     nameMiddle: values.middleName,
                     nameLast: values.lastName,
+                    position: values.position || null,
                     schoolId: values.assignedSchool ? Number(values.assignedSchool) : null,
                     roleId: Number(values.role),
                 });
@@ -109,7 +110,7 @@ export function CreateUserComponent({
                 buttonStateHandler.close();
             }
         },
-        [UpdateUserInfo, buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
+        [buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
     );
 
     return (
@@ -122,6 +123,7 @@ export function CreateUserComponent({
                     <TextInput withAsterisk label="Username" {...form.getInputProps("username")} />
                     <TextInput label="Email" {...form.getInputProps("email")} />
                     <PasswordInput withAsterisk label="Password" {...form.getInputProps("password")} />
+                    <TextInput label="Position" {...form.getInputProps("position")} />
                     <Select
                         label="Assigned School"
                         placeholder="School"

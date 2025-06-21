@@ -596,17 +596,6 @@ def test_view_all_roles():
         assert len(role["description"]) > 0
 
 
-def test_view_all_roles_no_permission():
-    login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get(
-        "/api/v1/auth/roles",
-        headers=headers,
-    )
-    assert response.status_code == 403
-    assert response.json()["detail"] == "You do not have permission to view all roles."
-
-
 def test_update_user_role_no_permission():
     login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}

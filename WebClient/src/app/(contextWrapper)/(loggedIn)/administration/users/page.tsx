@@ -761,7 +761,6 @@ export default function UsersPage(): JSX.Element {
                         currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
-                        UpdateUserInfo={UpdateUserInfo}
                     />
                 )}
             </Stack>
