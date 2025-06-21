@@ -25,7 +25,7 @@ export function GetAccessTokenHeader(): string {
  * Log the user in to the central server using username and password.
  * @param {string} username - The username of the user.
  * @param {string} password - The password of the user.
- * @return {Promise<TokenType|OTPNonceType>} A promise that resolves to the access token and token type or an OTP nonce type if two-factor authentication is required.
+ * @return {Promise<TokenType | OTPNonceType>} A promise that resolves to the access token and token type or an OTP nonce type if two-factor authentication is required.
  */
 export async function LoginUser(username: string, password: string): Promise<TokenType | OTPNonceType> {
     const loginFormData = new URLSearchParams();
