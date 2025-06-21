@@ -69,6 +69,24 @@ export async function ValidateTOTP(otp: string, nonce: string): Promise<TokenTyp
     return responseData;
 }
 
+export async function DisableTOTP(): Promise<ServerMessageType> {
+    console.debug("Disabling TOTP for user");
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/disable`, {
+        headers: { Authorization: GetAccessTokenHeader() },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to disable TOTP: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+    console.debug("TOTP disabled successfully");
+    const result: ServerMessageType = await centralServerResponse.json();
+    return result;
+}
+
 /**
  * Fetch the user information from the central server.
  * @return {Promise<UserPublicType>} A promise that resolves to the user data.

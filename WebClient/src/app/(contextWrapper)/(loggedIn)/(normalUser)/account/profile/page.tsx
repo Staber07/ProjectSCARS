@@ -1,7 +1,14 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { GetAllRoles, GetOAuthSupport, GetUserInfo, OAuthGoogleUnlink, VerifyUserEmail } from "@/lib/api/auth";
+import {
+    DisableTOTP,
+    GetAllRoles,
+    GetOAuthSupport,
+    GetUserInfo,
+    OAuthGoogleUnlink,
+    VerifyUserEmail,
+} from "@/lib/api/auth";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
@@ -37,6 +44,7 @@ import {
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconDeviceFloppy,
+    IconKey,
     IconMailOff,
     IconMailOpened,
     IconPencilCheck,
@@ -85,6 +93,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [otpEnabled, setOtpEnabled] = useState(false);
     const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(userAvatarUrl);
@@ -308,6 +317,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     useEffect(() => {
         if (userInfo) {
+            setOtpEnabled(userInfo.otpVerified);
             const new_values = {
                 id: userInfo.id,
                 username: userInfo.username || "",
@@ -727,7 +737,29 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         </Text>
                     </Box>
 
-                    <Switch />
+                    <Switch
+                        checked={otpEnabled}
+                        onChange={async (e) => {
+                            setOtpEnabled(e.currentTarget.checked);
+                            if (e.currentTarget.checked) {
+                                notifications.show({
+                                    title: "Two-Step Verification Enabled",
+                                    message: "You will now be prompted for a verification code during login.",
+                                    color: "green",
+                                    icon: <IconKey />,
+                                });
+                            } else {
+                                await DisableTOTP().then(() => {
+                                    notifications.show({
+                                        title: "Two-Step Verification Disabled",
+                                        message: "You will no longer be prompted for a verification code during login.",
+                                        color: "yellow",
+                                        icon: <IconKey />,
+                                    });
+                                });
+                            }
+                        }}
+                    />
                 </Group>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
                     Save
