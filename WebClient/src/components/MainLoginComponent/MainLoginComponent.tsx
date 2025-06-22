@@ -395,6 +395,7 @@ export function MainLoginComponent(): React.ReactElement {
                     setShowMFAInput(false);
                     setOtpFormHasError(false);
                     setShowOTPRecoveryInput(false);
+                    otpForm.reset();
                 }}
                 title="Multi-Factor Authentication"
                 centered
@@ -458,6 +459,7 @@ export function MainLoginComponent(): React.ReactElement {
                     setShowOTPRecoveryInput(false);
                     setOtpRecoveryFormHasError(false);
                     setShowMFAInput(false);
+                    OTPRecoveryForm.reset();
                 }}
                 title="Use OTP Recovery Code"
                 centered
