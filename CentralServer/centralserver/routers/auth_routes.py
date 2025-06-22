@@ -703,6 +703,66 @@ async def validate_mfa_otp(
     )
 
 
+@router.post("/mfa/otp/recovery")
+async def mfa_otp_recovery(
+    nonce: str,
+    recovery_code: str,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> JWTToken:
+    """Recover access using the OTP recovery code for Multi-Factor Authentication."""
+
+    user = session.exec(
+        select(User).where(User.otpRecoveryCode == recovery_code)
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpNonce is None or user.otpNonce != nonce:
+        logger.warning("Invalid nonce provided for recovery by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid nonce provided.",
+        )
+
+    if user.otpRecoveryCode is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP recovery code is not set for this user.",
+        )
+
+    if user.otpRecoveryCode != recovery_code:
+        logger.warning("Invalid recovery code provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid recovery code provided.",
+        )
+
+    logger.info(
+        "MFA OTP recovery code validated successfully for user: %s", user.username
+    )
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = None
+    user.otpRecoveryCode = None  # Clear the recovery code after use
+    user.otpVerified = False  # Reset OTP verification status
+    user.otpNonce = None  # Clear any existing nonce
+    session.commit()
+    session.refresh(user)
+    return JWTToken(
+        uid=uuid.uuid4(),
+        access_token=await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        ),
+        token_type="bearer",
+    )
+
+
 @router.post("/mfa/otp/disable")
 async def disable_mfa_otp(
     token: logged_in_dep,

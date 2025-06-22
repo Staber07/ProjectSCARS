@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { GetOAuthSupport, GetUserInfo, LoginUser, ValidateTOTP } from "@/lib/api/auth";
+import { GetOAuthSupport, GetUserInfo, LoginUser, ValidateTOTP, UseOTPRecoveryCode } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -36,6 +36,7 @@ interface LoginFormValues {
     username: string;
     password: string;
     otpCode?: string;
+    otpRecoveryCode?: string;
     rememberMe: boolean;
 }
 
@@ -63,6 +64,10 @@ export function MainLoginComponent(): React.ReactElement {
         initialValues: { username: "", password: "", rememberMe: false },
     });
     const otpForm = useForm<LoginFormValues>({
+        mode: "uncontrolled",
+        initialValues: form.getInitialValues(),
+    });
+    const OTPRecoveryForm = useForm<LoginFormValues>({
         mode: "uncontrolled",
         initialValues: form.getInitialValues(),
     });
@@ -422,8 +427,98 @@ export function MainLoginComponent(): React.ReactElement {
                             error={otpFormHasError}
                         />
                     </Center>
+                    <Center>
+                        <Anchor
+                            id="use-recovery-code"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                setOtpFormHasError(false);
+                                setShowMFAInput(false);
+                                setOtpFormHasError(true); // Show the recovery code modal
+                            }}
+                            component="button"
+                            size="sm"
+                            c="dimmed"
+                        >
+                            Can&apos;t access your authenticator app?
+                        </Anchor>
+                    </Center>
                     <Button type="submit" fullWidth mt="md" loading={buttonLoading}>
                         Submit
+                    </Button>
+                </form>
+            </Modal>
+
+            {/* New Modal for UseOTPRecoveryCode */}
+            <Modal
+                opened={otpFormHasError}
+                onClose={() => setOtpFormHasError(false)}
+                title="Use OTP Recovery Code"
+                centered
+                size="md"
+            >
+                <form
+                    onSubmit={OTPRecoveryForm.onSubmit(async (values) => {
+                        if (!mfaNonce) {
+                            notifications.show({
+                                id: "mfa-nonce-error",
+                                title: "MFA Error",
+                                message: "MFA nonce is not available.",
+                                color: "red",
+                                icon: <IconX />,
+                            });
+                            return;
+                        }
+                        try {
+                            const tokens = await UseOTPRecoveryCode(values.otpRecoveryCode || "", mfaNonce);
+                            authCtx.login(tokens);
+
+                            const [userInfo, userPermissions] = await GetUserInfo();
+                            let userAvatar: Blob | null = null;
+                            if (userInfo.avatarUrn) {
+                                userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                            }
+                            userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+
+                            notifications.show({
+                                id: "otp-recovery-success",
+                                title: "OTP Recovery Code Used",
+                                message: "You have successfully used your OTP recovery code.",
+                                color: "green",
+                                icon: <IconCheck />,
+                            });
+                            setOtpFormHasError(false);
+                            setShowMFAInput(false);
+                            router.push("/dashboard");
+                        } catch (error) {
+                            console.error("Error using OTP recovery code:", error);
+                            notifications.show({
+                                id: "otp-recovery-error",
+                                title: "OTP Recovery Code Error",
+                                message: `Failed to use OTP recovery code: ${error}`,
+                                color: "red",
+                                icon: <IconX />,
+                            });
+                        }
+                    })}
+                >
+                    <Center mb="lg">
+                        <IconKey size={48} stroke={1.5} style={{ margin: "0.5rem" }} />
+                    </Center>
+                    <Text size="sm" mb="md">
+                        If you have lost access to your authenticator app, you can use your OTP recovery code to log in.
+                        Please enter your recovery code below.
+                    </Text>
+                    <TextInput
+                        label="OTP Recovery Code"
+                        placeholder="Enter your OTP recovery code"
+                        key={OTPRecoveryForm.key("otpRecoveryCode")}
+                        {...OTPRecoveryForm.getInputProps("otpRecoveryCode")}
+                        mt="md"
+                        error={otpFormHasError ? "Invalid OTP recovery code" : undefined}
+                    />
+                    <Button type="submit" fullWidth mt="md" loading={buttonLoading}>
+                        Use Recovery Code
                     </Button>
                 </form>
             </Modal>
