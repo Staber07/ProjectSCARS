@@ -206,7 +206,6 @@ async def get_school_daily_report_entries(
         )
     ).one_or_none()
 
-    logger.debug(f"{selected_monthly_report=}")
     if (
         selected_monthly_report is None
         or selected_monthly_report.daily_financial_report is None
