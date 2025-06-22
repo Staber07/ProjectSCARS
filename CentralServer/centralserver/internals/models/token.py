@@ -31,3 +31,10 @@ class OTPVerificationToken(SQLModel):
 
     otp: str
     nonce: str
+
+
+class OTPRecoveryCode(SQLModel):
+    """A model representing a request to verify an OTP recovery code."""
+
+    recovery_code: str
+    nonce: str
