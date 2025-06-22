@@ -169,7 +169,9 @@ export function EditUserComponent({
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
         const selectedSchool = availableSchools.find(
-            (school) => school.name === values.school || `[${school.id}] ${school.name}` === values.school
+            (school) =>
+                school.name === values.school ||
+                `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}` === values.school
         );
         if (values.school && !selectedSchool) {
             notifications.show({

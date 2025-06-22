@@ -153,3 +153,18 @@ export type MonthlyReportType = {
     receivedBySchoolOperationFundReport?: string;
     receivedByRevolvingFundReport?: string;
 };
+
+export type DailyFinancialReportEntryType = {
+    parent: Date; // Reference to DailyFinancialReport (monthly report date)
+    day: number; // Day of the month (1-31)
+    sales: number; // Total sales for the day
+    purchases: number; // Total purchases for the day
+};
+
+export type DailyFinancialReportType = {
+    parent: Date; // Reference to MonthlyReport (monthly report date)
+    reportStatus?: ReportStatus | null;
+    preparedBy: string; // User ID
+    notedBy: string; // User ID
+    entries: DailyFinancialReportEntryType[];
+};
