@@ -501,7 +501,7 @@ function LiquidationReportContent() {
                             className="w-full sm:w-96"
                             size="md"
                         />
-                        .
+                        
                         {attachments.length > 0 && (
                             <div>
                                 <Text size="sm" c="dimmed" mb="xs">
