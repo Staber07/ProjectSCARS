@@ -18,6 +18,7 @@ import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
+    ActionIcon,
     Anchor,
     Avatar,
     Badge,
@@ -43,12 +44,12 @@ import {
     useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useQRCode } from "next-qrcode";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
     IconCircleDashedCheck,
     IconCircleDashedX,
+    IconClipboardCopy,
     IconDeviceFloppy,
     IconKey,
     IconMail,
@@ -59,6 +60,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
+import { useQRCode } from "next-qrcode";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -785,32 +787,44 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     <Switch
                         checked={otpEnabled}
                         onChange={async (e) => {
-                            if (e.currentTarget.checked) {
-                                if (userInfo?.otpVerified) {
-                                    notifications.show({
-                                        title: "Two-Step Verification Already Enabled",
-                                        message: "You have already enabled two-step verification.",
-                                        color: "yellow",
-                                        icon: <IconKey />,
+                            try {
+                                if (e.currentTarget.checked) {
+                                    if (userInfo?.otpVerified) {
+                                        notifications.show({
+                                            title: "Two-Step Verification Already Enabled",
+                                            message: "You have already enabled two-step verification.",
+                                            color: "yellow",
+                                            icon: <IconKey />,
+                                        });
+                                        return;
+                                    }
+                                    const otpData = await GenerateTOTP();
+                                    setOtpGenData(otpData);
+                                    setShowOTPModal(true);
+                                } else {
+                                    await DisableTOTP().then(() => {
+                                        notifications.show({
+                                            title: "Two-Step Verification Disabled",
+                                            message:
+                                                "You will no longer be prompted for a verification code during login.",
+                                            color: "yellow",
+                                            icon: <IconKey />,
+                                        });
+                                        setOtpEnabled(false);
                                     });
-                                    return;
                                 }
-                                const otpData = await GenerateTOTP();
-                                setOtpGenData(otpData);
-                                setShowOTPModal(true);
-                            } else {
-                                await DisableTOTP().then(() => {
-                                    notifications.show({
-                                        title: "Two-Step Verification Disabled",
-                                        message: "You will no longer be prompted for a verification code during login.",
-                                        color: "yellow",
-                                        icon: <IconKey />,
-                                    });
-                                    setOtpEnabled(false);
+                            } catch (error) {
+                                notifications.show({
+                                    title: "Error",
+                                    message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                    color: "red",
+                                    icon: <IconX />,
                                 });
+                                setOtpVerifyHasError(true);
+                            } finally {
+                                const updatedUserInfo = await GetUserInfo();
+                                userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
                             }
-                            const updatedUserInfo = await GetUserInfo();
-                            userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
                         }}
                     />
                 </Group>
@@ -919,31 +933,33 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             Store this recovery code in a safe place. They can be used to access your account if you
                             lose access to your authenticator app.
                         </Text>
-                        <Box ta="center">
-                            {otpGenData?.recovery_code ? (
-                                <Text size="md" fw={500}>
-                                    {otpGenData.recovery_code}
-                                </Text>
-                            ) : (
-                                <Text size="md" c="red">
-                                    No recovery code available
-                                </Text>
-                            )}
-                        </Box>
-                        <Button
-                            variant="filled"
-                            color="blue"
-                            onClick={() => {
-                                navigator.clipboard.writeText(otpGenData?.recovery_code || "");
-                                notifications.show({
-                                    title: "Recovery Codes Copied",
-                                    message: "The recovery codes have been copied to your clipboard",
-                                    color: "green",
-                                });
-                            }}
-                        >
-                            Copy Recovery Codes
-                        </Button>
+                        <Group justify="center" gap="sm">
+                            <Flex justify="center" align="center" gap="xs">
+                                {otpGenData?.recovery_code ? (
+                                    <Text size="md" fw={500}>
+                                        {otpGenData.recovery_code}
+                                    </Text>
+                                ) : (
+                                    <Text size="md" c="red">
+                                        No recovery code available
+                                    </Text>
+                                )}
+                                <ActionIcon
+                                    variant="light"
+                                    color="blue"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(otpGenData?.recovery_code || "");
+                                        notifications.show({
+                                            title: "Recovery Codes Copied",
+                                            message: "The recovery codes have been copied to your clipboard",
+                                            color: "green",
+                                        });
+                                    }}
+                                >
+                                    <IconClipboardCopy size={16} />
+                                </ActionIcon>
+                            </Flex>
+                        </Group>
                     </Stack>
                 </Modal>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
