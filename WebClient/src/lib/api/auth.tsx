@@ -126,6 +126,24 @@ export async function DisableTOTP(): Promise<ServerMessageType> {
     return result;
 }
 
+export async function UseOTPRecoveryCode(recoveryCode: string, nonce: string): Promise<TokenType> {
+    console.debug("Using OTP recovery code for user", { recoveryCode, nonce });
+    const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/recovery`, {
+        json: { recovery_code: recoveryCode, nonce: nonce },
+        throwHttpErrors: false,
+    });
+
+    if (!centralServerResponse.ok) {
+        const errorMessage = `Failed to use OTP recovery code: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
+        console.error(errorResponse?.detail || errorMessage);
+        throw new Error(errorResponse?.detail || errorMessage);
+    }
+
+    const responseData: TokenType = await centralServerResponse.json();
+    return responseData;
+}
+
 /**
  * Fetch the user information from the central server.
  * @return {Promise<UserPublicType>} A promise that resolves to the user data.

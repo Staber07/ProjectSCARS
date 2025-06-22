@@ -28,6 +28,7 @@ from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import (
     DecodedJWTToken,
     JWTToken,
+    OTPRecoveryCode,
     OTPToken,
     OTPVerificationToken,
 )
@@ -690,6 +691,110 @@ async def validate_mfa_otp(
     user.otpNonceExpires = None
     session.commit()
     session.refresh(user)
+    return JWTToken(
+        uid=uuid.uuid4(),
+        access_token=await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        ),
+        token_type="bearer",
+    )
+
+
+@router.post("/mfa/otp/recovery")
+async def mfa_otp_recovery(
+    recovery_data: OTPRecoveryCode,
+    session: Annotated[Session, Depends(get_db_session)],
+    request: Request,
+) -> JWTToken:
+    """Recover access using the OTP recovery code for Multi-Factor Authentication."""
+
+    user = session.exec(
+        select(User).where(User.otpNonce == recovery_data.nonce)
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.otpSecret is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA OTP is not enabled for this user.",
+        )
+
+    if user.otpNonceExpires is None or user.otpNonceExpires.replace(
+        tzinfo=datetime.timezone.utc
+    ) < datetime.datetime.now(datetime.timezone.utc):
+        logger.warning("OTP nonce has expired for user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OTP nonce has expired.",
+        )
+
+    if user.otpNonce != recovery_data.nonce:
+        logger.warning("Invalid nonce provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid nonce provided.",
+        )
+
+    if (
+        user.otpRecoveryCode is None
+        or user.otpRecoveryCode != recovery_data.recovery_code
+    ):
+        logger.warning("Invalid recovery code provided by user: %s", user.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid recovery code provided.",
+        )
+
+    logger.info(
+        "MFA OTP recovery code validated successfully for user: %s", user.username
+    )
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = request.client.host if request.client else None
+    user.otpNonce = None
+    user.otpNonceExpires = None
+    user.otpSecret = None
+    user.otpVerified = False
+    user.otpRecoveryCode = None
+    user.otpProvisioningUri = None
+
+    session.commit()
+    session.refresh(user)
+
+    await push_notification(
+        owner_id=user.id,
+        title="Two-Factor Authentication Disabled",
+        content="You have successfully disabled Two-Factor Authentication (2FA) for your account.",
+        notification_type=NotificationType.SECURITY,
+        session=session,
+    )
+
+    try:
+        if user.email:
+            send_mail(
+                to_address=user.email,
+                subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
+                text=get_template("mfa_otp_disabled.txt").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+                html=get_template("mfa_otp_disabled.html").format(
+                    name=user.nameFirst or user.username,
+                    app_name=info.Program.name,
+                ),
+            )
+
+    except EmailTemplateNotFoundError:
+        # This is not critical, so we log the error and continue
+        logger.error("Template for MFA OTP disabled email not found.")
+
     return JWTToken(
         uid=uuid.uuid4(),
         access_token=await create_access_token(
