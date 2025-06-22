@@ -129,7 +129,7 @@ export async function DisableTOTP(): Promise<ServerMessageType> {
 export async function UseOTPRecoveryCode(recoveryCode: string, nonce: string): Promise<TokenType> {
     console.debug("Using OTP recovery code for user", { recoveryCode, nonce });
     const centralServerResponse = await ky.post(`${endpoint}/auth/mfa/otp/recovery`, {
-        searchParams: { recovery_code: recoveryCode, nonce: nonce },
+        json: { recovery_code: recoveryCode, nonce: nonce },
         throwHttpErrors: false,
     });
 

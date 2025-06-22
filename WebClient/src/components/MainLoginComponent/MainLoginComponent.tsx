@@ -52,6 +52,7 @@ export function MainLoginComponent(): React.ReactElement {
     const logoControls = useAnimation();
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const [showMFAInput, setShowMFAInput] = useState(false);
+    const [showOTPRecoveryInput, setShowOTPRecoveryInput] = useState(false);
     const [mfaNonce, setMFANonce] = useState<string | null>(null);
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
         google: false,
@@ -72,6 +73,7 @@ export function MainLoginComponent(): React.ReactElement {
         initialValues: form.getInitialValues(),
     });
     const [otpFormHasError, setOtpFormHasError] = useState(false);
+    const [otpRecoveryFormHasError, setOtpRecoveryFormHasError] = useState(false);
 
     /**
      * Handles the login process for the user.
@@ -389,7 +391,11 @@ export function MainLoginComponent(): React.ReactElement {
             </Paper>
             <Modal
                 opened={showMFAInput}
-                onClose={() => setShowMFAInput(false)}
+                onClose={() => {
+                    setShowMFAInput(false);
+                    setOtpFormHasError(false);
+                    setShowOTPRecoveryInput(false);
+                }}
                 title="Multi-Factor Authentication"
                 centered
                 size="md"
@@ -429,16 +435,14 @@ export function MainLoginComponent(): React.ReactElement {
                     </Center>
                     <Center>
                         <Anchor
-                            id="use-recovery-code"
+                            size="xs"
+                            c="dimmed"
                             onClick={(e) => {
                                 e.preventDefault();
                                 setOtpFormHasError(false);
                                 setShowMFAInput(false);
-                                setOtpFormHasError(true); // Show the recovery code modal
+                                setShowOTPRecoveryInput(true);
                             }}
-                            component="button"
-                            size="sm"
-                            c="dimmed"
                         >
                             Can&apos;t access your authenticator app?
                         </Anchor>
@@ -448,11 +452,13 @@ export function MainLoginComponent(): React.ReactElement {
                     </Button>
                 </form>
             </Modal>
-
-            {/* New Modal for UseOTPRecoveryCode */}
             <Modal
-                opened={otpFormHasError}
-                onClose={() => setOtpFormHasError(false)}
+                opened={showOTPRecoveryInput}
+                onClose={() => {
+                    setShowOTPRecoveryInput(false);
+                    setOtpRecoveryFormHasError(false);
+                    setShowMFAInput(false);
+                }}
                 title="Use OTP Recovery Code"
                 centered
                 size="md"
@@ -483,7 +489,7 @@ export function MainLoginComponent(): React.ReactElement {
                             notifications.show({
                                 id: "otp-recovery-success",
                                 title: "OTP Recovery Code Used",
-                                message: "You have successfully used your OTP recovery code.",
+                                message: "You have successfully used your OTP recovery code. OTP has been disabled.",
                                 color: "green",
                                 icon: <IconCheck />,
                             });
@@ -499,6 +505,7 @@ export function MainLoginComponent(): React.ReactElement {
                                 color: "red",
                                 icon: <IconX />,
                             });
+                            setOtpRecoveryFormHasError(true);
                         }
                     })}
                 >
@@ -515,7 +522,7 @@ export function MainLoginComponent(): React.ReactElement {
                         key={OTPRecoveryForm.key("otpRecoveryCode")}
                         {...OTPRecoveryForm.getInputProps("otpRecoveryCode")}
                         mt="md"
-                        error={otpFormHasError ? "Invalid OTP recovery code" : undefined}
+                        error={otpRecoveryFormHasError ? "Invalid OTP recovery code" : undefined}
                     />
                     <Button type="submit" fullWidth mt="md" loading={buttonLoading}>
                         Use Recovery Code
