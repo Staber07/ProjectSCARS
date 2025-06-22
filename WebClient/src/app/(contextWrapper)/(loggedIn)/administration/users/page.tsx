@@ -249,49 +249,6 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    // Function to fetch filtered users based on current filters and pagination
-    const fetchFilteredUsers = async (page: number) => {
-        setCurrentPage(page);
-        const pageOffset = (page - 1) * userPerPage;
-
-        try {
-            const allUsers = await GetAllUsers(pageOffset, userPerPage);
-            let filteredUsers = [...allUsers];
-
-            // Apply filters
-            if (roleFilter) {
-                filteredUsers = filteredUsers.filter((user) => user.roleId.toString() === roleFilter);
-            }
-            if (schoolFilter) {
-                filteredUsers = filteredUsers.filter(
-                    (user) => user.schoolId != null && user.schoolId.toString() === schoolFilter
-                );
-            }
-            if (statusFilter) {
-                filteredUsers = filteredUsers.filter((user) =>
-                    statusFilter === "deactivated" ? user.deactivated : !user.deactivated
-                );
-            }
-            if (updateFilter) {
-                filteredUsers = filteredUsers.filter((user) =>
-                    updateFilter === "required" ? user.forceUpdateInfo : !user.forceUpdateInfo
-                );
-            }
-
-            setUsers(filteredUsers);
-            setTotalUsers(filteredUsers.length);
-            setTotalPages(Math.ceil(filteredUsers.length / userPerPage));
-
-            // Reset selections
-            setSelected(new Set());
-            setSelectedUser(null);
-            setSelectedUserIndex(null);
-        } catch (error) {
-            console.error("Failed to fetch users:", error);
-            handleFetchError();
-        }
-    };
-
     const handleFetchError = () => {
         if (!fetchUsersErrorShown) {
             setFetchUsersErrorShown(true);
@@ -369,7 +326,7 @@ export default function UsersPage(): JSX.Element {
     }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
-        let filtered = applyFilters(allUsers);
+        const filtered = applyFilters(allUsers);
 
         setTotalUsers(filtered.length);
         setTotalPages(Math.max(1, Math.ceil(filtered.length / userPerPage)));
@@ -381,6 +338,7 @@ export default function UsersPage(): JSX.Element {
         const start = (safePage - 1) * userPerPage;
         const end = start + userPerPage;
         setUsers(filtered.slice(start, end));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [allUsers, roleFilter, schoolFilter, statusFilter, updateFilter, searchTerm, userPerPage, currentPage]);
 
     //Function to for Hover and Mouse Tracking on User Card

@@ -5,9 +5,9 @@ import {
     GetAllSchools,
     GetSchooLogo,
     GetSchoolQuantity,
+    RemoveSchoolLogo,
     UpdateSchoolInfo,
     UploadSchoolLogo,
-    RemoveSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import { SchoolType, SchoolUpdateType } from "@/lib/types";
@@ -327,13 +327,23 @@ export default function SchoolsPage(): JSX.Element {
             const data = await GetAllSchools(0, 10000); // fetch all schools
             setAllSchools(data);
         } catch (error) {
-            notifications.show({
-                id: "fetch-schools-error",
-                title: "Failed to fetch schools list",
-                message: "Please try again later.",
-                color: "red",
-                icon: <IconUserExclamation />,
-            });
+            if (error instanceof Error) {
+                notifications.show({
+                    id: "fetch-all-schools-error",
+                    title: "Error",
+                    message: error.message,
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            } else {
+                notifications.show({
+                    id: "fetch-schools-error",
+                    title: "Failed to fetch schools list",
+                    message: "Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            }
             setAllSchools([]);
         }
     };

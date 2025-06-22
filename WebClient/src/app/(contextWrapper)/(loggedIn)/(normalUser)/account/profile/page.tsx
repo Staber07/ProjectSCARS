@@ -18,6 +18,7 @@ import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
 import {
+    ActionIcon,
     Anchor,
     Avatar,
     Badge,
@@ -43,12 +44,12 @@ import {
     useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useQRCode } from "next-qrcode";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
     IconCircleDashedCheck,
     IconCircleDashedX,
+    IconClipboardCopy,
     IconDeviceFloppy,
     IconKey,
     IconMail,
@@ -59,6 +60,7 @@ import {
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
+import { useQRCode } from "next-qrcode";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -919,31 +921,33 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             Store this recovery code in a safe place. They can be used to access your account if you
                             lose access to your authenticator app.
                         </Text>
-                        <Box ta="center">
-                            {otpGenData?.recovery_code ? (
-                                <Text size="md" fw={500}>
-                                    {otpGenData.recovery_code}
-                                </Text>
-                            ) : (
-                                <Text size="md" c="red">
-                                    No recovery code available
-                                </Text>
-                            )}
-                        </Box>
-                        <Button
-                            variant="filled"
-                            color="blue"
-                            onClick={() => {
-                                navigator.clipboard.writeText(otpGenData?.recovery_code || "");
-                                notifications.show({
-                                    title: "Recovery Codes Copied",
-                                    message: "The recovery codes have been copied to your clipboard",
-                                    color: "green",
-                                });
-                            }}
-                        >
-                            Copy Recovery Codes
-                        </Button>
+                        <Group justify="center" gap="sm">
+                            <Flex justify="center" align="center" gap="xs">
+                                {otpGenData?.recovery_code ? (
+                                    <Text size="md" fw={500}>
+                                        {otpGenData.recovery_code}
+                                    </Text>
+                                ) : (
+                                    <Text size="md" c="red">
+                                        No recovery code available
+                                    </Text>
+                                )}
+                                <ActionIcon
+                                    variant="light"
+                                    color="blue"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(otpGenData?.recovery_code || "");
+                                        notifications.show({
+                                            title: "Recovery Codes Copied",
+                                            message: "The recovery codes have been copied to your clipboard",
+                                            color: "green",
+                                        });
+                                    }}
+                                >
+                                    <IconClipboardCopy size={16} />
+                                </ActionIcon>
+                            </Flex>
+                        </Group>
                     </Stack>
                 </Modal>
                 <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
