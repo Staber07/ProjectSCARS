@@ -787,32 +787,44 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     <Switch
                         checked={otpEnabled}
                         onChange={async (e) => {
-                            if (e.currentTarget.checked) {
-                                if (userInfo?.otpVerified) {
-                                    notifications.show({
-                                        title: "Two-Step Verification Already Enabled",
-                                        message: "You have already enabled two-step verification.",
-                                        color: "yellow",
-                                        icon: <IconKey />,
+                            try {
+                                if (e.currentTarget.checked) {
+                                    if (userInfo?.otpVerified) {
+                                        notifications.show({
+                                            title: "Two-Step Verification Already Enabled",
+                                            message: "You have already enabled two-step verification.",
+                                            color: "yellow",
+                                            icon: <IconKey />,
+                                        });
+                                        return;
+                                    }
+                                    const otpData = await GenerateTOTP();
+                                    setOtpGenData(otpData);
+                                    setShowOTPModal(true);
+                                } else {
+                                    await DisableTOTP().then(() => {
+                                        notifications.show({
+                                            title: "Two-Step Verification Disabled",
+                                            message:
+                                                "You will no longer be prompted for a verification code during login.",
+                                            color: "yellow",
+                                            icon: <IconKey />,
+                                        });
+                                        setOtpEnabled(false);
                                     });
-                                    return;
                                 }
-                                const otpData = await GenerateTOTP();
-                                setOtpGenData(otpData);
-                                setShowOTPModal(true);
-                            } else {
-                                await DisableTOTP().then(() => {
-                                    notifications.show({
-                                        title: "Two-Step Verification Disabled",
-                                        message: "You will no longer be prompted for a verification code during login.",
-                                        color: "yellow",
-                                        icon: <IconKey />,
-                                    });
-                                    setOtpEnabled(false);
+                            } catch (error) {
+                                notifications.show({
+                                    title: "Error",
+                                    message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                    color: "red",
+                                    icon: <IconX />,
                                 });
+                                setOtpVerifyHasError(true);
+                            } finally {
+                                const updatedUserInfo = await GetUserInfo();
+                                userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
                             }
-                            const updatedUserInfo = await GetUserInfo();
-                            userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
                         }}
                     />
                 </Group>
