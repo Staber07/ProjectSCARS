@@ -3,7 +3,6 @@ import datetime
 from sqlmodel import Field, Relationship, SQLModel
 
 
-# TODO: WIP
 class PayrollReport(SQLModel, table=True):
     """A model representing the monthly payroll report."""
 
