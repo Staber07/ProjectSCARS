@@ -46,7 +46,7 @@ export function LiquidationReportModal({ opened, onClose, onSelect }: Liquidatio
         },
         {
             label: "Faculty & Student Development Fund",
-            value: "faculty_student_development_fund",
+            value: "faculty_stud_dev_fund",
             path: "/reports/liquidation-report",
             description: "Training and development programs",
         },
