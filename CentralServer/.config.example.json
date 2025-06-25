@@ -18,7 +18,7 @@
     "database": {
         "type": "sqlite",
         "config": {
-            "filepath": "./centralserver.db"
+            "filepath": "./db/centralserver.db"
         }
     },
     "object_store": {
