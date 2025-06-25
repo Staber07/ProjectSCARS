@@ -3,6 +3,13 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
+    GetDailySalesAndPurchasesReport,
+    GetDailySalesAndPurchasesReportEntries,
+    SetDailySalesAndPurchasesReportEntries,
+} from "@/lib/api/report";
+import { useUser } from "@/lib/providers/user";
+import { DailyFinancialReportEntryType } from "@/lib/types";
+import {
     ActionIcon,
     Badge,
     Button,
@@ -18,12 +25,13 @@ import {
     Text,
     Title,
 } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
+import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
+import { notifications } from "@mantine/notifications";
 import { IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 interface DailyEntry {
     date: string;
@@ -36,6 +44,7 @@ interface DailyEntry {
 function SalesandPurchasesContent() {
     console.debug("Rendering SalesandPurchasesPage");
     const router = useRouter();
+    const userCtx = useUser();
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -45,7 +54,32 @@ function SalesandPurchasesContent() {
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntryType | null>(null);
+
+    useEffect(() => {
+        // Fetch initial entries for the current month when component mounts
+        const fetchEntries = async () => {
+            if (userCtx.userInfo?.schoolId) {
+                const report = await GetDailySalesAndPurchasesReport(
+                    userCtx.userInfo.schoolId,
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() + 1
+                );
+                if (report) {
+                    setDailyEntries(
+                        (report.entries || []).map((entry: DailyFinancialReportEntryType) => ({
+                            date: dayjs(entry.parent).format("YYYY-MM-DD"),
+                            day: dayjs(entry.parent).date(),
+                            sales: entry.sales,
+                            purchases: entry.purchases,
+                            netIncome: entry.sales - entry.purchases,
+                        }))
+                    );
+                }
+            }
+        };
+        fetchEntries();
+    }, [currentMonth, userCtx.userInfo?.schoolId]);
 
     const handleClose = () => {
         router.push("/reports");
@@ -98,6 +132,20 @@ function SalesandPurchasesContent() {
 
         const existingIndex = dailyEntries.findIndex((entry) => entry.date === editingEntry.date);
 
+        // Construct the API entry with the required 'parent' property
+        const apiEntry = {
+            parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), editingEntry.day),
+            day: editingEntry.day,
+            sales: modalSales,
+            purchases: modalPurchases,
+        };
+
+        SetDailySalesAndPurchasesReportEntries(
+            userCtx.userInfo?.schoolId || 0,
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() + 1,
+            [apiEntry]
+        );
         if (existingIndex >= 0) {
             // Update existing entry
             setDailyEntries((prev) => prev.map((entry, index) => (index === existingIndex ? updatedEntry : entry)));
@@ -120,14 +168,21 @@ function SalesandPurchasesContent() {
     };
 
     const handleDeleteEntry = (entry: DailyEntry) => {
-        setEntryToDelete(entry);
+        setEntryToDelete({
+            parent: new Date(dayjs(entry.date).format("YYYY-MM-DD")),
+            day: entry.day,
+            sales: entry.sales,
+            purchases: entry.purchases,
+        });
         setDeleteModalOpened(true);
     };
 
     const confirmDeleteEntry = () => {
         if (!entryToDelete) return;
 
-        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.date));
+        setDailyEntries((prev) =>
+            prev.filter((entry) => entry.date !== dayjs(entryToDelete.parent).format("YYYY-MM-DD"))
+        );
         setDeleteModalOpened(false);
         setEntryToDelete(null);
     };
@@ -146,10 +201,32 @@ function SalesandPurchasesContent() {
 
     const totals = calculateTotals();
 
-    const handleSubmit = () => {
-        // TODO: Placeholder for submit logic
+    const handleSubmit = async () => {
         console.log("Submit clicked");
-        handleClose();
+        if (!userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "You must be logged in to submit entries.",
+                color: "red",
+            });
+            return;
+        }
+        await SetDailySalesAndPurchasesReportEntries(
+            userCtx.userInfo.schoolId,
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() + 1,
+            dailyEntries.map((entry) => ({
+                parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), entry.day),
+                day: entry.day,
+                sales: entry.sales,
+                purchases: entry.purchases,
+            }))
+        );
+        notifications.show({
+            title: "Submission",
+            message: "Your entries have been submitted successfully.",
+            color: "green",
+        });
     };
 
     return (
@@ -185,24 +262,65 @@ function SalesandPurchasesContent() {
                 <Card withBorder>
                     <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                         <Text fw={500}>Select Date to Record</Text>
-                        <DatePickerInput
-                            placeholder="Select date"
-                            value={selectedDate}
-                            onChange={(value) => {
-                                // value is a string or null
-                                if (value) {
-                                    const date = new Date(value);
-                                    if (!isNaN(date.getTime())) {
-                                        handleDateSelect(date);
+                        <Group gap="md">
+                            <MonthPickerInput
+                                placeholder="Select month"
+                                value={currentMonth}
+                                onChange={async (value) => {
+                                    if (value) {
+                                        setCurrentMonth(new Date(value));
+                                        setSelectedDate(null); // Reset selected day when month changes
+                                        if (userCtx.userInfo?.schoolId) {
+                                            const report = await GetDailySalesAndPurchasesReportEntries(
+                                                userCtx.userInfo?.schoolId,
+                                                currentMonth.getFullYear(),
+                                                currentMonth.getMonth() + 1
+                                            );
+                                            console.debug("Fetched report entries:", report);
+                                            setDailyEntries(
+                                                (report || []).map((entry: DailyFinancialReportEntryType) => ({
+                                                    date: dayjs(entry.parent).format("YYYY-MM-DD"),
+                                                    day: dayjs(entry.parent).date(),
+                                                    sales: entry.sales,
+                                                    purchases: entry.purchases,
+                                                    netIncome: entry.sales - entry.purchases,
+                                                }))
+                                            );
+                                        }
                                     }
-                                } else {
-                                    handleDateSelect(null);
-                                }
-                            }}
-                            leftSection={<IconCalendar size={16} />}
-                            maxDate={new Date()}
-                            className="w-64"
-                        />
+                                }}
+                                leftSection={<IconCalendar size={16} />}
+                                className="w-64"
+                            />
+                            <DatePickerInput
+                                placeholder="Select date"
+                                value={selectedDate}
+                                onChange={(value) => {
+                                    if (value) {
+                                        const date = new Date(value);
+                                        console.debug("Selected date:", date);
+                                        if (!isNaN(date.getTime())) {
+                                            handleDateSelect(date);
+                                        }
+                                    } else {
+                                        handleDateSelect(null);
+                                    }
+                                }}
+                                leftSection={<IconCalendar size={16} />}
+                                className="w-64"
+                                minDate={currentMonth ? dayjs(currentMonth).startOf("month").toDate() : undefined}
+                                maxDate={currentMonth ? dayjs(currentMonth).endOf("month").toDate() : new Date()}
+                            />
+                            <ActionIcon
+                                variant="outline"
+                                color="blue"
+                                size="lg"
+                                onClick={() => handleDateSelect(new Date())}
+                                title="Select today"
+                            >
+                                <IconCalendar size={16} />
+                            </ActionIcon>
+                        </Group>
                     </Group>
                 </Card>
 
@@ -429,7 +547,7 @@ function SalesandPurchasesContent() {
                 >
                     <Text size="sm" c="dimmed">
                         Are you sure you want to delete the entry for{" "}
-                        {entryToDelete ? dayjs(entryToDelete.date).format("MMMM DD, YYYY") : "this date"}?
+                        {entryToDelete ? dayjs(entryToDelete.parent).format("MMMM DD, YYYY") : "this date"}?
                     </Text>
                     <Group justify="end" mt="md">
                         <Button variant="subtle" onClick={() => setDeleteModalOpened(false)}>
