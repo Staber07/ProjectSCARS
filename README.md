@@ -53,10 +53,8 @@ the Philippines.
 
 -   [Deployment](./docs/deployment.md)
 -   [Development](./docs/development.md)
-
     -   [Stacks](./docs/development.md#stacks)
     -   [Central Server](./docs/central-server.md)
-
         -   [Requirements](./docs/central-server.md#requirements)
         -   [Development Setup](./docs/central-server-development-setup.md)
             -   [Resetting Central Server Data](./docs/central-server-development-setup.md#resetting-central-server-data)
@@ -74,11 +72,9 @@ the Philippines.
             -   [Google](./docs/central-server-enabling-open-authentication.md#google-oauth)
             -   [Microsoft](./docs/central-server-enabling-open-authentication.md#microsoft-oauth)
             -   [Facebook](./docs/central-server-enabling-open-authentication.md#facebook-oauth)
-
     -   [Web Client](./docs/web-client.md)
         -   [Requirements](./docs/web-client.md#requirements)
         -   [Development Setup](./docs/web-client-development-setup.md)
-
 -   [Authors](#authors)
 
 ## Authors
