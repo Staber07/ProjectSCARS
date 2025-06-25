@@ -60,7 +60,7 @@ async def get_notification_quantity(
             detail="You do not have permission to view your own notifications.",
         )
 
-    logger.debug("user %s fetching users quantity", token.id)
+    logger.debug("user %s fetching notifications quantity", token.id)
     return (
         session.exec(
             select(func.count()).where(  # pylint: disable=not-callable
