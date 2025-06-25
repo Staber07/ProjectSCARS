@@ -69,7 +69,9 @@ async def get_schools_quantity_endpoint(
         )
 
     logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(School.id))).one()  # type: ignore
+    return session.exec(
+        select(func.count()).select_from(School)  # pylint: disable=not-callable
+    ).one()
 
 
 @router.get("/me")

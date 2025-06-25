@@ -62,12 +62,16 @@ async def get_notification_quantity(
 
     logger.debug("user %s fetching users quantity", token.id)
     return (
-        session.exec(select(func.count(Notification.id))).one()  # type: ignore
+        session.exec(
+            select(func.count()).where(  # pylint: disable=not-callable
+                Notification.ownerId == token.id
+            )
+        ).one()
         if show_archived
         else session.exec(
-            # FIXME: when show_archived is False, no item is returned
-            select(func.count(Notification.id)).where(  # type: ignore
-                Notification.archived == False  # pylint: disable=C0121
+            select(func.count()).where(  # pylint: disable=not-callable
+                (Notification.ownerId == token.id)
+                & (Notification.archived == False)  # pylint: disable=C0121
             )
         ).one()
     )
