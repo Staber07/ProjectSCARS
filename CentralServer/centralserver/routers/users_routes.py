@@ -55,7 +55,9 @@ async def get_users_quantity_endpoint(
         )
 
     logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(User.id))).one()  # type: ignore
+    return session.exec(
+        select(func.count()).select_from(User)  # pylint: disable=not-callable
+    ).one()
 
 
 @router.get("/me", response_model=tuple[UserPublic, list[str]])

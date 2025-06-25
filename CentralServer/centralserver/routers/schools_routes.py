@@ -68,8 +68,10 @@ async def get_schools_quantity_endpoint(
             detail="You do not have permission to view schools list.",
         )
 
-    logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(School.id))).one()  # type: ignore
+    logger.debug("user %s fetching schools quantity", token.id)
+    return session.exec(
+        select(func.count()).select_from(School)  # pylint: disable=not-callable
+    ).one()
 
 
 @router.get("/me")
