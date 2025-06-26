@@ -376,6 +376,7 @@ async def verify_user_permission(
         Returns True if the user has the required permissions, False otherwise.
     """
 
+    logger.debug("Required permission: %s", required_role)
     if token.is_refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
