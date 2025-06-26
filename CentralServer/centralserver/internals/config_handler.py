@@ -21,13 +21,14 @@ from centralserver.internals.models.oauth import OAuthConfigs
 class Debug:
     """The debugging configuration."""
 
-    __exportable_fields = ["enabled", "logenv_optout", "show_sql"]
+    __exportable_fields = ["enabled", "logenv_optout", "show_sql", "hot_reload"]
 
     def __init__(
         self,
         enabled: bool | None = None,
         logenv_optout: bool | None = None,
         show_sql: bool | None = None,
+        hot_reload: bool | None = None,
     ):
         """Create a configuration object for debugging.
 
@@ -35,11 +36,13 @@ class Debug:
             enabled: If True, enable debugging mode.
             logenv_optout: If True, disable logging environment variables.
             show_sql: If True, print executed SQL statements.
+            hot_reload: If True, enable hot reloading of the server.
         """
 
         self.enabled: bool = enabled or False
         self.logenv_optout: bool = logenv_optout or False
         self.show_sql: bool = show_sql or False
+        self.hot_reload: bool = hot_reload or False
 
     def export(self) -> dict[str, Any]:
         """Export the debugging configuration as a dictionary."""
@@ -420,6 +423,12 @@ class AppConfig:
 
         return self.__filepath
 
+    @property
+    def encoding(self) -> str:
+        """Get the encoding of the configuration file."""
+
+        return self.__enc
+
     def save(self) -> None:
         """Save the current configuration to the file.
 
@@ -448,6 +457,7 @@ def read_config(
     config: dict[str, Any],
     host: str | None = None,
     port: int | None = None,
+    hot_reload: bool | None = None,
 ) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
@@ -457,6 +467,7 @@ def read_config(
         config: The configuration file contents.
         host: The host to listen on for incoming connections. (Optional)
         port: The port to listen on for incoming connections. (Optional)
+        hot_reload: Enables hot reloading of the server. (Optional)
 
     Returns:
         A new AppConfig object.
@@ -581,6 +592,7 @@ def read_config(
             enabled=debug_config.get("enabled", None),
             logenv_optout=debug_config.get("logenv_optout", None),
             show_sql=debug_config.get("show_sql", None),
+            hot_reload=hot_reload or debug_config.get("hot_reload", None),
         ),
         connection=Connection(
             host=host or connection_config.get("host", None),
@@ -657,6 +669,7 @@ def __read_config_file(
     enc: str = info.Configuration.default_encoding,
     host: str | None = None,
     port: int | None = None,
+    hot_reload: bool | None = None,
 ) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
@@ -665,13 +678,16 @@ def __read_config_file(
         enc: The encoding of the file.
         host: The host to listen on for incoming connections. (Optional)
         port: The port to listen on for incoming connections. (Optional)
+        hot_reload: Enables hot reloading of the server.
 
     Returns:
         A new AppConfig object with the updated configuration.
     """
 
     with open(fp, "r", encoding=enc) as f:
-        return read_config(fp, enc, json.load(f), host=host, port=port)
+        return read_config(
+            fp, enc, json.load(f), host=host, port=port, hot_reload=hot_reload
+        )
 
 
 # The global configuration object for the application.
@@ -684,4 +700,5 @@ app_config = __read_config_file(
     os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
     os.getenv("CENTRAL_SERVER_HOST", None),
     __port,
+    os.getenv("CENTRAL_SERVER_HOT_RELOAD", "false").lower() == "true",
 )
