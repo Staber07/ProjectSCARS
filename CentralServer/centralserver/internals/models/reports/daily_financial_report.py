@@ -42,10 +42,11 @@ class DailyFinancialReportEntry(SQLModel, table=True):
 
     __tablename__: str = "dailyFinancialReportsEntries"  # type: ignore
 
-    parent: datetime.date = Field(
-        primary_key=True, index=True, foreign_key="dailyFinancialReports.parent"
+    day: int = Field(  # The day of the month (1-31, depending on the month)
+        primary_key=True,
+        index=True,
     )
-    day: int  # The day of the month (1-31, depending on the month)
+    parent: datetime.date = Field(foreign_key="dailyFinancialReports.parent")
     sales: float  # Positive float representing the total sales for the day
     purchases: float  # Positive float representing the total purchases for the day
 
