@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 -->
+
 # Project SCARS
 
 Project SCARS is a School Canteen Automated Reporting System for the Department
