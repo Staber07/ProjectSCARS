@@ -2,9 +2,12 @@
     "debug": {
         "enabled": false,
         "logenv_optout": true,
-        "show_sql": false
+        "show_sql": false,
+        "hot_reload": false
     },
     "connection": {
+        "host": "0.0.0.0",
+        "port": 8081,
         "base_url": "http://localhost:8080"
     },
     "logging": {
