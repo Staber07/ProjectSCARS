@@ -63,7 +63,6 @@ def send_mail(
         return
 
     try:
-
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = app_config.mailing.from_address
