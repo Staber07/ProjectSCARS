@@ -94,6 +94,7 @@ def log_app_info(logger: logging.Logger):
     stats["Configuration Encoding"] = app_config.encoding
 
     stats["Debug Mode"] = "Enabled" if app_config.debug.enabled else "Disabled"
+    stats["Running via __main__"] = "Yes" if app_config.run_internal else "No"
 
     if app_config.debug.enabled:
         # Debug
@@ -193,13 +194,12 @@ def log_app_info(logger: logging.Logger):
         stats["Templates Directory"] = app_config.mailing.templates_dir or "Not set"
         stats["Templates Encoding"] = app_config.mailing.templates_encoding or "Not set"
 
+        # Environment Variables
+        stats["Environment Variables"] = (
+            "Opted Out" if app_config.debug.logenv_optout else str(os.environ)
+        )
+
     max_key_length = max(map(len, stats))
     _l = logger.debug if app_config.debug.enabled else logger.info
     for key, value in stats.items():
         _l(f"{key.rjust(max_key_length)} : {value}")
-
-    logger.debug(
-        "Environment Variables: opted out"
-        if app_config.debug.logenv_optout
-        else f"Environment Variables:\n{os.environ}"
-    )

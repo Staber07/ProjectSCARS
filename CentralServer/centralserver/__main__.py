@@ -1,11 +1,11 @@
 from uvicorn import config, run
 
 from centralserver.internals.config_handler import app_config
-from centralserver.main import app
 
 if __name__ == "__main__":
+    app_config.run_internal = True  # app is running using __main__
     run(
-        app,
+        "centralserver:app",  # import using module:attribute
         host=app_config.connection.host,
         port=app_config.connection.port,
         reload=app_config.debug.hot_reload,

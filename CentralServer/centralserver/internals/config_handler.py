@@ -404,6 +404,7 @@ class AppConfig:
 
         self.__filepath: str | Path = fp
         self.__enc: str = enc
+        self.run_internal: bool = False  # Indicates if app is running using __main__
         self.debug: Debug = debug or Debug()
         self.connection: Connection = connection or Connection()
         self.logging: Logging = logging or Logging()
