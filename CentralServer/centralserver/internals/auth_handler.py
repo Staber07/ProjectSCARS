@@ -151,7 +151,7 @@ async def authenticate_user(
             session.refresh(found_user)
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         # Check if the lockout period has expired.
@@ -176,7 +176,7 @@ async def authenticate_user(
             )
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         else:
