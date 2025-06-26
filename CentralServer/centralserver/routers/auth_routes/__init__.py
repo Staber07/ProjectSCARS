@@ -24,24 +24,13 @@ from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import (
-    DecodedJWTToken,
-    JWTToken,
-)
-from centralserver.internals.models.user import (
-    User,
-    UserCreate,
-    UserPublic,
-)
-from centralserver.internals.user_handler import (
-    create_user,
-)
-from centralserver.routers.auth_routes.oauth import (
-    google_oauth_adapter,
-    router as oauth_router,
-)
-from centralserver.routers.auth_routes.multifactor import router as multifactor_router
+from centralserver.internals.models.token import DecodedJWTToken, JWTToken
+from centralserver.internals.models.user import User, UserCreate, UserPublic
+from centralserver.internals.user_handler import create_user
 from centralserver.routers.auth_routes.email import router as email_router
+from centralserver.routers.auth_routes.multifactor import router as multifactor_router
+from centralserver.routers.auth_routes.oauth import google_oauth_adapter
+from centralserver.routers.auth_routes.oauth import router as oauth_router
 
 logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(

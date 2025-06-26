@@ -5,8 +5,8 @@ from fastapi import APIRouter, Depends
 from centralserver.internals.auth_handler import verify_access_token
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.routers.reports_routes.monthly import router as monthly_router
 from centralserver.routers.reports_routes.daily import router as daily_router
+from centralserver.routers.reports_routes.monthly import router as monthly_router
 
 logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(

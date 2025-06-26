@@ -15,7 +15,6 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import User
 
-
 logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(prefix="/oauth")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
