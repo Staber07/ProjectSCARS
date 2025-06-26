@@ -82,7 +82,7 @@ class MonthlyReport(SQLModel, table=True):
         description="The date and time when the report was received.",
     )
     lastModified: datetime.datetime = Field(
-        default=datetime.datetime.now,
+        default_factory=datetime.datetime.now,
         description="The last time the report was modified.",
     )
 
