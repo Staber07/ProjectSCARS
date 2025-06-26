@@ -1,3 +1,4 @@
+import uvicorn
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.middleware.cors import CORSMiddleware
@@ -116,3 +117,7 @@ async def internal_server_error(request: Request, exc: HTTPException):
     logger.debug("Request Cookies: %s", request.cookies)
 
     return await http_exception_handler(request, exc)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host=app_config.connection.host, port=app_config.connection.port)

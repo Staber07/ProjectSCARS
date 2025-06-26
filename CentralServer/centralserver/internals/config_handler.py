@@ -54,18 +54,24 @@ class Debug:
 class Connection:
     """The connection configuration."""
 
-    __exportable_fields = ["base_url"]
+    __exportable_fields = ["host", "port", "base_url"]
 
     def __init__(
         self,
+        host: str | None = None,
+        port: int | None = None,
         base_url: str | None = None,
     ):
         """Create a configuration object for the connection.
 
         Args:
-            base_url: The base URL for the connection. (Default: None)
+            host: Where to listen for incoming connections.
+            port: Which port to listen on for incoming connections.
+            base_url: The base URL of the web client.
         """
 
+        self.host: str = host or "localhost"
+        self.port: int = port or 8081
         self.base_url: str = base_url or "http://localhost:8080"
 
     def export(self) -> dict[str, Any]:
@@ -436,13 +442,21 @@ class AppConfig:
             json.dump(new_values, f, indent=4)
 
 
-def read_config(fp: str | Path, enc: str, config: dict[str, Any]) -> AppConfig:
+def read_config(
+    fp: str | Path,
+    enc: str,
+    config: dict[str, Any],
+    host: str | None = None,
+    port: int | None = None,
+) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
     Args:
         fp: The file path to the JSON configuration file.
         enc: The encoding of the file.
         config: The configuration file contents.
+        host: The host to listen on for incoming connections. (Optional)
+        port: The port to listen on for incoming connections. (Optional)
 
     Returns:
         A new AppConfig object.
@@ -569,6 +583,8 @@ def read_config(fp: str | Path, enc: str, config: dict[str, Any]) -> AppConfig:
             show_sql=debug_config.get("show_sql", None),
         ),
         connection=Connection(
+            host=host or connection_config.get("host", None),
+            port=port or connection_config.get("port", None),
             base_url=connection_config.get("base_url", None),
         ),
         logging=Logging(
@@ -639,23 +655,33 @@ def read_config(fp: str | Path, enc: str, config: dict[str, Any]) -> AppConfig:
 def __read_config_file(
     fp: str | Path,
     enc: str = info.Configuration.default_encoding,
+    host: str | None = None,
+    port: int | None = None,
 ) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
     Args:
         fp: The file path to the JSON configuration file.
         enc: The encoding of the file.
+        host: The host to listen on for incoming connections. (Optional)
+        port: The port to listen on for incoming connections. (Optional)
 
     Returns:
         A new AppConfig object with the updated configuration.
     """
 
     with open(fp, "r", encoding=enc) as f:
-        return read_config(fp, enc, json.load(f))
+        return read_config(fp, enc, json.load(f), host=host, port=port)
 
 
 # The global configuration object for the application.
+__port = os.getenv("CENTRAL_SERVER_PORT", None)
+if __port is not None:
+    __port = int(__port)
+
 app_config = __read_config_file(
     os.getenv("CENTRAL_SERVER_CONFIG_FILE", str(info.Configuration.default_filepath)),
     os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
+    os.getenv("CENTRAL_SERVER_HOST", None),
+    __port,
 )
