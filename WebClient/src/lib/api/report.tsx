@@ -103,6 +103,12 @@ export async function SetDailySalesAndPurchasesReport(
 
     const data: DailyFinancialReportType = await centralServerResponse.json();
     data.parent = new Date(data.parent);
+    if (data.entries) {
+        data.entries = data.entries.map((entry) => ({
+            ...entry,
+            parent: new Date(entry.parent),
+        }));
+    }
     return data;
 }
 

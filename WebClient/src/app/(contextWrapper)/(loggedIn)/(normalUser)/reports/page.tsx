@@ -7,6 +7,7 @@ import { useUser } from "@/lib/providers/user";
 import { MonthlyReportType, ReportStatus, SchoolType } from "@/lib/types";
 import {
     ActionIcon,
+    Alert,
     Badge,
     Card,
     Checkbox,
@@ -24,6 +25,7 @@ import {
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
+    IconAlertCircle,
     IconCash,
     IconDots,
     IconDownload,
@@ -247,6 +249,17 @@ export default function ReportsPage() {
 
     return (
         <Stack gap="lg">
+            {!userCtx.userInfo?.schoolId && (
+                <Alert
+                    variant="light"
+                    color="yellow"
+                    withCloseButton
+                    title="Warning"
+                    icon={<IconAlertCircle size={16} />}
+                >
+                    You are not yet assigned to a school! Reports you create will fail to submit.
+                </Alert>
+            )}
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
