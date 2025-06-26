@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD051 -->
+
 # Central Server Development Setup
 
 1. Install the [required software](#central-server-requirements).
@@ -43,14 +45,15 @@
 10. Run the FastAPI development server.
 
     ```bash
-    uv run fastapi dev centralserver --host 0.0.0.0 --port 8081
+    uv run fastapi dev centralserver --host 0.0.0.0 --port 8081  # Run it using fastapi
+    uv run -m centralserver  # Run the server directly (using `config.json` values for host and port)
     ```
 
 > [!IMPORTANT]
 > The default credentials are:
 >
-> -   username: `bento`
-> -   password: `ProjectSCARS1`
+> - username: `bento`
+> - password: `ProjectSCARS1`
 
 ## Resetting Central Server Data
 

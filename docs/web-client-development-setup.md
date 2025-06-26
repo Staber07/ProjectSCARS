@@ -16,13 +16,15 @@
 4. Install dependencies.
 
     ```bash
-    npm install
+    npm install  # For npm users
+    bun install  # For bun users
     ```
 
 5. Run the development server.
 
     ```bash
-    npm run dev
+    npm run dev  # For npm users
+    bun run dev  # For bun users
     ```
 
 > [!IMPORTANT]
