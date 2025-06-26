@@ -60,7 +60,6 @@ export type UserUpdateType = {
 };
 
 export interface UserPreferences {
-    darkMode: boolean;
     accentColor: string;
     language: string;
     timezone: string;

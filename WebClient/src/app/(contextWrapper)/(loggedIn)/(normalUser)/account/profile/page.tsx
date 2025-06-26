@@ -89,11 +89,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const searchParams = useSearchParams();
     const userCtx = useUser();
     const { SVG } = useQRCode();
-    const { setColorScheme } = useMantineColorScheme();
+    const { setColorScheme, colorScheme } = useMantineColorScheme();
     const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
         key: LocalStorage.userPreferences,
         defaultValue: {
-            darkMode: false,
             accentColor: "#228be6",
             language: "English",
             timezone: "UTC+8 (Philippines)",
@@ -325,11 +324,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             buttonStateHandler.close();
         }
     };
-
-    useEffect(() => {
-        setColorScheme(userPreferences.darkMode ? "dark" : "light");
-        document.documentElement.style.setProperty("--mantine-primary-color-filled", userPreferences.accentColor);
-    }, [userPreferences, setColorScheme]);
 
     useEffect(() => {
         if (userInfo) {
@@ -1176,8 +1170,8 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 <Stack>
                     <Switch
                         label="Dark Mode"
-                        checked={userPreferences.darkMode}
-                        onChange={(e) => handlePreferenceChange("darkMode", e.currentTarget.checked)}
+                        checked={colorScheme === "dark"}
+                        onChange={(e) => setColorScheme(e.currentTarget.checked ? "dark" : "light")}
                     />
                     <ColorInput
                         label="Accent Color"
@@ -1188,8 +1182,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         label="Default Language"
                         data={[
                             { value: "en", label: "English" },
-                            { value: "tl", label: "Tagalog" },
-                            { value: "ceb", label: "Cebuano" },
                             { value: "fil", label: "Filipino" },
                         ]}
                         value={userPreferences.language}
@@ -1198,10 +1190,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     <Select
                         label="Timezone"
                         data={[
-                            { value: "Asia/Manila", label: "GMT+8 (Philippines)" },
-                            { value: "Asia/Singapore", label: "GMT+8 (Singapore)" },
-                            { value: "Asia/Hong_Kong", label: "GMT+8 (Hong Kong)" },
-                            { value: "Asia/Taipei", label: "GMT+8 (Taipei)" },
+                            { value: "Asia/Manila", label: "Asia/Manila" },
+                            { value: "Asia/Singapore", label: "Asia/Singapore" },
+                            { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong" },
+                            { value: "Asia/Taipei", label: "Asia/Taipei" },
                         ]}
                         value={userPreferences.timezone}
                         onChange={(value) => handlePreferenceChange("timezone", value)}
