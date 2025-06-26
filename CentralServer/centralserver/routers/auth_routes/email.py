@@ -2,7 +2,7 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import EmailStr
 from sqlmodel import Session, select
 
@@ -30,14 +30,15 @@ from centralserver.internals.user_handler import (
 )
 
 logger = LoggerFactory().get_logger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/email")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/email/request")
+@router.post("/request")
 async def request_verification_email(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, str]:
     """Send a verification email to a user.
 
@@ -97,7 +98,8 @@ async def request_verification_email(
     )
     logger.info("Email verified successfully for user: %s", user.username)
     try:
-        send_mail(
+        background_tasks.add_task(
+            send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Email Verification Request",
             text=get_template("email_verification.txt").format(
@@ -125,7 +127,7 @@ async def request_verification_email(
     return {"message": "Email verification sent successfully."}
 
 
-@router.post("/email/verify")
+@router.post("/verify")
 async def verify_email(
     token: str,
     session: Annotated[Session, Depends(get_db_session)],
@@ -187,7 +189,10 @@ async def verify_email(
 
 @router.post("/recovery/request")
 async def request_password_recovery(
-    username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
+    username: str,
+    email: EmailStr,
+    session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[Literal["message"], str]:
     """Request a password recovery for a user.
 
@@ -254,7 +259,8 @@ async def request_password_recovery(
     logger.debug("Generated recovery link for user %s: %s", username, recovery_link)
 
     try:
-        send_mail(
+        background_tasks.add_task(
+            send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Password Recovery Request",
             text=get_template("password_recovery.txt").format(

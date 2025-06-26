@@ -16,5 +16,5 @@ router = APIRouter(
 )
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
-router.include_router(monthly_router)
-router.include_router(daily_router)
+router.include_router(monthly_router, tags=["Monthly Reports"])
+router.include_router(daily_router, tags=["Daily Reports"])

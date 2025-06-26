@@ -3,7 +3,7 @@ import uuid
 from typing import Annotated, Any
 
 import httpx
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwe, jwt
 from jose.exceptions import JWEError
@@ -99,7 +99,11 @@ async def get_user_role(
 
 
 async def authenticate_user(
-    username: str, plaintext_password: str, login_ip: str | None, session: Session
+    username: str,
+    plaintext_password: str,
+    login_ip: str | None,
+    session: Session,
+    background_tasks: BackgroundTasks,
 ) -> User | tuple[int, str]:
     """Find the user in the database and verify their password.
     This function will not authenticate deactivated and locked out users.
@@ -204,7 +208,8 @@ async def authenticate_user(
                 found_user.failedLoginAttempts
                 == app_config.security.failed_login_notify_attempts
             ):
-                send_mail(
+                background_tasks.add_task(
+                    send_mail,
                     to_address=found_user.email,
                     subject=f"{info.Program.name} | Someone is trying to access your account",
                     text=get_template("unusual_login.txt").format(

@@ -36,7 +36,7 @@ def create_attachment(bytes_data: bytes, filename: str, content_type: str) -> MI
     return attachment
 
 
-def send_mail(
+async def send_mail(
     to_address: str | EmailStr,
     subject: str,
     text: str,

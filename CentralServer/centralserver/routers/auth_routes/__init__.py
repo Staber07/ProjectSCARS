@@ -2,7 +2,15 @@ import datetime
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
@@ -38,14 +46,14 @@ from centralserver.routers.auth_routes.email import router as email_router
 logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(
     prefix="/v1/auth",
-    tags=["authentication"],
+    tags=["Authentication"],
     # dependencies=[Depends(get_db_session)],
 )
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
-router.include_router(email_router)
-router.include_router(oauth_router)
-router.include_router(multifactor_router)
+router.include_router(email_router, tags=["Email Authentication"])
+router.include_router(oauth_router, tags=["Open Authentication"])
+router.include_router(multifactor_router, tags=["Multi-Factor Authentication"])
 
 
 @router.post("/create", response_model=UserPublic)
@@ -106,6 +114,7 @@ async def request_access_token(
     data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
+    background_tasks: BackgroundTasks,
 ) -> JWTToken | dict[str, str]:
     """Get an access token for a user.
 
@@ -123,10 +132,11 @@ async def request_access_token(
 
     logger.info("Requesting access token for user: %s", data.username)
     user: User | tuple[int, str] = await authenticate_user(
-        data.username,
-        data.password,
-        request.client.host if request.client else None,
-        session,
+        username=data.username,
+        plaintext_password=data.password,
+        login_ip=request.client.host if request.client else None,
+        session=session,
+        background_tasks=background_tasks,
     )
 
     if isinstance(user, tuple):

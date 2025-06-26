@@ -17,7 +17,7 @@ from centralserver.internals.models.user import User
 
 
 logger = LoggerFactory().get_logger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/oauth")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 google_oauth_adapter = (
     GoogleOAuthAdapter(app_config.authentication.oauth.google)
@@ -26,7 +26,7 @@ google_oauth_adapter = (
 )
 
 
-@router.get("/oauth/google/login")
+@router.get("/google/login")
 async def google_oauth_login():
     """Handle Google OAuth login."""
     if google_oauth_adapter is None:
@@ -38,7 +38,7 @@ async def google_oauth_login():
     return await google_oauth_adapter.get_authorization_url()
 
 
-@router.get("/oauth/google/callback")
+@router.get("/google/callback")
 async def google_oauth_callback(
     code: str,
     session: Annotated[Session, Depends(get_db_session)],
@@ -75,7 +75,7 @@ async def google_oauth_callback(
     )
 
 
-@router.get("/oauth/google/link")
+@router.get("/google/link")
 async def oauth_link_google(
     code: str,
     token: logged_in_dep,
@@ -105,7 +105,7 @@ async def oauth_link_google(
     )
 
 
-@router.get("/oauth/google/unlink")
+@router.get("/google/unlink")
 async def oauth_unlink_google(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -133,7 +133,7 @@ async def oauth_unlink_google(
     return {"message": "Google account unlinked successfully."}
 
 
-@router.get("/oauth/microsoft/login")
+@router.get("/microsoft/login")
 async def microsoft_oauth_login():
     """Handle Microsoft OAuth login."""
     raise HTTPException(
@@ -142,7 +142,7 @@ async def microsoft_oauth_login():
     )
 
 
-@router.get("/oauth/microsoft/callback")
+@router.get("/microsoft/callback")
 async def microsoft_oauth_callback():
     """Handle Microsoft OAuth callback."""
     raise HTTPException(
@@ -151,7 +151,7 @@ async def microsoft_oauth_callback():
     )
 
 
-@router.get("/oauth/facebook/login")
+@router.get("/facebook/login")
 async def facebook_oauth_login():
     """Handle Facebook OAuth login."""
     raise HTTPException(
@@ -160,7 +160,7 @@ async def facebook_oauth_login():
     )
 
 
-@router.get("/oauth/facebook/callback")
+@router.get("/facebook/callback")
 async def facebook_oauth_callback():
     """Handle Facebook OAuth callback."""
     raise HTTPException(

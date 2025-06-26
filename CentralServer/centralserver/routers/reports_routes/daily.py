@@ -23,7 +23,7 @@ from centralserver.internals.models.reports.monthly_report import (
 from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
-router = APIRouter(prefix="/daily", tags=["daily_reports"])
+router = APIRouter(prefix="/daily")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 

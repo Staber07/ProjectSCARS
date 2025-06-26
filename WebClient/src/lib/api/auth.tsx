@@ -171,7 +171,7 @@ export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
  */
 export async function RequestPasswordRecovery(email: string, username: string): Promise<ServerMessageType> {
     console.debug("Requesting password recovery email for user", { email, username });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
+    const centralServerResponse = await ky.post(`${endpoint}/auth/email/recovery/request`, {
         searchParams: {
             username: username,
             email: email,
@@ -197,7 +197,7 @@ export async function RequestPasswordRecovery(email: string, username: string): 
  */
 export async function ResetPassword(token: string, new_password: string): Promise<ServerMessageType> {
     console.debug("Resetting password for user with token", { token });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
+    const centralServerResponse = await ky.post(`${endpoint}/auth/email/recovery/reset`, {
         json: {
             recovery_token: token,
             new_password: new_password,

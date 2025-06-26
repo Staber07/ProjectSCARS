@@ -3,7 +3,7 @@ import uuid
 from typing import Annotated
 
 import pyotp
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from centralserver import info
@@ -28,11 +28,11 @@ from centralserver.internals.models.user import User
 from centralserver.internals.notification_handler import push_notification
 
 logger = LoggerFactory().get_logger(__name__)
-router = APIRouter()
+router = APIRouter(prefix="/mfa/otp")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/mfa/otp/generate")
+@router.post("/generate")
 async def generate_mfa_otp(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -70,11 +70,12 @@ async def generate_mfa_otp(
     )
 
 
-@router.post("/mfa/otp/verify")
+@router.post("/verify")
 async def verify_mfa_otp(
     token: logged_in_dep,
     otp: str,
     session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, str]:
     """Verify the user's OTP for Multi-Factor Authentication."""
 
@@ -113,7 +114,8 @@ async def verify_mfa_otp(
 
     try:
         if user.email:
-            send_mail(
+            background_tasks.add_task(
+                send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Enabled",
                 text=get_template("mfa_otp_enabled.txt").format(
@@ -133,7 +135,7 @@ async def verify_mfa_otp(
     return {"message": "MFA OTP verified successfully."}
 
 
-@router.post("/mfa/otp/validate")
+@router.post("/validate")
 async def validate_mfa_otp(
     otp_verification: OTPVerificationToken,
     session: Annotated[Session, Depends(get_db_session)],
@@ -200,11 +202,12 @@ async def validate_mfa_otp(
     )
 
 
-@router.post("/mfa/otp/recovery")
+@router.post("/recovery")
 async def mfa_otp_recovery(
     recovery_data: OTPRecoveryCode,
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
+    background_tasks: BackgroundTasks,
 ) -> JWTToken:
     """Recover access using the OTP recovery code for Multi-Factor Authentication."""
 
@@ -274,7 +277,8 @@ async def mfa_otp_recovery(
 
     try:
         if user.email:
-            send_mail(
+            background_tasks.add_task(
+                send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
                 text=get_template("mfa_otp_disabled.txt").format(
@@ -304,10 +308,11 @@ async def mfa_otp_recovery(
     )
 
 
-@router.post("/mfa/otp/disable")
+@router.post("/disable")
 async def disable_mfa_otp(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, str]:
     """Disable the user's OTP for Multi-Factor Authentication."""
 
@@ -343,7 +348,8 @@ async def disable_mfa_otp(
 
     try:
         if user.email:
-            send_mail(
+            background_tasks.add_task(
+                send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
                 text=get_template("mfa_otp_disabled.txt").format(
