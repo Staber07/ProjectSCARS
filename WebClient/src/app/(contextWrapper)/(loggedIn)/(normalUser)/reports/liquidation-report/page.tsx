@@ -2,6 +2,7 @@
 
 import "@mantine/dates/styles.css";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
@@ -20,7 +21,6 @@ import {
     NumberInput,
     Paper,
     ScrollArea,
-    Select,
     Stack,
     Table,
     Text,
@@ -63,15 +63,7 @@ const RECEIPT_FIELDS_REQUIRED = [
     "revolving_fund",
 ];
 
-const unitOptions = [
-    { value: "pcs", label: "pcs" },
-    { value: "kg", label: "kg" },
-    { value: "gallons", label: "gallons" },
-    { value: "liters", label: "liters" },
-    { value: "boxes", label: "boxes" },
-    { value: "packs", label: "packs" },
-    { value: "bottles", label: "bottles" },
-];
+const defaultUnitOptions = ["pcs", "packs", "boxes", "kg", "liters", "gallons", "bottles"];
 
 interface ExpenseDetails {
     id: Date;
@@ -89,6 +81,7 @@ function LiquidationReportContent() {
     const category = searchParams.get("category");
 
     const [reportPeriod, setReportPeriod] = useState<Date | null>(new Date());
+    const [unitOptions, setUnitOptions] = useState<string[]>(defaultUnitOptions);
     const [expenseItems, setExpenseItems] = useState<ExpenseDetails[]>([
         {
             id: new Date(),
@@ -96,7 +89,7 @@ function LiquidationReportContent() {
             particulars: "",
             receiptNumber: RECEIPT_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
             quantity: QTY_FIELDS_REQUIRED.includes(category || "") ? 1 : undefined,
-            unit: QTY_FIELDS_REQUIRED.includes(category || "") ? "pcs" : undefined,
+            unit: QTY_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
             unitPrice: 0,
         },
     ]);
@@ -116,11 +109,11 @@ function LiquidationReportContent() {
     const addNewItem = () => {
         const newItem: ExpenseDetails = {
             id: new Date(),
-            date: reportPeriod ? dayjs(reportPeriod).startOf("month").toDate() : new Date(),
+            date: new Date(),
             particulars: "",
             receiptNumber: hasReceiptVoucher ? "" : undefined,
             quantity: hasQtyUnit ? 1 : undefined,
-            unit: hasQtyUnit ? "pcs" : undefined,
+            unit: hasQtyUnit ? "" : undefined,
             unitPrice: 0,
         };
         setExpenseItems([...expenseItems, newItem]);
@@ -142,6 +135,12 @@ function LiquidationReportContent() {
                 return item;
             })
         );
+    };
+
+    const addUnitOption = (newUnit: string) => {
+        if (!unitOptions.includes(newUnit)) {
+            setUnitOptions([...unitOptions, newUnit]);
+        }
     };
 
     const getFileTypeInfo = (file: File) => {
@@ -315,7 +314,7 @@ function LiquidationReportContent() {
                                                     onChange={(date) => updateItem(item.id, "date", date || new Date())}
                                                     minDate={minDate}
                                                     maxDate={maxDate}
-                                                    clearable
+                                                    date={reportPeriod || new Date()}
                                                     required
                                                 />
                                             </Table.Td>
@@ -356,14 +355,11 @@ function LiquidationReportContent() {
                                                         />
                                                     </Table.Td>
                                                     <Table.Td>
-                                                        <Select
-                                                            className="w-full"
-                                                            placeholder="Unit"
+                                                        <CreatableUnitSelect
                                                             value={item.unit}
-                                                            onChange={(value) =>
-                                                                updateItem(item.id, "unit", value || "pcs")
-                                                            }
-                                                            data={unitOptions}
+                                                            onChange={(value) => updateItem(item.id, "unit", value)}
+                                                            unitOptions={unitOptions}
+                                                            onAddUnit={addUnitOption}
                                                         />
                                                     </Table.Td>
                                                 </>
