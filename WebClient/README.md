@@ -25,4 +25,4 @@ the Philippines.
     </p>
 </details>
 
-Documentation: [The GitHub Wiki](https://github.com/Chris1320/ProjectSCARS/wiki)
+Documentation: [GitHub Wiki](https://github.com/Chris1320/ProjectSCARS/wiki)
