@@ -122,6 +122,10 @@ export type JwtToken = {
      */
     access_token: string;
     /**
+     * Refresh Token
+     */
+    refresh_token?: string | null;
+    /**
      * Token Type
      */
     token_type: string;
@@ -1063,7 +1067,12 @@ export type CreateNewUserV1AuthCreatePostResponse = CreateNewUserV1AuthCreatePos
 export type RequestAccessTokenV1AuthLoginPostData = {
     body: BodyRequestAccessTokenV1AuthLoginPost;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Remember Me
+         */
+        remember_me?: boolean;
+    };
     url: '/v1/auth/login';
 };
 

@@ -317,15 +317,17 @@ export const createNewUserV1AuthCreatePost = <ThrowOnError extends boolean = fal
 
 /**
  * Request Access Token
- * Get an access token for a user.
+ * Get an access token for a user, and optionally a refresh token if 'Remember Me' is enabled.
  *
  * Args:
  * data: The data from the OAuth2 password request form.
  * session: The database session.
  * request: The HTTP request object.
+ * background_tasks: Background tasks to run after the request is processed.
+ * remember_me: Whether to remember the user on this device.
  *
  * Returns:
- * A JWT token or a MFA code if MFA is enabled.
+ * A dictionary containing the access token, and optionally the refresh token.
  *
  * Raises:
  * HTTPException: If the user cannot be authenticated.
