@@ -352,7 +352,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             try {
                 const rolesData = await GetAllRoles();
                 const formattedRoles = await Promise.all(
-                    rolesData.map((role) => SetSelectValue(role.id.toString(), role.description))
+                    rolesData.map((role) => SetSelectValue(role.id?.toString() || "", role.description))
                 );
                 setAvailableRoles(formattedRoles);
             } catch (error) {
