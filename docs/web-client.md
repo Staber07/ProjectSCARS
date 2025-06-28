@@ -12,5 +12,5 @@ and is run via [NodeJS](https://nodejs.org) v23.6.0 or
 
 ---
 
-- [Requirements](./docs/web-client.md#requirements)
-- [Development Setup](./docs/web-client-development-setup.md)
+- [Requirements](./web-client.md#requirements)
+- [Development Setup](./web-client-development-setup.md)
