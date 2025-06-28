@@ -10,7 +10,8 @@ import {
     UploadSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { SchoolType, SchoolUpdateType } from "@/lib/types";
+import { SchoolUpdateType } from "@/lib/types";
+import { School } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -68,11 +69,11 @@ export default function SchoolsPage(): JSX.Element {
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
 
-    const [schools, setSchools] = useState<SchoolType[]>([]);
-    const [allSchools, setAllSchools] = useState<SchoolType[]>([]);
+    const [schools, setSchools] = useState<School[]>([]);
+    const [allSchools, setAllSchools] = useState<School[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
-    const [editSchool, setEditSchool] = useState<SchoolType | null>(null);
+    const [editSchool, setEditSchool] = useState<School | null>(null);
     const [editSchoolLogo, setEditSchoolLogo] = useState<File | null>(null);
     const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(null);
     const [logoToRemove, setLogoToRemove] = useState(false);
@@ -92,11 +93,11 @@ export default function SchoolsPage(): JSX.Element {
     const handleSearch = () => {
         setCurrentPage(1);
     };
-    const handleEdit = (index: number, school: SchoolType) => {
+    const handleEdit = (index: number, school: School) => {
         setEditIndex(index);
         setEditSchool(school);
         setLogoToRemove(false);
-        if (school.logoUrn) {
+        if (school.logoUrn && school.id != null) {
             const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
         } else {
@@ -158,7 +159,7 @@ export default function SchoolsPage(): JSX.Element {
 
     const handleSave = async () => {
         buttonStateHandler.open();
-        if (editIndex !== null && editSchool) {
+        if (editIndex !== null && editSchool && editSchool.id != null) {
             const newSchoolInfo: SchoolUpdateType = {
                 id: editSchool.id,
                 name: editSchool.name,
@@ -492,7 +493,7 @@ export default function SchoolsPage(): JSX.Element {
                             <TableTd>
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
-                                    {school.logoUrn ? (
+                                    {school.logoUrn && school.id != null ? (
                                         <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn, school.id)}>
                                             <IconUser />
                                         </Avatar>

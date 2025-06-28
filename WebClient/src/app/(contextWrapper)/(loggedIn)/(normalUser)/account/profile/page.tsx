@@ -17,7 +17,8 @@ import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { UserPreferences, UserUpdateType } from "@/lib/types";
+import { UserPreferences } from "@/lib/types";
+import { UserUpdate } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -205,7 +206,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         // Resolve async operations first
         const schoolId = await GetSelectValue(values.school);
         const roleId = await GetSelectValue(values.role);
-        const newUserInfo: UserUpdateType = {
+        const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== userInfo?.username && values.username ? values.username : undefined,
             nameFirst: values.nameFirst !== userInfo?.nameFirst && values.nameFirst ? values.nameFirst : undefined,
@@ -363,7 +364,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             try {
                 const schoolsData = await GetAllSchools(0, 999);
                 const formattedSchools = await Promise.all(
-                    schoolsData.map((school) => SetSelectValue(school.id.toString(), school.name))
+                    schoolsData
+                        .filter((school) => school.id != null) // Filter out schools without valid IDs
+                        .map((school) => SetSelectValue(school.id!.toString(), school.name))
                 );
                 setAvailableSchools(formattedSchools);
             } catch (error) {

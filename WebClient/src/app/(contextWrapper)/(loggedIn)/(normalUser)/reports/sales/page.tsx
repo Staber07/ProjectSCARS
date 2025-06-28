@@ -2,13 +2,9 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
-import {
-    GetDailySalesAndPurchasesReport,
-    GetDailySalesAndPurchasesReportEntries,
-    SetDailySalesAndPurchasesReportEntries,
-} from "@/lib/api/report";
+import { GetDailySalesAndPurchasesReportEntries, SetDailySalesAndPurchasesReportEntries } from "@/lib/api/report";
 import { useUser } from "@/lib/providers/user";
-import { DailyFinancialReportEntryType } from "@/lib/types";
+import { DailyFinancialReportEntry } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Alert,
@@ -55,28 +51,26 @@ function SalesandPurchasesContent() {
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntryType | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntry | null>(null);
 
     useEffect(() => {
         // Fetch initial entries for the current month when component mounts
         const fetchEntries = async () => {
             if (userCtx.userInfo?.schoolId) {
-                const report = await GetDailySalesAndPurchasesReport(
+                const reportEntries = await GetDailySalesAndPurchasesReportEntries(
                     userCtx.userInfo.schoolId,
                     currentMonth.getFullYear(),
                     currentMonth.getMonth() + 1
                 );
-                if (report) {
-                    setDailyEntries(
-                        (report.entries || []).map((entry: DailyFinancialReportEntryType) => ({
-                            date: dayjs(entry.parent).format("YYYY-MM-DD"),
-                            day: dayjs(entry.parent).date(),
-                            sales: entry.sales,
-                            purchases: entry.purchases,
-                            netIncome: entry.sales - entry.purchases,
-                        }))
-                    );
-                }
+                setDailyEntries(
+                    (reportEntries || []).map((entry: DailyFinancialReportEntry) => ({
+                        date: entry.parent,
+                        day: entry.day,
+                        sales: entry.sales,
+                        purchases: entry.purchases,
+                        netIncome: entry.sales - entry.purchases,
+                    }))
+                );
             }
         };
         fetchEntries();
@@ -170,7 +164,7 @@ function SalesandPurchasesContent() {
 
     const handleDeleteEntry = (entry: DailyEntry) => {
         setEntryToDelete({
-            parent: new Date(dayjs(entry.date).format("YYYY-MM-DD")),
+            parent: entry.date,
             day: entry.day,
             sales: entry.sales,
             purchases: entry.purchases,
@@ -181,9 +175,7 @@ function SalesandPurchasesContent() {
     const confirmDeleteEntry = () => {
         if (!entryToDelete) return;
 
-        setDailyEntries((prev) =>
-            prev.filter((entry) => entry.date !== dayjs(entryToDelete.parent).format("YYYY-MM-DD"))
-        );
+        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.parent));
         setDeleteModalOpened(false);
         setEntryToDelete(null);
     };
@@ -227,7 +219,7 @@ function SalesandPurchasesContent() {
             currentMonth.getFullYear(),
             currentMonth.getMonth() + 1,
             dailyEntries.map((entry) => ({
-                parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), entry.day),
+                parent: entry.date,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -302,9 +294,9 @@ function SalesandPurchasesContent() {
                                             );
                                             console.debug("Fetched report entries:", report);
                                             setDailyEntries(
-                                                (report || []).map((entry: DailyFinancialReportEntryType) => ({
-                                                    date: dayjs(entry.parent).format("YYYY-MM-DD"),
-                                                    day: dayjs(entry.parent).date(),
+                                                (report || []).map((entry: DailyFinancialReportEntry) => ({
+                                                    date: entry.parent,
+                                                    day: entry.day,
                                                     sales: entry.sales,
                                                     purchases: entry.purchases,
                                                     netIncome: entry.sales - entry.purchases,

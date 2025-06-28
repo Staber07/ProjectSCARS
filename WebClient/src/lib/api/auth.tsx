@@ -19,7 +19,6 @@ import {
     type BodyRequestAccessTokenV1AuthLoginPost,
     type JwtToken,
     type OtpToken,
-    type OtpVerificationToken,
     type Role,
     type UserPublic,
 } from "@/lib/api/csclient";
@@ -47,9 +46,9 @@ export function GetAccessTokenHeader(): string {
  * Log the user in to the central server using username and password.
  * @param {string} username - The username of the user.
  * @param {string} password - The password of the user.
- * @return {Promise<JwtToken | OtpVerificationToken>} A promise that resolves to the access token and token type or an OTP nonce type if two-factor authentication is required.
+ * @return {Promise<JwtToken | { [key: string]: string }>} A promise that resolves to the access token or an MFA response if two-factor authentication is required.
  */
-export async function LoginUser(username: string, password: string): Promise<JwtToken | OtpVerificationToken> {
+export async function LoginUser(username: string, password: string): Promise<JwtToken | { [key: string]: string }> {
     console.debug("Logging in user", { username });
 
     const loginFormData: BodyRequestAccessTokenV1AuthLoginPost = {
@@ -69,7 +68,7 @@ export async function LoginUser(username: string, password: string): Promise<Jwt
             throw new Error(errorMessage);
         }
 
-        return result.data as JwtToken | OtpVerificationToken;
+        return result.data as JwtToken | { [key: string]: string };
     } catch (error) {
         console.error("Login failed:", error);
         throw error;

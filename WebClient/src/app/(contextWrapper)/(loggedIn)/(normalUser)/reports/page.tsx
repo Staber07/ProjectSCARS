@@ -4,7 +4,7 @@ import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import { GetLocalMonthlyReports } from "@/lib/api/report";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { MonthlyReportType, ReportStatus, SchoolType } from "@/lib/types";
+import { MonthlyReport, ReportStatus, School } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Alert,
@@ -48,12 +48,12 @@ export default function ReportsPage() {
     const userCtx = useUser();
     const [userAssignedToSchool, setUserAssignedToSchool] = useState<boolean>(true);
     const [search, setSearch] = useState("");
-    const [selectedReports, setSelectedReports] = useState<Date[]>([]);
+    const [selectedReports, setSelectedReports] = useState<string[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
-    const [reportSubmissions, setReportSubmissions] = useState<MonthlyReportType[]>([]);
-    const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, SchoolType>>({});
+    const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
+    const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
 
     // Fetch reports on component mount
     useEffect(() => {
@@ -78,22 +78,23 @@ export default function ReportsPage() {
     const filteredReports = reportSubmissions.filter((report) => {
         const matchesSearch = report.name?.toLowerCase().includes(search.toLowerCase());
         const matchesStatus =
-            statusFilter === "all" || report.reportStatus.toLowerCase().replace(/\s+/g, "-") === statusFilter;
+            statusFilter === "all" ||
+            (report.reportStatus && report.reportStatus.toLowerCase().replace(/\s+/g, "-") === statusFilter);
 
         return matchesSearch && matchesStatus;
     });
 
     const getStatusColor = (status: ReportStatus) => {
         switch (status) {
-            case ReportStatus.APPROVED:
+            case "approved":
                 return "green";
-            case ReportStatus.DRAFT:
+            case "draft":
                 return "blue";
-            case ReportStatus.REVIEW:
+            case "review":
                 return "yellow";
-            case ReportStatus.REJECTED:
+            case "rejected":
                 return "red";
-            case ReportStatus.ARCHIVED:
+            case "archived":
                 return "gray";
             default:
                 return "gray";
@@ -108,7 +109,7 @@ export default function ReportsPage() {
         }
     };
 
-    const handleSelectReport = useCallback((id: Date, checked: boolean) => {
+    const handleSelectReport = useCallback((id: string, checked: boolean) => {
         if (checked) {
             setSelectedReports((prev) => [...prev, id]);
         } else {
@@ -203,8 +204,8 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <Badge color={getStatusColor(report.reportStatus)} variant="filled" size="sm">
-                                {report.reportStatus}
+                            <Badge color={getStatusColor(report.reportStatus || "draft")} variant="filled" size="sm">
+                                {report.reportStatus || "Draft"}
                             </Badge>
                         </Table.Td>
                         <Table.Td>
