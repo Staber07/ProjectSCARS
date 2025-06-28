@@ -77,6 +77,7 @@ the Philippines.
   - [Web Client](./docs/web-client.md)
     - [Requirements](./docs/web-client.md#requirements)
     - [Development Setup](./docs/web-client-development-setup.md)
+    - [Updating OpenAPI Client Using `openapi-ts`](./docs/web-client-development-setup.md#updating-openapi-client-using-openapi-ts)
 - [Authors](#authors)
 
 ## Authors

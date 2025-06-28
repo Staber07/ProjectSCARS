@@ -11,7 +11,7 @@
         "test:ci": "vitest run --reporter=junit --outputFile=test-report.junit.xml",
         "test:watch": "vitest",
         "coverage": "vitest run --coverage",
-        "openapi-ts": "openapi-ts"
+        "clientgen": "openapi-ts"
     },
     "dependencies": {
         "@gfazioli/mantine-onboarding-tour": "^2.1.1",
