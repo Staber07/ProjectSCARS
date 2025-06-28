@@ -629,6 +629,7 @@ def read_config(
             encryption_algorithm=authentication_config.get(
                 "encryption_algorithm", None
             ),
+            encrypt_jwt=authentication_config.get("encrypt_jwt", None),
             encoding=authentication_config.get("encoding", None),
             access_token_expire_minutes=authentication_config.get(
                 "access_token_expire_minutes", None

@@ -272,12 +272,10 @@ async def create_access_token(
         "exp": datetime.datetime.now(datetime.timezone.utc) + expiration_td,
     }
 
-    access_token = (
-        jwt.encode(
-            claims=token_data,
-            key=app_config.authentication.signing_secret_key,
-            algorithm=app_config.authentication.signing_algorithm,
-        ),
+    access_token = jwt.encode(
+        claims=token_data,
+        key=app_config.authentication.signing_secret_key,
+        algorithm=app_config.authentication.signing_algorithm,
     )
 
     if app_config.authentication.encrypt_jwt:
@@ -311,12 +309,15 @@ def verify_access_token(
 
     try:
         logger.debug("Decrypting access token...")
-        # logger.debug("Token: %s", token)
-        decoded_jwe = jwe.decrypt(
-            token,
-            app_config.authentication.encryption_secret_key.encode(
-                app_config.authentication.encoding
-            ),
+        decoded_jwe = (
+            jwe.decrypt(
+                token,
+                app_config.authentication.encryption_secret_key.encode(
+                    app_config.authentication.encoding
+                ),
+            )
+            if app_config.authentication.encrypt_jwt
+            else token.encode(app_config.authentication.encoding)
         )
 
         if decoded_jwe is None:
