@@ -11,7 +11,7 @@ import {
 export const Program = {
     name: "BENTO",
     description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
-    version: "0.4.0",
+    version: "0.4.1",
 };
 
 export const Connections = {
