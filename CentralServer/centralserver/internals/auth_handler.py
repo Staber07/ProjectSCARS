@@ -272,17 +272,23 @@ async def create_access_token(
         "exp": datetime.datetime.now(datetime.timezone.utc) + expiration_td,
     }
 
-    access_token = jwe.encrypt(
-        plaintext=jwt.encode(
+    access_token = (
+        jwt.encode(
             claims=token_data,
             key=app_config.authentication.signing_secret_key,
             algorithm=app_config.authentication.signing_algorithm,
         ),
-        key=app_config.authentication.encryption_secret_key.encode(
-            app_config.authentication.encoding
-        ),
-        algorithm=app_config.authentication.encryption_algorithm,
-    ).decode("utf-8")
+    )
+
+    if app_config.authentication.encrypt_jwt:
+        logger.debug("Encrypting access token...")
+        access_token = jwe.encrypt(
+            plaintext=access_token,
+            key=app_config.authentication.encryption_secret_key.encode(
+                app_config.authentication.encoding
+            ),
+            algorithm=app_config.authentication.encryption_algorithm,
+        ).decode("utf-8")
 
     # logger.debug("Access token: %s", access_token)
     return access_token
