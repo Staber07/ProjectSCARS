@@ -544,6 +544,10 @@ export type UserPublic = {
      */
     oauthLinkedMicrosoftId: string | null;
     /**
+     * Oauthlinkedfacebookid
+     */
+    oauthLinkedFacebookId: string | null;
+    /**
      * Forceupdateinfo
      */
     forceUpdateInfo: boolean;

@@ -4,11 +4,11 @@ import { CreateUserComponent } from "@/components/UserManagement/CreateUserCompo
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
 import { UserFilters } from "@/components/UserManagement/UserFilters";
 import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { Role, School, UserPublic } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
     Anchor,
@@ -62,10 +62,10 @@ export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
-    const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [availableSchools, setAvailableSchools] = useState<School[]>([]); // Assuming schools are strings for simplicity
 
-    const [users, setUsers] = useState<UserPublicType[]>([]);
+    const [users, setUsers] = useState<UserPublic[]>([]);
     //const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]); remnants of previous filtering logic
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -74,7 +74,7 @@ export default function UsersPage(): JSX.Element {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [selectedUser, setSelectedUser] = useState<UserPublicType | null>(null);
+    const [selectedUser, setSelectedUser] = useState<UserPublic | null>(null);
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
@@ -84,9 +84,9 @@ export default function UsersPage(): JSX.Element {
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [updateFilter, setUpdateFilter] = useState<string | null>(null);
 
-    const [allUsers, setAllUsers] = useState<UserPublicType[]>([]);
+    const [allUsers, setAllUsers] = useState<UserPublic[]>([]);
 
-    const applyFilters = (users: UserPublicType[]) => {
+    const applyFilters = (users: UserPublic[]) => {
         let filtered = [...users];
 
         if (roleFilter) {
@@ -164,7 +164,7 @@ export default function UsersPage(): JSX.Element {
         setOpenCreateUserModal(true);
     };
 
-    const handleEdit = (index: number, user: UserPublicType) => {
+    const handleEdit = (index: number, user: UserPublic) => {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
         setSelectedUser(user);

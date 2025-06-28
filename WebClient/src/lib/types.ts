@@ -1,47 +1,3 @@
-/** A type representing an access token. */
-export type TokenType = {
-    access_token: string;
-    token_type: string;
-};
-
-export type OTPNonceType = {
-    message: string;
-    otp_nonce: string;
-};
-
-export type OTPGenDataType = {
-    secret: string;
-    recovery_code: string;
-    provisioning_uri: string;
-};
-
-/** A type representing a user without sensitive information. */
-export type UserPublicType = {
-    id: string;
-    username: string;
-    email?: string | null;
-    nameFirst?: string | null;
-    nameMiddle?: string | null;
-    nameLast?: string | null;
-    position?: string | null;
-    avatarUrn?: string | null;
-    signatureUrn?: string | null;
-    schoolId?: number | null;
-    roleId: number;
-    deactivated: boolean;
-    finishedTutorials: string;
-    otpVerified: boolean;
-    oauthLinkedGoogleId?: string | null;
-    oauthLinkedFacebookId?: string | null;
-    oauthLinkedMicrosoftId?: string | null;
-    forceUpdateInfo: boolean;
-    emailVerified: boolean;
-    dateCreated: Date;
-    lastModified: Date;
-    lastLoggedInTime?: Date | null;
-    lastLoggedInIp?: string | null;
-};
-
 /** A model used when updating user information. */
 export type UserUpdateType = {
     id: string;
@@ -69,12 +25,6 @@ export type ServerMessageType = {
     message: string;
 };
 
-export type RoleType = {
-    id: number;
-    description: string;
-    modifiable: boolean;
-};
-
 export type NotificationType = {
     id: string;
     created: Date;
@@ -84,21 +34,6 @@ export type NotificationType = {
     important: boolean;
     type: string;
     archived: boolean;
-};
-
-export type SchoolType = {
-    id: number;
-    name: string;
-    address?: string | null;
-
-    phone?: string | null;
-    email?: string | null;
-    website?: string | null;
-
-    logoUrn?: string | null;
-
-    dateCreated: Date;
-    lastModified: Date;
 };
 
 export type SchoolCreateType = {

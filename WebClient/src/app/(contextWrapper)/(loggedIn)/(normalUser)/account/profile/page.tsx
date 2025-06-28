@@ -12,11 +12,12 @@ import {
     VerifyTOTP,
     VerifyUserEmail,
 } from "@/lib/api/auth";
+import { OtpToken, UserPublic } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
+import { UserPreferences, UserUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Anchor,
@@ -80,7 +81,7 @@ interface EditProfileValues {
 }
 
 interface ProfileContentProps {
-    userInfo: UserPublicType | null;
+    userInfo: UserPublic | null;
     userPermissions: string[] | null;
     userAvatarUrl: string | null;
 }
@@ -103,7 +104,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const [otpEnabled, setOtpEnabled] = useState(false);
-    const [otpGenData, setOtpGenData] = useState<OTPGenDataType | null>(null);
+    const [otpGenData, setOtpGenData] = useState<OtpToken | null>(null);
     const [showOTPModal, setShowOTPModal] = useState(false);
     const [showOTPSecret, showOTPSecretHandler] = useDisclosure(false);
     const [showRecoveryCodeModal, setShowRecoveryCodeModal] = useState(false);
