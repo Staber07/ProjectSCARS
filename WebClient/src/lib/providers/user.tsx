@@ -1,13 +1,14 @@
 import { LocalStorage } from "@/lib/info";
 import { UserPublicType } from "@/lib/types";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { UserPublic } from "@/lib/api/csclient";
 
 interface UserContextType {
     userInfo: UserPublicType | null;
     userPermissions: string[] | null;
     userAvatar: Blob | null;
     userAvatarUrl: string | null;
-    updateUserInfo: (userInfo: UserPublicType, permissions: string[] | null, userAvatar?: Blob | null) => void;
+    updateUserInfo: (userInfo: UserPublic, permissions: string[] | null, userAvatar?: Blob | null) => void;
     clearUserInfo: () => void;
 }
 

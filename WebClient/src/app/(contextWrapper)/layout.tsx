@@ -19,7 +19,7 @@ export default function ContextWrapperLayout({ children }: { children: React.Rea
             localStorage.setItem("mantine-color-scheme-value", "light");
             setColorScheme("light");
         }
-    }, []);
+    }, [setColorScheme]);
 
     console.debug("Rendering ContextWrapperLayout");
     return (
