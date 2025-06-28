@@ -1,3 +1,5 @@
+<!-- markdownlint-disable MD033 MD041 -->
+
 <div align="center">
     <a href="https://github.com/Chris1320/ProjectSCARS">
         <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/3686d8959946b31114ca8e45afde372896ad672f/WebClient/public/assets/logos/BENTO.svg" alt="Bento Logo" width="15%" height="auto" />
@@ -51,31 +53,32 @@ the Philippines.
 
 ## Documentation
 
--   [Deployment](./docs/deployment.md)
--   [Development](./docs/development.md)
-    -   [Stacks](./docs/development.md#stacks)
-    -   [Central Server](./docs/central-server.md)
-        -   [Requirements](./docs/central-server.md#requirements)
-        -   [Development Setup](./docs/central-server-development-setup.md)
-            -   [Resetting Central Server Data](./docs/central-server-development-setup.md#resetting-central-server-data)
-        -   [Database Setup](./docs/central-server-database-setup.md)
-            -   [SQLite](./docs/central-server-database-setup.md#central-server-sqlite-database)
-            -   [MySQL](./docs/central-server-database-setup.md#central-server-mysql-database)
-            -   [PostgreSQL](./docs/central-server-database-setup.md#central-server-postgresql-database)
-        -   [Object Store Setup](./docs/central-server-object-store-setup.md)
-            -   [Local File Object Store](./docs/central-server-object-store-setup.md#local-file-object-store)
-            -   [MinIO](./docs/central-server-object-store-setup.md#minio-s3-compatible-object-store)
-            -   [Garage](./docs/central-server-object-store-setup.md#garage-s3-compatible-object-store)
-        -   [Setting Up SMTP Connection](./docs/central-server-smtp-connection.md)
-            -   [Gmail](./docs/central-server-smtp-connection.md#gmail-smtp-connection)
-        -   [Enabling OAuth Integration](./docs/central-server-enabling-open-authentication.md)
-            -   [Google](./docs/central-server-enabling-open-authentication.md#google-oauth)
-            -   [Microsoft](./docs/central-server-enabling-open-authentication.md#microsoft-oauth)
-            -   [Facebook](./docs/central-server-enabling-open-authentication.md#facebook-oauth)
-    -   [Web Client](./docs/web-client.md)
-        -   [Requirements](./docs/web-client.md#requirements)
-        -   [Development Setup](./docs/web-client-development-setup.md)
--   [Authors](#authors)
+- [Deployment](./docs/deployment.md)
+- [Development](./docs/development.md)
+  - [Stacks](./docs/development.md#stacks)
+  - [Central Server](./docs/central-server.md)
+    - [Requirements](./docs/central-server.md#requirements)
+    - [Development Setup](./docs/central-server-development-setup.md)
+      - [Resetting Central Server Data](./docs/central-server-development-setup.md#resetting-central-server-data)
+    - [Database Setup](./docs/central-server-database-setup.md)
+      - [SQLite](./docs/central-server-database-setup.md#central-server-sqlite-database)
+      - [MySQL](./docs/central-server-database-setup.md#central-server-mysql-database)
+      - [PostgreSQL](./docs/central-server-database-setup.md#central-server-postgresql-database)
+    - [Object Store Setup](./docs/central-server-object-store-setup.md)
+      - [Local File Object Store](./docs/central-server-object-store-setup.md#local-file-object-store)
+      - [MinIO](./docs/central-server-object-store-setup.md#minio-s3-compatible-object-store)
+      - [Garage](./docs/central-server-object-store-setup.md#garage-s3-compatible-object-store)
+    - [Setting Up SMTP Connection](./docs/central-server-smtp-connection.md)
+      - [Gmail](./docs/central-server-smtp-connection.md#gmail-smtp-connection)
+    - [Enabling OAuth Integration](./docs/central-server-enabling-open-authentication.md)
+      - [Google](./docs/central-server-enabling-open-authentication.md#google-oauth)
+      - [Microsoft](./docs/central-server-enabling-open-authentication.md#microsoft-oauth)
+      - [Facebook](./docs/central-server-enabling-open-authentication.md#facebook-oauth)
+  - [Web Client](./docs/web-client.md)
+    - [Requirements](./docs/web-client.md#requirements)
+    - [Development Setup](./docs/web-client-development-setup.md)
+    - [Updating OpenAPI Client Using `openapi-ts`](./docs/web-client-development-setup.md#updating-openapi-client-using-openapi-ts)
+- [Authors](#authors)
 
 ## Authors
 

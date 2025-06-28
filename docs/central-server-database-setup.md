@@ -2,9 +2,9 @@
 
 The central server supports the following databases:
 
--   [SQLite](#central-server-sqlite-database) (default)
--   [MySQL](#central-server-mysql-database)
--   [PostgreSQL](#central-server-postgresql-database)
+- [SQLite](#central-server-sqlite-database) (default)
+- [MySQL](#central-server-mysql-database)
+- [PostgreSQL](#central-server-postgresql-database)
 
 ## Central Server SQLite Database
 

@@ -34,7 +34,7 @@ To deploy the system in production mode, follow the steps below:
 
 Related Documentation:
 
--   [Database Setup](./central-server-database-setup.md)
--   [Object Store Setup](./central-server-object-store-setup.md)
--   [Setting Up SMTP Connection](./central-server-smtp-connection.md)
--   [Enabling OAuth Integration](./central-server-enabling-open-authentication.md)
+- [Database Setup](./central-server-database-setup.md)
+- [Object Store Setup](./central-server-object-store-setup.md)
+- [Setting Up SMTP Connection](./central-server-smtp-connection.md)
+- [Enabling OAuth Integration](./central-server-enabling-open-authentication.md)

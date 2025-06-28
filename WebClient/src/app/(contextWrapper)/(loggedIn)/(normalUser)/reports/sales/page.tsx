@@ -2,15 +2,12 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
-import {
-    GetDailySalesAndPurchasesReport,
-    GetDailySalesAndPurchasesReportEntries,
-    SetDailySalesAndPurchasesReportEntries,
-} from "@/lib/api/report";
+import { GetDailySalesAndPurchasesReportEntries, SetDailySalesAndPurchasesReportEntries } from "@/lib/api/report";
 import { useUser } from "@/lib/providers/user";
-import { DailyFinancialReportEntryType } from "@/lib/types";
+import { DailyFinancialReportEntry } from "@/lib/api/csclient";
 import {
     ActionIcon,
+    Alert,
     Badge,
     Button,
     Card,
@@ -28,7 +25,7 @@ import {
 import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { notifications } from "@mantine/notifications";
-import { IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
+import { IconAlertCircle, IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -54,28 +51,26 @@ function SalesandPurchasesContent() {
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntryType | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntry | null>(null);
 
     useEffect(() => {
         // Fetch initial entries for the current month when component mounts
         const fetchEntries = async () => {
             if (userCtx.userInfo?.schoolId) {
-                const report = await GetDailySalesAndPurchasesReport(
+                const reportEntries = await GetDailySalesAndPurchasesReportEntries(
                     userCtx.userInfo.schoolId,
                     currentMonth.getFullYear(),
                     currentMonth.getMonth() + 1
                 );
-                if (report) {
-                    setDailyEntries(
-                        (report.entries || []).map((entry: DailyFinancialReportEntryType) => ({
-                            date: dayjs(entry.parent).format("YYYY-MM-DD"),
-                            day: dayjs(entry.parent).date(),
-                            sales: entry.sales,
-                            purchases: entry.purchases,
-                            netIncome: entry.sales - entry.purchases,
-                        }))
-                    );
-                }
+                setDailyEntries(
+                    (reportEntries || []).map((entry: DailyFinancialReportEntry) => ({
+                        date: entry.parent,
+                        day: entry.day,
+                        sales: entry.sales,
+                        purchases: entry.purchases,
+                        netIncome: entry.sales - entry.purchases,
+                    }))
+                );
             }
         };
         fetchEntries();
@@ -119,7 +114,7 @@ function SalesandPurchasesContent() {
         setModalOpened(true);
     };
 
-    const handleSaveEntry = () => {
+    const handleSaveEntry = async () => {
         if (!editingEntry) return;
 
         const netIncome = modalSales - modalPurchases;
@@ -133,19 +128,19 @@ function SalesandPurchasesContent() {
         const existingIndex = dailyEntries.findIndex((entry) => entry.date === editingEntry.date);
 
         // Construct the API entry with the required 'parent' property
-        const apiEntry = {
-            parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), editingEntry.day),
-            day: editingEntry.day,
-            sales: modalSales,
-            purchases: modalPurchases,
-        };
+        // const apiEntry = {
+        //     parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), editingEntry.day),
+        //     day: editingEntry.day,
+        //     sales: modalSales,
+        //     purchases: modalPurchases,
+        // };
 
-        SetDailySalesAndPurchasesReportEntries(
-            userCtx.userInfo?.schoolId || 0,
-            currentMonth.getFullYear(),
-            currentMonth.getMonth() + 1,
-            [apiEntry]
-        );
+        // await SetDailySalesAndPurchasesReportEntries(
+        //     userCtx.userInfo?.schoolId || 0,
+        //     currentMonth.getFullYear(),
+        //     currentMonth.getMonth() + 1,
+        //     [apiEntry]
+        // );
         if (existingIndex >= 0) {
             // Update existing entry
             setDailyEntries((prev) => prev.map((entry, index) => (index === existingIndex ? updatedEntry : entry)));
@@ -169,7 +164,7 @@ function SalesandPurchasesContent() {
 
     const handleDeleteEntry = (entry: DailyEntry) => {
         setEntryToDelete({
-            parent: new Date(dayjs(entry.date).format("YYYY-MM-DD")),
+            parent: entry.date,
             day: entry.day,
             sales: entry.sales,
             purchases: entry.purchases,
@@ -180,9 +175,7 @@ function SalesandPurchasesContent() {
     const confirmDeleteEntry = () => {
         if (!entryToDelete) return;
 
-        setDailyEntries((prev) =>
-            prev.filter((entry) => entry.date !== dayjs(entryToDelete.parent).format("YYYY-MM-DD"))
-        );
+        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.parent));
         setDeleteModalOpened(false);
         setEntryToDelete(null);
     };
@@ -203,7 +196,7 @@ function SalesandPurchasesContent() {
 
     const handleSubmit = async () => {
         console.log("Submit clicked");
-        if (!userCtx.userInfo?.schoolId) {
+        if (!userCtx.userInfo) {
             notifications.show({
                 title: "Error",
                 message: "You must be logged in to submit entries.",
@@ -211,12 +204,22 @@ function SalesandPurchasesContent() {
             });
             return;
         }
+
+        if (!userCtx.userInfo.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "You are not yet assigned to a school.",
+                color: "red",
+            });
+            return;
+        }
+
         await SetDailySalesAndPurchasesReportEntries(
             userCtx.userInfo.schoolId,
             currentMonth.getFullYear(),
             currentMonth.getMonth() + 1,
             dailyEntries.map((entry) => ({
-                parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), entry.day),
+                parent: entry.date,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -258,6 +261,18 @@ function SalesandPurchasesContent() {
                     </ActionIcon>
                 </Flex>
 
+                {!userCtx.userInfo?.schoolId && (
+                    <Alert
+                        variant="light"
+                        color="yellow"
+                        withCloseButton
+                        title="Warning"
+                        icon={<IconAlertCircle size={16} />}
+                    >
+                        You are not yet assigned to a school! Reports you create will fail to submit.
+                    </Alert>
+                )}
+
                 {/* Date Selection */}
                 <Card withBorder>
                     <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
@@ -268,19 +283,20 @@ function SalesandPurchasesContent() {
                                 value={currentMonth}
                                 onChange={async (value) => {
                                     if (value) {
-                                        setCurrentMonth(new Date(value));
+                                        const newMonth = new Date(value);
+                                        setCurrentMonth(newMonth);
                                         setSelectedDate(null); // Reset selected day when month changes
                                         if (userCtx.userInfo?.schoolId) {
                                             const report = await GetDailySalesAndPurchasesReportEntries(
                                                 userCtx.userInfo?.schoolId,
-                                                currentMonth.getFullYear(),
-                                                currentMonth.getMonth() + 1
+                                                newMonth.getFullYear(),
+                                                newMonth.getMonth() + 1
                                             );
                                             console.debug("Fetched report entries:", report);
                                             setDailyEntries(
-                                                (report || []).map((entry: DailyFinancialReportEntryType) => ({
-                                                    date: dayjs(entry.parent).format("YYYY-MM-DD"),
-                                                    day: dayjs(entry.parent).date(),
+                                                (report || []).map((entry: DailyFinancialReportEntry) => ({
+                                                    date: entry.parent,
+                                                    day: entry.day,
                                                     sales: entry.sales,
                                                     purchases: entry.purchases,
                                                     netIncome: entry.sales - entry.purchases,

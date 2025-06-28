@@ -12,11 +12,13 @@ import {
     VerifyTOTP,
     VerifyUserEmail,
 } from "@/lib/api/auth";
+import { OtpToken, UserPublic } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { OTPGenDataType, UserPreferences, UserPublicType, UserUpdateType } from "@/lib/types";
+import { UserPreferences } from "@/lib/types";
+import { UserUpdate } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -80,7 +82,7 @@ interface EditProfileValues {
 }
 
 interface ProfileContentProps {
-    userInfo: UserPublicType | null;
+    userInfo: UserPublic | null;
     userPermissions: string[] | null;
     userAvatarUrl: string | null;
 }
@@ -89,11 +91,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const searchParams = useSearchParams();
     const userCtx = useUser();
     const { SVG } = useQRCode();
-    const { setColorScheme } = useMantineColorScheme();
+    const { setColorScheme, colorScheme } = useMantineColorScheme();
     const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
         key: LocalStorage.userPreferences,
         defaultValue: {
-            darkMode: false,
             accentColor: "#228be6",
             language: "English",
             timezone: "UTC+8 (Philippines)",
@@ -104,7 +105,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const [otpEnabled, setOtpEnabled] = useState(false);
-    const [otpGenData, setOtpGenData] = useState<OTPGenDataType | null>(null);
+    const [otpGenData, setOtpGenData] = useState<OtpToken | null>(null);
     const [showOTPModal, setShowOTPModal] = useState(false);
     const [showOTPSecret, showOTPSecretHandler] = useDisclosure(false);
     const [showRecoveryCodeModal, setShowRecoveryCodeModal] = useState(false);
@@ -205,7 +206,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         // Resolve async operations first
         const schoolId = await GetSelectValue(values.school);
         const roleId = await GetSelectValue(values.role);
-        const newUserInfo: UserUpdateType = {
+        const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== userInfo?.username && values.username ? values.username : undefined,
             nameFirst: values.nameFirst !== userInfo?.nameFirst && values.nameFirst ? values.nameFirst : undefined,
@@ -327,11 +328,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     };
 
     useEffect(() => {
-        setColorScheme(userPreferences.darkMode ? "dark" : "light");
-        document.documentElement.style.setProperty("--mantine-primary-color-filled", userPreferences.accentColor);
-    }, [userPreferences, setColorScheme]);
-
-    useEffect(() => {
         if (userInfo) {
             setOtpEnabled(userInfo.otpVerified);
             const new_values = {
@@ -358,7 +354,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             try {
                 const rolesData = await GetAllRoles();
                 const formattedRoles = await Promise.all(
-                    rolesData.map((role) => SetSelectValue(role.id.toString(), role.description))
+                    rolesData.map((role) => SetSelectValue(role.id?.toString() || "", role.description))
                 );
                 setAvailableRoles(formattedRoles);
             } catch (error) {
@@ -368,7 +364,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             try {
                 const schoolsData = await GetAllSchools(0, 999);
                 const formattedSchools = await Promise.all(
-                    schoolsData.map((school) => SetSelectValue(school.id.toString(), school.name))
+                    schoolsData
+                        .filter((school) => school.id != null) // Filter out schools without valid IDs
+                        .map((school) => SetSelectValue(school.id!.toString(), school.name))
                 );
                 setAvailableSchools(formattedSchools);
             } catch (error) {
@@ -1176,8 +1174,8 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 <Stack>
                     <Switch
                         label="Dark Mode"
-                        checked={userPreferences.darkMode}
-                        onChange={(e) => handlePreferenceChange("darkMode", e.currentTarget.checked)}
+                        checked={colorScheme === "dark"}
+                        onChange={(e) => setColorScheme(e.currentTarget.checked ? "dark" : "light")}
                     />
                     <ColorInput
                         label="Accent Color"
@@ -1188,8 +1186,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         label="Default Language"
                         data={[
                             { value: "en", label: "English" },
-                            { value: "tl", label: "Tagalog" },
-                            { value: "ceb", label: "Cebuano" },
                             { value: "fil", label: "Filipino" },
                         ]}
                         value={userPreferences.language}
@@ -1198,10 +1194,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     <Select
                         label="Timezone"
                         data={[
-                            { value: "Asia/Manila", label: "GMT+8 (Philippines)" },
-                            { value: "Asia/Singapore", label: "GMT+8 (Singapore)" },
-                            { value: "Asia/Hong_Kong", label: "GMT+8 (Hong Kong)" },
-                            { value: "Asia/Taipei", label: "GMT+8 (Taipei)" },
+                            { value: "Asia/Manila", label: "Asia/Manila" },
+                            { value: "Asia/Singapore", label: "Asia/Singapore" },
+                            { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong" },
+                            { value: "Asia/Taipei", label: "Asia/Taipei" },
                         ]}
                         value={userPreferences.timezone}
                         onChange={(value) => handlePreferenceChange("timezone", value)}

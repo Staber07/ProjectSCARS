@@ -2,6 +2,7 @@ import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
 from centralserver.internals.auth_handler import (
@@ -22,108 +23,30 @@ from centralserver.internals.models.reports.monthly_report import (
 from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
-
-router = APIRouter(
-    prefix="/v1/reports",
-    tags=["reports"],
-    dependencies=[Depends(verify_access_token)],
-)
-
+router = APIRouter(prefix="/daily")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.get("/monthly/{school_id}")
-async def get_school_monthly_reports(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-) -> list[MonthlyReport]:
-    """Get all monthly reports of a school."""
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
-    )
-
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view monthly reports.",
-        )
-
-    logger.debug(
-        "user `%s` requesting monthly reports of school %s.",
-        token.id,
-        school_id,
-    )
-
-    monthly_reports = session.exec(
-        select(MonthlyReport).where(MonthlyReport.submittedBySchool == school_id)
-    ).all()
-
-    return list(monthly_reports)
-
-
-@router.get("/monthly/{school_id}/{year}/{month}")
-async def get_school_monthly_report(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-) -> MonthlyReport | None:
-    """Get monthly reports of a school for a specific month."""
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
-    )
-
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view monthly reports.",
-        )
-
-    logger.debug(
-        "user `%s` requesting monthly reports of school %s for %s-%s.",
-        token.id,
-        school_id,
-        year,
-        month,
-    )
-
-    selected_monthly_report = session.exec(
-        select(MonthlyReport).where(
-            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-            MonthlyReport.submittedBySchool == school_id,
-        )
-    ).one_or_none()
-
-    return selected_monthly_report
-
-
-@router.get("/daily/{school_id}/{year}/{month}")
+@router.get("/{school_id}/{year}/{month}")
 async def get_school_daily_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
     school_id: int,
     year: int,
     month: int,
-) -> DailyFinancialReport | None:
-    """Get daily reports of a school for a specific month with pagination."""
+) -> DailyFinancialReport:
+    """Get daily reports of a school for a specific month.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to get reports for.
+        year: The year of the report.
+        month: The month of the report.
+
+    Returns:
+        The daily financial report for the specified school, year, and month, or None if not found.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -135,7 +58,7 @@ async def get_school_daily_report(
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
     )
-
+    logger.debug("Required permission for user %s: %s", token.id, required_permission)
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -149,22 +72,35 @@ async def get_school_daily_report(
         year,
         month,
     )
+    try:
+        selected_monthly_report = session.exec(
+            select(MonthlyReport).where(
+                MonthlyReport.id == datetime.date(year=year, month=month, day=1),
+                MonthlyReport.submittedBySchool == school_id,
+            )
+        ).one()
+        if selected_monthly_report.daily_financial_report is not None:
+            return selected_monthly_report.daily_financial_report
 
-    selected_monthly_report = session.exec(
-        select(MonthlyReport).where(
-            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-            MonthlyReport.submittedBySchool == school_id,
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Daily financial report not found.",
         )
-    ).one_or_none()
 
-    return (
-        selected_monthly_report.daily_financial_report
-        if selected_monthly_report
-        else None
-    )
+    except NoResultFound as e:
+        logger.warning(
+            "Daily financial report not found for school %s for %s-%s",
+            school_id,
+            year,
+            month,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Daily financial report not found.",
+        ) from e
 
 
-@router.get("/daily/{school_id}/{year}/{month}/entries")
+@router.get("/{school_id}/{year}/{month}/entries")
 async def get_school_daily_report_entries(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -172,7 +108,18 @@ async def get_school_daily_report_entries(
     year: int,
     month: int,
 ) -> list[DailyFinancialReportEntry]:
-    """Get all daily report entries for a school for a specific month."""
+    """Get all daily report entries for a school for a specific month.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to get reports for.
+        year: The year of the report.
+        month: The month of the report.
+
+    Returns:
+        A list of daily financial report entries for the specified school, year, and month.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -184,7 +131,6 @@ async def get_school_daily_report_entries(
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
     )
-
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -199,102 +145,52 @@ async def get_school_daily_report_entries(
         month,
     )
 
-    selected_monthly_report = session.exec(
-        select(MonthlyReport).where(
-            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-            MonthlyReport.submittedBySchool == school_id,
-        )
-    ).one_or_none()
+    try:
+        selected_monthly_report = session.exec(
+            select(MonthlyReport).where(
+                MonthlyReport.id == datetime.date(year=year, month=month, day=1),
+                MonthlyReport.submittedBySchool == school_id,
+            )
+        ).one()
 
-    if (
-        selected_monthly_report is None
-        or selected_monthly_report.daily_financial_report is None
-    ):
+    except NoResultFound as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Monthly report not found.",
+        ) from e
+
+    daily_report = selected_monthly_report.daily_financial_report
+    if daily_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Daily financial report not found.",
         )
 
-    logger.debug(
-        "Found %s daily financial report/s for school %s for %s-%s.",
-        len(selected_monthly_report.daily_financial_report.entries),
-        school_id,
-        year,
-        month,
-    )
-    return selected_monthly_report.daily_financial_report.entries
+    return list(daily_report.entries)
 
 
-@router.patch("/monthly/{school_id}/{year}/{month}")
-async def create_school_monthly_report(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-    noted_by: str,
-) -> MonthlyReport:
-    """Create or update a monthly report of a school for a specific month."""
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:write" if user.schoolId == school_id else "reports:global:write"
-    )
-
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to create monthly reports.",
-        )
-
-    logger.debug(
-        "user `%s` creating or updating monthly report of school %s for %s-%s.",
-        token.id,
-        school_id,
-        year,
-        month,
-    )
-
-    selected_monthly_report = session.exec(
-        select(MonthlyReport).where(
-            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-            MonthlyReport.submittedBySchool == school_id,
-        )
-    ).one_or_none()
-
-    if selected_monthly_report is None:
-        selected_monthly_report = MonthlyReport(
-            id=datetime.date(year=year, month=month, day=1),
-            name=f"Monthly Report for {datetime.date(year=year, month=month, day=1).strftime('%B %Y')}",
-            submittedBySchool=school_id,
-            reportStatus=ReportStatus.DRAFT,
-            preparedBy=user.id,
-            notedBy=noted_by,
-        )
-
-    session.add(selected_monthly_report)
-    session.commit()
-    session.refresh(selected_monthly_report)
-
-    return selected_monthly_report
-
-
-@router.patch("/daily/{school_id}/{year}/{month}")
+@router.patch("/{school_id}/{year}/{month}")
 async def create_school_daily_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
     school_id: int,
     year: int,
     month: int,
-    noted_by: str,
+    noted_by: str | None = None,
 ) -> DailyFinancialReport:
-    """Create or update a daily report of a school for a specific month."""
+    """Create or update a daily report of a school for a specific month.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to create or update the report for.
+        year: The year of the report.
+        month: The month of the report.
+        noted_by: The user who noted the report (optional).
+
+    Returns:
+        The created or updated daily financial report.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -306,7 +202,7 @@ async def create_school_daily_report(
     required_permission = (
         "reports:local:write" if user.schoolId == school_id else "reports:global:write"
     )
-
+    logger.debug("Required permission for user %s: %s", token.id, required_permission)
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -327,7 +223,6 @@ async def create_school_daily_report(
             MonthlyReport.submittedBySchool == school_id,
         )
     ).one_or_none()
-
     if selected_monthly_report is None:
         selected_monthly_report = MonthlyReport(
             id=datetime.date(year=year, month=month, day=1),
@@ -350,11 +245,10 @@ async def create_school_daily_report(
     session.commit()
     session.refresh(selected_monthly_report)
     session.refresh(new_daily_report)
-
     return new_daily_report
 
 
-@router.patch("/daily/{school_id}/{year}/{month}/entry")
+@router.patch("/{school_id}/{year}/{month}/entry")
 async def update_school_daily_report_entries(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -365,7 +259,21 @@ async def update_school_daily_report_entries(
     sales: float,
     purchases: float,
 ) -> DailyFinancialReport:
-    """Update daily report entries for a school for a specific month."""
+    """Update daily report entries for a school for a specific month.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to update the report for.
+        year: The year of the report.
+        month: The month of the report.
+        day: The day of the report entry to update.
+        sales: The total sales for the day.
+        purchases: The total purchases for the day.
+
+    Returns:
+        The updated daily financial report.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -377,7 +285,6 @@ async def update_school_daily_report_entries(
     required_permission = (
         "reports:local:write" if user.schoolId == school_id else "reports:global:write"
     )
-
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -442,59 +349,7 @@ async def update_school_daily_report_entries(
     return daily_report
 
 
-@router.delete("/monthly/{school_id}/{year}/{month}")
-async def delete_school_monthly_report(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-) -> None:
-    """Delete a monthly report for a school for a specific month."""
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:write" if user.schoolId == school_id else "reports:global:write"
-    )
-
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete monthly reports.",
-        )
-
-    logger.debug(
-        "user `%s` deleting monthly report of school %s for %s-%s.",
-        token.id,
-        school_id,
-        year,
-        month,
-    )
-
-    selected_monthly_report = session.exec(
-        select(MonthlyReport).where(
-            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-            MonthlyReport.submittedBySchool == school_id,
-        )
-    ).one_or_none()
-
-    if selected_monthly_report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Monthly report not found.",
-        )
-
-    session.delete(selected_monthly_report)
-    session.commit()
-
-
-@router.delete("/daily/{school_id}/{year}/{month}")
+@router.delete("/{school_id}/{year}/{month}")
 async def delete_school_daily_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -514,7 +369,6 @@ async def delete_school_daily_report(
     required_permission = (
         "reports:local:write" if user.schoolId == school_id else "reports:global:write"
     )
-
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -528,14 +382,12 @@ async def delete_school_daily_report(
         year,
         month,
     )
-
     selected_monthly_report = session.exec(
         select(MonthlyReport).where(
             MonthlyReport.id == datetime.date(year=year, month=month, day=1),
             MonthlyReport.submittedBySchool == school_id,
         )
     ).one_or_none()
-
     if selected_monthly_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -547,7 +399,6 @@ async def delete_school_daily_report(
             DailyFinancialReport.parent == selected_monthly_report.id
         )
     ).one_or_none()
-
     if daily_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -556,12 +407,11 @@ async def delete_school_daily_report(
 
     session.delete(daily_report)
     session.commit()
-    session.refresh(report)
 
-    return report
+    return None
 
 
-@router.get("/daily/{school_id}")
+@router.get("/{school_id}")
 async def get_school_daily_financial_reports(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -569,7 +419,18 @@ async def get_school_daily_financial_reports(
     offset: int = 0,
     limit: int = 10,
 ) -> list[DailyFinancialReport]:
-    """Get daily financial reports of a specific school with pagination."""
+    """Get daily financial reports of a specific school.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to get reports for.
+        offset: The offset for pagination.
+        limit: The maximum number of reports to return.
+
+    Returns:
+        A list of daily financial reports for the specified school.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -581,7 +442,6 @@ async def get_school_daily_financial_reports(
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
     )
-
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -595,7 +455,6 @@ async def get_school_daily_financial_reports(
         offset,
         limit,
     )
-
     return list(
         session.exec(
             select(DailyFinancialReport)
@@ -606,7 +465,7 @@ async def get_school_daily_financial_reports(
     )
 
 
-@router.get("/daily/{school_id}/{year}/{month}")
+@router.get("/{school_id}/{year}/{month}")
 async def get_school_daily_financial_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -614,7 +473,18 @@ async def get_school_daily_financial_report(
     year: int,
     month: int,
 ) -> tuple[DailyFinancialReport, list[DailyFinancialReportEntry]]:
-    """Get daily financial report of a school for a specific month."""
+    """Get daily financial report of a school for a specific month.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to get the report for.
+        year: The year of the report.
+        month: The month of the report.
+
+    Returns:
+        A tuple containing the daily financial report and its entries for the specified school, year, and month.
+    """
 
     user = await get_user(token.id, session, by_id=True)
     if not user:
@@ -626,7 +496,6 @@ async def get_school_daily_financial_report(
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
     )
-
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -640,14 +509,12 @@ async def get_school_daily_financial_report(
         year,
         month,
     )
-
     report = session.exec(
         select(DailyFinancialReport).where(
             DailyFinancialReport.parent == datetime.date(year=year, month=month, day=1),
             DailyFinancialReport.parent_report.submittedBySchool == school_id,
         )
     ).one_or_none()
-
     if report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -657,7 +524,7 @@ async def get_school_daily_financial_report(
     return (report, list(report.entries))
 
 
-@router.put("/daily/{school_id}/{year}/{month}")
+@router.put("/{school_id}/{year}/{month}")
 async def create_school_daily_financial_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -677,6 +544,7 @@ async def create_school_daily_financial_report(
     required_permission = (
         "reports:local:write" if user.schoolId == school_id else "reports:global:write"
     )
+    logger.debug("Required permission for user %s: %s", token.id, required_permission)
 
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
@@ -737,7 +605,7 @@ async def create_school_daily_financial_report(
     return report
 
 
-@router.put("/daily/{school_id}/{year}/{month}/add")
+@router.put("/{school_id}/{year}/{month}/add")
 async def add_daily_financial_report_entry(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -759,6 +627,7 @@ async def add_daily_financial_report_entry(
     required_permission = (
         "reports:local:write" if user.schoolId == school_id else "reports:global:write"
     )
+    logger.debug("Required permission for user %s: %s", token.id, required_permission)
 
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(

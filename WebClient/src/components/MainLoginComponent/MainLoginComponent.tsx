@@ -30,7 +30,7 @@ import { useRouter } from "next/navigation";
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
 import { GetUserAvatar } from "@/lib/api/user";
 import { useEffect, useState } from "react";
-import { OTPNonceType, TokenType } from "@/lib/types";
+import { JwtToken } from "@/lib/api/csclient";
 
 interface LoginFormValues {
     username: string;
@@ -113,7 +113,7 @@ export function MainLoginComponent(): React.ReactElement {
                 return;
             }
 
-            const loginResponse: TokenType | OTPNonceType = !values.otpCode
+            const loginResponse: JwtToken | { [key: string]: string } = !values.otpCode
                 ? await LoginUser(values.username, values.password)
                 : await ValidateTOTP(values.otpCode || "", mfaNonce || "");
             if ("otp_nonce" in loginResponse) {
@@ -124,12 +124,12 @@ export function MainLoginComponent(): React.ReactElement {
                     color: "yellow",
                     icon: <IconKey />,
                 });
-                setMFANonce(loginResponse.otp_nonce);
+                setMFANonce(loginResponse.otp_nonce as string);
                 setShowMFAInput(true);
                 buttonStateHandler.close();
                 return;
             }
-            const tokens = loginResponse as TokenType;
+            const tokens = loginResponse as JwtToken;
             authCtx.login(tokens);
 
             const [userInfo, userPermissions] = await GetUserInfo();

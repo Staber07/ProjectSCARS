@@ -1,10 +1,12 @@
+<!-- markdownlint-disable MD029 -->
+
 # Central Server Object Store Setup
 
 The central server supports the following object stores:
 
--   [Local file object store](#local-file-object-store) (default)
--   [MinIO S3-Compatible Object Store](#minio-s3-compatible-object-store)
--   [Garage S3-Compatible Object Store](#garage-s3-compatible-object-store)
+- [Local file object store](#local-file-object-store) (default)
+- [MinIO S3-Compatible Object Store](#minio-s3-compatible-object-store)
+- [Garage S3-Compatible Object Store](#garage-s3-compatible-object-store)
 
 ## Local File Object Store
 
@@ -138,8 +140,8 @@ docker exec -ti CONTAINER_NAME /garage layout assign -z ph1 -c 5G NODE_ID
 
 This command will...
 
--   Set the zone of the node to _ph1_ (`-z ph1`)
--   Set the capacity of the node to _5G_ (`-c 5G`)
+- Set the zone of the node to _ph1_ (`-z ph1`)
+- Set the capacity of the node to _5G_ (`-c 5G`)
 
     You will have to adjust the values to your needs. `NODE_ID` is the ID shown in the `garage status` command (first column).
 

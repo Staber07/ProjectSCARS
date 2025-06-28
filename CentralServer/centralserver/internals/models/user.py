@@ -146,6 +146,10 @@ class User(SQLModel, table=True):
         default=None,
         description="The Microsoft ID linked to the user's OAuth account.",
     )
+    oauthLinkedFacebookId: str | None = Field(
+        default=None,
+        description="The Facebook ID linked to the user's OAuth account.",
+    )
 
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
@@ -190,6 +194,7 @@ class UserPublic(SQLModel):
     otpVerified: bool
     oauthLinkedGoogleId: str | None
     oauthLinkedMicrosoftId: str | None
+    oauthLinkedFacebookId: str | None
     forceUpdateInfo: bool
     emailVerified: bool
     dateCreated: datetime.datetime

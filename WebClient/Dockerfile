@@ -1,21 +1,22 @@
 # Stage 1: Install dependencies
-FROM node:24-alpine AS dependencies
+FROM oven/bun:1.2.17-alpine AS dependencies
 WORKDIR /app
 COPY ./package.json ./
 COPY ./package-lock.json ./
-RUN npm install
+COPY ./bun.lock ./
+RUN bun install
 
 # Stage 2: Build the web client
-FROM node:24-alpine AS builder
+FROM oven/bun:1.2.17-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Set up the production environment
-FROM node:24-alpine AS production
+FROM oven/bun:1.2.17-alpine AS production
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=builder /app/.next/standalone ./standalone

@@ -1,7 +1,7 @@
 "use client";
 import { CreateUser } from "@/lib/api/auth";
 import { UpdateUserInfo } from "@/lib/api/user";
-import { RoleType, SchoolType } from "@/lib/types";
+import { Role, School } from "@/lib/api/csclient";
 import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -14,8 +14,8 @@ interface CreateUserComponentProps {
     setModalOpen: (open: boolean) => void;
     fetchUsers: (page: number) => void;
     currentPage: number;
-    availableSchools: SchoolType[];
-    availableRoles: RoleType[];
+    availableSchools: School[];
+    availableRoles: Role[];
 }
 
 export function CreateUserComponent({
@@ -52,7 +52,7 @@ export function CreateUserComponent({
     const schoolOptions = useMemo(
         () =>
             availableSchools.map((school) => ({
-                value: school.id.toString(),
+                value: school.id?.toString() || "",
                 label: `${school.name}${school.address ? ` (${school.address})` : ""}`,
             })),
         [availableSchools]
@@ -61,7 +61,7 @@ export function CreateUserComponent({
     const roleOptions = useMemo(
         () =>
             availableRoles.map((role) => ({
-                value: role.id.toString(),
+                value: role.id?.toString() || "",
                 label: role.description,
             })),
         [availableRoles]

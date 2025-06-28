@@ -28,46 +28,12 @@ interface RootLayoutProps {
  * @return {JSX.Element} The rendered RootLayout component.
  */
 export default function RootLayout({ children }: RootLayoutProps) {
-    console.debug("Rendering RootLayout");
     return (
         // Use mantineHtmlProps to handle the data-mantine-color-scheme attribute
         // and suppress hydration warnings for the <html> element.
         <html lang="en" {...mantineHtmlProps}>
             <head>
-                <script
-                    suppressHydrationWarning
-                    dangerouslySetInnerHTML={{
-                        // WARNING: This script contains hardcoded logic to determine the initial color scheme.
-                        __html: `
-                            (function() {
-                                // Default to light mode if nothing is found or an error occurs
-                                let initialColorScheme = 'light';
-                                try {
-                                    const stored = localStorage.getItem('user-preferences');
-                                    if (stored) {
-                                        const { darkMode } = JSON.parse(stored);
-                                        initialColorScheme = darkMode ? 'dark' : 'light';
-                                    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                                        // Fallback to system preference if no user preference is stored
-                                        initialColorScheme = 'dark';
-                                        localStorage.setItem('user-preferences', JSON.stringify({ darkMode: initialColorScheme === 'dark' }));
-                                    }
-                                    else {
-                                        localStorage.setItem('user-preferences', JSON.stringify({ darkMode: false }));
-                                    }
-                                } catch (e) {
-                                    console.error('Failed to read theme from localStorage:', e);
-                                }
-
-                                // Apply initial background/text color using Mantine color scheme variables
-                                // This prevents a white flash before Mantine's CSS loads
-                                document.documentElement.style.backgroundColor = initialColorScheme === 'dark' ? 'var(--mantine-color-dark)' : 'var(--mantine-color-light)';
-                                document.documentElement.style.color = initialColorScheme === 'dark' ? 'var(--mantine-color-dark-text)' : 'var(--mantine-color-default-color)';
-                                document.documentElement.setAttribute('data-mantine-color-scheme', initialColorScheme);
-                            })();
-                        `,
-                    }}
-                />
+                <script suppressHydrationWarning />
                 <ColorSchemeScript />
             </head>
             <body>
