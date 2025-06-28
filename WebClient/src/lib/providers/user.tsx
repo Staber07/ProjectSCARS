@@ -1,13 +1,13 @@
 import { LocalStorage } from "@/lib/info";
-import { UserPublicType } from "@/lib/types";
+import { UserPublic } from "@/lib/api/csclient";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 interface UserContextType {
-    userInfo: UserPublicType | null;
+    userInfo: UserPublic | null;
     userPermissions: string[] | null;
     userAvatar: Blob | null;
     userAvatarUrl: string | null;
-    updateUserInfo: (userInfo: UserPublicType, permissions: string[] | null, userAvatar?: Blob | null) => void;
+    updateUserInfo: (userInfo: UserPublic, permissions: string[] | null, userAvatar?: Blob | null) => void;
     clearUserInfo: () => void;
 }
 
@@ -18,7 +18,7 @@ interface UserProviderProps {
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: UserProviderProps): ReactNode {
-    const [userInfo, setUserInfo] = useState<UserPublicType | null>(null);
+    const [userInfo, setUserInfo] = useState<UserPublic | null>(null);
     const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
     const [userAvatar, setUserAvatar] = useState<Blob | null>(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
@@ -57,11 +57,11 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
 
     /**
      * Update the user information and optionally the user avatar.
-     * @param {UserPublicType} userInfo - The user information to set.
+     * @param {UserPublic} userInfo - The user information to set.
      * @param {string[]} permissions - The permissions of the user.
      * @param {Blob | null} userAvatar - The user avatar to set, if available.
      */
-    const updateUserInfo = (userInfo: UserPublicType, permissions?: string[] | null, userAvatar?: Blob | null) => {
+    const updateUserInfo = (userInfo: UserPublic, permissions?: string[] | null, userAvatar?: Blob | null) => {
         console.debug("Setting user info", { userInfo, permissions, userAvatar });
         setUserInfo(userInfo);
         localStorage.setItem(LocalStorage.userData, JSON.stringify(userInfo));

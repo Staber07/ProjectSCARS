@@ -5,19 +5,25 @@
 
 version: 2
 updates:
-  - package-ecosystem: "uv" # See documentation for possible values
-    directory: "/CentralServer" # Location of package manifests
-    schedule:
-      interval: "daily"
-    labels:
-      - "tag > bot"
-      - "kind > dependencies"
-      - "scope > central server"
-  - package-ecosystem: "npm" # See documentation for possible values
-    directory: "/WebClient" # Location of package manifests
-    schedule:
-      interval: "daily"
-    labels:
-      - "tag > bot"
-      - "kind > dependencies"
-      - "scope > web client"
+    - package-ecosystem: "uv" # See documentation for possible values
+      directory: "/CentralServer" # Location of package manifests
+      schedule:
+          interval: "daily"
+      open-pull-requests-limit: 10
+      labels:
+          - "tag > bot"
+          - "kind > dependencies"
+          - "scope > central server"
+    - package-ecosystem: "npm" # See documentation for possible values
+      directory: "/WebClient" # Location of package manifests
+      schedule:
+          interval: "daily"
+      open-pull-requests-limit: 10
+      groups:
+          mantine:
+              patterns:
+                  - "@mantine/*"
+      labels:
+          - "tag > bot"
+          - "kind > dependencies"
+          - "scope > web client"

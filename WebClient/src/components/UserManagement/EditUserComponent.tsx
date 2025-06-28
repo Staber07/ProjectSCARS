@@ -1,7 +1,7 @@
 "use client";
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { Role, School, UserPublic, UserUpdate } from "@/lib/api/csclient";
 import { RemoveUserProfile, UpdateUserInfo } from "@/lib/api/user";
 import {
     Button,
@@ -34,14 +34,14 @@ import { useEffect, useState } from "react";
 
 interface EditUserProps {
     index: number;
-    user: UserPublicType;
-    availableSchools: SchoolType[];
-    availableRoles: RoleType[];
+    user: UserPublic;
+    availableSchools: School[];
+    availableRoles: Role[];
     currentPage: number;
     setIndex: React.Dispatch<React.SetStateAction<number | null>>;
     fetchUsers: (page: number) => void;
-    UpdateUserInfo: (userInfo: UserUpdateType) => Promise<UserPublicType>;
-    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublicType>;
+    UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
+    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
 }
 
@@ -199,7 +199,7 @@ export function EditUserComponent({
         }
 
         // NOTE: Only update fields that have changed
-        const newUserInfo: UserUpdateType = {
+        const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== user.username ? values.username : undefined,
             nameFirst: values.nameFirst !== user.nameFirst ? values.nameFirst : undefined,

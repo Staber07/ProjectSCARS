@@ -10,7 +10,8 @@
         "test": "vitest run",
         "test:ci": "vitest run --reporter=junit --outputFile=test-report.junit.xml",
         "test:watch": "vitest",
-        "coverage": "vitest run --coverage"
+        "coverage": "vitest run --coverage",
+        "clientgen": "openapi-ts"
     },
     "dependencies": {
         "@gfazioli/mantine-onboarding-tour": "^2.1.1",
@@ -48,6 +49,7 @@
     "devDependencies": {
         "@codecov/nextjs-webpack-plugin": "^1.9.1",
         "@eslint/eslintrc": "^3",
+        "@hey-api/openapi-ts": "^0.77.0",
         "@tailwindcss/postcss": "^4",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/jest-dom": "^6.6.3",

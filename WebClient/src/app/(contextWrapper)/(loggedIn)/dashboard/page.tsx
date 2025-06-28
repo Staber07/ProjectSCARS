@@ -9,7 +9,7 @@ import { GetSelfNotifications } from "@/lib/api/notification";
 import { GetUserAvatar } from "@/lib/api/user";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { NotificationType } from "@/lib/types";
+import { Notification } from "@/lib/api/csclient";
 import {
     Avatar,
     Card,
@@ -38,7 +38,7 @@ const stepsToComplete: [string, boolean][] = [
 const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
-    const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
+    const [HVNotifications, setHVNotifications] = useState<Notification[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
         () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
     );
@@ -295,19 +295,22 @@ const DashboardContent = memo(function DashboardContent() {
 });
 
 // Memoize the notification card
-const NotificationCard = memo(function NotificationCard({ notification }: { notification: NotificationType }) {
+const NotificationCard = memo(function NotificationCard({ notification }: { notification: Notification }) {
+    const notificationType = notification.type || "info";
+    const iconConfig = notificationIcons[notificationType];
+    const [IconComponent, color] = iconConfig || [notificationIcons.info[0], notificationIcons.info[1]];
+
     return (
         <Link href="/account/notifications" style={{ textDecoration: "none" }}>
             <Card withBorder radius="md" p="md">
                 <Group>
-                    <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                        {notificationIcons[notification.type]?.[0] &&
-                            React.createElement(notificationIcons[notification.type][0])}
+                    <Avatar color={color} radius="xl">
+                        <IconComponent />
                     </Avatar>
                     <Text size="sm">{notification.content}</Text>
                 </Group>
                 <Text size="xs" c="dimmed" ta="right" mt={5}>
-                    {new Date(notification.created).toLocaleString()}
+                    {notification.created ? new Date(notification.created).toLocaleString() : "Unknown time"}
                 </Text>
             </Card>
         </Link>

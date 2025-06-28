@@ -71,6 +71,9 @@ class Connection:
             host: Where to listen for incoming connections.
             port: Which port to listen on for incoming connections.
             base_url: The base URL of the web client.
+            host: Where to listen for incoming connections.
+            port: Which port to listen on for incoming connections.
+            base_url: The base URL of the web client.
         """
 
         self.host: str = host or "localhost"

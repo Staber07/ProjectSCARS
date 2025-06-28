@@ -1,8 +1,8 @@
 import ky from "ky";
 
 import { GetAccessTokenHeader } from "@/lib/api/auth";
+import { Notification } from "@/lib/api/csclient";
 import { Connections } from "@/lib/info";
-import { NotificationType } from "@/lib/types";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -17,7 +17,7 @@ export async function GetSelfNotifications(
     importantOnly: boolean = false,
     offset: number = 0,
     limit: number = 100
-): Promise<NotificationType[]> {
+): Promise<Notification[]> {
     const centralServerResponse = await ky.get(`${endpoint}/notifications/me`, {
         searchParams: { unarchived_only: unarchivedOnly, important_only: importantOnly, offset: offset, limit: limit },
         headers: { Authorization: GetAccessTokenHeader() },
@@ -28,7 +28,7 @@ export async function GetSelfNotifications(
         throw new Error(errorMessage);
     }
 
-    const notifications: NotificationType[] = await centralServerResponse.json();
+    const notifications: Notification[] = await centralServerResponse.json();
     return notifications;
 }
 

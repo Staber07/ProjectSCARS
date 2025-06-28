@@ -2,7 +2,7 @@ import ky from "ky";
 
 import { GetAccessTokenHeader } from "@/lib/api/auth";
 import { Connections } from "@/lib/info";
-import { UserPublicType, UserUpdateType } from "@/lib/types";
+import { UserPublic, UserUpdate } from "@/lib/api/csclient";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -29,9 +29,9 @@ export async function GetUserAvatar(fn: string): Promise<Blob> {
 /**
  * Fetch the user information from the central server.
  * @param {string} user_id - The ID of the user to fetch.
- * @return {Promise<UserPublicType>} A promise that resolves to the user information.
+ * @return {Promise<UserPublic>} A promise that resolves to the user information.
  */
-export async function UploadUserAvatar(user_id: string, file: File): Promise<UserPublicType> {
+export async function UploadUserAvatar(user_id: string, file: File): Promise<UserPublic> {
     const formData = new FormData();
     formData.append("img", file);
 
@@ -46,15 +46,15 @@ export async function UploadUserAvatar(user_id: string, file: File): Promise<Use
         throw new Error(errorMessage);
     }
 
-    const updatedUserData: UserPublicType = await centralServerResponse.json();
+    const updatedUserData: UserPublic = await centralServerResponse.json();
     return updatedUserData;
 }
 
 /**
  * Fetch the user information from the central server.
- * @returns {Promise<UserPublicType>} A promise that resolves to the user information.
+ * @returns {Promise<UserPublic>} A promise that resolves to the user information.
  */
-export async function GetAllUsers(offset: number, limit: number): Promise<UserPublicType[]> {
+export async function GetAllUsers(offset: number, limit: number): Promise<UserPublic[]> {
     const centralServerResponse = await ky.get(`${endpoint}/users/all`, {
         searchParams: { offset: offset, limit: limit },
         headers: { Authorization: GetAccessTokenHeader() },
@@ -65,16 +65,16 @@ export async function GetAllUsers(offset: number, limit: number): Promise<UserPu
         throw new Error(errorMessage);
     }
 
-    const users: UserPublicType[] = await centralServerResponse.json();
+    const users: UserPublic[] = await centralServerResponse.json();
     return users;
 }
 
 /**
  * Update the user information on the central server.
- * @param {UserUpdateType} newUserInfo - The new user information to update.
- * @return {Promise<UserPublicType>} A promise that resolves to the updated user data.
+ * @param {UserUpdate} newUserInfo - The new user information to update.
+ * @return {Promise<UserPublic>} A promise that resolves to the updated user data.
  */
-export async function UpdateUserInfo(newUserInfo: UserUpdateType): Promise<UserPublicType> {
+export async function UpdateUserInfo(newUserInfo: UserUpdate): Promise<UserPublic> {
     console.debug("Updating user info");
     const centralServerResponse = await ky.patch(`${endpoint}/users`, {
         headers: { Authorization: GetAccessTokenHeader() },
@@ -85,7 +85,7 @@ export async function UpdateUserInfo(newUserInfo: UserUpdateType): Promise<UserP
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
-    const updatedUserInfo: UserPublicType = await centralServerResponse.json();
+    const updatedUserInfo: UserPublic = await centralServerResponse.json();
     return updatedUserInfo;
 }
 

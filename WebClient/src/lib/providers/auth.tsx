@@ -1,12 +1,12 @@
 "use client";
 
 import { LocalStorage } from "@/lib/info";
-import { TokenType } from "@/lib/types";
+import { JwtToken } from "@/lib/api/csclient";
 import { createContext, ReactNode, useContext, useState } from "react";
 
 interface AuthContextType {
     isAuthenticated: boolean; // Whether the user is authenticated
-    login: (access_token: TokenType) => void; // Function to log the user in
+    login: (access_token: JwtToken) => void; // Function to log the user in
     logout: () => void; // Function to log the user out
 }
 
@@ -35,9 +35,9 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
 
     /**
      * Log the user in by setting the access token in local storage and updating the authentication state.
-     * @param {TokenType} access_token - The access token to set in local storage.
+     * @param {JwtToken} access_token - The access token to set in local storage.
      */
-    const login = (access_token: TokenType) => {
+    const login = (access_token: JwtToken) => {
         console.debug("Setting local login state to true");
         localStorage.setItem(LocalStorage.accessToken, JSON.stringify(access_token));
         setIsAuthenticated(true);

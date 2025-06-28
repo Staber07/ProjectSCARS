@@ -1,9 +1,9 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { Notification } from "@/lib/api/csclient";
 import { ArchiveNotification, GetSelfNotifications } from "@/lib/api/notification";
 import { notificationIcons } from "@/lib/info";
-import { NotificationType } from "@/lib/types";
 import {
     ActionIcon,
     Avatar,
@@ -40,8 +40,8 @@ dayjs.extend(relativeTime);
 
 export default function NotificationsPage() {
     const [loading, setLoading] = useState(true);
-    const [allNotifications, setAllNotifications] = useState<NotificationType[]>([]);
-    const [filteredNotifications, setFilteredNotifications] = useState<NotificationType[]>([]);
+    const [allNotifications, setAllNotifications] = useState<Notification[]>([]);
+    const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
     const [filter, setFilter] = useState("unread");
     const [search, setSearch] = useState("");
     const [groupBy, setGroupBy] = useState("Date");
@@ -64,21 +64,22 @@ export default function NotificationsPage() {
         if (!notif) return;
         try {
             await ArchiveNotification(id, unarchive);
+            const notifType = notif.type || "info";
             if (unarchive) {
                 notifications.show({
                     id: `unarchive-${id}`,
                     title: "Notification Unarchived",
                     message: `The notification has been unarchived.`,
-                    color: notificationIcons[notif.type]?.[1] || "gray",
-                    icon: React.createElement(notificationIcons[notif.type]?.[0] || IconInfoCircle),
+                    color: notificationIcons[notifType]?.[1] || "gray",
+                    icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             } else {
                 notifications.show({
                     id: `archive-${id}`,
                     title: "Notification Archived",
                     message: `The notification has been archived.`,
-                    color: notificationIcons[notif.type]?.[1] || "gray",
-                    icon: React.createElement(notificationIcons[notif.type]?.[0] || IconInfoCircle),
+                    color: notificationIcons[notifType]?.[1] || "gray",
+                    icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             }
             setAllNotifications((prev) => prev.filter((n) => n.id !== id));
@@ -118,6 +119,8 @@ export default function NotificationsPage() {
                         n.content.toLowerCase().includes(search.toLowerCase())
                 );
             }
+            // Filter out notifications without IDs
+            result = result.filter((n) => n.id !== undefined);
             setFilteredNotifications(result);
         };
 
@@ -162,7 +165,15 @@ export default function NotificationsPage() {
                     onChange={(event) => {
                         const checked = event.currentTarget.checked;
                         setSelectAll(checked);
-                        setSelected(checked ? new Set(filteredNotifications.map((n) => n.id)) : new Set());
+                        setSelected(
+                            checked
+                                ? new Set(
+                                      filteredNotifications
+                                          .map((n) => n.id)
+                                          .filter((id): id is string => id !== undefined)
+                                  )
+                                : new Set()
+                        );
                     }}
                     mb="sm"
                 />
@@ -176,7 +187,9 @@ export default function NotificationsPage() {
                         <Tooltip
                             label={(() => {
                                 const ids = Array.from(selected);
-                                const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                const selectedNotifications = allNotifications.filter(
+                                    (n) => n.id && ids.includes(n.id)
+                                );
                                 const allArchived = selectedNotifications.every((n) => n.archived);
                                 const action = allArchived ? "Unarchive" : "Archive";
                                 return selected.size == 1
@@ -201,7 +214,9 @@ export default function NotificationsPage() {
                                         return;
                                     }
                                     const ids = Array.from(selected);
-                                    const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                    const selectedNotifications = allNotifications.filter(
+                                        (n) => n.id && ids.includes(n.id)
+                                    );
                                     const allArchived = selectedNotifications.every((n) => n.archived);
 
                                     Promise.all(ids.map((id) => ArchiveNotification(id, allArchived)))
@@ -217,7 +232,9 @@ export default function NotificationsPage() {
                                                 color: "green",
                                                 icon: <IconCircleCheck />,
                                             });
-                                            setAllNotifications((prev) => prev.filter((n) => !ids.includes(n.id)));
+                                            setAllNotifications((prev) =>
+                                                prev.filter((n) => !n.id || !ids.includes(n.id))
+                                            );
                                             setSelected(new Set());
                                         })
                                         .catch((error) => {
@@ -238,7 +255,9 @@ export default function NotificationsPage() {
                             >
                                 {(() => {
                                     const ids = Array.from(selected);
-                                    const selectedNotifications = allNotifications.filter((n) => ids.includes(n.id));
+                                    const selectedNotifications = allNotifications.filter(
+                                        (n) => n.id && ids.includes(n.id)
+                                    );
                                     const allArchived = selectedNotifications.every((n) => n.archived);
                                     return allArchived ? <IconMail /> : <IconMailOpened />;
                                 })()}
@@ -256,16 +275,19 @@ export default function NotificationsPage() {
                         filteredNotifications
                             .slice()
                             .reverse()
+                            .filter((n) => n.id !== undefined) // Filter out notifications without IDs
                             .map((n) => {
-                                const IconComponent = notificationIcons[n.type]?.[0] || IconInfoCircle;
-                                const color = notificationIcons[n.type]?.[1] || "gray";
-                                const isChecked = selected.has(n.id);
+                                const notificationType = n.type || "info";
+                                const IconComponent = notificationIcons[notificationType]?.[0] || IconInfoCircle;
+                                const color = notificationIcons[notificationType]?.[1] || "gray";
+                                const isChecked = n.id ? selected.has(n.id) : false;
                                 return (
                                     <Card key={n.id} withBorder radius="md" p="md">
                                         <Group align="flex-start">
                                             <Checkbox
                                                 checked={isChecked}
                                                 onChange={(e) => {
+                                                    if (!n.id) return;
                                                     const newSet = new Set(selected);
                                                     if (e.currentTarget.checked) newSet.add(n.id);
                                                     else newSet.delete(n.id);
@@ -305,7 +327,7 @@ export default function NotificationsPage() {
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.9 }}
                                                         style={{ cursor: "pointer" }}
-                                                        onClick={() => handleArchive(n.id, n.archived)}
+                                                        onClick={() => n.id && handleArchive(n.id, n.archived || false)}
                                                     >
                                                         <ActionIcon variant="subtle">
                                                             <IconMail />
@@ -318,7 +340,7 @@ export default function NotificationsPage() {
                                                         whileHover={{ scale: 1.1 }}
                                                         whileTap={{ scale: 0.9 }}
                                                         style={{ cursor: "pointer" }}
-                                                        onClick={() => handleArchive(n.id, n.archived)}
+                                                        onClick={() => n.id && handleArchive(n.id, n.archived || false)}
                                                     >
                                                         <ActionIcon variant="subtle">
                                                             <IconMailOpened />

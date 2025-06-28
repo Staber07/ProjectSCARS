@@ -10,7 +10,8 @@ import {
     UploadSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { SchoolType, SchoolUpdateType } from "@/lib/types";
+import { SchoolUpdateType } from "@/lib/types";
+import { School } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -66,19 +67,15 @@ export default function SchoolsPage(): JSX.Element {
     const [totalSchools, setTotalSchools] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
-    const [logosRequested, setLogosRequested] = useState<Set<string>>(
-        new Set()
-    );
+    const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
 
-    const [schools, setSchools] = useState<SchoolType[]>([]);
-    const [allSchools, setAllSchools] = useState<SchoolType[]>([]);
+    const [schools, setSchools] = useState<School[]>([]);
+    const [allSchools, setAllSchools] = useState<School[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
-    const [editSchool, setEditSchool] = useState<SchoolType | null>(null);
+    const [editSchool, setEditSchool] = useState<School | null>(null);
     const [editSchoolLogo, setEditSchoolLogo] = useState<File | null>(null);
-    const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(
-        null
-    );
+    const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(null);
     const [logoToRemove, setLogoToRemove] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
@@ -96,11 +93,11 @@ export default function SchoolsPage(): JSX.Element {
     const handleSearch = () => {
         setCurrentPage(1);
     };
-    const handleEdit = (index: number, school: SchoolType) => {
+    const handleEdit = (index: number, school: School) => {
         setEditIndex(index);
         setEditSchool(school);
         setLogoToRemove(false);
-        if (school.logoUrn) {
+        if (school.logoUrn && school.id != null) {
             const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
         } else {
@@ -116,10 +113,7 @@ export default function SchoolsPage(): JSX.Element {
         setSelected(updated);
     };
 
-    const fetchSchoolLogo = (
-        logoUrn: string,
-        schoolId: number
-    ): string | undefined => {
+    const fetchSchoolLogo = (logoUrn: string, schoolId: number): string | undefined => {
         if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
             return logos.get(logoUrn);
         } else if (logosRequested.has(logoUrn)) {
@@ -165,7 +159,7 @@ export default function SchoolsPage(): JSX.Element {
 
     const handleSave = async () => {
         buttonStateHandler.open();
-        if (editIndex !== null && editSchool) {
+        if (editIndex !== null && editSchool && editSchool.id != null) {
             const newSchoolInfo: SchoolUpdateType = {
                 id: editSchool.id,
                 name: editSchool.name,
@@ -183,9 +177,7 @@ export default function SchoolsPage(): JSX.Element {
                 if (logoToRemove && editSchool.logoUrn) {
                     console.debug("Removing logo...");
                     try {
-                        const schoolAfterLogoRemoval = await RemoveSchoolLogo(
-                            editSchool.id
-                        );
+                        const schoolAfterLogoRemoval = await RemoveSchoolLogo(editSchool.id);
                         if (schoolAfterLogoRemoval) {
                             updatedSchool = schoolAfterLogoRemoval;
                         }
@@ -205,8 +197,7 @@ export default function SchoolsPage(): JSX.Element {
                         notifications.show({
                             id: "remove-logo-error",
                             title: "Error",
-                            message:
-                                "Failed to remove school logo. Please try again.",
+                            message: "Failed to remove school logo. Please try again.",
                             color: "red",
                             icon: <IconUserExclamation />,
                         });
@@ -218,16 +209,10 @@ export default function SchoolsPage(): JSX.Element {
                 else if (editSchoolLogo) {
                     console.debug("Uploading logo...");
                     try {
-                        const schoolAfterLogoUpload = await UploadSchoolLogo(
-                            editSchool.id,
-                            editSchoolLogo
-                        );
+                        const schoolAfterLogoUpload = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
                         updatedSchool = schoolAfterLogoUpload;
                         if (schoolAfterLogoUpload.logoUrn) {
-                            fetchSchoolLogo(
-                                schoolAfterLogoUpload.logoUrn,
-                                editSchool.id
-                            );
+                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn, editSchool.id);
                         }
                         console.debug("Logo uploaded successfully.");
                     } catch (error) {
@@ -235,8 +220,7 @@ export default function SchoolsPage(): JSX.Element {
                         notifications.show({
                             id: "upload-logo-error",
                             title: "Error",
-                            message:
-                                "Failed to upload school logo. Please try again.",
+                            message: "Failed to upload school logo. Please try again.",
                             color: "red",
                             icon: <IconUserExclamation />,
                         });
@@ -260,8 +244,7 @@ export default function SchoolsPage(): JSX.Element {
                 notifications.show({
                     id: "school-update-error",
                     title: "Error",
-                    message:
-                        "Failed to update school information. Please try again later.",
+                    message: "Failed to update school information. Please try again later.",
                     color: "red",
                     icon: <IconSendOff />,
                 });
@@ -300,10 +283,7 @@ export default function SchoolsPage(): JSX.Element {
         setLogoToRemove(true);
     };
 
-    const fetchSchools = async (
-        page: number,
-        pageLimit: number = schoolPerPage
-    ) => {
+    const fetchSchools = async (page: number, pageLimit: number = schoolPerPage) => {
         setCurrentPage(page);
         const pageOffset = (page - 1) * pageLimit;
 
@@ -319,8 +299,7 @@ export default function SchoolsPage(): JSX.Element {
             notifications.show({
                 id: "fetch-school-quantity-error",
                 title: "Error",
-                message:
-                    "Failed to fetch school quantity. Please try again later.",
+                message: "Failed to fetch school quantity. Please try again later.",
                 color: "red",
                 icon: <IconUserExclamation />,
             });
@@ -409,10 +388,7 @@ export default function SchoolsPage(): JSX.Element {
             setCreateWebsite("");
         } catch (error) {
             console.error("Failed to create school:", error);
-            if (
-                error instanceof Error &&
-                error.message.includes("already exists")
-            ) {
+            if (error instanceof Error && error.message.includes("already exists")) {
                 notifications.show({
                     id: "create-school-exists",
                     title: "Error",
@@ -433,8 +409,7 @@ export default function SchoolsPage(): JSX.Element {
                 notifications.show({
                     id: "create-school-unexpected-error",
                     title: "Error",
-                    message:
-                        "An unexpected error occurred while creating the school.",
+                    message: "An unexpected error occurred while creating the school.",
                     color: "red",
                     icon: <IconSendOff />,
                 });
@@ -446,7 +421,6 @@ export default function SchoolsPage(): JSX.Element {
 
     useEffect(() => {
         fetchAllSchools();
-        // eslint-disable-next-line
     }, []);
 
     useEffect(() => {
@@ -464,10 +438,7 @@ export default function SchoolsPage(): JSX.Element {
         setTotalPages(Math.max(1, Math.ceil(filtered.length / schoolPerPage)));
 
         // If currentPage is out of bounds, reset to 1
-        const safePage = Math.min(
-            currentPage,
-            Math.ceil(filtered.length / schoolPerPage) || 1
-        );
+        const safePage = Math.min(currentPage, Math.ceil(filtered.length / schoolPerPage) || 1);
         if (safePage !== currentPage) setCurrentPage(safePage);
 
         const start = (safePage - 1) * schoolPerPage;
@@ -478,14 +449,7 @@ export default function SchoolsPage(): JSX.Element {
     console.debug("Rendering SchoolsPage");
     return (
         <>
-            <Flex
-                mih={50}
-                gap="xl"
-                justify="flex-start"
-                align="center"
-                direction="row"
-                wrap="nowrap"
-            >
+            <Flex mih={50} gap="xl" justify="flex-start" align="center" direction="row" wrap="nowrap">
                 <TextInput
                     placeholder="Search for schools"
                     value={searchTerm}
@@ -495,9 +459,7 @@ export default function SchoolsPage(): JSX.Element {
                 />
                 <Flex ml="auto" gap="sm" align="center">
                     <ActionIcon
-                        disabled={
-                            !userCtx.userPermissions?.includes("schools:create")
-                        }
+                        disabled={!userCtx.userPermissions?.includes("schools:create")}
                         size="input-md"
                         variant="filled"
                         color="blue"
@@ -505,11 +467,7 @@ export default function SchoolsPage(): JSX.Element {
                     >
                         <IconPlus size={18} />
                     </ActionIcon>
-                    <ActionIcon
-                        size="input-md"
-                        variant="default"
-                        onClick={handleSearch}
-                    >
+                    <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
                         <IconSearch size={16} />
                     </ActionIcon>
                 </Flex>
@@ -530,33 +488,17 @@ export default function SchoolsPage(): JSX.Element {
                 </TableThead>
                 <TableTbody>
                     {schools.map((school, index) => (
-                        <TableTr
-                            key={index}
-                            bg={selected.has(index) ? "gray.1" : undefined}
-                        >
+                        <TableTr key={index} bg={selected.has(index) ? "gray.1" : undefined}>
                             {/* Checkbox and Logo */}
                             <TableTd>
                                 <Group>
-                                    <Checkbox
-                                        checked={selected.has(index)}
-                                        onChange={() => toggleSelected(index)}
-                                    />
-                                    {school.logoUrn ? (
-                                        <Avatar
-                                            radius="xl"
-                                            src={fetchSchoolLogo(
-                                                school.logoUrn,
-                                                school.id
-                                            )}
-                                        >
+                                    <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
+                                    {school.logoUrn && school.id != null ? (
+                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn, school.id)}>
                                             <IconUser />
                                         </Avatar>
                                     ) : (
-                                        <Avatar
-                                            radius="xl"
-                                            name={school.name}
-                                            color="initials"
-                                        />
+                                        <Avatar radius="xl" name={school.name} color="initials" />
                                     )}
                                 </Group>
                             </TableTd>
@@ -614,67 +556,33 @@ export default function SchoolsPage(): JSX.Element {
                             <Tooltip
                                 label={
                                     school.lastModified
-                                        ? dayjs(school.lastModified).format(
-                                              "YYYY-MM-DD HH:mm:ss"
-                                          )
+                                        ? dayjs(school.lastModified).format("YYYY-MM-DD HH:mm:ss")
                                         : "N/A"
                                 }
                             >
-                                <TableTd
-                                    c={
-                                        school.lastModified
-                                            ? undefined
-                                            : "dimmed"
-                                    }
-                                >
-                                    {school.lastModified
-                                        ? dayjs(school.lastModified).fromNow()
-                                        : "N/A"}
+                                <TableTd c={school.lastModified ? undefined : "dimmed"}>
+                                    {school.lastModified ? dayjs(school.lastModified).fromNow() : "N/A"}
                                 </TableTd>
                             </Tooltip>
                             <Tooltip
                                 label={
-                                    school.dateCreated
-                                        ? dayjs(school.dateCreated).format(
-                                              "YYYY-MM-DD HH:mm:ss"
-                                          )
-                                        : "N/A"
+                                    school.dateCreated ? dayjs(school.dateCreated).format("YYYY-MM-DD HH:mm:ss") : "N/A"
                                 }
                             >
-                                <TableTd
-                                    c={
-                                        school.dateCreated
-                                            ? undefined
-                                            : "dimmed"
-                                    }
-                                >
-                                    {school.dateCreated
-                                        ? dayjs(school.dateCreated).fromNow()
-                                        : "N/A"}
+                                <TableTd c={school.dateCreated ? undefined : "dimmed"}>
+                                    {school.dateCreated ? dayjs(school.dateCreated).fromNow() : "N/A"}
                                 </TableTd>
                             </Tooltip>
                             <TableTd>
-                                <Tooltip
-                                    label="Edit School"
-                                    position="bottom"
-                                    openDelay={500}
-                                    withArrow
-                                >
+                                <Tooltip label="Edit School" position="bottom" openDelay={500} withArrow>
                                     <ActionIcon
                                         disabled={
-                                            userCtx.userInfo?.schoolId ===
-                                            school.id
-                                                ? !userCtx.userPermissions?.includes(
-                                                      "schools:self:modify"
-                                                  )
-                                                : !userCtx.userPermissions?.includes(
-                                                      "schools:global:modify"
-                                                  )
+                                            userCtx.userInfo?.schoolId === school.id
+                                                ? !userCtx.userPermissions?.includes("schools:self:modify")
+                                                : !userCtx.userPermissions?.includes("schools:global:modify")
                                         }
                                         variant="light"
-                                        onClick={() =>
-                                            handleEdit(index, school)
-                                        }
+                                        onClick={() => handleEdit(index, school)}
                                     >
                                         <IconEdit size={16} />
                                     </ActionIcon>
@@ -687,17 +595,10 @@ export default function SchoolsPage(): JSX.Element {
             <Group justify="space-between" align="center" m="md">
                 <div></div>
                 <Stack align="center" justify="center" gap="sm">
-                    <Pagination
-                        value={currentPage}
-                        onChange={setCurrentPage}
-                        total={totalPages}
-                        mt="md"
-                    />
+                    <Pagination value={currentPage} onChange={setCurrentPage} total={totalPages} mt="md" />
                     <Text size="sm" c="dimmed">
                         {totalSchools > 0
-                            ? `${
-                                  (currentPage - 1) * schoolPerPage + 1
-                              }-${Math.min(
+                            ? `${(currentPage - 1) * schoolPerPage + 1}-${Math.min(
                                   currentPage * schoolPerPage,
                                   totalSchools
                               )} of ${totalSchools} schools`
@@ -708,10 +609,7 @@ export default function SchoolsPage(): JSX.Element {
                     value={schoolPerPage.toString()}
                     onChange={async (value) => {
                         if (value) {
-                            console.debug(
-                                "Changing schools per page to",
-                                value
-                            );
+                            console.debug("Changing schools per page to", value);
                             const newSchoolPerPage = parseInt(value);
                             setSchoolPerPage(newSchoolPerPage);
                             // Reset to page 1 and fetch users with new page size
@@ -727,12 +625,7 @@ export default function SchoolsPage(): JSX.Element {
                     allowDeselect={false}
                 />
             </Group>
-            <Modal
-                opened={editIndex !== null}
-                onClose={() => setEditIndex(null)}
-                title="Edit School"
-                centered
-            >
+            <Modal opened={editIndex !== null} onClose={() => setEditIndex(null)} title="Edit School" centered>
                 {editSchool && (
                     <Flex direction="column" gap="md">
                         <Center>
@@ -745,10 +638,7 @@ export default function SchoolsPage(): JSX.Element {
                                     cursor: "pointer",
                                 }}
                             >
-                                <FileButton
-                                    onChange={setLogo}
-                                    accept="image/png,image/jpeg"
-                                >
+                                <FileButton onChange={setLogo} accept="image/png,image/jpeg">
                                     {(props) => (
                                         <motion.div
                                             whileHover={{ scale: 1.05 }}
@@ -765,10 +655,7 @@ export default function SchoolsPage(): JSX.Element {
                                                     radius="xl"
                                                 />
                                             ) : (
-                                                <IconUser
-                                                    size={150}
-                                                    color="gray"
-                                                />
+                                                <IconUser size={150} color="gray" />
                                             )}
                                             <motion.div
                                                 initial={{ opacity: 0 }}
@@ -779,10 +666,8 @@ export default function SchoolsPage(): JSX.Element {
                                                     left: 0,
                                                     right: 0,
                                                     bottom: 0,
-                                                    backgroundColor:
-                                                        "rgba(0, 0, 0, 0.5)",
-                                                    borderRadius:
-                                                        "var(--mantine-radius-xl)",
+                                                    backgroundColor: "rgba(0, 0, 0, 0.5)",
+                                                    borderRadius: "var(--mantine-radius-xl)",
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
@@ -798,12 +683,7 @@ export default function SchoolsPage(): JSX.Element {
                             </Card>
                         </Center>
                         {(editSchoolLogo || editSchoolLogoUrl) && (
-                            <Button
-                                variant="outline"
-                                color="red"
-                                mt="md"
-                                onClick={removeLogo}
-                            >
+                            <Button variant="outline" color="red" mt="md" onClick={removeLogo}>
                                 Remove School Logo
                             </Button>
                         )}
@@ -857,37 +737,25 @@ export default function SchoolsPage(): JSX.Element {
                                 })
                             }
                         />
-                        <Button
-                            loading={buttonLoading}
-                            rightSection={<IconDeviceFloppy />}
-                            onClick={handleSave}
-                        >
+                        <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
                             Save
                         </Button>
                     </Flex>
                 )}
             </Modal>
 
-            <Modal
-                opened={addModalOpen}
-                onClose={() => setAddModalOpen(false)}
-                title="Add New School"
-            >
+            <Modal opened={addModalOpen} onClose={() => setAddModalOpen(false)} title="Add New School">
                 <Stack>
                     <TextInput
                         withAsterisk
                         label="School Name"
                         value={createSchoolName}
-                        onChange={(e) =>
-                            setCreateSchoolName(e.currentTarget.value)
-                        }
+                        onChange={(e) => setCreateSchoolName(e.currentTarget.value)}
                     />
                     <TextInput
                         label="Address"
                         value={createAddress}
-                        onChange={(e) =>
-                            setCreateAddress(e.currentTarget.value)
-                        }
+                        onChange={(e) => setCreateAddress(e.currentTarget.value)}
                     />
                     <TextInput
                         label="Phone Number"
@@ -903,15 +771,9 @@ export default function SchoolsPage(): JSX.Element {
                     <TextInput
                         label="Website"
                         value={createWebsite}
-                        onChange={(e) =>
-                            setCreateWebsite(e.currentTarget.value)
-                        }
+                        onChange={(e) => setCreateWebsite(e.currentTarget.value)}
                     />
-                    <Button
-                        loading={buttonLoading}
-                        rightSection={<IconUserCheck />}
-                        onClick={handleCreateSchool}
-                    >
+                    <Button loading={buttonLoading} rightSection={<IconUserCheck />} onClick={handleCreateSchool}>
                         Create School
                     </Button>
                 </Stack>

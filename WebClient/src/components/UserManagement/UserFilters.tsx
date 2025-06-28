@@ -1,7 +1,7 @@
 "use client";
 
 import { roles } from "@/lib/info";
-import { RoleType, SchoolType } from "@/lib/types";
+import { Role, School } from "@/lib/api/csclient";
 import { Group, Select } from "@mantine/core";
 
 interface UserFiltersProps {
@@ -13,8 +13,8 @@ interface UserFiltersProps {
     setStatusFilter: (value: string | null) => void;
     updateFilter: string | null;
     setUpdateFilter: (value: string | null) => void;
-    availableRoles: RoleType[];
-    availableSchools: SchoolType[];
+    availableRoles: Role[];
+    availableSchools: School[];
     onFilterChange: () => void;
 }
 
@@ -47,8 +47,8 @@ export function UserFilters({
                 data={[
                     { value: "", label: "All Roles" },
                     ...availableRoles.map((role) => ({
-                        value: role.id.toString(),
-                        label: roles[role.id],
+                        value: role.id?.toString() || "",
+                        label: role.id ? roles[role.id] || role.description : role.description,
                     })),
                 ]}
                 clearable
@@ -61,7 +61,7 @@ export function UserFilters({
                 data={[
                     { value: "", label: "All Schools" },
                     ...availableSchools.map((school) => ({
-                        value: school.id.toString(),
+                        value: school.id?.toString() || "",
                         label: school.name,
                     })),
                 ]}
