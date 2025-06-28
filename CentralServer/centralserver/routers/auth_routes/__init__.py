@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Body,
     Depends,
     HTTPException,
     Request,
@@ -24,7 +25,7 @@ from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken, JWTToken
+from centralserver.internals.models.token import DecodedJWTToken, JWTToken, RefreshToken
 from centralserver.internals.models.user import User, UserCreate, UserPublic
 from centralserver.internals.user_handler import create_user
 from centralserver.routers.auth_routes.email import router as email_router
@@ -104,16 +105,18 @@ async def request_access_token(
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
     background_tasks: BackgroundTasks,
-) -> JWTToken | dict[str, str]:
-    """Get an access token for a user.
+    remember_me: bool = Body(default=False, embed=True),
+) -> dict:
+    """Get an access token for a user, and optionally a refresh token if 'Remember Me' is enabled.
 
     Args:
         data: The data from the OAuth2 password request form.
         session: The database session.
         request: The HTTP request object.
+        remember_me: Whether to remember the user on this device.
 
     Returns:
-        A JWT token or a MFA code if MFA is enabled.
+        A dictionary containing the access token, and optionally the refresh token.
 
     Raises:
         HTTPException: If the user cannot be authenticated.
@@ -150,22 +153,37 @@ async def request_access_token(
             "message": "MFA OTP is enabled. Please provide your OTP to continue.",
             "otp_nonce": otp_nonce,
         }
-
     else:
         user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
         user.lastLoggedInIp = request.client.host if request.client else None
-        resp = JWTToken(
-            uid=uuid.uuid4(),
-            access_token=await create_access_token(
-                user.id,
-                datetime.timedelta(
-                    minutes=app_config.authentication.access_token_expire_minutes
-                ),
-                False,
+        access_token = await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
             ),
-            token_type="bearer",
+            False,
         )
-
+        response_data = {
+            "uid": str(uuid.uuid4()),
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+        if remember_me:
+            refresh_token_str = await create_access_token(
+                user.id,
+                datetime.timedelta(days=app_config.authentication.refresh_token_expire_days),
+                True,
+            )
+            expires_at = int((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=app_config.authentication.refresh_token_expire_days)).timestamp())
+            refresh_token = RefreshToken(
+                uid=uuid.uuid4(),
+                refresh_token=refresh_token_str,
+                expires_at=expires_at,
+            )
+            # Optionally: store refresh_token in DB here
+            response_data["refresh_token"] = refresh_token.refresh_token
+            response_data["refresh_token_expires_at"] = refresh_token.expires_at
+        resp = response_data
     session.commit()
     session.refresh(user)
     return resp

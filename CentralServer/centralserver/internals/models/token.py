@@ -38,3 +38,11 @@ class OTPRecoveryCode(SQLModel):
 
     recovery_code: str
     nonce: str
+
+
+class RefreshToken(SQLModel):
+    """A model representing a refresh token for session renewal (used for 'Remember Me')."""
+
+    uid: uuid.UUID
+    refresh_token: str
+    expires_at: int  # Unix timestamp for expiration
