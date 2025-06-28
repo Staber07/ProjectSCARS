@@ -16,13 +16,6 @@
             "database": "${workspaceFolder:ProjectSCARS}/CentralServer/tests/data/test.db"
         },
         {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "centralserver",
-            "group": "ProjectSCARS",
-            "database": "${workspaceFolder:ProjectSCARS}/CentralServer/centralserver.db"
-        },
-        {
             "mysqlOptions": {
                 "authProtocol": "default",
                 "enableSsl": "Disabled"
@@ -35,6 +28,13 @@
             "group": "ProjectSCARS",
             "database": "ProjectSCARS_CentralServer",
             "username": "ProjectSCARS_DatabaseAdmin"
+        },
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "name": "centralserver",
+            "group": "ProjectSCARS",
+            "database": "${workspaceFolder:ProjectSCARS}/CentralServer/db/centralserver.db"
         }
     ]
 }

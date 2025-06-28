@@ -1,7 +1,8 @@
 "use client";
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { Role, School, UserPublic, UserUpdate } from "@/lib/api/csclient";
+import { RemoveUserProfile, UpdateUserInfo } from "@/lib/api/user";
 import {
     Button,
     Card,
@@ -33,17 +34,16 @@ import { useEffect, useState } from "react";
 
 interface EditUserProps {
     index: number;
-    user: UserPublicType;
-    availableSchools: SchoolType[];
-    availableRoles: RoleType[];
+    user: UserPublic;
+    availableSchools: School[];
+    availableRoles: Role[];
     currentPage: number;
     setIndex: React.Dispatch<React.SetStateAction<number | null>>;
     fetchUsers: (page: number) => void;
-    UpdateUserInfo: (userInfo: UserUpdateType) => Promise<UserPublicType>;
-    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublicType>;
+    UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
+    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
 }
-
 
 interface EditUserValues {
     id: string;
@@ -51,13 +51,13 @@ interface EditUserValues {
     nameFirst: string | null;
     nameMiddle: string | null;
     nameLast: string | null;
+    position: string | null;
     email: string | null;
     school: string | null;
     role: string | null;
     deactivated: boolean;
     forceUpdateInfo: boolean;
 }
-
 
 export function EditUserComponent({
     index,
@@ -67,12 +67,13 @@ export function EditUserComponent({
     currentPage,
     setIndex,
     fetchUsers,
-    UpdateUserInfo,
     UploadUserAvatar,
     fetchUserAvatar,
 }: EditUserProps) {
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
+    const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
+    const [avatarRemoved, setAvatarRemoved] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
     const userCtx = useUser();
     const availableSchoolNames = availableSchools.map(
@@ -87,6 +88,7 @@ export function EditUserComponent({
             nameFirst: user.nameFirst || null,
             nameMiddle: user.nameMiddle || null,
             nameLast: user.nameLast || null,
+            position: user.position || null,
             email: user.email || null,
             school: availableSchools.find((school) => school.id === user.schoolId)
                 ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
@@ -106,11 +108,14 @@ export function EditUserComponent({
     console.debug("form initial values:", form.values);
     useEffect(() => {
         console.debug("EditUserComponent mounted with index:", index);
+        setAvatarRemoved(false);
+        setEditUserAvatar(null);
         if (user.avatarUrn) {
+            setCurrentAvatarUrn(user.avatarUrn);
             const avatarUrl = fetchUserAvatar(user.avatarUrn);
             setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
         } else {
-            setEditUserAvatar(null);
+            setCurrentAvatarUrn(null);
             setEditUserAvatarUrl(null);
         }
     }, [index, user, fetchUserAvatar]);
@@ -142,19 +147,31 @@ export function EditUserComponent({
             return;
         }
 
+        setAvatarRemoved(false);
         setEditUserAvatar(file);
         setEditUserAvatarUrl((prevUrl) => {
-            if (prevUrl) {
+            if (prevUrl && !currentAvatarUrn) {
                 URL.revokeObjectURL(prevUrl); // Clean up previous URL
             }
             return URL.createObjectURL(file); // Create a new URL for the selected file
         });
     };
+
+    const removeProfilePicture = () => {
+        setAvatarRemoved(true);
+        setEditUserAvatar(null);
+        if (editUserAvatarUrl && !currentAvatarUrn) {
+            URL.revokeObjectURL(editUserAvatarUrl);
+        }
+        setEditUserAvatarUrl(null);
+    };
+
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
         const selectedSchool = availableSchools.find(
             (school) =>
-                school.name === values.school || `[${school.id}] ${school.name} (${school.address})` === values.school
+                school.name === values.school ||
+                `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}` === values.school
         );
         if (values.school && !selectedSchool) {
             notifications.show({
@@ -182,12 +199,13 @@ export function EditUserComponent({
         }
 
         // NOTE: Only update fields that have changed
-        const newUserInfo: UserUpdateType = {
+        const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== user.username ? values.username : undefined,
             nameFirst: values.nameFirst !== user.nameFirst ? values.nameFirst : undefined,
             nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
             nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
+            position: values.position !== user.position ? values.position : undefined,
             email: values.email !== user.email ? values.email : undefined,
             schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
             roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
@@ -206,6 +224,32 @@ export function EditUserComponent({
                 icon: <IconPencilCheck />,
             });
 
+            if (avatarRemoved && currentAvatarUrn) {
+                try {
+                    console.debug("Removing avatar...");
+                    await RemoveUserProfile(values.id);
+                    console.debug("Avatar removed successfully.");
+                    notifications.show({
+                        id: "avatar-remove-success",
+                        title: "Success",
+                        message: "Avatar removed successfully.",
+                        color: "green",
+                        icon: <IconPencilCheck />,
+                    });
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to remove avatar.";
+                        console.error("Avatar removal failed:", detail);
+                        notifications.show({
+                            id: "avatar-remove-error",
+                            title: "Avatar Removal Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
             if (editUserAvatar) {
                 try {
                     console.debug("Uploading avatar...");
@@ -237,7 +281,7 @@ export function EditUserComponent({
                     buttonStateHandler.close();
                 }
             }
-            if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "") {
+            if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "" && !avatarRemoved) {
                 fetchUserAvatar(updatedUser.avatarUrn);
             }
             fetchUsers(currentPage);
@@ -268,6 +312,8 @@ export function EditUserComponent({
         }
     };
 
+    const showRemoveButton = editUserAvatar || (currentAvatarUrn && !avatarRemoved);
+
     return (
         <Modal opened={index !== null} onClose={() => setIndex(null)} title="Edit User" centered>
             <Flex direction="column" gap="md">
@@ -276,7 +322,7 @@ export function EditUserComponent({
                         <FileButton onChange={setAvatar} accept="image/png,image/jpeg">
                             {(props) => (
                                 <motion.div whileHover={{ scale: 1.05 }} style={{ position: "relative" }} {...props}>
-                                    {editUserAvatarUrl ? (
+                                    {editUserAvatarUrl && !avatarRemoved ? (
                                         <Image
                                             id="edit-user-avatar"
                                             src={editUserAvatarUrl}
@@ -313,16 +359,8 @@ export function EditUserComponent({
                         </FileButton>
                     </Card>
                 </Center>
-                {editUserAvatar && (
-                    <Button
-                        variant="outline"
-                        color="red"
-                        mt="md"
-                        onClick={() => {
-                            setEditUserAvatar(null);
-                            setEditUserAvatarUrl(null);
-                        }}
-                    >
+                {showRemoveButton && (
+                    <Button variant="outline" color="red" mt="md" onClick={removeProfilePicture}>
                         Remove Profile Picture
                     </Button>
                 )}
@@ -455,6 +493,27 @@ export function EditUserComponent({
                             }
                             key={form.key("email")}
                             {...form.getInputProps("email")}
+                        />
+                    </Tooltip>
+                    <Tooltip
+                        disabled={
+                            userCtx.userInfo?.id === user?.id
+                                ? userCtx.userPermissions?.includes("users:self:modify:position")
+                                : userCtx.userPermissions?.includes("users:global:modify:position")
+                        }
+                        label="Position cannot be changed"
+                        withArrow
+                    >
+                        <TextInput
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? !userCtx.userPermissions?.includes("users:self:modify:position")
+                                    : !userCtx.userPermissions?.includes("users:global:modify:position")
+                            }
+                            label="Position"
+                            placeholder="Position"
+                            key={form.key("position")}
+                            {...form.getInputProps("position")}
                         />
                     </Tooltip>
                     <Tooltip

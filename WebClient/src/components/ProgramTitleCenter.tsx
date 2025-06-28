@@ -2,12 +2,12 @@
 
 import { Program } from "@/lib/info";
 import { Flex, Image, Text, Title } from "@mantine/core";
-import { AnimationControls, motion } from "motion/react";
+import { animationControls, motion } from "motion/react";
 import Link from "next/link";
 
 interface ProgramTitleCenterProps {
     classes: { readonly [key: string]: string };
-    logoControls: AnimationControls;
+    logoControls: ReturnType<typeof animationControls>;
 }
 
 /**
@@ -21,7 +21,7 @@ export function ProgramTitleCenter({ classes, logoControls }: ProgramTitleCenter
             <Title ta="center" className={classes.title}>
                 <Flex mih={50} justify="center" align="center" direction="row" wrap="wrap">
                     <Image
-                        src="/assets/BENTOLogo.svg"
+                        src="/assets/logos/BENTO.svg"
                         alt="BENTO Logo"
                         radius="md"
                         h={70}

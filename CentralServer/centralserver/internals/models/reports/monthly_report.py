@@ -30,6 +30,7 @@ from centralserver.internals.models.reports.lr_school_operation_fund import (
 from centralserver.internals.models.reports.lr_supplementary_feeding_fund import (
     LiquidationReportSupplementaryFeedingFund,
 )
+from centralserver.internals.models.reports.report_status import ReportStatus
 
 
 class MonthlyReport(SQLModel, table=True):
@@ -47,25 +48,67 @@ class MonthlyReport(SQLModel, table=True):
         index=True,
         description="The month and year of the report.",
     )
-    reportStatus: str = Field(
-        default="draft",
-        description="The status of the report (i.e., 'draft', 'forReview', 'verified').",
+    name: str | None = Field(
+        default=None,
+        description="The name of the report.",
+    )
+    submittedBySchool: int = Field(
+        index=True,
+        foreign_key="schools.id",
+        description="The school that submitted the report.",
+    )
+    reportStatus: ReportStatus = Field(
+        default=ReportStatus.DRAFT,
+        description="The status of the report.",
     )
     preparedBy: str | None = Field(
         foreign_key="users.id", description="The user who prepared the report."
     )
     notedBy: str | None = Field(
-        foreign_key="users.id", description="The user who noted the report."
+        default=None,
+        foreign_key="users.id",
+        description="The user who noted the report.",
     )
-    receivedByDailyFinancialReport: str | None = Field(foreign_key="users.id")
-    receivedByOperatingExpensesReport: str | None = Field(foreign_key="users.id")
-    receivedByAdministrativeExpensesReport: str | None = Field(foreign_key="users.id")
-    receivedByClinicFundReport: str | None = Field(foreign_key="users.id")
-    receivedBySupplementaryFeedingFundReport: str | None = Field(foreign_key="users.id")
-    receivedByHEFundReport: str | None = Field(foreign_key="users.id")
-    receivedByFacultyAndStudentDevFundReport: str | None = Field(foreign_key="users.id")
-    receivedBySchoolOperationFundReport: str | None = Field(foreign_key="users.id")
-    receivedByRevolvingFundReport: str | None = Field(foreign_key="users.id")
+    dateCreated: datetime.datetime = Field(
+        default_factory=datetime.datetime.now,
+        description="The date and time when the report was created.",
+    )
+    dateApproved: datetime.datetime | None = Field(
+        default=None,
+        description="The date and time when the report was approved.",
+    )
+    dateReceived: datetime.datetime | None = Field(
+        default=None,
+        description="The date and time when the report was received.",
+    )
+    lastModified: datetime.datetime = Field(
+        default_factory=datetime.datetime.now,
+        description="The last time the report was modified.",
+    )
+
+    receivedByDailyFinancialReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedByOperatingExpensesReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedByAdministrativeExpensesReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedByClinicFundReport: str | None = Field(default=None, foreign_key="users.id")
+    receivedBySupplementaryFeedingFundReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedByHEFundReport: str | None = Field(default=None, foreign_key="users.id")
+    receivedByFacultyAndStudentDevFundReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedBySchoolOperationFundReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
+    receivedByRevolvingFundReport: str | None = Field(
+        default=None, foreign_key="users.id"
+    )
 
     audited_by: list["MonthlyReportAuditedBy"] = Relationship(
         back_populates="parent_report"

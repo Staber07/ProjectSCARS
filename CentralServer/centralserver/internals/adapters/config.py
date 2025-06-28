@@ -24,6 +24,10 @@ class DatabaseAdapterConfig(ABC):
     def connect_args(self) -> dict[str, Any]:
         """Get the connection arguments for SQLAlchemy."""
 
+    @abstractmethod
+    def export(self) -> dict[str, Any]:
+        """Export the configuration to a dictionary."""
+
 
 class SQLiteDatabaseConfig(DatabaseAdapterConfig):
     """The SQLite database configuration."""
@@ -69,6 +73,13 @@ class SQLiteDatabaseConfig(DatabaseAdapterConfig):
     @override
     def connect_args(self) -> dict[str, Any]:
         return self._connect_args
+
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "filepath": str(self.filepath),
+            "connect_args": self._connect_args,
+        }
 
 
 class MySQLDatabaseConfig(DatabaseAdapterConfig):
@@ -135,6 +146,17 @@ class MySQLDatabaseConfig(DatabaseAdapterConfig):
     def connect_args(self) -> dict[str, Any]:
         return self._connect_args
 
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "username": self.username,
+            "password": self.password,
+            "host": self.host,
+            "port": self.port,
+            "database": self.database,
+            "connect_args": self._connect_args,
+        }
+
 
 class PostgreSQLDatabaseConfig(DatabaseAdapterConfig):
     """The PostgreSQL database configuration."""
@@ -196,6 +218,17 @@ class PostgreSQLDatabaseConfig(DatabaseAdapterConfig):
     def connect_args(self) -> dict[str, Any]:
         return self._connect_args
 
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "username": self.username,
+            "password": self.password,
+            "host": self.host,
+            "port": self.port,
+            "database": self.database,
+            "connect_args": self._connect_args,
+        }
+
 
 ##### Object Store Adapter Configurations #####
 
@@ -225,6 +258,10 @@ class ObjectStoreAdapterConfig(ABC):
     def info(self) -> dict[str, Any]:
         """Get the object store adapter information"""
 
+    @abstractmethod
+    def export(self) -> dict[str, Any]:
+        """Export the configuration to a dictionary."""
+
 
 class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     """Adapter configuration for local object store."""
@@ -250,6 +287,15 @@ class LocalObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
 
         return {
             "name": "Local",
+            "filepath": str(self.filepath),
+        }
+
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "max_file_size": self.max_file_size,
+            "min_image_size": self.min_image_size,
+            "allowed_image_types": list(self.allowed_image_types),
             "filepath": str(self.filepath),
         }
 
@@ -301,6 +347,18 @@ class MinIOObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
             "secure": self.secure,
         }
 
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "max_file_size": self.max_file_size,
+            "min_image_size": self.min_image_size,
+            "allowed_image_types": list(self.allowed_image_types),
+            "access_key": self.access_key,
+            "secret_key": self.secret_key,
+            "endpoint": self.endpoint,
+            "secure": self.secure,
+        }
+
 
 class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
     """Adapter configuration for Garage."""
@@ -347,4 +405,77 @@ class GarageObjectStoreAdapterConfig(ObjectStoreAdapterConfig):
             "secret_key_set": self.secret_key != "",
             "endpoint": self.endpoint,
             "secure": self.secure,
+        }
+
+    @override
+    def export(self) -> dict[str, Any]:
+        return {
+            "max_file_size": self.max_file_size,
+            "min_image_size": self.min_image_size,
+            "allowed_image_types": list(self.allowed_image_types),
+            "access_key": self.access_key,
+            "secret_key": self.secret_key,
+            "endpoint": self.endpoint,
+            "secure": self.secure,
+        }
+
+
+###### OAuth Adapter Configurations #####
+
+
+class OAuthAdapterConfig(ABC):
+    """Superclass for OAuth adapter configurations."""
+
+    @property
+    @abstractmethod
+    def info(self) -> dict[str, Any]:
+        """Get the OAuth adapter information."""
+
+    @abstractmethod
+    def export(self) -> dict[str, Any]:
+        """Export the configuration to a dictionary."""
+
+
+class GoogleOAuthAdapterConfig(OAuthAdapterConfig):
+    """Configuration for Google OAuth adapter."""
+
+    def __init__(
+        self,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        redirect_uri: str | None = None,
+    ):
+        """Initialize the Google OAuth adapter configuration.
+
+        Args:
+            client_id: The client ID for Google OAuth.
+            client_secret: The client secret for Google OAuth.
+            redirect_uri: The redirect URI for Google OAuth.
+        """
+
+        if client_id is None or client_secret is None or redirect_uri is None:
+            raise ValueError(
+                "The client ID, client secret, and redirect URI are required."
+            )
+
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+
+    @property
+    def info(self) -> dict[str, Any]:
+        return {
+            "name": "Google",
+            "client_id": self.client_id,
+            "client_secret_set": self.client_secret != "",
+            "redirect_uri": self.redirect_uri,
+        }
+
+    def export(self) -> dict[str, Any]:
+        """Export the configuration to a dictionary."""
+
+        return {
+            "client_id": self.client_id,
+            "client_secret": self.client_secret,
+            "redirect_uri": self.redirect_uri,
         }

@@ -45,9 +45,17 @@ class User(SQLModel, table=True):
         default=None, description="The middle name of the user."
     )
     nameLast: str | None = Field(default=None, description="The last name of the user.")
+    position: str | None = Field(
+        default=None,
+        description="The position or title of the user within the organization.",
+    )
     avatarUrn: str | None = Field(
         default=None,
         description="A link or identifier to the user's avatar within the file storage server.",
+    )
+    signatureUrn: str | None = Field(
+        default=None,
+        description="A link or identifier to the user's signature within the file storage server.",
     )
     schoolId: int | None = Field(
         default=None,
@@ -105,6 +113,44 @@ class User(SQLModel, table=True):
         description="A list of onboarding tutorials the user has completed.",
     )
 
+    otpSecret: str | None = Field(
+        default=None,
+        description="The Base32 secret key for the user's two-factor authentication (2FA).",
+    )
+    otpVerified: bool = Field(
+        default=False,
+        description="Whether the user's two-factor authentication (2FA) has been verified.",
+    )
+    otpNonce: str | None = Field(
+        default=None,
+        description="A nonce used for the user's two-factor authentication (2FA) to prevent replay attacks.",
+    )
+    otpNonceExpires: datetime.datetime | None = Field(
+        default=None,
+        description="The expiration time for the user's two-factor authentication (2FA) nonce.",
+    )
+    otpRecoveryCode: str | None = Field(
+        default=None,
+        description="A recovery code for the user's two-factor authentication (2FA).",
+    )
+    otpProvisioningUri: str | None = Field(
+        default=None,
+        description="A URI for provisioning the user's two-factor authentication (2FA) in an authenticator app.",
+    )
+
+    oauthLinkedGoogleId: str | None = Field(
+        default=None,
+        description="The Google ID linked to the user's OAuth account.",
+    )
+    oauthLinkedMicrosoftId: str | None = Field(
+        default=None,
+        description="The Microsoft ID linked to the user's OAuth account.",
+    )
+    oauthLinkedFacebookId: str | None = Field(
+        default=None,
+        description="The Facebook ID linked to the user's OAuth account.",
+    )
+
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
         description="The timestamp when the record was created.",
@@ -138,11 +184,17 @@ class UserPublic(SQLModel):
     nameFirst: str | None
     nameMiddle: str | None
     nameLast: str | None
+    position: str | None
     avatarUrn: str | None
+    signatureUrn: str | None
     schoolId: int | None
     roleId: int
     deactivated: bool
     finishedTutorials: str
+    otpVerified: bool
+    oauthLinkedGoogleId: str | None
+    oauthLinkedMicrosoftId: str | None
+    oauthLinkedFacebookId: str | None
     forceUpdateInfo: bool
     emailVerified: bool
     dateCreated: datetime.datetime
@@ -160,6 +212,7 @@ class UserUpdate(SQLModel):
     nameFirst: str | None = None
     nameMiddle: str | None = None
     nameLast: str | None = None
+    position: str | None = None
 
     schoolId: int | None = None
     roleId: int | None = None

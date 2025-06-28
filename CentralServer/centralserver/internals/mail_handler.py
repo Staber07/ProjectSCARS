@@ -7,6 +7,8 @@ from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from pydantic import EmailStr
+
 from centralserver import info
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.exceptions import EmailTemplateNotFoundError
@@ -34,8 +36,8 @@ def create_attachment(bytes_data: bytes, filename: str, content_type: str) -> MI
     return attachment
 
 
-def send_mail(
-    to_address: str,
+async def send_mail(
+    to_address: str | EmailStr,
     subject: str,
     text: str,
     html: str | None = None,
@@ -61,7 +63,6 @@ def send_mail(
         return
 
     try:
-
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = app_config.mailing.from_address
@@ -124,7 +125,7 @@ def get_template(template_name: str):
             encoding=app_config.mailing.templates_encoding,
         ) as template_file:
             return template_file.read()
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         raise EmailTemplateNotFoundError(
             f"The template '{template_name}' was not found in the templates directory."
-        )
+        ) from exc

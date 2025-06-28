@@ -2,14 +2,16 @@
 
 import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
+import { UserFilters } from "@/components/UserManagement/UserFilters";
 import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import { Role, School, UserPublic } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { GetAllUsers, GetUserAvatar, GetUsersQuantity, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
+import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
 import {
     ActionIcon,
+    Anchor,
     Avatar,
     Button,
     Checkbox,
@@ -35,6 +37,7 @@ import {
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconEdit,
+    IconKey,
     IconLock,
     IconLockOpen,
     IconMail,
@@ -59,10 +62,11 @@ export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
-    const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [availableSchools, setAvailableSchools] = useState<School[]>([]); // Assuming schools are strings for simplicity
 
-    const [users, setUsers] = useState<UserPublicType[]>([]);
+    const [users, setUsers] = useState<UserPublic[]>([]);
+    //const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]); remnants of previous filtering logic
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
     const [fetchUsersErrorShown, setFetchUsersErrorShown] = useState(false);
@@ -70,10 +74,75 @@ export default function UsersPage(): JSX.Element {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [selectedUser, setSelectedUser] = useState<UserPublicType | null>(null);
+    const [selectedUser, setSelectedUser] = useState<UserPublic | null>(null);
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
+
+    const [roleFilter, setRoleFilter] = useState<string | null>(null);
+    const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
+    const [statusFilter, setStatusFilter] = useState<string | null>(null);
+    const [updateFilter, setUpdateFilter] = useState<string | null>(null);
+
+    const [allUsers, setAllUsers] = useState<UserPublic[]>([]);
+
+    const applyFilters = (users: UserPublic[]) => {
+        let filtered = [...users];
+
+        if (roleFilter) {
+            filtered = filtered.filter((user) => user.roleId.toString() === roleFilter);
+        }
+        if (schoolFilter) {
+            filtered = filtered.filter((user) => user.schoolId != null && user.schoolId.toString() === schoolFilter);
+        }
+        if (statusFilter) {
+            filtered = filtered.filter((user) =>
+                statusFilter === "deactivated" ? user.deactivated : !user.deactivated
+            );
+        }
+        if (updateFilter) {
+            filtered = filtered.filter((user) =>
+                updateFilter === "required" ? user.forceUpdateInfo : !user.forceUpdateInfo
+            );
+        }
+
+        if (searchTerm.trim()) {
+            const lower = searchTerm.trim().toLowerCase();
+            filtered = filtered.filter(
+                (user) =>
+                    user.username?.toLowerCase().includes(lower) ||
+                    user.nameFirst?.toLowerCase().includes(lower) ||
+                    user.nameLast?.toLowerCase().includes(lower)
+            );
+        }
+
+        return filtered;
+    };
+
+    // Fetch users when the page loads or filters change
+    const fetchUsers = async (page: number) => {
+        try {
+            const data = await GetAllUsers((page - 1) * userPerPage, userPerPage);
+            setAllUsers(data);
+            const filtered = applyFilters(data);
+
+            setUsers(filtered);
+            setTotalUsers(filtered.length);
+            setTotalPages(Math.ceil(filtered.length / userPerPage));
+            setCurrentPage(page);
+
+            setSelected(new Set());
+            setSelectedUser(null);
+            setSelectedUserIndex(null);
+        } catch (error) {
+            console.error("Failed to fetch users:", error);
+            handleFetchError();
+        }
+    };
+
+    const handleFilterChange = () => {
+        setCurrentPage(1);
+    };
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -83,7 +152,10 @@ export default function UsersPage(): JSX.Element {
         }
     };
 
-    const handleSearch = () => {};
+    const handleSearch = () => {
+        setCurrentPage(1);
+    };
+
     const handleCreate = () => {
         console.debug("Creating new user");
         // Clear selected user when opening create modal
@@ -91,7 +163,8 @@ export default function UsersPage(): JSX.Element {
         setSelectedUserIndex(null);
         setOpenCreateUserModal(true);
     };
-    const handleEdit = (index: number, user: UserPublicType) => {
+
+    const handleEdit = (index: number, user: UserPublic) => {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
         setSelectedUser(user);
@@ -176,52 +249,18 @@ export default function UsersPage(): JSX.Element {
             });
     };
 
-    const fetchUsers = async (page: number, pageLimit: number = userPerPage) => {
-        setCurrentPage(page);
-        console.debug("user per page:", pageLimit);
-        const pageOffset = (page - 1) * pageLimit;
-        console.debug(`Fetching users for page ${page} with offset ${pageOffset} and limit ${pageLimit}`);
-
-        // deselect all users when fetching new page
-        setSelected(new Set());
-        setSelectedUser(null);
-        setSelectedUserIndex(null);
-
-        await GetUsersQuantity()
-            .then((quantity) => {
-                setTotalUsers(quantity);
-                setTotalPages(Math.ceil(quantity / pageLimit));
-            })
-            .catch((error) => {
-                console.error("Failed to fetch users quantity:", error);
-                notifications.show({
-                    id: "fetch-users-quantity-error",
-                    title: "Error",
-                    message: "Failed to fetch users quantity. Please try again later.",
-                    color: "red",
-                    icon: <IconUserExclamation />,
-                });
-                setTotalPages(1); // Default to 1 page if fetching fails
+    const handleFetchError = () => {
+        if (!fetchUsersErrorShown) {
+            setFetchUsersErrorShown(true);
+            notifications.show({
+                id: "fetch-users-error",
+                title: "Failed to fetch users list",
+                message: "Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
             });
-        await GetAllUsers(pageOffset, pageLimit)
-            .then((data) => {
-                console.debug(`Fetched ${data.length} users for page offset ${pageOffset}`);
-                setUsers(data);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch users:", error);
-                if (!fetchUsersErrorShown) {
-                    setFetchUsersErrorShown(true);
-                    notifications.show({
-                        id: "fetch-users-error",
-                        title: "Failed to fetch users list",
-                        message: "Please try again later.",
-                        color: "red",
-                        icon: <IconUserExclamation />,
-                    });
-                    setUsers([]);
-                }
-            });
+            setUsers([]);
+        }
     };
 
     useEffect(() => {
@@ -246,7 +285,7 @@ export default function UsersPage(): JSX.Element {
                 });
         };
         const fetchSchools = async () => {
-            await GetAllSchools(0, 99)
+            await GetAllSchools(0, 999)
                 .then((data) => {
                     setAvailableSchools(data);
                 })
@@ -262,11 +301,45 @@ export default function UsersPage(): JSX.Element {
                 });
         };
 
-        fetchRoles();
-        fetchUsers(1);
-        fetchSchools();
+        const fetchAllUsers = async () => {
+            try {
+                const data = await GetAllUsers(0, 10000); // fetch all users, or use a large enough number
+                setAllUsers(data);
+            } catch (error) {
+                console.error("Failed to fetch users:", error);
+                handleFetchError();
+            }
+        };
+
+        const timeoutId = setTimeout(() => {
+            fetchRoles();
+            fetchAllUsers();
+            fetchSchools();
+        }, 300);
+
+        return () => {
+            avatars.forEach((url) => URL.revokeObjectURL(url));
+            setAvatars(new Map());
+            setAvatarsRequested(new Set());
+            clearTimeout(timeoutId);
+        };
+    }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    useEffect(() => {
+        const filtered = applyFilters(allUsers);
+
+        setTotalUsers(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / userPerPage)));
+
+        // If currentPage is out of bounds, reset to 1
+        const safePage = Math.min(currentPage, Math.ceil(filtered.length / userPerPage) || 1);
+        if (safePage !== currentPage) setCurrentPage(safePage);
+
+        const start = (safePage - 1) * userPerPage;
+        const end = start + userPerPage;
+        setUsers(filtered.slice(start, end));
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fetchRolesErrorShown, setUsers, fetchUsersErrorShown]);
+    }, [allUsers, roleFilter, schoolFilter, statusFilter, updateFilter, searchTerm, userPerPage, currentPage]);
 
     //Function to for Hover and Mouse Tracking on User Card
     // const [hoveredUser, setHoveredUser] = useState<UserPublicType | null>(null);
@@ -285,346 +358,381 @@ export default function UsersPage(): JSX.Element {
     console.debug("Rendering UsersPage");
     return (
         <>
-            <Flex mih={50} gap="xl" justify="flex-start" align="center" direction="row" wrap="nowrap">
-                <TextInput
-                    placeholder="Search for users"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.currentTarget.value)}
-                    size="md"
-                    style={{ width: "400px" }}
-                />
-                <Flex ml="auto" gap="sm" align="center">
-                    <ActionIcon
-                        disabled={!userCtx.userPermissions?.includes("users:create")}
-                        size="input-md"
-                        variant="filled"
-                        color="blue"
-                        onClick={handleCreate}
-                    >
-                        <IconPlus size={18} />
-                    </ActionIcon>
-                    <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
-                        <IconSearch size={16} />
-                    </ActionIcon>
+            <Stack gap="md">
+                <Flex mih={50} gap="xl" justify="flex-start" align="center" direction="row" wrap="wrap">
+                    <TextInput
+                        placeholder="Search for users"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                        size="md"
+                        style={{ width: "400px" }}
+                    />
+                    <Flex ml="auto" gap="sm" align="center">
+                        <ActionIcon
+                            disabled={!userCtx.userPermissions?.includes("users:create")}
+                            size="input-md"
+                            variant="filled"
+                            color="blue"
+                            onClick={handleCreate}
+                        >
+                            <IconPlus size={18} />
+                        </ActionIcon>
+                        <ActionIcon size="input-md" variant="default" onClick={handleSearch}>
+                            <IconSearch size={16} />
+                        </ActionIcon>
+                    </Flex>
                 </Flex>
-            </Flex>
-            <Table highlightOnHover stickyHeader stickyHeaderOffset={60}>
-                <TableThead>
-                    <TableTr>
-                        <TableTh>
-                            <Group>
-                                <Checkbox
-                                    checked={selected.size === users.length && users.length > 0}
-                                    indeterminate={selected.size > 0 && selected.size < users.length}
-                                    onChange={(event) => handleSelectAll(event.currentTarget.checked)}
-                                />
-                                {selected.size > 0 && (
-                                    <Menu shadow="md" width={200}>
-                                        <Menu.Target>
-                                            <Button variant="light" size="xs">
-                                                Actions ({selected.size})
-                                            </Button>
-                                        </Menu.Target>
-                                        <Menu.Dropdown>
-                                            <Menu.Label>Bulk Actions</Menu.Label>
-                                            <Menu.Item
-                                                leftSection={<IconUserOff size={14} />}
-                                                onClick={() => handleBulkAction("deactivate")}
+
+                <UserFilters
+                    roleFilter={roleFilter}
+                    setRoleFilter={setRoleFilter}
+                    schoolFilter={schoolFilter}
+                    setSchoolFilter={setSchoolFilter}
+                    statusFilter={statusFilter}
+                    setStatusFilter={setStatusFilter}
+                    updateFilter={updateFilter}
+                    setUpdateFilter={setUpdateFilter}
+                    availableRoles={availableRoles}
+                    availableSchools={availableSchools}
+                    onFilterChange={handleFilterChange}
+                />
+
+                <Table highlightOnHover stickyHeader>
+                    <TableThead>
+                        <TableTr>
+                            <TableTh>
+                                <Group>
+                                    <Checkbox
+                                        checked={selected.size === users.length && users.length > 0}
+                                        indeterminate={selected.size > 0 && selected.size < users.length}
+                                        onChange={(event) => handleSelectAll(event.currentTarget.checked)}
+                                    />
+                                    {selected.size > 0 && (
+                                        <Menu shadow="md" width={200}>
+                                            <Menu.Target>
+                                                <Button variant="light" size="xs">
+                                                    Actions ({selected.size})
+                                                </Button>
+                                            </Menu.Target>
+                                            <Menu.Dropdown>
+                                                <Menu.Label>Bulk Actions</Menu.Label>
+                                                <Menu.Item
+                                                    leftSection={<IconUserOff size={14} />}
+                                                    onClick={() => handleBulkAction("deactivate")}
+                                                >
+                                                    Deactivate Users
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    leftSection={<IconUserCheck size={14} />}
+                                                    onClick={() => handleBulkAction("reactivate")}
+                                                >
+                                                    Reactivate Users
+                                                </Menu.Item>
+                                            </Menu.Dropdown>
+                                        </Menu>
+                                    )}
+                                </Group>
+                            </TableTh>
+                            <TableTh>Username</TableTh>
+                            <TableTh>Email</TableTh>
+                            <TableTh>Name</TableTh>
+                            <TableTh>Assigned School</TableTh>
+                            <TableTh>Role</TableTh>
+                            <TableTh></TableTh>
+                            <TableTh></TableTh>
+                            <TableTh></TableTh>
+                            <TableTh>Edit</TableTh>
+                        </TableTr>
+                    </TableThead>
+                    <TableTbody>
+                        {users.length > 0 ? (
+                            users.map((user, index) => (
+                                <TableTr
+                                    key={index}
+                                    bg={selected.has(index) ? "gray.1" : undefined}
+                                    // onMouseEnter={() => setHoveredUser(user)}
+                                    // onMouseLeave={() => setHoveredUser(null)}
+                                >
+                                    {/* Checkbox and Avatar */}
+                                    <TableTd>
+                                        <Group>
+                                            <Checkbox
+                                                checked={selected.has(index)}
+                                                onChange={() => toggleSelected(index)}
+                                            />
+                                            {user.avatarUrn ? (
+                                                <Avatar radius="xl" src={fetchUserAvatar(user.avatarUrn)}>
+                                                    <IconUser />
+                                                </Avatar>
+                                            ) : (
+                                                <Avatar
+                                                    radius="xl"
+                                                    name={user.nameFirst + " " + user.nameLast}
+                                                    color="initials"
+                                                />
+                                            )}
+                                        </Group>
+                                    </TableTd>
+                                    <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
+                                    <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                        <Group gap="xs" align="center">
+                                            {user.email &&
+                                                (user.emailVerified ? (
+                                                    <Tooltip label="Email verified" position="bottom" withArrow>
+                                                        <IconCircleDashedCheck size={16} color="green" />
+                                                    </Tooltip>
+                                                ) : (
+                                                    <Tooltip
+                                                        label="Email not verified (Click to send verification mail)"
+                                                        position="bottom"
+                                                        withArrow
+                                                    >
+                                                        <motion.div
+                                                            whileTap={{ scale: 0.9 }}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            style={{
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                            }}
+                                                        >
+                                                            <IconCircleDashedX
+                                                                size={16}
+                                                                color="gray"
+                                                                onClick={() => {
+                                                                    try {
+                                                                        RequestVerificationEmail();
+                                                                        notifications.show({
+                                                                            id: "verification-email-sent",
+                                                                            title: "Verification Email Sent",
+                                                                            message:
+                                                                                "Please check your email and click the link to verify your email.",
+                                                                            color: "blue",
+                                                                            icon: <IconMail />,
+                                                                        });
+                                                                    } catch (error) {
+                                                                        if (error instanceof Error) {
+                                                                            notifications.show({
+                                                                                id: "verification-email-error",
+                                                                                title: "Error",
+                                                                                message: `Failed to send verification email: ${error.message}`,
+                                                                                color: "red",
+                                                                                icon: <IconSendOff />,
+                                                                            });
+                                                                        } else {
+                                                                            notifications.show({
+                                                                                id: "verification-email-error-unknown",
+                                                                                title: "Error",
+                                                                                message:
+                                                                                    "Failed to send verification email. Please try again later.",
+                                                                                color: "red",
+                                                                                icon: <IconSendOff />,
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </motion.div>
+                                                    </Tooltip>
+                                                ))}
+                                            {user.email ? (
+                                                <Anchor
+                                                    href={`mailto:${user.email}`}
+                                                    underline="never"
+                                                    size="sm"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    {user.email}
+                                                </Anchor>
+                                            ) : (
+                                                <Text size="sm" c="dimmed">
+                                                    N/A
+                                                </Text>
+                                            )}
+                                        </Group>
+                                    </TableTd>
+                                    <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                        {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
+                                            <Text size="sm" c="dimmed">
+                                                N/A
+                                            </Text>
+                                        )}
+                                        {user.nameFirst}{" "}
+                                        {user.nameMiddle
+                                            ? user.nameMiddle
+                                                  .split(" ")
+                                                  .map((n) => n[0])
+                                                  .join(".") + ". "
+                                            : ""}
+                                        {user.nameLast}
+                                    </TableTd>
+                                    <TableTd c={user.deactivated ? "dimmed" : undefined}>
+                                        {user.schoolId ? (
+                                            availableSchools.find((school) => school.id === user.schoolId)?.name || (
+                                                <Text size="sm" c="dimmed">
+                                                    N/A
+                                                </Text>
+                                            )
+                                        ) : (
+                                            <Text size="sm" c="dimmed">
+                                                N/A
+                                            </Text>
+                                        )}
+                                    </TableTd>
+                                    <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
+                                    <TableTd>
+                                        <Tooltip
+                                            label={user.deactivated ? "User is deactivated" : "User is active"}
+                                            position="bottom"
+                                            withArrow
+                                        >
+                                            {user.deactivated ? (
+                                                <IconLock color="gray" />
+                                            ) : (
+                                                <IconLockOpen color="green" />
+                                            )}
+                                        </Tooltip>
+                                    </TableTd>
+                                    <TableTd>
+                                        <Tooltip label="Two-Factor Authentication" position="bottom" withArrow>
+                                            {user.otpVerified ? <IconKey color="green" /> : <IconKey color="gray" />}
+                                        </Tooltip>
+                                    </TableTd>
+                                    <TableTd>
+                                        <Tooltip label="Force Update Required" position="bottom" withArrow>
+                                            {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
+                                        </Tooltip>
+                                    </TableTd>
+                                    <TableTd>
+                                        <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
+                                            <ActionIcon
+                                                variant="light"
+                                                disabled={!userCtx.userPermissions?.includes("users:global:modify")}
+                                                onClick={() => handleEdit(index, user)}
                                             >
-                                                Deactivate Users
-                                            </Menu.Item>
-                                            <Menu.Item
-                                                leftSection={<IconUserCheck size={14} />}
-                                                onClick={() => handleBulkAction("reactivate")}
-                                            >
-                                                Reactivate Users
-                                            </Menu.Item>
-                                        </Menu.Dropdown>
-                                    </Menu>
-                                )}
-                            </Group>
-                        </TableTh>
-                        <TableTh>Username</TableTh>
-                        <TableTh>Email</TableTh>
-                        <TableTh>Name</TableTh>
-                        <TableTh>Assigned School</TableTh>
-                        <TableTh>Role</TableTh>
-                        <TableTh></TableTh>
-                        <TableTh></TableTh>
-                        <TableTh>Edit</TableTh>
-                    </TableTr>
-                </TableThead>
-                <TableTbody>
-                    {users.length > 0 ? (
-                        users.map((user, index) => (
-                            <TableTr
-                                key={index}
-                                bg={selected.has(index) ? "gray.1" : undefined}
-                                // onMouseEnter={() => setHoveredUser(user)}
-                                // onMouseLeave={() => setHoveredUser(null)}
-                            >
-                                {/* Checkbox and Avatar */}
-                                <TableTd>
+                                                <IconEdit size={16} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                    </TableTd>
+                                </TableTr>
+                            ))
+                        ) : (
+                            <TableTr>
+                                <TableTd colSpan={9}>
+                                    <Text c="dimmed" size="sm" ta="center" py="xl">
+                                        No users available
+                                    </Text>
+                                </TableTd>
+                            </TableTr>
+                        )}
+                    </TableTbody>
+                </Table>
+                {/* <AnimatePresence>
+                    {hoveredUser && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            style={{
+                                position: "fixed",
+                                top: mouseY + 16,
+                                left: mouseX + 16,
+                                zIndex: 1000,
+                                pointerEvents: "none",
+                            }}
+                        >
+                            <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
+                                <Stack gap="xs">
                                     <Group>
-                                        <Checkbox
-                                            checked={selected.has(index)}
-                                            onChange={() => toggleSelected(index)}
-                                        />
-                                        {user.avatarUrn ? (
-                                            <Avatar radius="xl" src={fetchUserAvatar(user.avatarUrn)}>
+                                        {hoveredUser.avatarUrn ? (
+                                            <Avatar radius="xl" src={fetchUserAvatar(hoveredUser.avatarUrn)}>
                                                 <IconUser />
                                             </Avatar>
                                         ) : (
                                             <Avatar
                                                 radius="xl"
-                                                name={user.nameFirst + " " + user.nameLast}
+                                                name={hoveredUser.nameFirst + " " + hoveredUser.nameLast}
                                                 color="initials"
                                             />
                                         )}
-                                    </Group>
-                                </TableTd>
-                                <TableTd c={user.deactivated ? "dimmed" : undefined}>{user.username}</TableTd>
-                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                    <Group gap="xs" align="center">
-                                        {user.email &&
-                                            (user.emailVerified ? (
-                                                <Tooltip label="Email verified" position="bottom" withArrow>
-                                                    <IconCircleDashedCheck size={16} color="green" />
-                                                </Tooltip>
-                                            ) : (
-                                                <Tooltip
-                                                    label="Email not verified (Click to send verification mail)"
-                                                    position="bottom"
-                                                    withArrow
-                                                >
-                                                    <motion.div
-                                                        whileTap={{ scale: 0.9 }}
-                                                        whileHover={{ scale: 1.05 }}
-                                                        style={{
-                                                            display: "flex",
-                                                            alignItems: "center",
-                                                            justifyContent: "center",
-                                                        }}
-                                                    >
-                                                        <IconCircleDashedX
-                                                            size={16}
-                                                            color="gray"
-                                                            onClick={() => {
-                                                                try {
-                                                                    RequestVerificationEmail();
-                                                                    notifications.show({
-                                                                        id: "verification-email-sent",
-                                                                        title: "Verification Email Sent",
-                                                                        message:
-                                                                            "Please check your email and click the link to verify your email.",
-                                                                        color: "blue",
-                                                                        icon: <IconMail />,
-                                                                    });
-                                                                } catch (error) {
-                                                                    if (error instanceof Error) {
-                                                                        notifications.show({
-                                                                            id: "verification-email-error",
-                                                                            title: "Error",
-                                                                            message: `Failed to send verification email: ${error.message}`,
-                                                                            color: "red",
-                                                                            icon: <IconSendOff />,
-                                                                        });
-                                                                    } else {
-                                                                        notifications.show({
-                                                                            id: "verification-email-error-unknown",
-                                                                            title: "Error",
-                                                                            message:
-                                                                                "Failed to send verification email. Please try again later.",
-                                                                            color: "red",
-                                                                            icon: <IconSendOff />,
-                                                                        });
-                                                                    }
-                                                                }
-                                                            }}
-                                                        />
-                                                    </motion.div>
-                                                </Tooltip>
-                                            ))}
-                                        {user.email ? (
-                                            user.email
-                                        ) : (
-                                            <Text size="sm" c="dimmed">
-                                                N/A
+                                        <Stack gap={0}>
+                                            <Text fw={ 500}>
+                                                {hoveredUser.nameFirst}{" "}
+                                                {hoveredUser.nameMiddle
+                                                    ? hoveredUser.nameMiddle
+                                                          .split(" ")
+                                                          .map((n) => n[0])
+                                                          .join(".") + ". "
+                                                    : ""}
+                                                {hoveredUser.nameLast}
                                             </Text>
-                                        )}
-                                    </Group>
-                                </TableTd>
-                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                    {user.nameFirst == null && user.nameMiddle == null && user.nameLast == null && (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )}
-                                    {user.nameFirst}{" "}
-                                    {user.nameMiddle
-                                        ? user.nameMiddle
-                                              .split(" ")
-                                              .map((n) => n[0])
-                                              .join(".") + ". "
-                                        : ""}
-                                    {user.nameLast}
-                                </TableTd>
-                                <TableTd c={user.deactivated ? "dimmed" : undefined}>
-                                    {user.schoolId ? (
-                                        availableSchools.find((school) => school.id === user.schoolId)?.name || (
                                             <Text size="sm" c="dimmed">
-                                                N/A
+                                                {hoveredUser.email}
                                             </Text>
-                                        )
-                                    ) : (
-                                        <Text size="sm" c="dimmed">
-                                            N/A
-                                        </Text>
-                                    )}
-                                </TableTd>
-                                <TableTd c={user.deactivated ? "dimmed" : undefined}>{roles[user.roleId]}</TableTd>
-                                <TableTd>
-                                    <Tooltip
-                                        label={user.deactivated ? "User is deactivated" : "User is active"}
-                                        position="bottom"
-                                        withArrow
-                                    >
-                                        {user.deactivated ? <IconLock color="gray" /> : <IconLockOpen color="green" />}
-                                    </Tooltip>
-                                </TableTd>
-                                <TableTd>
-                                    <Tooltip label="Force Update Required" position="bottom" withArrow>
-                                        {user.forceUpdateInfo ? <IconCheck color="gray" /> : <IconX color="gray" />}
-                                    </Tooltip>
-                                </TableTd>
-                                <TableTd>
-                                    <Tooltip label="Edit User" position="bottom" openDelay={500} withArrow>
-                                        <ActionIcon variant="light" onClick={() => handleEdit(index, user)}>
-                                            <IconEdit size={16} />
-                                        </ActionIcon>
-                                    </Tooltip>
-                                </TableTd>
-                            </TableTr>
-                        ))
-                    ) : (
-                        <TableTr>
-                            <TableTd colSpan={9}>
-                                <Text c="dimmed" size="sm" ta="center" py="xl">
-                                    No users available
-                                </Text>
-                            </TableTd>
-                        </TableTr>
+                                            <Text size="xs" c="dimmed">
+                                                {roles[hoveredUser.roleId]}
+                                            </Text>
+                                        </Stack>
+                                    </Group>
+                                </Stack>
+                            </Card>
+                        </motion.div>
                     )}
-                </TableTbody>
-            </Table>
-            {/* <AnimatePresence>
-                {hoveredUser && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                        style={{
-                            position: "fixed",
-                            top: mouseY + 16,
-                            left: mouseX + 16,
-                            zIndex: 1000,
-                            pointerEvents: "none",
+                </AnimatePresence> */}
+                <Group justify="space-between" align="center" m="md">
+                    <div></div>
+                    <Stack align="center" justify="center" gap="sm">
+                        <Pagination value={currentPage} onChange={setCurrentPage} total={totalPages} mt="md" />
+                        <Text size="sm" c="dimmed">
+                            {totalUsers > 0
+                                ? `${(currentPage - 1) * userPerPage + 1}-${Math.min(
+                                      currentPage * userPerPage,
+                                      totalUsers
+                                  )} of ${totalUsers} users`
+                                : "No users found"}
+                        </Text>
+                    </Stack>
+                    <Select
+                        value={userPerPage.toString()}
+                        onChange={(value) => {
+                            if (value) {
+                                const newUserPerPage = parseInt(value);
+                                setUserPerPage(newUserPerPage);
+                                setCurrentPage(1); // Reset to first page
+                            }
                         }}
-                    >
-                        <Card shadow="md" radius="md" withBorder style={{ width: 250 }}>
-                            <Stack gap="xs">
-                                <Group>
-                                    {hoveredUser.avatarUrn ? (
-                                        <Avatar radius="xl" src={fetchUserAvatar(hoveredUser.avatarUrn)}>
-                                            <IconUser />
-                                        </Avatar>
-                                    ) : (
-                                        <Avatar
-                                            radius="xl"
-                                            name={hoveredUser.nameFirst + " " + hoveredUser.nameLast}
-                                            color="initials"
-                                        />
-                                    )}
-                                    <Stack gap={0}>
-                                        <Text fw={ 500}>
-                                            {hoveredUser.nameFirst}{" "}
-                                            {hoveredUser.nameMiddle
-                                                ? hoveredUser.nameMiddle
-                                                      .split(" ")
-                                                      .map((n) => n[0])
-                                                      .join(".") + ". "
-                                                : ""}
-                                            {hoveredUser.nameLast}
-                                        </Text>
-                                        <Text size="sm" c="dimmed">
-                                            {hoveredUser.email}
-                                        </Text>
-                                        <Text size="xs" c="dimmed">
-                                            {roles[hoveredUser.roleId]}
-                                        </Text>
-                                    </Stack>
-                                </Group>
-                            </Stack>
-                        </Card>
-                    </motion.div>
+                        data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
+                        size="md"
+                        style={{ width: "100px" }}
+                        allowDeselect={false}
+                    />
+                </Group>
+                {selectedUserIndex !== null && selectedUser !== null && (
+                    <EditUserComponent
+                        index={selectedUserIndex}
+                        user={selectedUser}
+                        availableSchools={availableSchools}
+                        availableRoles={availableRoles}
+                        currentPage={currentPage}
+                        setIndex={setSelectedUserIndex}
+                        fetchUsers={fetchUsers}
+                        UpdateUserInfo={UpdateUserInfo}
+                        UploadUserAvatar={UploadUserAvatar}
+                        fetchUserAvatar={fetchUserAvatar}
+                    />
                 )}
-            </AnimatePresence> */}
-            <Group justify="space-between" align="center" m="md">
-                <div></div>
-                <Stack align="center" justify="center" gap="sm">
-                    <Pagination value={currentPage} onChange={fetchUsers} total={totalPages} mt="md" />
-                    <Text size="sm" c="dimmed">
-                        {totalUsers > 0
-                            ? `${(currentPage - 1) * userPerPage + 1}-${Math.min(
-                                  currentPage * userPerPage,
-                                  totalUsers
-                              )} of ${totalUsers} users`
-                            : "No users found"}
-                    </Text>
-                </Stack>
-                <Select
-                    value={userPerPage.toString()}
-                    onChange={async (value) => {
-                        if (value) {
-                            console.debug("Changing users per page to", value);
-                            const newUserPerPage = parseInt(value);
-                            setUserPerPage(newUserPerPage);
-                            // Reset to page 1 and fetch users with new page size
-                            await fetchUsers(1, newUserPerPage);
-                        }
-                    }}
-                    data={userPerPageOptions.map((num) => ({ value: num.toString(), label: num.toString() }))}
-                    size="md"
-                    style={{ width: "100px" }}
-                    allowDeselect={false}
-                />
-            </Group>
-            {selectedUserIndex !== null && selectedUser !== null && (
-                <EditUserComponent
-                    index={selectedUserIndex}
-                    user={selectedUser}
-                    availableSchools={availableSchools}
-                    availableRoles={availableRoles}
-                    currentPage={currentPage}
-                    setIndex={setSelectedUserIndex}
-                    fetchUsers={fetchUsers}
-                    UpdateUserInfo={UpdateUserInfo}
-                    UploadUserAvatar={UploadUserAvatar}
-                    fetchUserAvatar={fetchUserAvatar}
-                />
-            )}
-            {openCreateUserModal === true && (
-                <CreateUserComponent
-                    modalOpen={openCreateUserModal}
-                    setModalOpen={setOpenCreateUserModal}
-                    fetchUsers={fetchUsers}
-                    currentPage={currentPage}
-                    availableSchools={availableSchools}
-                    availableRoles={availableRoles}
-                    UpdateUserInfo={UpdateUserInfo}
-                />
-            )}
+                {openCreateUserModal === true && (
+                    <CreateUserComponent
+                        modalOpen={openCreateUserModal}
+                        setModalOpen={setOpenCreateUserModal}
+                        fetchUsers={fetchUsers}
+                        currentPage={currentPage}
+                        availableSchools={availableSchools}
+                        availableRoles={availableRoles}
+                    />
+                )}
+            </Stack>
         </>
     );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { HomeSection } from "@/components/Dashboard/HomeSection";
+import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import { GetUserInfo } from "@/lib/api/auth";
@@ -7,7 +9,7 @@ import { GetSelfNotifications } from "@/lib/api/notification";
 import { GetUserAvatar } from "@/lib/api/user";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { NotificationType } from "@/lib/types";
+import { Notification } from "@/lib/api/csclient";
 import {
     Avatar,
     Card,
@@ -24,9 +26,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, memo, useEffect, useState, useCallback } from "react";
-import { HomeSection } from "@/components/Dashboard/HomeSection";
-import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
+import React, { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -38,9 +38,9 @@ const stepsToComplete: [string, boolean][] = [
 const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
-    const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
+    const [HVNotifications, setHVNotifications] = useState<Notification[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
-        () => localStorage.getItem("setupCompleteDismissed") === "true"
+        () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
     );
     const [isLoading, setIsLoading] = useState(true);
     const [isNotificationLoading, setIsNotificationLoading] = useState(true);
@@ -48,7 +48,7 @@ const DashboardContent = memo(function DashboardContent() {
     const handleStepClick = (index: number) => {
         switch (index) {
             case 0:
-                window.location.href = "/account/settings";
+                window.location.href = "/account/profile";
                 break;
             case 1:
                 window.location.href = "/account/profile";
@@ -57,60 +57,95 @@ const DashboardContent = memo(function DashboardContent() {
                 window.location.href = "/account/profile";
                 break;
             case 3:
-                window.location.href = "/account/security";
+                window.location.href = "/account/profile";
                 break;
             default:
                 break;
         }
     };
 
+    // Load user info and avatar
     useEffect(() => {
         let mounted = true;
 
-        const initializeDashboard = async () => {
+        const loadUserInfo = async () => {
             if (!userCtx.userInfo) return;
 
             try {
-                const [userInfo, notifications] = await Promise.all([
-                    GetUserInfo(),
-                    GetSelfNotifications(true, true, 0, 1),
-                ]);
-
+                const [userInfo, userPermissions] = await GetUserInfo();
                 if (!mounted) return;
 
-                if (userInfo[0].avatarUrn) {
-                    const userAvatar = await GetUserAvatar(userInfo[0].avatarUrn);
-                    userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
-                } else {
-                    userCtx.updateUserInfo(userInfo[0], userInfo[1]);
+                if (userInfo.avatarUrn) {
+                    const userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                    if (mounted) {
+                        userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+                    }
+                } else if (mounted) {
+                    userCtx.updateUserInfo(userInfo, userPermissions);
                 }
-
-                setHVNotifications(notifications);
             } catch (error) {
-                console.error("Failed to fetch dashboard data:", error);
-                if (!mounted) return;
-
-                notifications.show({
-                    id: "dashboard-error",
-                    title: "Error",
-                    message: "Failed to load dashboard data",
-                    color: "red",
-                    icon: <IconRefreshAlert />,
-                });
+                console.error("Failed to fetch user info:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "user-info-error",
+                        title: "Error",
+                        message: "Failed to load user information",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
             } finally {
                 if (mounted) {
                     setIsLoading(false);
+                }
+            }
+        };
+
+        if (userCtx.userInfo) {
+            loadUserInfo();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => {
+            mounted = false;
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Load notifications
+    useEffect(() => {
+        let mounted = true;
+
+        const loadNotifications = async () => {
+            try {
+                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                if (mounted) {
+                    setHVNotifications(notifications);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "notifications-error",
+                        title: "Error",
+                        message: "Failed to load notifications",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
+            } finally {
+                if (mounted) {
                     setIsNotificationLoading(false);
                 }
             }
         };
 
-        initializeDashboard();
+        loadNotifications();
 
         return () => {
             mounted = false;
         };
-    }, [userCtx.userInfo]);
+    }, []); // Load notifications once on mount
 
     const calculateSteps = useCallback(() => {
         if (!userCtx.userInfo) return;
@@ -134,7 +169,7 @@ const DashboardContent = memo(function DashboardContent() {
             updatedSteps[2][1] = true;
         }
 
-        if ("twoFactorEnabled" in userCtx.userInfo && (userCtx.userInfo as any).twoFactorEnabled) {
+        if (userCtx.userInfo.otpVerified) {
             completedSteps++;
             updatedSteps[3][1] = true;
         }
@@ -168,7 +203,7 @@ const DashboardContent = memo(function DashboardContent() {
                             ) : (
                                 <Title>Welcome!</Title>
                             )}
-                            <Text c="dimmed">Here's what's happening with your account</Text>
+                            <Text c="dimmed">Here&apos;s what&apos;s happening with your account</Text>
                         </Stack>
                     </Group>
                 </Card>
@@ -223,7 +258,9 @@ const DashboardContent = memo(function DashboardContent() {
                             ta="right"
                             style={{ cursor: "pointer" }}
                             onClick={() => {
-                                localStorage.setItem("setupCompleteDismissed", "true");
+                                if (typeof window !== "undefined") {
+                                    localStorage.setItem("setupCompleteDismissed", "true");
+                                }
                                 setSetupCompleteDismissed(true);
                             }}
                         >
@@ -257,68 +294,28 @@ const DashboardContent = memo(function DashboardContent() {
     );
 });
 
-// Memoize the setup steps component
-const SetupSteps = memo(({ steps }: { steps: [string, boolean][] }) => (
-    <List spacing="xs" center>
-        {steps.map(([step, completed], index) => (
-            <List.Item
-                key={index}
-                icon={
-                    <ThemeIcon color={completed ? "green" : "blue"} size={20} radius="xl">
-                        {completed ? <IconCircleCheck /> : <IconCircleDashed />}
-                    </ThemeIcon>
-                }
-                c={completed ? "gray" : "dark"}
-            >
-                <Text size="sm" style={{ textDecoration: completed ? "line-through" : "none" }}>
-                    {step}
-                </Text>
-            </List.Item>
-        ))}
-    </List>
-));
-
 // Memoize the notification card
-const NotificationCard = memo(({ notification }: { notification: NotificationType }) => (
-    <Link href="/account/notifications" style={{ textDecoration: "none" }}>
-        <Card withBorder radius="md" p="md">
-            <Group>
-                <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                    {notificationIcons[notification.type]?.[0] &&
-                        React.createElement(notificationIcons[notification.type][0])}
-                </Avatar>
-                <Text size="sm">{notification.content}</Text>
-            </Group>
-            <Text size="xs" c="dimmed" ta="right" mt={5}>
-                {new Date(notification.created).toLocaleString()}
-            </Text>
-        </Card>
-    </Link>
-));
+const NotificationCard = memo(function NotificationCard({ notification }: { notification: Notification }) {
+    const notificationType = notification.type || "info";
+    const iconConfig = notificationIcons[notificationType];
+    const [IconComponent, color] = iconConfig || [notificationIcons.info[0], notificationIcons.info[1]];
 
-// Add this component after your DashboardContent
-const NotificationSection = memo(
-    ({ notifications, isLoading }: { notifications: NotificationType[]; isLoading: boolean }) => {
-        if (isLoading) {
-            return <LoadingComponent message="Loading notifications..." withBorder={false} />;
-        }
-
-        return (
-            <Card p="md" radius="md" withBorder>
-                <Title order={4}>Important Notifications</Title>
-                {notifications.length > 0 ? (
-                    notifications.map((notification) => (
-                        <NotificationCard key={notification.id} notification={notification} />
-                    ))
-                ) : (
-                    <Text size="sm" c="dimmed" mt={10}>
-                        No important notifications at the moment.
-                    </Text>
-                )}
+    return (
+        <Link href="/account/notifications" style={{ textDecoration: "none" }}>
+            <Card withBorder radius="md" p="md">
+                <Group>
+                    <Avatar color={color} radius="xl">
+                        <IconComponent />
+                    </Avatar>
+                    <Text size="sm">{notification.content}</Text>
+                </Group>
+                <Text size="xs" c="dimmed" ta="right" mt={5}>
+                    {notification.created ? new Date(notification.created).toLocaleString() : "Unknown time"}
+                </Text>
             </Card>
-        );
-    }
-);
+        </Link>
+    );
+});
 
 export default function DashboardPage() {
     return (

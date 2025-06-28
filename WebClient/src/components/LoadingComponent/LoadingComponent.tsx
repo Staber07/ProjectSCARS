@@ -35,7 +35,7 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = nu
                             transition={{ ease: "easeOut", duration: 0.5 }}
                         >
                             <Image
-                                src="/assets/BENTOLogo.svg"
+                                src="/assets/logos/BENTO.svg"
                                 alt="BENTO Logo"
                                 width={100}
                                 height={100}

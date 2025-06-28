@@ -39,7 +39,7 @@ def get_token(
     self_info_endpoint = urljoin(endpoint, "v1/users/me")
 
     auth_response = httpx.post(
-        urljoin(endpoint, "v1/auth/token"),
+        urljoin(endpoint, "v1/auth/login"),
         data={"username": username, "password": password},
     )
 
@@ -104,14 +104,14 @@ async def add_sample_users(endpoint: str, token: str) -> bool:
     add_user_sample_endpoint = urljoin(endpoint, "v1/auth/create")
     update_user_sample_endpoint = urljoin(endpoint, "v1/users/")
     users_to_create: list[UserData] = []
-    school_quantity_resp = httpx.get("v1/schools/quantity", headers=headers)
+    school_quantity_resp = httpx.get(urljoin(endpoint, "v1/schools/quantity"), headers=headers)
     if school_quantity_resp.status_code != 200:
         print(
             f"Error fetching school quantity: {school_quantity_resp.status_code} - {school_quantity_resp.text}"
         )
         return False
 
-    school_quantity = school_quantity_resp.json().get("quantity", 0)
+    school_quantity = int(school_quantity_resp.json())
 
     for _ in range(100):
         # Generate unique username

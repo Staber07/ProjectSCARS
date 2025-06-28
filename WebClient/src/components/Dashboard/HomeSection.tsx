@@ -1,7 +1,7 @@
-import { memo } from "react";
-import { Card, Container, Title, Text, SimpleGrid, Button, Group } from "@mantine/core";
-import { IconServer, IconShield, IconChartBar } from "@tabler/icons-react";
+import { Button, Card, Container, Group, SimpleGrid, Text, Title } from "@mantine/core";
+import { IconChartBar, IconServer, IconShield } from "@tabler/icons-react";
 import { motion } from "framer-motion";
+import { memo } from "react";
 
 const FeatureCard = memo(
     ({ icon: Icon, title, description }: { icon: typeof IconServer; title: string; description: string }) => (
@@ -48,12 +48,12 @@ export const HomeSection = memo(() => {
                     <div style={{ flex: 1 }}>
                         <Title mb="md">School Capital Asset Recording System</Title>
                         <Text size="lg" c="dimmed" mb="xl">
-                            Transform your school's asset management with our state-of-the-art digital solution. Track,
-                            manage, and generate reports for all your institution's resources in one place.
+                            Transform your school&apos;s asset management with our state-of-the-art digital solution.
+                            Track, manage, and generate reports for all your institution&apos;s resources in one place.
                         </Text>
                         <Button
                             component="a"
-                            href="/documentation"
+                            href="/administration/reports"
                             size="md"
                             variant="gradient"
                             gradient={{ from: "blue", to: "cyan" }}

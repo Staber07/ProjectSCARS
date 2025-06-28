@@ -2,11 +2,10 @@
 import { ReactScan } from "@/components/dev/ReactScan";
 
 import { Program } from "@/lib/info";
-import { defaultColorscheme, theme } from "@/lib/theme";
+import { theme } from "@/lib/theme";
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
-import Head from "next/head";
 
 import "@gfazioli/mantine-onboarding-tour/styles.css";
 import "@mantine/core/styles.css";
@@ -29,15 +28,17 @@ interface RootLayoutProps {
  * @return {JSX.Element} The rendered RootLayout component.
  */
 export default function RootLayout({ children }: RootLayoutProps) {
-    console.debug("Rendering RootLayout");
     return (
+        // Use mantineHtmlProps to handle the data-mantine-color-scheme attribute
+        // and suppress hydration warnings for the <html> element.
         <html lang="en" {...mantineHtmlProps}>
-            <ReactScan />
-            <Head>
+            <head>
+                <script suppressHydrationWarning />
                 <ColorSchemeScript />
-            </Head>
+            </head>
             <body>
-                <MantineProvider theme={theme} defaultColorScheme={defaultColorscheme}>
+                <ReactScan />
+                <MantineProvider theme={theme} defaultColorScheme="auto">
                     {children}
                     <Notifications limit={5} autoClose={5000} />
                 </MantineProvider>

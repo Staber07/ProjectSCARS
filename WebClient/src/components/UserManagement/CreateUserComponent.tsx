@@ -1,21 +1,21 @@
 "use client";
 import { CreateUser } from "@/lib/api/auth";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
-import { Button, Modal, Select, Stack, TextInput } from "@mantine/core";
+import { UpdateUserInfo } from "@/lib/api/user";
+import { Role, School } from "@/lib/api/csclient";
+import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
+import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconUserCheck, IconUserExclamation } from "@tabler/icons-react";
-import { useMemo, useCallback } from "react";
-import { useForm } from "@mantine/form";
+import { useCallback, useMemo } from "react";
 
 interface CreateUserComponentProps {
     modalOpen: boolean;
     setModalOpen: (open: boolean) => void;
     fetchUsers: (page: number) => void;
     currentPage: number;
-    availableSchools: SchoolType[];
-    availableRoles: RoleType[];
-    UpdateUserInfo: (user: UserUpdateType) => Promise<UserPublicType>;
+    availableSchools: School[];
+    availableRoles: Role[];
 }
 
 export function CreateUserComponent({
@@ -25,7 +25,6 @@ export function CreateUserComponent({
     currentPage,
     availableSchools,
     availableRoles,
-    UpdateUserInfo,
 }: CreateUserComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
@@ -35,6 +34,7 @@ export function CreateUserComponent({
             firstName: "",
             middleName: "",
             lastName: "",
+            position: "",
             email: "",
             password: "",
             username: "",
@@ -52,7 +52,7 @@ export function CreateUserComponent({
     const schoolOptions = useMemo(
         () =>
             availableSchools.map((school) => ({
-                value: school.id.toString(),
+                value: school.id?.toString() || "",
                 label: `${school.name}${school.address ? ` (${school.address})` : ""}`,
             })),
         [availableSchools]
@@ -61,7 +61,7 @@ export function CreateUserComponent({
     const roleOptions = useMemo(
         () =>
             availableRoles.map((role) => ({
-                value: role.id.toString(),
+                value: role.id?.toString() || "",
                 label: role.description,
             })),
         [availableRoles]
@@ -82,6 +82,7 @@ export function CreateUserComponent({
                     nameFirst: values.firstName,
                     nameMiddle: values.middleName,
                     nameLast: values.lastName,
+                    position: values.position || null,
                     schoolId: values.assignedSchool ? Number(values.assignedSchool) : null,
                     roleId: Number(values.role),
                 });
@@ -109,7 +110,7 @@ export function CreateUserComponent({
                 buttonStateHandler.close();
             }
         },
-        [UpdateUserInfo, buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
+        [buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
     );
 
     return (
@@ -121,7 +122,8 @@ export function CreateUserComponent({
                     <TextInput label="Last Name" {...form.getInputProps("lastName")} />
                     <TextInput withAsterisk label="Username" {...form.getInputProps("username")} />
                     <TextInput label="Email" {...form.getInputProps("email")} />
-                    <TextInput withAsterisk label="Password" type="password" {...form.getInputProps("password")} />
+                    <PasswordInput withAsterisk label="Password" {...form.getInputProps("password")} />
+                    <TextInput label="Position" {...form.getInputProps("position")} />
                     <Select
                         label="Assigned School"
                         placeholder="School"

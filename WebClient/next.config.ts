@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 import { codecovNextJSWebpackPlugin } from "@codecov/nextjs-webpack-plugin";
 
 const nextConfig: NextConfig = {
-    // devIndicators: false, // disable the default Next.js dev indicators
+    devIndicators: process.env.NODE_ENV !== "production" ? {} : false,
+    output: "standalone", // output a standalone build for container deployments
     experimental: {
         optimizePackageImports: ["@mantine/core", "@mantine/hooks"],
     },
@@ -13,7 +14,7 @@ const nextConfig: NextConfig = {
                 bundleName: "webclient-bundle",
                 uploadToken: process.env.CODECOV_TOKEN,
                 webpack: options.webpack,
-            }),
+            })
         );
 
         return config;

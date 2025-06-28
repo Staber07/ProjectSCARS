@@ -1,14 +1,13 @@
 "use client";
 
-import '@mantine/dates/styles.css';
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-
-import { useRouter } from "next/navigation";
-import { Suspense, useState } from "react";
-import dayjs from "dayjs";
-
+import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { GetDailySalesAndPurchasesReportEntries, SetDailySalesAndPurchasesReportEntries } from "@/lib/api/report";
+import { useUser } from "@/lib/providers/user";
+import { DailyFinancialReportEntry } from "@/lib/api/csclient";
 import {
     ActionIcon,
+    Alert,
     Badge,
     Button,
     Card,
@@ -17,15 +16,19 @@ import {
     Modal,
     NumberInput,
     Paper,
-    Stack,
     SimpleGrid,
+    Stack,
     Table,
     Text,
     Title,
 } from "@mantine/core";
-import { DatePickerInput } from "@mantine/dates";
-import { IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
-import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
+import "@mantine/dates/styles.css";
+import { notifications } from "@mantine/notifications";
+import { IconAlertCircle, IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
+import dayjs from "dayjs";
+import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 interface DailyEntry {
     date: string;
@@ -38,6 +41,7 @@ interface DailyEntry {
 function SalesandPurchasesContent() {
     console.debug("Rendering SalesandPurchasesPage");
     const router = useRouter();
+    const userCtx = useUser();
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
@@ -47,24 +51,47 @@ function SalesandPurchasesContent() {
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntry | null>(null);
+
+    useEffect(() => {
+        // Fetch initial entries for the current month when component mounts
+        const fetchEntries = async () => {
+            if (userCtx.userInfo?.schoolId) {
+                const reportEntries = await GetDailySalesAndPurchasesReportEntries(
+                    userCtx.userInfo.schoolId,
+                    currentMonth.getFullYear(),
+                    currentMonth.getMonth() + 1
+                );
+                setDailyEntries(
+                    (reportEntries || []).map((entry: DailyFinancialReportEntry) => ({
+                        date: entry.parent,
+                        day: entry.day,
+                        sales: entry.sales,
+                        purchases: entry.purchases,
+                        netIncome: entry.sales - entry.purchases,
+                    }))
+                );
+            }
+        };
+        fetchEntries();
+    }, [currentMonth, userCtx.userInfo?.schoolId]);
 
     const handleClose = () => {
-        router.push('/reports');
+        router.push("/reports");
     };
 
     const handleDateSelect = (date: Date | null) => {
         if (!date) return;
-        
+
         setSelectedDate(date);
 
-        if (!dayjs(date).isSame(currentMonth, 'month')) {
+        if (!dayjs(date).isSame(currentMonth, "month")) {
             setCurrentMonth(date);
         }
 
         const dateStr = dayjs(date).format("YYYY-MM-DD");
         const existingEntry = dailyEntries.find((e) => e.date === dateStr);
-        
+
         if (existingEntry) {
             // Edit existing entry
             setEditingEntry(existingEntry);
@@ -83,42 +110,50 @@ function SalesandPurchasesContent() {
             setModalSales(0);
             setModalPurchases(0);
         }
-        
+
         setModalOpened(true);
     };
 
-    const handleSaveEntry = () => {
+    const handleSaveEntry = async () => {
         if (!editingEntry) return;
 
         const netIncome = modalSales - modalPurchases;
         const updatedEntry = {
-              ...editingEntry,
-              sales: modalSales,
-              purchases: modalPurchases,
-              netIncome,
-      };
+            ...editingEntry,
+            sales: modalSales,
+            purchases: modalPurchases,
+            netIncome,
+        };
 
-      const existingIndex = dailyEntries.findIndex(
-          (entry) => entry.date === editingEntry.date
-      );
+        const existingIndex = dailyEntries.findIndex((entry) => entry.date === editingEntry.date);
 
-      if (existingIndex >= 0) {
-          // Update existing entry
-          setDailyEntries((prev) =>
-              prev.map((entry, index) =>
-                  index === existingIndex ? updatedEntry : entry
-              )
-          );
-      } else {
-          // Add new entry and sort by date
-          setDailyEntries((prev) => {
-              const newEntries = [...prev, updatedEntry];
-              return newEntries.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
-          });
-      }
+        // Construct the API entry with the required 'parent' property
+        // const apiEntry = {
+        //     parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), editingEntry.day),
+        //     day: editingEntry.day,
+        //     sales: modalSales,
+        //     purchases: modalPurchases,
+        // };
 
-      setModalOpened(false);
-      setEditingEntry(null);
+        // await SetDailySalesAndPurchasesReportEntries(
+        //     userCtx.userInfo?.schoolId || 0,
+        //     currentMonth.getFullYear(),
+        //     currentMonth.getMonth() + 1,
+        //     [apiEntry]
+        // );
+        if (existingIndex >= 0) {
+            // Update existing entry
+            setDailyEntries((prev) => prev.map((entry, index) => (index === existingIndex ? updatedEntry : entry)));
+        } else {
+            // Add new entry and sort by date
+            setDailyEntries((prev) => {
+                const newEntries = [...prev, updatedEntry];
+                return newEntries.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+            });
+        }
+
+        setModalOpened(false);
+        setEditingEntry(null);
     };
 
     const canEditDate = (date: string) => {
@@ -128,14 +163,19 @@ function SalesandPurchasesContent() {
     };
 
     const handleDeleteEntry = (entry: DailyEntry) => {
-        setEntryToDelete(entry);
+        setEntryToDelete({
+            parent: entry.date,
+            day: entry.day,
+            sales: entry.sales,
+            purchases: entry.purchases,
+        });
         setDeleteModalOpened(true);
     };
 
     const confirmDeleteEntry = () => {
         if (!entryToDelete) return;
 
-        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.date));
+        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.parent));
         setDeleteModalOpened(false);
         setEntryToDelete(null);
     };
@@ -154,22 +194,56 @@ function SalesandPurchasesContent() {
 
     const totals = calculateTotals();
 
+    const handleSubmit = async () => {
+        console.log("Submit clicked");
+        if (!userCtx.userInfo) {
+            notifications.show({
+                title: "Error",
+                message: "You must be logged in to submit entries.",
+                color: "red",
+            });
+            return;
+        }
+
+        if (!userCtx.userInfo.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "You are not yet assigned to a school.",
+                color: "red",
+            });
+            return;
+        }
+
+        await SetDailySalesAndPurchasesReportEntries(
+            userCtx.userInfo.schoolId,
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() + 1,
+            dailyEntries.map((entry) => ({
+                parent: entry.date,
+                day: entry.day,
+                sales: entry.sales,
+                purchases: entry.purchases,
+            }))
+        );
+        notifications.show({
+            title: "Submission",
+            message: "Your entries have been submitted successfully.",
+            color: "green",
+        });
+    };
+
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
                 {/* Header */}
-                <Flex
-                    justify="space-between"
-                    align="center"
-                    className="flex-col sm:flex-row gap-4"
-                >
+                <Flex justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                     <Group gap="md">
                         <div className="p-2 bg-blue-100 rounded-lg">
                             <IconHistory size={28} />
                         </div>
                         <div>
                             <Title order={2} className="text-gray-800">
-                                Financial Report for the Month of {dayjs(currentMonth).format('MMMM YYYY')}
+                                Financial Report for the Month of {dayjs(currentMonth).format("MMMM YYYY")}
                             </Title>
                             <Text size="sm" c="dimmed">
                                 Record daily sales and purchases
@@ -187,35 +261,84 @@ function SalesandPurchasesContent() {
                     </ActionIcon>
                 </Flex>
 
+                {!userCtx.userInfo?.schoolId && (
+                    <Alert
+                        variant="light"
+                        color="yellow"
+                        withCloseButton
+                        title="Warning"
+                        icon={<IconAlertCircle size={16} />}
+                    >
+                        You are not yet assigned to a school! Reports you create will fail to submit.
+                    </Alert>
+                )}
+
                 {/* Date Selection */}
                 <Card withBorder>
-                    <Group
-                        justify="space-between"
-                        align="center"
-                        className="flex-col sm:flex-row gap-4"
-                    >
+                    <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
                         <Text fw={500}>Select Date to Record</Text>
-                        <DatePickerInput
-                            placeholder="Select date"
-                            value={selectedDate}
-                            onChange={(value) => {
-                                // value is a string or null
-                                if (value) {
-                                    const date = new Date(value);
-                                    if (!isNaN(date.getTime())) {
-                                        handleDateSelect(date);
+                        <Group gap="md">
+                            <MonthPickerInput
+                                placeholder="Select month"
+                                value={currentMonth}
+                                onChange={async (value) => {
+                                    if (value) {
+                                        const newMonth = new Date(value);
+                                        setCurrentMonth(newMonth);
+                                        setSelectedDate(null); // Reset selected day when month changes
+                                        if (userCtx.userInfo?.schoolId) {
+                                            const report = await GetDailySalesAndPurchasesReportEntries(
+                                                userCtx.userInfo?.schoolId,
+                                                newMonth.getFullYear(),
+                                                newMonth.getMonth() + 1
+                                            );
+                                            console.debug("Fetched report entries:", report);
+                                            setDailyEntries(
+                                                (report || []).map((entry: DailyFinancialReportEntry) => ({
+                                                    date: entry.parent,
+                                                    day: entry.day,
+                                                    sales: entry.sales,
+                                                    purchases: entry.purchases,
+                                                    netIncome: entry.sales - entry.purchases,
+                                                }))
+                                            );
+                                        }
                                     }
-                                } else {
-                                    handleDateSelect(null);
-                                }
-                              }}
-                            leftSection={<IconCalendar size={16} />}
-                            maxDate={new Date()}
-                            className="w-64"
-                        />
+                                }}
+                                leftSection={<IconCalendar size={16} />}
+                                className="w-64"
+                            />
+                            <DatePickerInput
+                                placeholder="Select date"
+                                value={selectedDate}
+                                onChange={(value) => {
+                                    if (value) {
+                                        const date = new Date(value);
+                                        console.debug("Selected date:", date);
+                                        if (!isNaN(date.getTime())) {
+                                            handleDateSelect(date);
+                                        }
+                                    } else {
+                                        handleDateSelect(null);
+                                    }
+                                }}
+                                leftSection={<IconCalendar size={16} />}
+                                className="w-64"
+                                minDate={currentMonth ? dayjs(currentMonth).startOf("month").toDate() : undefined}
+                                maxDate={currentMonth ? dayjs(currentMonth).endOf("month").toDate() : new Date()}
+                            />
+                            <ActionIcon
+                                variant="outline"
+                                color="blue"
+                                size="lg"
+                                onClick={() => handleDateSelect(new Date())}
+                                title="Select today"
+                            >
+                                <IconCalendar size={16} />
+                            </ActionIcon>
+                        </Group>
                     </Group>
                 </Card>
-
 
                 {/* Entries Table */}
                 <Card withBorder>
@@ -244,9 +367,7 @@ function SalesandPurchasesContent() {
                                     <Table.Tr key={entry.date}>
                                         <Table.Td className="text-center">
                                             <Group justify="left" gap="xs">
-                                                <Text size="sm">
-                                                    {dayjs(entry.date).format("DD-MMM-YY")}
-                                                </Text>
+                                                <Text size="sm">{dayjs(entry.date).format("DD-MMM-YY")}</Text>
                                                 {dayjs(entry.date).isSame(dayjs(), "day") && (
                                                     <Badge size="xs" color="blue">
                                                         Today
@@ -284,7 +405,11 @@ function SalesandPurchasesContent() {
                                                         }
                                                     }}
                                                 >
-                                                    {canEditDate(entry.date) ? <IconEdit size={16} /> : <IconLock size={16} />}
+                                                    {canEditDate(entry.date) ? (
+                                                        <IconEdit size={16} />
+                                                    ) : (
+                                                        <IconLock size={16} />
+                                                    )}
                                                 </ActionIcon>
                                                 <ActionIcon
                                                     variant="light"
@@ -310,12 +435,14 @@ function SalesandPurchasesContent() {
                                         </Table.Td>
                                         <Table.Td className="text-center">
                                             <Text fw={700}>
-                                                ₱{totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                ₱
+                                                {totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td className="text-center">
                                             <Text fw={700}>
-                                                ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                                ₱
+                                                {totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                             </Text>
                                         </Table.Td>
                                         <Table.Td></Table.Td>
@@ -341,7 +468,7 @@ function SalesandPurchasesContent() {
                             </div>
                         </Group>
                     </Card>
-                    
+
                     {/*Total Purchases */}
                     <Card withBorder>
                         <Group justify="space-between" align="flex-start">
@@ -363,12 +490,8 @@ function SalesandPurchasesContent() {
                                 <Text size="sm" c="dimmed" fw={500}>
                                     Gross Income
                                 </Text>
-                                <Text
-                                    size="xl"
-                                    fw={700}
-                                    c={totals.netIncome >= 0 ? 'green' : 'red'}
-                                >
-                                        ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                <Text size="xl" fw={700} c={totals.netIncome >= 0 ? "green" : "red"}>
+                                    ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
                                 </Text>
                             </div>
                         </Group>
@@ -376,19 +499,11 @@ function SalesandPurchasesContent() {
                 </SimpleGrid>
 
                 {/* Action Buttons */}
-                <Group
-                    justify="flex-end"
-                    gap="md"
-                >
-                    <Button
-                        variant="outline"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100">
-                            Cancel
+                <Group justify="flex-end" gap="md">
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                        Cancel
                     </Button>
-                    <SplitButton>
-                        Submit
-                    </SplitButton>
+                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
                 </Group>
 
                 {/* Edit Modal */}
@@ -396,9 +511,7 @@ function SalesandPurchasesContent() {
                     opened={modalOpened}
                     onClose={() => setModalOpened(false)}
                     title={
-                        editingEntry
-                            ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}`
-                            : "Edit Entry"
+                        editingEntry ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}` : "Edit Entry"
                     }
                     centered
                 >
@@ -427,7 +540,8 @@ function SalesandPurchasesContent() {
                         />
                         <Paper p="sm" className="bg-gray-50">
                             <Text size="sm" c="dimmed">
-                                Net Income: ₱{(modalSales - modalPurchases).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                Net Income: ₱
+                                {(modalSales - modalPurchases).toLocaleString("en-US", { minimumFractionDigits: 2 })}
                             </Text>
                         </Paper>
                         <Group justify="end">
@@ -449,7 +563,7 @@ function SalesandPurchasesContent() {
                 >
                     <Text size="sm" c="dimmed">
                         Are you sure you want to delete the entry for{" "}
-                        {entryToDelete ? dayjs(entryToDelete.date).format("MMMM DD, YYYY") : "this date"}?
+                        {entryToDelete ? dayjs(entryToDelete.parent).format("MMMM DD, YYYY") : "this date"}?
                     </Text>
                     <Group justify="end" mt="md">
                         <Button variant="subtle" onClick={() => setDeleteModalOpened(false)}>
@@ -461,7 +575,8 @@ function SalesandPurchasesContent() {
                     </Group>
                 </Modal>
             </Stack>
-        </div>)
+        </div>
+    );
 }
 
 export default function SalesandPurchasesPage(): React.ReactElement {

@@ -1,7 +1,9 @@
 import datetime
+import uuid
 from typing import Annotated, Any
 
-from fastapi import Depends, HTTPException, status
+import httpx
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwe, jwt
 from jose.exceptions import JWEError
@@ -10,16 +12,17 @@ from sqlmodel import Session, select
 
 from centralserver import info
 from centralserver.internals import permissions
+from centralserver.internals.adapters.oauth import GoogleOAuthAdapter
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken
+from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import User
 
 logger = LoggerFactory().get_logger(__name__)
 crypt_ctx = CryptContext(schemes=["argon2"], deprecated="auto", argon2__type="ID")
-oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/token")
+oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/v1/auth/login")
 
 
 async def get_user(user_id: str, session: Session, by_id: bool = True) -> User | None:
@@ -96,7 +99,11 @@ async def get_user_role(
 
 
 async def authenticate_user(
-    username: str, plaintext_password: str, login_ip: str | None, session: Session
+    username: str,
+    plaintext_password: str,
+    login_ip: str | None,
+    session: Session,
+    background_tasks: BackgroundTasks,
 ) -> User | tuple[int, str]:
     """Find the user in the database and verify their password.
     This function will not authenticate deactivated and locked out users.
@@ -144,7 +151,7 @@ async def authenticate_user(
             session.refresh(found_user)
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         # Check if the lockout period has expired.
@@ -169,7 +176,7 @@ async def authenticate_user(
             )
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         else:
@@ -201,7 +208,8 @@ async def authenticate_user(
                 found_user.failedLoginAttempts
                 == app_config.security.failed_login_notify_attempts
             ):
-                send_mail(
+                background_tasks.add_task(
+                    send_mail,
                     to_address=found_user.email,
                     subject=f"{info.Program.name} | Someone is trying to access your account",
                     text=get_template("unusual_login.txt").format(
@@ -373,6 +381,7 @@ async def verify_user_permission(
         Returns True if the user has the required permissions, False otherwise.
     """
 
+    logger.debug("Required permission: %s", required_role)
     if token.is_refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -393,3 +402,129 @@ async def verify_user_permission(
 
     logger.error("The role %s is not defined in ROLE_PERMISSIONS", user_role.id)
     return False
+
+
+async def oauth_google_link(
+    code: str,
+    user_id: str,
+    google_oauth_adapter: GoogleOAuthAdapter,
+    session: Session,
+) -> bool:
+    """Link a Google account to a user.
+
+    Args:
+        code: The authorization code received from Google.
+        user_id: The ID of the user to link the Google account to.
+        google_oauth_adapter: The Google OAuth adapter instance.
+        session: The database session to use.
+
+    Returns:
+        True if the Google account was linked successfully, False otherwise.
+    """
+
+    token_url = "https://accounts.google.com/o/oauth2/token"
+    data: dict[str, str] = {
+        "code": code,
+        "client_id": google_oauth_adapter.config.client_id,
+        "client_secret": google_oauth_adapter.config.client_secret,
+        "redirect_uri": google_oauth_adapter.config.redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    response = httpx.post(token_url, data=data)
+    if response.status_code != 200:
+        logger.error(
+            "Failed to exchange authorization code for access token: %s", response.text
+        )
+        return False
+
+    access_token = response.json().get("access_token")
+    user_info = httpx.get(
+        "https://www.googleapis.com/oauth2/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    if user_info.status_code != 200:
+        logger.error(
+            "Failed to retrieve user information from Google: %s", user_info.text
+        )
+        return False
+
+    user_data = user_info.json()
+    user = session.exec(select(User).where(User.id == user_id)).one_or_none()
+    if user is None:
+        logger.error("User with ID %s not found", user_id)
+        return False
+
+    user.oauthLinkedGoogleId = user_data.get("id", None)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    logger.info("User %s linked their Google account successfully", user.username)
+    return True
+
+
+async def oauth_google_authenticate(
+    code: str,
+    google_oauth_adapter: GoogleOAuthAdapter,
+    session: Session,
+    request: Request,
+) -> tuple[int, JWTToken | str]:
+    token_url = "https://accounts.google.com/o/oauth2/token"
+    data: dict[str, str] = {
+        "code": code,
+        "client_id": google_oauth_adapter.config.client_id,
+        "client_secret": google_oauth_adapter.config.client_secret,
+        "redirect_uri": google_oauth_adapter.config.redirect_uri,
+        "grant_type": "authorization_code",
+    }
+    response = httpx.post(token_url, data=data)
+    if response.status_code != 200:
+        logger.error(
+            "Failed to exchange authorization code for access token: %s", response.text
+        )
+        return (
+            status.HTTP_400_BAD_REQUEST,
+            "Failed to exchange authorization code for access token.",
+        )
+
+    access_token = response.json().get("access_token")
+    user_info = httpx.get(
+        "https://www.googleapis.com/oauth2/v1/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    if user_info.status_code != 200:
+        logger.error(
+            "Failed to retrieve user information from Google: %s", user_info.text
+        )
+        return (
+            status.HTTP_400_BAD_REQUEST,
+            "Failed to retrieve user information from Google.",
+        )
+
+    user_data = user_info.json()
+    user = session.exec(
+        select(User).where(User.oauthLinkedGoogleId == user_data.get("id", None))
+    ).one_or_none()
+    if user is None:
+        return (
+            status.HTTP_404_NOT_FOUND,
+            "User not found. Please login first and link your Google account.",
+        )
+
+    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
+    user.lastLoggedInIp = request.client.host if request.client else None
+
+    return (
+        status.HTTP_200_OK,
+        JWTToken(
+            uid=uuid.uuid4(),
+            access_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.access_token_expire_minutes
+                ),
+                False,
+            ),
+            token_type="bearer",
+        ),
+    )

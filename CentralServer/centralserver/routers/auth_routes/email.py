@@ -2,17 +2,13 @@ import datetime
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from pydantic import EmailStr
 from sqlmodel import Session, select
 
 from centralserver import info
 from centralserver.internals.auth_handler import (
-    authenticate_user,
-    create_access_token,
     verify_access_token,
-    verify_user_permission,
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
@@ -20,144 +16,29 @@ from centralserver.internals.exceptions import EmailTemplateNotFoundError
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.notification import NotificationType
-from centralserver.internals.models.role import Role
-from centralserver.internals.models.token import DecodedJWTToken, JWTToken
+from centralserver.internals.models.token import (
+    DecodedJWTToken,
+)
 from centralserver.internals.models.user import (
     User,
-    UserCreate,
     UserPasswordResetRequest,
-    UserPublic,
 )
 from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.user_handler import (
-    create_user,
     crypt_ctx,
     validate_password,
 )
 
 logger = LoggerFactory().get_logger(__name__)
-
-router = APIRouter(
-    prefix="/v1/auth",
-    tags=["authentication"],
-    # dependencies=[Depends(get_db_session)],
-)
-
+router = APIRouter(prefix="/email")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 
-@router.post("/create", response_model=UserPublic)
-async def create_new_user(
-    new_user: UserCreate,
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-) -> Response:
-    """Create a new user in the database.
-
-    Args:
-        new_user: The new user's information.
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-
-    Returns:
-        A newly created user object.
-    """
-
-    if not await verify_user_permission("users:create", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to create a user.",
-        )
-
-    user = session.get(User, token.id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="User not found."
-        )
-
-    user_role = session.get(Role, new_user.roleId)
-    if not user_role:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid role ID provided.",
-        )
-
-    if new_user.roleId < user.roleId:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to create a user with this role.",
-        )
-
-    logger.info("Creating new user: %s", new_user.username)
-    logger.debug("Created by user: %s", token.id)
-    user = UserPublic.model_validate(await create_user(new_user, session))
-    logger.debug("Returning new user information: %s", user)
-    return Response(
-        content=user.model_dump_json(),
-        status_code=status.HTTP_201_CREATED,
-        media_type="application/json",
-    )
-
-
-@router.post("/token")
-async def request_access_token(
-    data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    session: Annotated[Session, Depends(get_db_session)],
-    request: Request,
-) -> JWTToken:
-    """Get an access token for a user.
-
-    Args:
-        data: The data from the OAuth2 password request form.
-        session: The database session.
-        request: The HTTP request object.
-
-    Returns:
-        A JWT token.
-
-    Raises:
-        HTTPException: If the user cannot be authenticated.
-    """
-
-    logger.info("Requesting access token for user: %s", data.username)
-    user: User | tuple[int, str] = await authenticate_user(
-        data.username,
-        data.password,
-        request.client.host if request.client else None,
-        session,
-    )
-
-    if isinstance(user, tuple):
-        logger.warning(
-            "Failed to authenticate user %s: %s (%s)", data.username, user[1], user[0]
-        )
-        raise HTTPException(
-            status_code=user[0],
-            detail=user[1],
-        )
-
-    user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
-    user.lastLoggedInIp = request.client.host if request.client else None
-    session.commit()
-    session.refresh(user)
-
-    return JWTToken(
-        uid=uuid.uuid4(),
-        access_token=await create_access_token(
-            user.id,
-            datetime.timedelta(
-                minutes=app_config.authentication.access_token_expire_minutes
-            ),
-            False,
-        ),
-        token_type="bearer",
-    )
-
-
-@router.post("/email/request")
+@router.post("/request")
 async def request_verification_email(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[str, str]:
     """Send a verification email to a user.
 
@@ -217,7 +98,8 @@ async def request_verification_email(
     )
     logger.info("Email verified successfully for user: %s", user.username)
     try:
-        send_mail(
+        background_tasks.add_task(
+            send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Email Verification Request",
             text=get_template("email_verification.txt").format(
@@ -245,7 +127,7 @@ async def request_verification_email(
     return {"message": "Email verification sent successfully."}
 
 
-@router.post("/email/verify")
+@router.post("/verify")
 async def verify_email(
     token: str,
     session: Annotated[Session, Depends(get_db_session)],
@@ -307,7 +189,10 @@ async def verify_email(
 
 @router.post("/recovery/request")
 async def request_password_recovery(
-    username: str, email: EmailStr, session: Annotated[Session, Depends(get_db_session)]
+    username: str,
+    email: EmailStr,
+    session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> dict[Literal["message"], str]:
     """Request a password recovery for a user.
 
@@ -374,7 +259,8 @@ async def request_password_recovery(
     logger.debug("Generated recovery link for user %s: %s", username, recovery_link)
 
     try:
-        send_mail(
+        background_tasks.add_task(
+            send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Password Recovery Request",
             text=get_template("password_recovery.txt").format(
@@ -465,28 +351,3 @@ async def reset_password(
     session.refresh(user)
     logger.info("Password reset successful for user: %s", user.username)
     return {"message": "Password reset successful."}
-
-
-@router.get("/roles", response_model=list[Role])
-async def get_all_roles(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-) -> list[Role]:
-    """Get all roles in the database.
-
-    Args:
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-
-    Returns:
-        A list of all roles in the database.
-    """
-
-    if not await verify_user_permission("roles:global:read", session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view all roles.",
-        )
-
-    # NOTE: Should we include the permissions of each role in the response?
-    return [role for role in session.exec(select(Role)).all()]

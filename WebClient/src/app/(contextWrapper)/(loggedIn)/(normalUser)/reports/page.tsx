@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-
+import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
+import { GetLocalMonthlyReports } from "@/lib/api/report";
+import { GetSchoolInfo } from "@/lib/api/school";
+import { useUser } from "@/lib/providers/user";
+import { MonthlyReport, ReportStatus, School } from "@/lib/api/csclient";
 import {
     ActionIcon,
+    Alert,
     Badge,
     Card,
     Checkbox,
@@ -15,124 +18,107 @@ import {
     Pagination,
     Paper,
     Select,
+    Stack,
     Table,
     Text,
     TextInput,
-    Tabs,
-    Stack
 } from "@mantine/core";
-import { IconSearch, IconFilter, IconDownload, IconEye, IconPencil, IconTrash, IconDots, IconCash, IconReceipt, IconUsers } from "@tabler/icons-react";
-import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
-
-// Sample Report Submission Data
-const reportSubmissions = [
-    {
-        id: 1,
-        name: "Daily Sales Report",
-        type: "Daily Sales",
-        category: "Sales",
-        lastModified: "2025-06-05T16:30:00Z",
-        status: "Draft",
-        period: "2025-06-05"
-    },
-    {
-        id: 2,
-        name: "May Monthly Sales Summary",
-        type: "Monthly Sales",
-        category: "Sales",
-        lastModified: "2025-05-31T14:20:00Z",
-        status: "Submitted",
-        period: "2025-05"
-    },
-    {
-        id: 3,
-        name: "Operating Expenses Liquidation - May",
-        type: "Operating Expenses",
-        category: "Expenses",
-        lastModified: "2025-05-30T11:15:00Z",
-        status: "Under Review",
-        period: "2025-05"
-    },
-    {
-        id: 4,
-        name: "HE Fund Report - May",
-        type: "HE Fund",
-        category: "Expenses",
-        lastModified: "2025-05-29T10:45:00Z",
-        status: "Rejected",
-        period: "2025-05"
-    },
-    {
-        id: 5,
-        name: "Supplementary Feeding Fund - April",
-        type: "Supplementary Feeding",
-        category: "Expenses",
-        lastModified: "2025-04-30T13:00:00Z",
-        status: "Approved",
-        period: "2025-04"
-    },
-    {
-        id: 6,
-        name: "Staff Payroll - May 2025",
-        type: "Payroll",
-        category: "Payroll",
-        lastModified: "2025-05-25T09:30:00Z",
-        status: "Approved",
-        period: "2025-05"
-    }
-];
+import { notifications } from "@mantine/notifications";
+import {
+    IconAlertCircle,
+    IconCash,
+    IconDots,
+    IconDownload,
+    IconEye,
+    IconFilter,
+    IconPencil,
+    IconReceipt,
+    IconSearch,
+    IconTrash,
+    IconUsers,
+} from "@tabler/icons-react";
+import dayjs from "dayjs";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function ReportsPage() {
     console.debug("Rendering ReportsPage");
 
     const router = useRouter();
-
+    const userCtx = useUser();
+    const [userAssignedToSchool, setUserAssignedToSchool] = useState<boolean>(true);
     const [search, setSearch] = useState("");
-    const [selectedReports, setSelectedReports] = useState<number[]>([]);
+    const [selectedReports, setSelectedReports] = useState<string[]>([]);
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
-    const [activeTab, setActiveTab] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
+    const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
+    const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
+
+    // Fetch reports on component mount
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                if (userCtx.userInfo?.schoolId) {
+                    setUserAssignedToSchool(true);
+                    const reports = await GetLocalMonthlyReports(userCtx.userInfo.schoolId, 0, 10);
+                    setReportSubmissions(reports);
+                } else {
+                    setUserAssignedToSchool(false);
+                    console.warn("No schoolId found in user context");
+                }
+            } catch (error) {
+                console.error("Failed to fetch reports:", error);
+            }
+        };
+
+        fetchReports();
+    }, [userCtx.userInfo]);
 
     const filteredReports = reportSubmissions.filter((report) => {
-        const matchesSearch = report.name.toLowerCase().includes(search.toLowerCase());
-        const matchesStatus = statusFilter === "all" || report.status.toLowerCase().replace(/\s+/g, "-") === statusFilter;
-        const matchesCategory = categoryFilter === "all" || report.category.toLowerCase() === categoryFilter;
-        const matchesTab = activeTab === "all" || report.category.toLowerCase() === activeTab;
-    
-        return matchesSearch && matchesStatus && matchesCategory && matchesTab;
+        const matchesSearch = report.name?.toLowerCase().includes(search.toLowerCase());
+        const matchesStatus =
+            statusFilter === "all" ||
+            (report.reportStatus && report.reportStatus.toLowerCase().replace(/\s+/g, "-") === statusFilter);
+
+        return matchesSearch && matchesStatus;
     });
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = (status: ReportStatus) => {
         switch (status) {
-            case "Approved": return "green";
-            case "Submitted": return "blue";
-            case "Under Review": return "yellow";
-            case "Pending Approval": return "orange";
-            case "Rejected": return "red";
-            case "Draft": return "gray";
-            default: return "gray";
+            case "approved":
+                return "green";
+            case "draft":
+                return "blue";
+            case "review":
+                return "yellow";
+            case "rejected":
+                return "red";
+            case "archived":
+                return "gray";
+            default:
+                return "gray";
         }
     };
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
-            setSelectedReports(filteredReports.map(r => r.id));
+            setSelectedReports(filteredReports.map((r) => r.id));
         } else {
             setSelectedReports([]);
         }
     };
 
-    const handleSelectReport = (id: number, checked: boolean) => {
+    const handleSelectReport = useCallback((id: string, checked: boolean) => {
         if (checked) {
-            setSelectedReports([...selectedReports, id]);
+            setSelectedReports((prev) => [...prev, id]);
         } else {
-            setSelectedReports(selectedReports.filter(reportId => reportId !== id));
+            setSelectedReports((prev) => prev.filter((reportId) => reportId !== id));
         }
-    };
+    }, []);
 
     const handleNavigateToSales = () => {
-        router.push('/reports/sales');
+        router.push("/reports/sales");
     };
 
     const handleCreateLiquidationReport = (category: string, path: string) => {
@@ -140,7 +126,7 @@ export default function ReportsPage() {
     };
 
     const handleNavigateToPayroll = () => {
-        router.push('/reports/payroll');
+        router.push("/reports/payroll");
     };
 
     type QuickActionCardProps = {
@@ -152,82 +138,129 @@ export default function ReportsPage() {
     };
 
     const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
-        <Card
-            shadow="sm"
-            padding="lg"
-            radius="md"
-            withBorder
-            style={{ cursor: 'pointer' }}
-            onClick={onClick}
-        >
+        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
             <Group>
                 <ActionIcon size="xl" variant="light" color={color}>
                     <Icon size={24} />
                 </ActionIcon>
                 <div>
                     <Text fw={500}>{title}</Text>
-                    <Text size="sm" c="dimmed">{description}</Text>
+                    <Text size="sm" c="dimmed">
+                        {description}
+                    </Text>
                 </div>
             </Group>
         </Card>
     );
 
-    const rows = filteredReports.map((report) => (
-        <Table.Tr key={report.id}>
-            <Table.Td>
-                <Checkbox
-                  checked={selectedReports.includes(report.id)}
-                  onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
-                />
-            </Table.Td>
-            <Table.Td>
-                <div>
-                    <Text fw={500} size="sm">{report.name}</Text>
-                    <Text size="xs" c="dimmed">{report.type}</Text>
-                </div>
-            </Table.Td>
-            <Table.Td>
-                <Badge color={getStatusColor(report.status)} variant="filled" size="sm">
-                    {report.status}
-                </Badge>
-            </Table.Td>
-            <Table.Td>
-                <div>
-                    <Text size="sm">{report.period}</Text>
-                </div>
-            </Table.Td>
-            <Table.Td>
-                <Text size="sm" c="dimmed">
-                    {new Date(report.lastModified).toLocaleDateString('en-US', {
-                        month: '2-digit',
-                        day: '2-digit',
-                        year: 'numeric'
-                    })}
-                </Text>
-            </Table.Td>
-            <Table.Td>
-                <Menu withinPortal position="bottom-end" shadow="sm">
-                    <Menu.Target>
-                        <ActionIcon variant="subtle" color="gray">
-                            <IconDots size={16} />
-                        </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                        <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
-                        <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
-                        <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
-                        <Menu.Divider />
-                        <Menu.Item color="red" leftSection={<IconTrash size={14} />}>Delete</Menu.Item>
-                    </Menu.Dropdown>
-                </Menu>
-            </Table.Td>
-        </Table.Tr>
-    ));
+    const parseSubmittedBySchool = useCallback(async (submittedBySchool: number) => {
+        try {
+            const school = await GetSchoolInfo(submittedBySchool);
+            setParsedSubmittedBySchools((prev) => ({
+                ...prev,
+                [submittedBySchool]: school,
+            }));
+            return school;
+        } catch (error) {
+            console.error("Failed to fetch school info:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to fetch school information for report submission.",
+                color: "red",
+            });
+        }
+    }, []);
 
+    // Load school data for reports that don't have it cached
+    useEffect(() => {
+        filteredReports.forEach((report) => {
+            if (!parsedSubmittedBySchools[report.submittedBySchool]) {
+                parseSubmittedBySchool(report.submittedBySchool);
+            }
+        });
+    }, [filteredReports, parseSubmittedBySchool, parsedSubmittedBySchools]);
+
+    const rows = useMemo(
+        () =>
+            filteredReports.map((report) => {
+                return (
+                    <Table.Tr key={`${report.id}`}>
+                        <Table.Td>
+                            <Checkbox
+                                checked={selectedReports.includes(report.id)}
+                                onChange={(e) => handleSelectReport(report.id, e.currentTarget.checked)}
+                            />
+                        </Table.Td>
+                        <Table.Td>
+                            <div>
+                                <Text fw={500} size="sm">
+                                    {report.name}
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    {parsedSubmittedBySchools[report.submittedBySchool]
+                                        ? parsedSubmittedBySchools[report.submittedBySchool].name
+                                        : "Loading school..."}
+                                </Text>
+                            </div>
+                        </Table.Td>
+                        <Table.Td>
+                            <Badge color={getStatusColor(report.reportStatus || "draft")} variant="filled" size="sm">
+                                {report.reportStatus || "Draft"}
+                            </Badge>
+                        </Table.Td>
+                        <Table.Td>
+                            <div>
+                                <Text size="sm">{dayjs(report.id).format("MMMM YYYY")}</Text>
+                            </div>
+                        </Table.Td>
+                        <Table.Td>
+                            <Text size="sm" c="dimmed">
+                                {report.lastModified
+                                    ? new Date(report.lastModified).toLocaleDateString("en-US", {
+                                          month: "2-digit",
+                                          day: "2-digit",
+                                          year: "numeric",
+                                      })
+                                    : "N/A"}
+                            </Text>
+                        </Table.Td>
+                        <Table.Td>
+                            <Menu withinPortal position="bottom-end" shadow="sm">
+                                <Menu.Target>
+                                    <ActionIcon variant="subtle" color="gray">
+                                        <IconDots size={16} />
+                                    </ActionIcon>
+                                </Menu.Target>
+                                <Menu.Dropdown>
+                                    <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
+                                    <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                                    <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
+                                    <Menu.Divider />
+                                    <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                                        Delete
+                                    </Menu.Item>
+                                </Menu.Dropdown>
+                            </Menu>
+                        </Table.Td>
+                    </Table.Tr>
+                );
+            }),
+        [filteredReports, selectedReports, parsedSubmittedBySchools, handleSelectReport]
+    );
 
     return (
         <Stack gap="lg">
-
+            {!userCtx.userInfo?.schoolId && (
+                <Alert
+                    variant="light"
+                    color="yellow"
+                    withCloseButton
+                    title="Warning"
+                    icon={<IconAlertCircle size={16} />}
+                >
+                    You are not yet assigned to a school! Reports you create will fail to submit.
+                </Alert>
+            )}
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
@@ -279,11 +312,11 @@ export default function ReportsPage() {
                         data={[
                             { value: "all", label: "All Status" },
                             { value: "draft", label: "Draft" },
-                            { value: "submitted", label: "Submitted" },
-                            { value: "under-review", label: "Under Review" },
-                            { value: "pending-approval", label: "Pending Approval" },
+                            { value: "review", label: "Under Review" },
                             { value: "approved", label: "Approved" },
-                            { value: "rejected", label: "Rejected" }
+                            { value: "rejected", label: "Rejected" },
+                            { value: "received", label: "Received" },
+                            { value: "archived", label: "Archived" },
                         ]}
                         w={180}
                     />
@@ -293,24 +326,26 @@ export default function ReportsPage() {
                         onChange={(value) => setCategoryFilter(value ?? "all")}
                         data={[
                             { value: "all", label: "All Categories" },
-                            { value: "sales", label: "Sales" },
-                            { value: "expenses", label: "Expenses" },
-                            { value: "payroll", label: "Payroll" }
+                            { value: "monthly-reports", label: "Monthly Reports" },
+                            { value: "daily-financial-reports", label: "Daily Financial Reports" },
+                            { value: "disbursement-vouchers", label: "Disbursement Vouchers" },
+                            { value: "operating-expenses", label: "Operating Expense Reports" },
+                            { value: "administrative-expenses", label: "Administrative Expense Reports" },
+                            { value: "payroll", label: "Payroll Reports" },
+                            { value: "clinic-fund", label: "Clinic Fund Reports" },
+                            { value: "supplementary-feeding-fund", label: "Supplementary Feeding Fund Reports" },
+                            { value: "he-fund", label: "HE Fund Reports" },
+                            {
+                                value: "faculty-student-development-fund",
+                                label: "Faculty & Student Development Fund Reports",
+                            },
+                            { value: "school-operation-fund", label: "School Operation Fund Reports" },
+                            { value: "revolving-fund", label: "Revolving Fund Reports" },
                         ]}
                         w={160}
                     />
                 </Flex>
             </Paper>
-
-            {/* Tabs for Categories */}
-            <Tabs value={activeTab} onChange={(value) => setActiveTab(value ?? "all")}>
-                <Tabs.List>
-                    <Tabs.Tab value="all">All Reports</Tabs.Tab>
-                    <Tabs.Tab value="sales">Sales</Tabs.Tab>
-                    <Tabs.Tab value="expenses">Expenses</Tabs.Tab>
-                    <Tabs.Tab value="payroll">Payroll</Tabs.Tab>
-                </Tabs.List>
-            </Tabs>
 
             {/* Bulk Actions */}
             {selectedReports.length > 0 && (
@@ -334,8 +369,12 @@ export default function ReportsPage() {
                         <Table.Tr>
                             <Table.Th>
                                 <Checkbox
-                                    checked={selectedReports.length === filteredReports.length && filteredReports.length > 0}
-                                    indeterminate={selectedReports.length > 0 && selectedReports.length < filteredReports.length}
+                                    checked={
+                                        selectedReports.length === filteredReports.length && filteredReports.length > 0
+                                    }
+                                    indeterminate={
+                                        selectedReports.length > 0 && selectedReports.length < filteredReports.length
+                                    }
                                     onChange={(e) => handleSelectAll(e.currentTarget.checked)}
                                 />
                             </Table.Th>
@@ -351,7 +390,11 @@ export default function ReportsPage() {
 
                 {filteredReports.length === 0 && (
                     <Paper p="xl" ta="center">
-                        <Text c="dimmed">No reports found</Text>
+                        {userAssignedToSchool ? (
+                            <Text c="dimmed">No reports found</Text>
+                        ) : (
+                            <Text c="dimmed">You are not assigned to any school.</Text>
+                        )}
                     </Paper>
                 )}
             </Paper>

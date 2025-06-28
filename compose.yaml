@@ -1,0 +1,36 @@
+services:
+    centralserver:
+        build:
+            context: ./CentralServer
+            dockerfile: Dockerfile
+        ports:
+            - "8081:8081"
+        volumes:
+            - project_scars-centralserver-data:/app/data
+            - project_scars-centralserver-db:/app/db
+            - project_scars-centralserver-logs:/app/logs
+            - ./CentralServer/config.prod.json:/app/config.json:ro
+        restart: unless-stopped
+
+    webclient:
+        build:
+            context: ./WebClient
+            dockerfile: Dockerfile
+        ports:
+            - "8080:8080"
+        restart: unless-stopped
+        depends_on:
+            - centralserver
+
+volumes:
+    project_scars-centralserver-data:
+        driver: local
+    project_scars-centralserver-db:
+        driver: local
+    project_scars-centralserver-logs:
+        driver: local
+
+networks:
+    default:
+        driver: bridge
+        name: project_scars_network

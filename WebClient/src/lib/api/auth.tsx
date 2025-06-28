@@ -1,9 +1,30 @@
-import ky from "ky";
+import {
+    createNewUserV1AuthCreatePost,
+    disableMfaOtpV1AuthMfaOtpDisablePost,
+    generateMfaOtpV1AuthMfaOtpGeneratePost,
+    getAllRolesV1AuthRolesGet,
+    getOauthConfigV1AuthConfigOauthGet,
+    getUserProfileEndpointV1UsersMeGet,
+    googleOauthCallbackV1AuthOauthGoogleCallbackGet,
+    mfaOtpRecoveryV1AuthMfaOtpRecoveryPost,
+    oauthLinkGoogleV1AuthOauthGoogleLinkGet,
+    oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet,
+    requestAccessTokenV1AuthLoginPost,
+    requestPasswordRecoveryV1AuthEmailRecoveryRequestPost,
+    requestVerificationEmailV1AuthEmailRequestPost,
+    resetPasswordV1AuthEmailRecoveryResetPost,
+    validateMfaOtpV1AuthMfaOtpValidatePost,
+    verifyEmailV1AuthEmailVerifyPost,
+    verifyMfaOtpV1AuthMfaOtpVerifyPost,
+    type BodyRequestAccessTokenV1AuthLoginPost,
+    type JwtToken,
+    type OtpToken,
+    type Role,
+    type UserPublic,
+} from "@/lib/api/csclient";
 
-import { Connections, LocalStorage } from "@/lib/info";
-import { RoleType, ServerMessageType, TokenType, UserPublicType } from "@/lib/types";
-
-const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
+import { LocalStorage } from "@/lib/info";
+import { ServerMessageType } from "@/lib/types";
 
 /**
  * Get the access token header for authenticated requests.
@@ -17,59 +38,180 @@ export function GetAccessTokenHeader(): string {
         throw new Error("Access token is not set");
     }
 
-    const accessToken: TokenType = JSON.parse(storedToken);
-    return `Bearer ${accessToken.token}`;
+    const accessToken: JwtToken = JSON.parse(storedToken);
+    return `Bearer ${accessToken.access_token}`;
 }
 
 /**
  * Log the user in to the central server using username and password.
  * @param {string} username - The username of the user.
  * @param {string} password - The password of the user.
- * @return {Promise<TokenType>} A promise that resolves to the access token and token type.
+ * @return {Promise<JwtToken | { [key: string]: string }>} A promise that resolves to the access token or an MFA response if two-factor authentication is required.
  */
-export async function LoginUser(username: string, password: string): Promise<TokenType> {
-    const loginFormData = new URLSearchParams();
-    loginFormData.set("grant_type", "password");
-    loginFormData.set("username", username);
-    loginFormData.set("password", password);
-
+export async function LoginUser(username: string, password: string): Promise<JwtToken | { [key: string]: string }> {
     console.debug("Logging in user", { username });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/token`, {
-        body: loginFormData,
-        throwHttpErrors: false,
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
-        console.error(errorResponse?.detail || errorMessage);
-        throw new Error(errorResponse?.detail || errorMessage);
-    }
 
-    const responseData: { access_token: string; token_type: string } = await centralServerResponse.json();
-    console.debug("Access and refresh tokens received");
-    return {
-        token: responseData["access_token"],
-        type: responseData["token_type"],
+    const loginFormData: BodyRequestAccessTokenV1AuthLoginPost = {
+        grant_type: "password",
+        username: username,
+        password: password,
     };
+
+    try {
+        const result = await requestAccessTokenV1AuthLoginPost({
+            body: loginFormData,
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to log in: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        return result.data as JwtToken | { [key: string]: string };
+    } catch (error) {
+        console.error("Login failed:", error);
+        throw error;
+    }
+}
+
+export async function GenerateTOTP(): Promise<OtpToken> {
+    console.debug("Generating TOTP for user");
+
+    try {
+        const result = await generateMfaOtpV1AuthMfaOtpGeneratePost({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to generate TOTP: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("TOTP generated successfully", result.data);
+        return result.data as OtpToken;
+    } catch (error) {
+        console.error("TOTP generation failed:", error);
+        throw error;
+    }
+}
+
+export async function VerifyTOTP(otp: string): Promise<{ message: string }> {
+    console.debug("Verifying TOTP for user", { otp });
+
+    try {
+        const result = await verifyMfaOtpV1AuthMfaOtpVerifyPost({
+            query: { otp: otp },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to verify TOTP: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("TOTP verified successfully");
+        return result.data as { message: string };
+    } catch (error) {
+        console.error("TOTP verification failed:", error);
+        throw error;
+    }
+}
+
+export async function ValidateTOTP(otp: string, nonce: string): Promise<JwtToken> {
+    console.debug("Validating TOTP for user", { otp, nonce });
+
+    try {
+        const result = await validateMfaOtpV1AuthMfaOtpValidatePost({
+            body: {
+                otp: otp,
+                nonce: nonce,
+            },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to validate TOTP: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        return result.data as JwtToken;
+    } catch (error) {
+        console.error("TOTP validation failed:", error);
+        throw error;
+    }
+}
+
+export async function DisableTOTP(): Promise<ServerMessageType> {
+    console.debug("Disabling TOTP for user");
+
+    try {
+        const result = await disableMfaOtpV1AuthMfaOtpDisablePost({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to disable TOTP: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("TOTP disabled successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("TOTP disable failed:", error);
+        throw error;
+    }
+}
+
+export async function UseOTPRecoveryCode(recoveryCode: string, nonce: string): Promise<JwtToken> {
+    console.debug("Using OTP recovery code for user", { recoveryCode, nonce });
+
+    try {
+        const result = await mfaOtpRecoveryV1AuthMfaOtpRecoveryPost({
+            body: {
+                recovery_code: recoveryCode,
+                nonce: nonce,
+            },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to use OTP recovery code: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        return result.data as JwtToken;
+    } catch (error) {
+        console.error("OTP recovery failed:", error);
+        throw error;
+    }
 }
 
 /**
  * Fetch the user information from the central server.
- * @return {Promise<UserPublicType>} A promise that resolves to the user data.
+ * @return {Promise<UserPublic>} A promise that resolves to the user data.
  */
-export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
-    const centralServerResponse = await ky.get(`${endpoint}/users/me`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-        throwHttpErrors: false,
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to log in: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
+export async function GetUserInfo(): Promise<[UserPublic, string[]]> {
+    try {
+        const result = await getUserProfileEndpointV1UsersMeGet({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
 
-    const [updatedUserInfo, roles]: [UserPublicType, string[]] = await centralServerResponse.json();
-    return [updatedUserInfo, roles];
+        if (result.error) {
+            const errorMessage = `Failed to get user info: ${result.response.status} ${result.response.statusText}`;
+            console.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        const [updatedUserInfo, roles] = result.data as [UserPublic, string[]];
+        return [updatedUserInfo, roles];
+    } catch (error) {
+        console.error("Get user info failed:", error);
+        throw error;
+    }
 }
 
 /**
@@ -80,22 +222,27 @@ export async function GetUserInfo(): Promise<[UserPublicType, string[]]> {
  */
 export async function RequestPasswordRecovery(email: string, username: string): Promise<ServerMessageType> {
     console.debug("Requesting password recovery email for user", { email, username });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/request`, {
-        searchParams: {
-            username: username,
-            email: email,
-        },
-        throwHttpErrors: false,
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to request password recovery: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
-        return { message: errorResponse?.detail || errorMessage };
+
+    try {
+        const result = await requestPasswordRecoveryV1AuthEmailRecoveryRequestPost({
+            query: {
+                username: username,
+                email: email,
+            },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to request password recovery: ${result.response.status} ${result.response.statusText}`;
+            console.error(errorMessage);
+            return { message: errorMessage };
+        }
+
+        console.debug("Password recovery request sent successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Password recovery request failed:", error);
+        return { message: "Request failed" };
     }
-    console.debug("Password recovery request sent successfully");
-    const result: ServerMessageType = await centralServerResponse.json();
-    return result;
 }
 
 /**
@@ -106,87 +253,205 @@ export async function RequestPasswordRecovery(email: string, username: string): 
  */
 export async function ResetPassword(token: string, new_password: string): Promise<ServerMessageType> {
     console.debug("Resetting password for user with token", { token });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/recovery/reset`, {
-        json: {
-            recovery_token: token,
-            new_password: new_password,
-        },
-        throwHttpErrors: false,
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to reset password: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
-        return { message: errorResponse?.detail || errorMessage };
+
+    try {
+        const result = await resetPasswordV1AuthEmailRecoveryResetPost({
+            body: {
+                recovery_token: token,
+                new_password: new_password,
+            },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to reset password: ${result.response.status} ${result.response.statusText}`;
+            console.error(errorMessage);
+            return { message: errorMessage };
+        }
+
+        console.debug("Password reset successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Password reset failed:", error);
+        return { message: "Reset failed" };
     }
-    console.debug("Password reset successfully");
-    const result: ServerMessageType = await centralServerResponse.json();
-    return result;
 }
 
 /**
  * Fetch all roles from the central server.
- * @return {Promise<RoleType[]>} A promise that resolves to an array of roles.
+ * @return {Promise<Role[]>} A promise that resolves to an array of roles.
  */
-export async function GetAllRoles(): Promise<RoleType[]> {
-    const centralServerResponse = await ky.get(`${endpoint}/auth/roles`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-    });
+export async function GetAllRoles(): Promise<Role[]> {
+    try {
+        const result = await getAllRolesV1AuthRolesGet({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get all roles: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+        if (result.error) {
+            const errorMessage = `Failed to get all roles: ${result.response.status} ${result.response.statusText}`;
+            console.error(errorMessage);
+            throw new Error(errorMessage);
+        }
+
+        return result.data as Role[];
+    } catch (error) {
+        console.error("Get all roles failed:", error);
+        throw error;
     }
-    const roles: RoleType[] = await centralServerResponse.json();
-    return roles;
 }
 export async function RequestVerificationEmail(): Promise<ServerMessageType> {
-    const centralServerResponse = await ky.post(`${endpoint}/auth/email/request`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to request verification email: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+    console.debug("Requesting verification email for user");
+
+    try {
+        const result = await requestVerificationEmailV1AuthEmailRequestPost({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to request verification email: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("Verification email requested successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Verification email request failed:", error);
+        throw error;
     }
-    console.debug("Verification email requested successfully");
-    return await centralServerResponse.json();
 }
 
 export async function VerifyUserEmail(token: string): Promise<ServerMessageType> {
     console.debug("Verifying user email with token", { token });
-    const centralServerResponse = await ky.post(`${endpoint}/auth/email/verify`, {
-        searchParams: { token: token },
-        headers: { Authorization: GetAccessTokenHeader() },
-    });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to verify email: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        const errorResponse = (await centralServerResponse.json()) as { detail?: string };
-        return { message: errorResponse?.detail || errorMessage };
+
+    try {
+        const result = await verifyEmailV1AuthEmailVerifyPost({
+            query: { token: token },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to verify email: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            return { message: errorMessage };
+        }
+
+        console.debug("Email verified successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Email verification failed:", error);
+        return { message: "Verification failed" };
     }
-    console.debug("Email verified successfully");
-    return await centralServerResponse.json();
 }
 
-export async function CreateUser(username: string, roleId: number, password: string): Promise<UserPublicType> {
-    const res = await ky.post(`${endpoint}/auth/create`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-        json: {
-            username: username,
-            roleId: roleId,
-            password: password,
-        },
-        throwHttpErrors: false,
-    });
+export async function CreateUser(username: string, roleId: number, password: string): Promise<UserPublic> {
+    console.debug("Creating new user", { username, roleId });
 
-    if (!res.ok) {
-        const errorMessage = `Failed to create user: ${res.status} ${res.statusText}`;
-        console.error(errorMessage);
-        const errorResponse = (await res.json()) as { detail?: string };
-        throw new Error(errorResponse?.detail || errorMessage);
+    try {
+        const result = await createNewUserV1AuthCreatePost({
+            headers: { Authorization: GetAccessTokenHeader() },
+            body: {
+                username: username,
+                roleId: roleId,
+                password: password,
+            },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to create user: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("User created successfully");
+        return result.data as UserPublic;
+    } catch (error) {
+        console.error("User creation failed:", error);
+        throw error;
     }
+}
 
-    return await res.json();
+export async function OAuthGoogleLink(code: string): Promise<ServerMessageType> {
+    console.debug("Linking Google account with code", { code });
+
+    try {
+        const result = await oauthLinkGoogleV1AuthOauthGoogleLinkGet({
+            query: { code: code },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to link Google account: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("Google account linked successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Google link failed:", error);
+        throw error;
+    }
+}
+
+export async function OAuthGoogleUnlink(): Promise<ServerMessageType> {
+    console.debug("Unlinking Google account");
+
+    try {
+        const result = await oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet({
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to unlink Google account: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("Google account unlinked successfully");
+        return result.data as ServerMessageType;
+    } catch (error) {
+        console.error("Google unlink failed:", error);
+        throw error;
+    }
+}
+
+export async function OAuthGoogleAuthenticate(code: string): Promise<JwtToken> {
+    console.debug("Authenticating with Google OAuth", { code });
+
+    try {
+        const result = await googleOauthCallbackV1AuthOauthGoogleCallbackGet({
+            query: { code: code },
+        });
+
+        if (result.error) {
+            const errorMessage = `Failed to authenticate with Google: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        console.debug("Google authentication successful");
+        return result.data as JwtToken;
+    } catch (error) {
+        console.error("Google authentication failed:", error);
+        throw error;
+    }
+}
+
+export async function GetOAuthSupport(): Promise<{ google: boolean; microsoft: boolean; facebook: boolean }> {
+    console.debug("Getting OAuth support configuration");
+
+    try {
+        const result = await getOauthConfigV1AuthConfigOauthGet();
+
+        if (result.error) {
+            const errorMessage = `Failed to get OAuth support: ${result.response.status} ${result.response.statusText}`;
+            console.error(result.error);
+            throw new Error(errorMessage);
+        }
+
+        return result.data as { google: boolean; microsoft: boolean; facebook: boolean };
+    } catch (error) {
+        console.error("Get OAuth support failed:", error);
+        throw error;
+    }
 }
