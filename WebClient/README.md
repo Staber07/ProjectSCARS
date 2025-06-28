@@ -25,4 +25,4 @@ the Philippines.
     </p>
 </details>
 
-Documentation: [Web Client Documentation](../docs/web-client.md)
+Documentation: [The GitHub Wiki](https://github.com/Chris1320/ProjectSCARS/wiki)
