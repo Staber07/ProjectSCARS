@@ -308,28 +308,27 @@ def verify_access_token(
     """
 
     try:
-        logger.debug("Decrypting access token...")
-        decoded_jwe = (
-            jwe.decrypt(
+        if app_config.authentication.encrypt_jwt:
+            logger.debug("Decrypting access token...")
+            decoded_jwe = jwe.decrypt(
                 token,
                 app_config.authentication.encryption_secret_key.encode(
                     app_config.authentication.encoding
                 ),
             )
-            if app_config.authentication.encrypt_jwt
-            else token.encode(app_config.authentication.encoding)
-        )
-
-        if decoded_jwe is None:
-            logger.warning("Failed to decrypt JWE")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Failed to validate user.",
-            )
+            if decoded_jwe is None:
+                logger.warning("Failed to decrypt JWE")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Failed to validate user.",
+                )
+            token_to_decode = decoded_jwe.decode(app_config.authentication.encoding)
+        else:
+            token_to_decode = token
 
         logger.debug("Decoding access token...")
         payload = jwt.decode(
-            decoded_jwe.decode(app_config.authentication.encoding),
+            token_to_decode,
             app_config.authentication.signing_secret_key,
             algorithms=[app_config.authentication.signing_algorithm],
         )
@@ -531,6 +530,13 @@ async def oauth_google_authenticate(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
                 False,
+            ),
+            refresh_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.refresh_token_expire_minutes
+                ),
+                True,
             ),
             token_type="bearer",
         ),
