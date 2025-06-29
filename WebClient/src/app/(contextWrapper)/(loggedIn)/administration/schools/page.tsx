@@ -3,7 +3,7 @@
 import {
     CreateSchool,
     GetAllSchools,
-    GetSchooLogo,
+    GetSchoolLogo,
     GetSchoolQuantity,
     RemoveSchoolLogo,
     UpdateSchoolInfo,
@@ -120,7 +120,7 @@ export default function SchoolsPage(): JSX.Element {
             return undefined; // Logo is requested but not yet available
         }
         setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        GetSchooLogo(logoUrn, schoolId)
+        GetSchoolLogo(logoUrn, schoolId)
             .then((blob) => {
                 if (blob.size > 0) {
                     const url = URL.createObjectURL(blob);

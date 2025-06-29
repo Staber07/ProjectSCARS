@@ -1,8 +1,8 @@
 import ky from "ky";
 
-import { GetAccessTokenHeader } from "@/lib/api/auth";
-import { Connections } from "@/lib/info";
 import { UserPublic, UserUpdate } from "@/lib/api/csclient";
+import { Connections } from "@/lib/info";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 

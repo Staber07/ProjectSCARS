@@ -1,7 +1,7 @@
 "use client";
-import { CreateUser } from "@/lib/api/auth";
 import { UpdateUserInfo } from "@/lib/api/user";
-import { Role, School } from "@/lib/api/csclient";
+import { Role, School, createNewUserV1AuthCreatePost } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -73,7 +73,20 @@ export function CreateUserComponent({
             buttonStateHandler.open();
 
             try {
-                const new_user = await CreateUser(values.username, Number(values.role), values.password);
+                const result = await createNewUserV1AuthCreatePost({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                    body: {
+                        username: values.username,
+                        roleId: Number(values.role),
+                        password: values.password,
+                    },
+                });
+
+                if (result.error) {
+                    throw new Error(`Failed to create user: ${result.response.status} ${result.response.statusText}`);
+                }
+
+                const new_user = result.data;
 
                 await UpdateUserInfo({
                     id: new_user.id,

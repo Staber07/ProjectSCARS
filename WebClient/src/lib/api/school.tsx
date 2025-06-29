@@ -1,7 +1,7 @@
-import { GetAccessTokenHeader } from "@/lib/api/auth";
 import { School, SchoolCreate } from "@/lib/api/csclient";
 import { Connections } from "@/lib/info";
 import { SchoolUpdateType } from "@/lib/types";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import ky from "ky";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
@@ -21,7 +21,7 @@ export async function GetAllSchools(offset: number, limit: number): Promise<Scho
     return schools;
 }
 
-export async function GetSchooLogo(fn: string, school_id: number): Promise<Blob> {
+export async function GetSchoolLogo(fn: string, school_id: number): Promise<Blob> {
     const centralServerResponse = await ky.get(`${endpoint}/schools/logo`, {
         headers: { Authorization: GetAccessTokenHeader() },
         searchParams: { fn: fn, school_id: school_id.toString() }, // add school_id here

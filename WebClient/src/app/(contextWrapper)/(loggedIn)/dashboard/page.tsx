@@ -4,9 +4,10 @@ import { HomeSection } from "@/components/Dashboard/HomeSection";
 import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
-import { GetUserInfo } from "@/lib/api/auth";
 import { GetSelfNotifications } from "@/lib/api/notification";
 import { GetUserAvatar } from "@/lib/api/user";
+import { getUserProfileEndpointV1UsersMeGet, type UserPublic } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { Notification } from "@/lib/api/csclient";
@@ -72,7 +73,17 @@ const DashboardContent = memo(function DashboardContent() {
             if (!userCtx.userInfo) return;
 
             try {
-                const [userInfo, userPermissions] = await GetUserInfo();
+                const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (userInfoResult.error) {
+                    throw new Error(
+                        `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                    );
+                }
+
+                const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
                 if (!mounted) return;
 
                 if (userInfo.avatarUrn) {

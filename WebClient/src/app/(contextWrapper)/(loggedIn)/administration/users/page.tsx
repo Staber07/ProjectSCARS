@@ -3,8 +3,8 @@
 import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
 import { UserFilters } from "@/components/UserManagement/UserFilters";
-import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
-import { Role, School, UserPublic } from "@/lib/api/csclient";
+import { Role, School, UserPublic, getAllRolesV1AuthRolesGet, requestVerificationEmailV1AuthEmailRequestPost } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { GetAllSchools } from "@/lib/api/school";
 import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
@@ -265,24 +265,30 @@ export default function UsersPage(): JSX.Element {
 
     useEffect(() => {
         const fetchRoles = async () => {
-            await GetAllRoles()
-                .then((data) => {
-                    setAvailableRoles(data);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch roles:", error);
-                    if (!fetchRolesErrorShown) {
-                        setFetchRolesErrorShown(true);
-                        notifications.show({
-                            id: "fetch-roles-error",
-                            title: "Failed to fetch roles",
-                            message: "Please try again later.",
-                            color: "red",
-                            icon: <IconUserExclamation />,
-                        });
-                        setAvailableRoles([]);
-                    }
+            try {
+                const result = await getAllRolesV1AuthRolesGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
                 });
+
+                if (result.error) {
+                    throw new Error(`Failed to get roles: ${result.response.status} ${result.response.statusText}`);
+                }
+
+                setAvailableRoles(result.data as Role[]);
+            } catch (error) {
+                console.error("Failed to fetch roles:", error);
+                if (!fetchRolesErrorShown) {
+                    setFetchRolesErrorShown(true);
+                    notifications.show({
+                        id: "fetch-roles-error",
+                        title: "Failed to fetch roles",
+                        message: "Please try again later.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                    setAvailableRoles([]);
+                }
+            }
         };
         const fetchSchools = async () => {
             await GetAllSchools(0, 999)
@@ -499,9 +505,16 @@ export default function UsersPage(): JSX.Element {
                                                             <IconCircleDashedX
                                                                 size={16}
                                                                 color="gray"
-                                                                onClick={() => {
+                                                                onClick={async () => {
                                                                     try {
-                                                                        RequestVerificationEmail();
+                                                                        const result = await requestVerificationEmailV1AuthEmailRequestPost({
+                                                                            headers: { Authorization: GetAccessTokenHeader() },
+                                                                        });
+
+                                                                        if (result.error) {
+                                                                            throw new Error(`Failed to send verification email: ${result.response.status} ${result.response.statusText}`);
+                                                                        }
+
                                                                         notifications.show({
                                                                             id: "verification-email-sent",
                                                                             title: "Verification Email Sent",

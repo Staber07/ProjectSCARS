@@ -39,6 +39,7 @@ const kyClient = ky.create({
                 // Handle token refresh on 401 errors
                 if (error instanceof HTTPError && error.response.status === 401) {
                     try {
+                        console.warn("🔑 Unauthorized request, attempting to refresh token...");
                         // Attempt to refresh token
                         const refreshToken = localStorage.getItem(LocalStorage.refreshToken);
                         if (refreshToken) {
@@ -61,33 +62,6 @@ const kyClient = ky.create({
         ],
     },
 });
-
-// Convert ky instance to a fetch-compatible function
-// const kyFetch: typeof fetch = async (input, init) => {
-//     // Convert fetch input to string URL
-//     let url: string;
-//     if (typeof input === "string") {
-//         url = input;
-//     } else if (input instanceof URL) {
-//         url = input.toString();
-//     } else {
-//         // Request object
-//         url = input.url;
-//     }
-
-//     // Prepare ky options from fetch init
-//     const kyOptions: Parameters<typeof ky>[1] = {};
-
-//     if (init) {
-//         if (init.method) kyOptions.method = init.method;
-//         if (init.headers) kyOptions.headers = init.headers;
-//         if (init.body) kyOptions.body = init.body;
-//         if (init.signal) kyOptions.signal = init.signal;
-//     }
-
-//     // Use ky to make the request
-//     return kyInstance(url, kyOptions);
-// };
 
 export const createClientConfig: CreateClientConfig = (config) => ({
     ...config,

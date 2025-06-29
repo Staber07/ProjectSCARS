@@ -1,7 +1,6 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { GetOAuthSupport, GetUserInfo, LoginUser, ValidateTOTP, UseOTPRecoveryCode } from "@/lib/api/auth";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -28,9 +27,18 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter } from "next/navigation";
 
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
+import {
+    getOauthConfigV1AuthConfigOauthGet,
+    getUserProfileEndpointV1UsersMeGet,
+    JwtToken,
+    mfaOtpRecoveryV1AuthMfaOtpRecoveryPost,
+    requestAccessTokenV1AuthLoginPost,
+    validateMfaOtpV1AuthMfaOtpValidatePost,
+    type BodyRequestAccessTokenV1AuthLoginPost,
+    type UserPublic,
+} from "@/lib/api/csclient";
 import { GetUserAvatar } from "@/lib/api/user";
 import { useEffect, useState } from "react";
-import { JwtToken } from "@/lib/api/csclient";
 
 interface LoginFormValues {
     username: string;
@@ -113,9 +121,48 @@ export function MainLoginComponent(): React.ReactElement {
                 return;
             }
 
-            const loginResponse: JwtToken | { [key: string]: string } = !values.otpCode
-                ? await LoginUser(values.username, values.password)
-                : await ValidateTOTP(values.otpCode || "", mfaNonce || "");
+            let loginResponse: JwtToken | { [key: string]: string };
+
+            if (!values.otpCode) {
+                // Initial login attempt
+                const loginFormData: BodyRequestAccessTokenV1AuthLoginPost = {
+                    grant_type: "password",
+                    username: values.username,
+                    password: values.password,
+                };
+
+                const result = await requestAccessTokenV1AuthLoginPost({
+                    body: loginFormData,
+                    query: {
+                        remember_me: values.rememberMe,
+                    },
+                });
+
+                if (result.error) {
+                    const errorMessage = `Failed to log in: ${result.response.status} ${result.response.statusText}`;
+                    console.error(result.error);
+                    throw new Error(errorMessage);
+                }
+
+                loginResponse = result.data as JwtToken | { [key: string]: string };
+            } else {
+                // MFA validation
+                const result = await validateMfaOtpV1AuthMfaOtpValidatePost({
+                    body: {
+                        otp: values.otpCode || "",
+                        nonce: mfaNonce || "",
+                    },
+                });
+
+                if (result.error) {
+                    const errorMessage = `Failed to validate TOTP: ${result.response.status} ${result.response.statusText}`;
+                    console.error(result.error);
+                    throw new Error(errorMessage);
+                }
+
+                loginResponse = result.data as JwtToken;
+            }
+
             if ("otp_nonce" in loginResponse) {
                 notifications.show({
                     id: "otp-required",
@@ -129,11 +176,25 @@ export function MainLoginComponent(): React.ReactElement {
                 buttonStateHandler.close();
                 return;
             }
+
             const tokens = loginResponse as JwtToken;
+
             authCtx.login(tokens);
 
-            const [userInfo, userPermissions] = await GetUserInfo();
+            // Fetch user info using the new API
+            const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                headers: { Authorization: `Bearer ${tokens.access_token}` },
+            });
+
+            if (userInfoResult.error) {
+                const errorMessage = `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`;
+                console.error(errorMessage);
+                throw new Error(errorMessage);
+            }
+
+            const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
             console.debug("User info fetched successfully", { id: userInfo.id, username: userInfo.username });
+
             let userAvatar: Blob | null = null;
             if (userInfo.avatarUrn) {
                 userAvatar = await GetUserAvatar(userInfo.avatarUrn);
@@ -187,10 +248,23 @@ export function MainLoginComponent(): React.ReactElement {
     useEffect(() => {
         console.debug("MainLoginComponent mounted, checking OAuth support");
         // Check if OAuth is supported by the server
-        GetOAuthSupport()
-            .then((response) => {
-                console.debug("OAuth support response:", response);
-                if (response) {
+        getOauthConfigV1AuthConfigOauthGet()
+            .then((result) => {
+                console.debug("OAuth support response:", result);
+                if (result.error) {
+                    console.error("OAuth support error:", result.error);
+                    notifications.show({
+                        id: "oauth-support-error",
+                        title: "OAuth Support Error",
+                        message: "Could not retrieve OAuth support information from the server.",
+                        color: "yellow",
+                        icon: <IconX />,
+                    });
+                    return;
+                }
+
+                if (result.data) {
+                    const response = result.data as { google: boolean; microsoft: boolean; facebook: boolean };
                     setOAuthSupport({
                         google: response.google,
                         microsoft: response.microsoft,
@@ -478,10 +552,34 @@ export function MainLoginComponent(): React.ReactElement {
                             return;
                         }
                         try {
-                            const tokens = await UseOTPRecoveryCode(values.otpRecoveryCode || "", mfaNonce);
+                            const result = await mfaOtpRecoveryV1AuthMfaOtpRecoveryPost({
+                                body: {
+                                    recovery_code: values.otpRecoveryCode || "",
+                                    nonce: mfaNonce,
+                                },
+                            });
+
+                            if (result.error) {
+                                const errorMessage = `Failed to use OTP recovery code: ${result.response.status} ${result.response.statusText}`;
+                                console.error(result.error);
+                                throw new Error(errorMessage);
+                            }
+
+                            const tokens = result.data as JwtToken;
                             authCtx.login(tokens);
 
-                            const [userInfo, userPermissions] = await GetUserInfo();
+                            // Fetch user info using the new API
+                            const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                                headers: { Authorization: `Bearer ${tokens.access_token}` },
+                            });
+
+                            if (userInfoResult.error) {
+                                const errorMessage = `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`;
+                                console.error(errorMessage);
+                                throw new Error(errorMessage);
+                            }
+
+                            const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
                             let userAvatar: Blob | null = null;
                             if (userInfo.avatarUrn) {
                                 userAvatar = await GetUserAvatar(userInfo.avatarUrn);

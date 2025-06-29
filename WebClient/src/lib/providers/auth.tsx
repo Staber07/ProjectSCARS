@@ -1,12 +1,13 @@
 "use client";
 
-import { LocalStorage } from "@/lib/info";
 import { JwtToken } from "@/lib/api/csclient";
-import { createContext, ReactNode, useContext, useState } from "react";
+import { LocalStorage } from "@/lib/info";
+import { CheckAndHandleTokenExpiry } from "@/lib/utils/token";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
     isAuthenticated: boolean; // Whether the user is authenticated
-    login: (access_token: JwtToken) => void; // Function to log the user in
+    login: (tokens: JwtToken) => void; // Function to log the user in
     logout: () => void; // Function to log the user out
 }
 
@@ -34,17 +35,17 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     });
 
     /**
-     * Log the user in by setting the access token in local storage and updating the authentication state.
-     * @param {JwtToken} access_token - The access token to set in local storage.
+     * Log the user in by storing the complete token object in local storage and updating the authentication state.
+     * @param {JwtToken} tokens - The tokens returned from the server.
      */
-    const login = (access_token: JwtToken) => {
-        console.debug("Setting local login state to true");
-        localStorage.setItem(LocalStorage.accessToken, JSON.stringify(access_token));
+    const login = (tokens: JwtToken) => {
+        console.debug("Setting local login state to true", { hasRefreshToken: !!tokens.refresh_token });
+        localStorage.setItem(LocalStorage.accessToken, JSON.stringify(tokens));
         setIsAuthenticated(true);
     };
 
     /**
-     * Log the user out by removing the access token from local storage and updating the authentication state.
+     * Log the user out by removing all user data from local storage and updating the authentication state.
      */
     const logout = () => {
         console.debug("Setting local login state to false");
@@ -55,6 +56,20 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
         localStorage.removeItem(LocalStorage.userAvatar);
         localStorage.removeItem(LocalStorage.setupCompleteDismissed);
     };
+
+    // Set up automatic token expiry checking
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const tokenCheckInterval = setInterval(() => {
+            CheckAndHandleTokenExpiry(logout);
+        }, 5 * 60 * 1000); // Check every 5 minutes
+
+        // Initial check
+        CheckAndHandleTokenExpiry(logout);
+
+        return () => clearInterval(tokenCheckInterval);
+    }, [isAuthenticated]);
 
     return <AuthContext.Provider value={{ isAuthenticated, login, logout }}>{children}</AuthContext.Provider>;
 }

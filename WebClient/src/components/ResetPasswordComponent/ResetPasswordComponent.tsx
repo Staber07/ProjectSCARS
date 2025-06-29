@@ -2,7 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { ResetPassword } from "@/lib/api/auth";
+import { resetPasswordV1AuthEmailRecoveryResetPost } from "@/lib/api/csclient";
 import { Box, Button, Container, Paper, PasswordInput, Progress, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -109,7 +109,26 @@ function ResetPasswordContent(): React.ReactElement {
         }
 
         try {
-            const response = await ResetPassword(token, values.new_password);
+            const result = await resetPasswordV1AuthEmailRecoveryResetPost({
+                body: {
+                    recovery_token: token,
+                    new_password: values.new_password,
+                },
+            });
+
+            if (result.error) {
+                notifications.show({
+                    id: "reset-password-failure",
+                    title: "Password reset failed",
+                    message: `Failed to reset password: ${result.response.status} ${result.response.statusText}`,
+                    color: "red",
+                    icon: <IconX />,
+                });
+                buttonStateHandler.close();
+                return;
+            }
+
+            const response = result.data;
             if (response == null || response.message !== "Password reset successful.") {
                 notifications.show({
                     id: "reset-password-failure",
