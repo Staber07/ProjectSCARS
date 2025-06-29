@@ -4,13 +4,16 @@ import { HomeSection } from "@/components/Dashboard/HomeSection";
 import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
-import { GetSelfNotifications } from "@/lib/api/notification";
+import {
+    Notification,
+    getUserNotificationsV1NotificationsMeGet,
+    getUserProfileEndpointV1UsersMeGet,
+    type UserPublic,
+} from "@/lib/api/csclient";
 import { GetUserAvatar } from "@/lib/api/user";
-import { getUserProfileEndpointV1UsersMeGet, type UserPublic } from "@/lib/api/csclient";
-import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { Notification } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     Avatar,
     Card,
@@ -27,7 +30,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, memo, useCallback, useEffect, useState } from "react";
+import { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -129,7 +132,23 @@ const DashboardContent = memo(function DashboardContent() {
 
         const loadNotifications = async () => {
             try {
-                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                const result = await getUserNotificationsV1NotificationsMeGet({
+                    query: {
+                        unarchived_only: true,
+                        important_only: true,
+                        offset: 0,
+                        limit: 1,
+                    },
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (result.error) {
+                    throw new Error(
+                        `Failed to fetch notifications: ${result.response.status} ${result.response.statusText}`
+                    );
+                }
+
+                const notifications = result.data as Notification[];
                 if (mounted) {
                     setHVNotifications(notifications);
                 }

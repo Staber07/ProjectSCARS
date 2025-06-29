@@ -1,9 +1,13 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { Notification } from "@/lib/api/csclient";
-import { ArchiveNotification, GetSelfNotifications } from "@/lib/api/notification";
+import {
+    Notification,
+    archiveNotificationV1NotificationsPost,
+    getUserNotificationsV1NotificationsMeGet,
+} from "@/lib/api/csclient";
 import { notificationIcons } from "@/lib/info";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     ActionIcon,
     Avatar,
@@ -50,7 +54,17 @@ export default function NotificationsPage() {
 
     const handleFetch = async () => {
         try {
-            const data = await GetSelfNotifications();
+            const result = await getUserNotificationsV1NotificationsMeGet({
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(
+                    `Failed to fetch notifications: ${result.response.status} ${result.response.statusText}`
+                );
+            }
+
+            const data = result.data as Notification[];
             setAllNotifications(data);
         } catch (error) {
             console.error("Failed to fetch notifications:", error);
@@ -59,11 +73,26 @@ export default function NotificationsPage() {
         }
     };
 
+    const archiveNotificationById = async (id: string, unarchive: boolean) => {
+        const result = await archiveNotificationV1NotificationsPost({
+            query: { unarchive: unarchive },
+            body: { notification_id: id },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to archive notification: ${result.response.status} ${result.response.statusText}`);
+        }
+
+        return result.data;
+    };
+
     const handleArchive = async (id: string, unarchive: boolean) => {
         const notif = allNotifications.find((n) => n.id === id);
         if (!notif) return;
         try {
-            await ArchiveNotification(id, unarchive);
+            await archiveNotificationById(id, unarchive);
+
             const notifType = notif.type || "info";
             if (unarchive) {
                 notifications.show({
@@ -219,7 +248,7 @@ export default function NotificationsPage() {
                                     );
                                     const allArchived = selectedNotifications.every((n) => n.archived);
 
-                                    Promise.all(ids.map((id) => ArchiveNotification(id, allArchived)))
+                                    Promise.all(ids.map((id) => archiveNotificationById(id, allArchived)))
                                         .then(() => {
                                             notifications.show({
                                                 id: `archive-${allArchived ? "un" : ""}all`,
