@@ -29,6 +29,7 @@ import { useRouter } from "next/navigation";
 import classes from "@/components/MainLoginComponent/MainLoginComponent.module.css";
 import {
     getOauthConfigV1AuthConfigOauthGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
     getUserProfileEndpointV1UsersMeGet,
     JwtToken,
     mfaOtpRecoveryV1AuthMfaOtpRecoveryPost,
@@ -37,7 +38,7 @@ import {
     type BodyRequestAccessTokenV1AuthLoginPost,
     type UserPublic,
 } from "@/lib/api/csclient";
-import { GetUserAvatar } from "@/lib/api/user";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { useEffect, useState } from "react";
 
 interface LoginFormValues {
@@ -197,12 +198,20 @@ export function MainLoginComponent(): React.ReactElement {
 
             let userAvatar: Blob | null = null;
             if (userInfo.avatarUrn) {
-                userAvatar = await GetUserAvatar(userInfo.avatarUrn);
-                if (userAvatar) {
+                const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                    query: { fn: userInfo.avatarUrn },
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (!avatarResult.error) {
+                    userAvatar = avatarResult.data as Blob;
                     console.debug("User avatar fetched successfully", { size: userAvatar.size });
                 } else {
-                    console.warn("No avatar found for user, using default avatar.");
+                    console.warn("Failed to fetch avatar:", avatarResult.error);
+                    userAvatar = null;
                 }
+            } else {
+                console.warn("No avatar found for user, using default avatar.");
             }
             userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
             console.info(`Login successful for user ${values.username}`);
@@ -593,7 +602,17 @@ export function MainLoginComponent(): React.ReactElement {
                             const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
                             let userAvatar: Blob | null = null;
                             if (userInfo.avatarUrn) {
-                                userAvatar = await GetUserAvatar(userInfo.avatarUrn);
+                                const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                                    query: { fn: userInfo.avatarUrn },
+                                    headers: { Authorization: GetAccessTokenHeader() },
+                                });
+
+                                if (!avatarResult.error) {
+                                    userAvatar = avatarResult.data as Blob;
+                                } else {
+                                    console.warn("Failed to fetch avatar:", avatarResult.error);
+                                    userAvatar = null;
+                                }
                             }
                             userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
 

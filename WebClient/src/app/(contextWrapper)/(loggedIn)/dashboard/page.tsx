@@ -6,11 +6,11 @@ import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent
 import { SpotlightComponent } from "@/components/SpotlightComponent";
 import {
     Notification,
+    getUserAvatarEndpointV1UsersAvatarGet,
     getUserNotificationsV1NotificationsMeGet,
     getUserProfileEndpointV1UsersMeGet,
     type UserPublic,
 } from "@/lib/api/csclient";
-import { GetUserAvatar } from "@/lib/api/user";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
@@ -90,9 +90,17 @@ const DashboardContent = memo(function DashboardContent() {
                 if (!mounted) return;
 
                 if (userInfo.avatarUrn) {
-                    const userAvatar = await GetUserAvatar(userInfo.avatarUrn);
-                    if (mounted) {
+                    const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                        query: { fn: userInfo.avatarUrn },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (!avatarResult.error && mounted) {
+                        const userAvatar = avatarResult.data as Blob;
                         userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+                    } else if (mounted) {
+                        console.warn("Failed to fetch avatar:", avatarResult.error);
+                        userCtx.updateUserInfo(userInfo, userPermissions);
                     }
                 } else if (mounted) {
                     userCtx.updateUserInfo(userInfo, userPermissions);

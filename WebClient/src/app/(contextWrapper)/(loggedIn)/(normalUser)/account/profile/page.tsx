@@ -2,26 +2,29 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import {
+    deleteUserAvatarEndpointV1UsersAvatarDelete,
     disableMfaOtpV1AuthMfaOtpDisablePost,
     generateMfaOtpV1AuthMfaOtpGeneratePost,
     getAllRolesV1AuthRolesGet,
     getOauthConfigV1AuthConfigOauthGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
     getUserProfileEndpointV1UsersMeGet,
     oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet,
-    requestVerificationEmailV1AuthEmailRequestPost,
-    verifyMfaOtpV1AuthMfaOtpVerifyPost,
-    verifyEmailV1AuthEmailVerifyPost,
     OtpToken,
-    UserPublic,
+    requestVerificationEmailV1AuthEmailRequestPost,
     Role,
+    updateUserAvatarEndpointV1UsersAvatarPatch,
+    updateUserEndpointV1UsersPatch,
+    UserPublic,
+    UserUpdate,
+    verifyEmailV1AuthEmailVerifyPost,
+    verifyMfaOtpV1AuthMfaOtpVerifyPost,
 } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { UserPreferences } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
-import { UserUpdate } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -139,7 +142,16 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const fetchUserAvatar = async (avatarUrn: string): Promise<string | undefined> => {
         try {
-            const blob = await GetUserAvatar(avatarUrn);
+            const result = await getUserAvatarEndpointV1UsersAvatarGet({
+                query: { fn: avatarUrn },
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to fetch avatar: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            const blob = result.data as Blob;
             const url = URL.createObjectURL(blob);
             if (avatarUrn && !currentAvatarUrn) URL.revokeObjectURL(avatarUrn);
             setCurrentAvatarUrn(avatarUrn);
@@ -225,7 +237,16 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             password: null,
         };
         try {
-            let updatedUser = await UpdateUserInfo(newUserInfo);
+            const result = await updateUserEndpointV1UsersPatch({
+                body: newUserInfo,
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to update user: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            let updatedUser = result.data as UserPublic;
             notifications.show({
                 id: "user-update-success",
                 title: "Success",
@@ -237,7 +258,17 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             if (avatarRemoved && currentAvatarUrn) {
                 try {
                     console.debug("Removing avatar...");
-                    await RemoveUserProfile(values.id);
+                    const deleteResult = await deleteUserAvatarEndpointV1UsersAvatarDelete({
+                        query: { user_id: values.id },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (deleteResult.error) {
+                        throw new Error(
+                            `Failed to remove avatar: ${deleteResult.response.status} ${deleteResult.response.statusText}`
+                        );
+                    }
+
                     console.debug("Avatar removed successfully.");
                     notifications.show({
                         id: "avatar-remove-success",
@@ -263,7 +294,19 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             if (editUserAvatar) {
                 try {
                     console.debug("Uploading avatar...");
-                    updatedUser = await UploadUserAvatar(values.id, editUserAvatar);
+                    const uploadResult = await updateUserAvatarEndpointV1UsersAvatarPatch({
+                        query: { user_id: values.id },
+                        body: { img: editUserAvatar },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (uploadResult.error) {
+                        throw new Error(
+                            `Failed to upload avatar: ${uploadResult.response.status} ${uploadResult.response.statusText}`
+                        );
+                    }
+
+                    updatedUser = uploadResult.data as UserPublic;
                     if (updatedUser.avatarUrn) {
                         fetchUserAvatar(updatedUser.avatarUrn);
                         console.debug("Avatar uploaded successfully.");

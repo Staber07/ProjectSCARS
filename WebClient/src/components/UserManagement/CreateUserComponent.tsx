@@ -1,6 +1,6 @@
 "use client";
-import { UpdateUserInfo } from "@/lib/api/user";
-import { Role, School, createNewUserV1AuthCreatePost } from "@/lib/api/csclient";
+
+import { Role, School, UserPublic, UserUpdate, createNewUserV1AuthCreatePost } from "@/lib/api/csclient";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
@@ -16,6 +16,7 @@ interface CreateUserComponentProps {
     currentPage: number;
     availableSchools: School[];
     availableRoles: Role[];
+    UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
 }
 
 export function CreateUserComponent({
@@ -25,6 +26,7 @@ export function CreateUserComponent({
     currentPage,
     availableSchools,
     availableRoles,
+    UpdateUserInfo,
 }: CreateUserComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
@@ -123,7 +125,7 @@ export function CreateUserComponent({
                 buttonStateHandler.close();
             }
         },
-        [buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
+        [buttonStateHandler, currentPage, fetchUsers, form, setModalOpen, UpdateUserInfo]
     );
 
     return (
