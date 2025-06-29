@@ -216,13 +216,24 @@ export function MainLoginComponent(): React.ReactElement {
             router.push("/dashboard");
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 401")) {
-                notifications.show({
-                    id: "login-failed",
-                    title: "Login failed",
-                    message: "Please check your username and password.",
-                    color: "red",
-                    icon: <IconX />,
-                });
+                if (showMFAInput || values.otpCode) {
+                    notifications.show({
+                        id: "otp-validation-failed",
+                        title: "OTP Validation failed",
+                        message: "Please check your OTP code and try again.",
+                        color: "red",
+                        icon: <IconX />,
+                    });
+                    setOtpFormHasError(true);
+                } else {
+                    notifications.show({
+                        id: "login-failed",
+                        title: "Login failed",
+                        message: "Please check your username and password.",
+                        color: "red",
+                        icon: <IconX />,
+                    });
+                }
             } else if (error instanceof Error && error.message.includes("status code 429")) {
                 notifications.show({
                     id: "login-too-many-attempts",
