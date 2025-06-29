@@ -1,5 +1,6 @@
 import { JwtToken } from "@/lib/api/csclient";
 import { LocalStorage } from "@/lib/info";
+import { performLogout } from "@/lib/utils/logout";
 
 /**
  * Get the access token header for authenticated requests.
@@ -52,17 +53,20 @@ export function GetRefreshToken(): string | null {
 }
 
 /**
- * Clear all authentication tokens
+ * Clear all authentication tokens using the centralized logout utility
+ * @param redirect Whether to redirect to login page (default: false)
  */
-export function ClearAuthTokens(): void {
-    localStorage.removeItem(LocalStorage.accessToken);
+export function ClearAuthTokens(redirect: boolean = false): void {
+    performLogout(redirect);
 }
 
 /**
- * Check if access token is expired (basic JWT decode without verification)
- * @returns {boolean} Whether the token appears to be expired
+ * Check if access token exists in storage
+ * Note: Since the server uses JWE (encrypted tokens), we cannot decode them client-side
+ * to check expiration. Token validation is handled server-side and will return 401 when expired.
+ * @returns {boolean} Whether the token is missing or invalid (true = missing/invalid, false = exists)
  */
-export function IsAccessTokenExpired(): boolean {
+export function IsAccessTokenMissing(): boolean {
     try {
         const storedToken = localStorage.getItem(LocalStorage.accessToken);
         if (!storedToken) return true;
@@ -70,37 +74,43 @@ export function IsAccessTokenExpired(): boolean {
         const token: JwtToken = JSON.parse(storedToken);
         if (!token.access_token) return true;
 
-        // Basic JWT payload extraction (without verification)
-        const parts = token.access_token.split(".");
-        if (parts.length !== 3) return true;
-
-        const payload = JSON.parse(atob(parts[1]));
-        if (!payload.exp) return false; // If no expiry, assume valid
-
-        const currentTime = Math.floor(Date.now() / 1000);
-        return payload.exp < currentTime;
+        // Since we're using JWE (encrypted tokens), we cannot decode them client-side
+        // The server will validate the token and return 401 if expired
+        // We can only check if the token exists in storage
+        return false; // Token exists and appears valid, let server validate
     } catch (error) {
-        console.error("Error checking token expiration:", error);
-        return true; // Assume expired if we can't parse
+        console.error("Error checking token existence:", error);
+        return true; // Assume missing if we can't parse the stored token
     }
 }
 
 /**
- * Auto-logout functionality for when tokens expire
- * This can be called periodically to check token validity
+ * Check if tokens exist and handle missing tokens
+ * Since we use JWE tokens, actual expiration is validated server-side via 401 responses
+ * This function only checks if tokens exist in storage and logs out if completely missing
  * @param logoutCallback - Function to call when auto-logout is needed
  */
-export function CheckAndHandleTokenExpiry(logoutCallback: () => void): void {
-    if (IsAccessTokenExpired()) {
-        const refreshToken = GetRefreshToken();
-        if (!refreshToken) {
-            console.info("Access token expired and no refresh token available. Logging out.");
+export function CheckAndHandleMissingTokens(logoutCallback: () => void): void {
+    const storedToken = localStorage.getItem(LocalStorage.accessToken);
+    if (!storedToken) {
+        console.info("No access token found in storage. Logging out.");
+        logoutCallback();
+        return;
+    }
+
+    try {
+        const token: JwtToken = JSON.parse(storedToken);
+        if (!token.access_token) {
+            console.info("Invalid access token format. Logging out.");
             logoutCallback();
-        } else {
-            console.info("Access token expired but refresh token available. Manual login required.");
-            // In a real implementation, you would call a refresh endpoint here
-            // For now, we'll just log the user out since there's no refresh endpoint
-            logoutCallback();
+            return;
         }
+
+        // Token exists and appears valid - actual expiration will be handled
+        // by the customClient's 401 error handling and automatic refresh logic
+        console.debug("Access token exists in storage. Server will validate expiration.");
+    } catch (error) {
+        console.error("Error parsing stored token:", error);
+        logoutCallback();
     }
 }

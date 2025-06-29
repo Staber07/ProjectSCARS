@@ -189,6 +189,58 @@ async def request_access_token(
     return resp
 
 
+@router.post("/refresh", response_model=JWTToken)
+async def refresh_access_token(
+    refresh_token: Annotated[str, Body(embed=True)],
+    session: Annotated[Session, Depends(get_db_session)],
+):
+    """Refresh the access token for the user.
+
+    This endpoint is used to refresh the access token when it has expired.
+    It requires a valid refresh token to be provided in the request.
+
+    Args:
+        refresh_token: The refresh token to validate.
+        session: The database session.
+
+    Returns:
+        A new JWTToken containing the refreshed access token and optionally a new refresh token.
+    """
+    try:
+        # Verify the refresh token
+        decoded_token = await verify_access_token(refresh_token)
+
+        # Check if the user still exists
+        user = session.get(User, decoded_token.id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found.",
+            )
+
+        # Generate new access token
+        new_access_token = await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        )
+
+        return JWTToken(
+            uid=uuid.uuid4(),
+            access_token=new_access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+        )
+
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token.",
+        ) from e
+
+
 @router.get("/roles", response_model=list[Role])
 async def get_all_roles(
     token: logged_in_dep,

@@ -2,7 +2,8 @@
 
 import { JwtToken } from "@/lib/api/csclient";
 import { LocalStorage } from "@/lib/info";
-import { CheckAndHandleTokenExpiry } from "@/lib/utils/token";
+import { performLogout } from "@/lib/utils/logout";
+import { CheckAndHandleMissingTokens } from "@/lib/utils/token";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
@@ -50,23 +51,19 @@ export function AuthProvider({ children }: AuthProviderProps): ReactNode {
     const logout = () => {
         console.debug("Setting local login state to false");
         setIsAuthenticated(false);
-        localStorage.removeItem(LocalStorage.accessToken);
-        localStorage.removeItem(LocalStorage.userData);
-        localStorage.removeItem(LocalStorage.userPermissions);
-        localStorage.removeItem(LocalStorage.userAvatar);
-        localStorage.removeItem(LocalStorage.setupCompleteDismissed);
+        performLogout(false); // Don't redirect here since we might want to handle it differently in React components
     };
 
-    // Set up automatic token expiry checking
+    // Set up automatic token existence checking
     useEffect(() => {
         if (!isAuthenticated) return;
 
         const tokenCheckInterval = setInterval(() => {
-            CheckAndHandleTokenExpiry(logout);
+            CheckAndHandleMissingTokens(logout);
         }, 5 * 60 * 1000); // Check every 5 minutes
 
         // Initial check
-        CheckAndHandleTokenExpiry(logout);
+        CheckAndHandleMissingTokens(logout);
 
         return () => clearInterval(tokenCheckInterval);
     }, [isAuthenticated]);
