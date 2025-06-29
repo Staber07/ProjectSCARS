@@ -22,7 +22,6 @@ export const Connections = {
 
 export const LocalStorage = {
     accessToken: "at",
-    refreshToken: "rt",
     userData: "ud",
     userPermissions: "up",
     userAvatar: "ua",

@@ -11,7 +11,6 @@ export function performLogout(redirect: boolean = true): void {
 
     // Clear all authentication and user data from localStorage
     localStorage.removeItem(LocalStorage.accessToken);
-    localStorage.removeItem(LocalStorage.refreshToken);
     localStorage.removeItem(LocalStorage.userData);
     localStorage.removeItem(LocalStorage.userPermissions);
     localStorage.removeItem(LocalStorage.userAvatar);
