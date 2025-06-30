@@ -474,6 +474,41 @@ export type UserCreate = {
 };
 
 /**
+ * UserDelete
+ * A model used for deleting user's information.
+ */
+export type UserDelete = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Email
+     */
+    email?: boolean;
+    /**
+     * Namefirst
+     */
+    nameFirst?: boolean;
+    /**
+     * Namemiddle
+     */
+    nameMiddle?: boolean;
+    /**
+     * Namelast
+     */
+    nameLast?: boolean;
+    /**
+     * Position
+     */
+    position?: boolean;
+    /**
+     * Schoolid
+     */
+    schoolId?: boolean;
+};
+
+/**
  * UserPasswordResetRequest
  * A model used for resetting a user's password.
  */
@@ -1239,6 +1274,29 @@ export type GetAllUsersEndpointV1UsersAllGetResponses = {
 };
 
 export type GetAllUsersEndpointV1UsersAllGetResponse = GetAllUsersEndpointV1UsersAllGetResponses[keyof GetAllUsersEndpointV1UsersAllGetResponses];
+
+export type DeleteUserInfoEndpointV1UsersDeleteData = {
+    body: UserDelete;
+    path?: never;
+    query?: never;
+    url: '/v1/users/';
+};
+
+export type DeleteUserInfoEndpointV1UsersDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteUserInfoEndpointV1UsersDeleteError = DeleteUserInfoEndpointV1UsersDeleteErrors[keyof DeleteUserInfoEndpointV1UsersDeleteErrors];
+
+export type DeleteUserInfoEndpointV1UsersDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type GetUserEndpointV1UsersGetData = {
     body?: never;

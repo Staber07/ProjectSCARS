@@ -14,10 +14,11 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.user import User, UserPublic, UserUpdate
+from centralserver.internals.models.user import User, UserDelete, UserPublic, UserUpdate
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
+    remove_user_info,
     update_user_avatar,
     update_user_info,
 )
@@ -247,6 +248,35 @@ async def update_user_endpoint(
     return await update_user_info(
         target_user=updated_user_info, token=token, session=session
     )
+
+
+@router.delete("/")
+async def delete_user_info_endpoint(
+    user_info: UserDelete,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> None:
+    """Delete a user's profile information.
+
+    Args:
+        user_info: The user information to delete.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+    """
+
+    updating_self = user_info.id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify", session, token
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify user profiles.",
+        )
+
+    logger.debug(
+        "user %s is removing fields of user profile %s...", token.id, user_info.id
+    )
+    await remove_user_info(user_info, session)
 
 
 @router.patch("/avatar", response_model=UserPublic)
