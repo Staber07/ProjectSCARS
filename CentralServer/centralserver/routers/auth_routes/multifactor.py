@@ -198,6 +198,13 @@ async def validate_mfa_otp(
             ),
             False,
         ),
+        refresh_token=await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.refresh_token_expire_minutes
+            ),
+            True,
+        ),
         token_type="bearer",
     )
 
@@ -303,6 +310,13 @@ async def mfa_otp_recovery(
                 minutes=app_config.authentication.access_token_expire_minutes
             ),
             False,
+        ),
+        refresh_token=await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.refresh_token_expire_minutes
+            ),
+            True,
         ),
         token_type="bearer",
     )

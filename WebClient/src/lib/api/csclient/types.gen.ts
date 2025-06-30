@@ -11,6 +11,16 @@ export type BodyPatchSchoolLogoV1SchoolsLogoPatch = {
 };
 
 /**
+ * Body_refresh_access_token_v1_auth_refresh_post
+ */
+export type BodyRefreshAccessTokenV1AuthRefreshPost = {
+    /**
+     * Refresh Token
+     */
+    refresh_token: string;
+};
+
+/**
  * Body_request_access_token_v1_auth_login_post
  */
 export type BodyRequestAccessTokenV1AuthLoginPost = {
@@ -121,6 +131,10 @@ export type JwtToken = {
      * Access Token
      */
     access_token: string;
+    /**
+     * Refresh Token
+     */
+    refresh_token?: string | null;
     /**
      * Token Type
      */
@@ -1063,7 +1077,12 @@ export type CreateNewUserV1AuthCreatePostResponse = CreateNewUserV1AuthCreatePos
 export type RequestAccessTokenV1AuthLoginPostData = {
     body: BodyRequestAccessTokenV1AuthLoginPost;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Remember Me
+         */
+        remember_me?: boolean;
+    };
     url: '/v1/auth/login';
 };
 
@@ -1087,6 +1106,31 @@ export type RequestAccessTokenV1AuthLoginPostResponses = {
 };
 
 export type RequestAccessTokenV1AuthLoginPostResponse = RequestAccessTokenV1AuthLoginPostResponses[keyof RequestAccessTokenV1AuthLoginPostResponses];
+
+export type RefreshAccessTokenV1AuthRefreshPostData = {
+    body: BodyRefreshAccessTokenV1AuthRefreshPost;
+    path?: never;
+    query?: never;
+    url: '/v1/auth/refresh';
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostError = RefreshAccessTokenV1AuthRefreshPostErrors[keyof RefreshAccessTokenV1AuthRefreshPostErrors];
+
+export type RefreshAccessTokenV1AuthRefreshPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: JwtToken;
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostResponse = RefreshAccessTokenV1AuthRefreshPostResponses[keyof RefreshAccessTokenV1AuthRefreshPostResponses];
 
 export type GetAllRolesV1AuthRolesGetData = {
     body?: never;

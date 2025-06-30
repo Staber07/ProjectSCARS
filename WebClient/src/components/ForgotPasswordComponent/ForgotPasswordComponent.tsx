@@ -1,7 +1,7 @@
 "use client";
 
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
-import { RequestPasswordRecovery } from "@/lib/api/auth";
+import { requestPasswordRecoveryV1AuthEmailRecoveryRequestPost } from "@/lib/api/csclient";
 import { Button, Container, Paper, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -68,7 +68,20 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        const response = await RequestPasswordRecovery(values.email, values.username);
+        const result = await requestPasswordRecoveryV1AuthEmailRecoveryRequestPost({
+            query: {
+                username: values.username,
+                email: values.email,
+            },
+        });
+
+        let response;
+        if (result.error) {
+            response = { message: "Request failed" };
+        } else {
+            response = result.data;
+        }
+
         if (response?.message === "ok") {
             requestSentHandler.open();
             notifications.show({

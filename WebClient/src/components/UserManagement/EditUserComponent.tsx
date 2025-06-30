@@ -1,8 +1,8 @@
 "use client";
+
+import { Role, School, UserPublic, UserUpdate } from "@/lib/api/csclient";
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { Role, School, UserPublic, UserUpdate } from "@/lib/api/csclient";
-import { RemoveUserProfile, UpdateUserInfo } from "@/lib/api/user";
 import {
     Button,
     Card,
@@ -42,6 +42,7 @@ interface EditUserProps {
     fetchUsers: (page: number) => void;
     UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
     UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
+    RemoveUserAvatar: (userId: string) => Promise<void>;
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
 }
 
@@ -67,7 +68,9 @@ export function EditUserComponent({
     currentPage,
     setIndex,
     fetchUsers,
+    UpdateUserInfo,
     UploadUserAvatar,
+    RemoveUserAvatar,
     fetchUserAvatar,
 }: EditUserProps) {
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
@@ -227,7 +230,7 @@ export function EditUserComponent({
             if (avatarRemoved && currentAvatarUrn) {
                 try {
                     console.debug("Removing avatar...");
-                    await RemoveUserProfile(values.id);
+                    await RemoveUserAvatar(values.id);
                     console.debug("Avatar removed successfully.");
                     notifications.show({
                         id: "avatar-remove-success",

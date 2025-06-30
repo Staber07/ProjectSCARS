@@ -14,10 +14,11 @@ import {
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { GetNotificationsQuantity } from "@/lib/api/notification";
+import { getNotificationQuantityV1NotificationsQuantityGet } from "@/lib/api/csclient";
 import { Program } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { JSX, useEffect, useState } from "react";
 
 import classes from "./Navbar.module.css";
@@ -31,15 +32,25 @@ export const Navbar: React.FC = () => {
     const { logout } = useAuth();
 
     const fetchNotificationsQuantity = async () => {
-        await GetNotificationsQuantity()
-            .then((data) => {
-                console.debug("Fetched notifications quantity:", data);
-                setNotificationsQuantity(data);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch notifications quantity:", error);
-                setNotificationsQuantity(0);
+        try {
+            const result = await getNotificationQuantityV1NotificationsQuantityGet({
+                query: { show_archived: false },
+                headers: { Authorization: GetAccessTokenHeader() },
             });
+
+            if (result.error) {
+                throw new Error(
+                    `Failed to fetch notifications quantity: ${result.response.status} ${result.response.statusText}`
+                );
+            }
+
+            const quantity = result.data as number;
+            console.debug("Fetched notifications quantity:", quantity);
+            setNotificationsQuantity(quantity);
+        } catch (error) {
+            console.error("Failed to fetch notifications quantity:", error);
+            setNotificationsQuantity(0);
+        }
     };
 
     useEffect(() => {

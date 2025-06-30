@@ -1,9 +1,10 @@
 "use client";
 
+import { School } from "@/lib/api/csclient";
 import {
     CreateSchool,
     GetAllSchools,
-    GetSchooLogo,
+    GetSchoolLogo,
     GetSchoolQuantity,
     RemoveSchoolLogo,
     UpdateSchoolInfo,
@@ -11,7 +12,6 @@ import {
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import { SchoolUpdateType } from "@/lib/types";
-import { School } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -98,7 +98,7 @@ export default function SchoolsPage(): JSX.Element {
         setEditSchool(school);
         setLogoToRemove(false);
         if (school.logoUrn && school.id != null) {
-            const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
+            const logoUrl = fetchSchoolLogo(school.logoUrn);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
         } else {
             setEditSchoolLogo(null);
@@ -113,14 +113,14 @@ export default function SchoolsPage(): JSX.Element {
         setSelected(updated);
     };
 
-    const fetchSchoolLogo = (logoUrn: string, schoolId: number): string | undefined => {
+    const fetchSchoolLogo = (logoUrn: string): string | undefined => {
         if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
             return logos.get(logoUrn);
         } else if (logosRequested.has(logoUrn)) {
             return undefined; // Logo is requested but not yet available
         }
         setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        GetSchooLogo(logoUrn, schoolId)
+        GetSchoolLogo(logoUrn)
             .then((blob) => {
                 if (blob.size > 0) {
                     const url = URL.createObjectURL(blob);
@@ -212,7 +212,7 @@ export default function SchoolsPage(): JSX.Element {
                         const schoolAfterLogoUpload = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
                         updatedSchool = schoolAfterLogoUpload;
                         if (schoolAfterLogoUpload.logoUrn) {
-                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn, editSchool.id);
+                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn);
                         }
                         console.debug("Logo uploaded successfully.");
                     } catch (error) {
@@ -494,7 +494,7 @@ export default function SchoolsPage(): JSX.Element {
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
                                     {school.logoUrn && school.id != null ? (
-                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn, school.id)}>
+                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn)}>
                                             <IconUser />
                                         </Avatar>
                                     ) : (
