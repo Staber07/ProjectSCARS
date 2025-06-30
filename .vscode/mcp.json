@@ -1,15 +1,15 @@
 {
     "servers": {
-        "Context7": {
+        "Context7 (Project SCARS)": {
             "type": "stdio",
             "command": "npx",
             "args": ["-y", "@upstash/context7-mcp@latest"]
         },
-        "github": {
+        "GitHub (Project SCARS)": {
             "type": "http",
             "url": "https://api.githubcopilot.com/mcp/"
         },
-        "sqlite": {
+        "SQLite (Project SCARS)": {
             "command": "uvx",
             "args": ["mcp-sqlite", "CentralServer/db/centralserver.db"]
         }
