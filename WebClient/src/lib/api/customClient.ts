@@ -54,8 +54,16 @@ const kyClient = ky.create({
                     //     throw new AuthenticationError("Multiple authentication failures - user logged out");
                     // }
 
+                    // Check if user is logged in before attempting token refresh
+                    const userData = localStorage.getItem(LocalStorage.userData);
+                    if (!userData) {
+                        console.warn("🚪 User not logged in, skipping token refresh...");
+                        // throw new AuthenticationError("User is not logged in");
+                        return; // Skip refresh if user is not logged in
+                    }
                     try {
                         console.warn("🔑 Unauthorized request, attempting to refresh token...");
+
                         // Attempt to refresh token using the proper utility function
                         const refreshToken = GetRefreshToken();
                         if (!refreshToken) {
