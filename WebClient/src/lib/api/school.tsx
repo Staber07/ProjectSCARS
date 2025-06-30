@@ -1,134 +1,140 @@
-import { School, SchoolCreate } from "@/lib/api/csclient";
-import { Connections } from "@/lib/info";
+import {
+    School,
+    SchoolCreate,
+    createSchoolEndpointV1SchoolsCreatePost,
+    deleteSchoolLogoV1SchoolsLogoDelete,
+    getAllSchoolsEndpointV1SchoolsAllGet,
+    getSchoolEndpointV1SchoolsGet,
+    getSchoolLogoEndpointV1SchoolsLogoGet,
+    getSchoolsQuantityEndpointV1SchoolsQuantityGet,
+    patchSchoolLogoV1SchoolsLogoPatch,
+    updateSchoolEndpointV1SchoolsPatch,
+} from "@/lib/api/csclient";
 import { SchoolUpdateType } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
-import ky from "ky";
-
-const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
 export async function GetAllSchools(offset: number, limit: number): Promise<School[]> {
-    const centralServerResponse = await ky.get(`${endpoint}/schools/all`, {
-        searchParams: { offset: offset, limit: limit },
+    const result = await getAllSchoolsEndpointV1SchoolsAllGet({
         headers: { Authorization: GetAccessTokenHeader() },
+        query: { offset, limit },
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get all schools: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to get all schools: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const schools: School[] = await centralServerResponse.json();
-    return schools;
+    return result.data;
 }
 
-export async function GetSchoolLogo(fn: string, school_id: number): Promise<Blob> {
-    const centralServerResponse = await ky.get(`${endpoint}/schools/logo`, {
+export async function GetSchoolLogo(fn: string): Promise<Blob> {
+    const result = await getSchoolLogoEndpointV1SchoolsLogoGet({
         headers: { Authorization: GetAccessTokenHeader() },
-        searchParams: { fn: fn, school_id: school_id.toString() }, // add school_id here
-        throwHttpErrors: false,
+        query: { fn },
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get school logo: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to get school logo: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const schoolLogo: Blob = await centralServerResponse.blob();
-    console.debug("School logo response blob size:", schoolLogo.size);
-    return schoolLogo;
+    // Type assertion needed as the generated type is not specific about Blob
+    const logoBlob = result.data as unknown as Blob;
+    console.debug("School logo response blob size:", logoBlob.size);
+    return logoBlob;
 }
 
 export async function UpdateSchoolInfo(school: SchoolUpdateType): Promise<School> {
-    const centralServerResponse = await ky.patch(`${endpoint}/schools`, {
+    const result = await updateSchoolEndpointV1SchoolsPatch({
         headers: { Authorization: GetAccessTokenHeader() },
-        json: school,
+        body: school,
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to update school info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to update school info: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const updatedSchoolData: School = await centralServerResponse.json();
-    return updatedSchoolData;
+    return result.data;
 }
 
 export async function UploadSchoolLogo(schoolId: number, file: File): Promise<School> {
     const formData = new FormData();
     formData.append("img", file);
 
-    const centralServerResponse = await ky.patch(`${endpoint}/schools/logo`, {
+    const result = await patchSchoolLogoV1SchoolsLogoPatch({
         headers: { Authorization: GetAccessTokenHeader() },
-        searchParams: { school_id: schoolId },
-        body: formData,
+        query: { school_id: schoolId },
+        body: { img: file },
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to upload school logo: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to upload school logo: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const updatedSchoolData: School = await centralServerResponse.json();
-    return updatedSchoolData;
+    return result.data;
 }
 
 export async function RemoveSchoolLogo(schoolId: number): Promise<School> {
-    const centralServerResponse = await ky.delete(`${endpoint}/schools/logo`, {
+    const result = await deleteSchoolLogoV1SchoolsLogoDelete({
         headers: { Authorization: GetAccessTokenHeader() },
-        searchParams: { school_id: schoolId },
+        query: { school_id: schoolId },
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to remove school logo: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to remove school logo: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const updatedSchoolData: School = await centralServerResponse.json();
-    return updatedSchoolData;
+    return result.data;
 }
 
 export async function GetSchoolQuantity(): Promise<number> {
-    const centralServerResponse = await ky.get(`${endpoint}/schools/quantity`, {
+    const result = await getSchoolsQuantityEndpointV1SchoolsQuantityGet({
         headers: { Authorization: GetAccessTokenHeader() },
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get school quantity: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to get school quantity: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const quantity: number = await centralServerResponse.json();
-    return quantity;
+    return result.data ?? 0;
 }
 
 export async function CreateSchool(school: SchoolCreate): Promise<School> {
-    const centralServerResponse = await ky.post(`${endpoint}/schools/create`, {
+    const result = await createSchoolEndpointV1SchoolsCreatePost({
         headers: { Authorization: GetAccessTokenHeader() },
-        json: school,
+        body: school,
     });
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to create school: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+
+    if (result.error) {
+        const errorMessage = `Failed to create school: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const createdSchoolData: School = await centralServerResponse.json();
-    return createdSchoolData;
+    return result.data;
 }
 
 export async function GetSchoolInfo(schoolId: number): Promise<School> {
-    const centralServerResponse = await ky.get(`${endpoint}/schools`, {
-        searchParams: { school_id: schoolId },
+    const result = await getSchoolEndpointV1SchoolsGet({
         headers: { Authorization: GetAccessTokenHeader() },
-        throwHttpErrors: false,
+        query: { school_id: schoolId },
     });
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get school info: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
+    if (result.error) {
+        const errorMessage = `Failed to get school info: ${result.response.status} ${result.response.statusText}`;
         console.error(errorMessage);
         throw new Error(errorMessage);
     }
 
-    const schoolData: School = await centralServerResponse.json();
-    return schoolData;
+    return result.data;
 }
