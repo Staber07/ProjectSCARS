@@ -127,14 +127,24 @@ export function ForgotPasswordComponent(): React.ReactElement {
                 buttonStateHandler.close();
             }
         } catch (error) {
-            // TODO: give more specific error messages
-            notifications.show({
-                id: "forgot-password-error",
-                title: "Account recovery failed",
-                message: "An error occurred while sending the recovery email. Please try again.",
-                color: "red",
-                icon: <IconX />,
-            });
+            console.error("Unexpected error sending recovery email:", error);
+            if (error instanceof Error) {
+                notifications.show({
+                    id: "forgot-password-error",
+                    title: "Account recovery failed",
+                    message: `An error occurred: ${error.message}`,
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else {
+                notifications.show({
+                    id: "forgot-password-error",
+                    title: "Account recovery failed",
+                    message: "An error occurred while sending the recovery email. Please try again.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            }
             buttonStateHandler.close();
         }
     };
