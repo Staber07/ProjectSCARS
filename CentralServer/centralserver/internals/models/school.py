@@ -59,3 +59,13 @@ class SchoolCreate(SQLModel):
     phone: str | None = None
     email: EmailStr | None = None
     website: str | None = None
+
+
+class SchoolDelete(SQLModel):
+    """A model for deleting a school."""
+
+    id: int
+    address: bool = False
+    phone: bool = False
+    email: bool = False
+    website: bool = False

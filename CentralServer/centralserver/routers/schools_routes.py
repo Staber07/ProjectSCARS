@@ -14,7 +14,7 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models.school import School, SchoolCreate
+from centralserver.internals.models.school import School, SchoolCreate, SchoolDelete
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
 from centralserver.internals.school_handler import (
@@ -256,6 +256,57 @@ async def update_school_endpoint(
 
     logger.debug("user %s updated school with id %s", token.id, school.id)
     return school
+
+
+@router.delete("/")
+async def delete_school_info_endpoint(
+    school: SchoolDelete,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> None:
+    """Delete a school from the system."""
+
+    user = session.get(User, token.id)
+    selected_school = session.get(School, school.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if not selected_school:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="School not found.",
+        )
+
+    required_permission = (
+        "schools:self:modify"
+        if user in selected_school.users
+        else "schools:global:modify"
+    )
+
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete information of this school.",
+        )
+
+    if school.address:
+        selected_school.address = None
+
+    if school.phone:
+        selected_school.phone = None
+
+    if school.email:
+        selected_school.email = None
+
+    if school.website:
+        selected_school.website = None
+
+    session.commit()
+    session.refresh(selected_school)
+    logger.info("Selected fields for school `%s` removed.", selected_school.id)
 
 
 @router.patch("/logo", response_model=School)

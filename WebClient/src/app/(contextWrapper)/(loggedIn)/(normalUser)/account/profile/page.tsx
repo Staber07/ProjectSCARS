@@ -257,7 +257,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             (field, index) => index > 0 && field === true // Skip the id field at index 0
         );
         try {
-            // First handle field deletions if any
+            console.debug("Has values to remove:", hasFieldsToDelete);
             if (hasFieldsToDelete) {
                 const deleteResult = await deleteUserInfoEndpointV1UsersDelete({
                     body: fieldsToDelete,
@@ -265,18 +265,19 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 });
 
                 if (deleteResult.error) {
-                    throw new Error(
+                    console.error(
                         `Failed to delete user fields: ${deleteResult.response.status} ${deleteResult.response.statusText}`
                     );
+                    notifications.show({
+                        id: "user-delete-fields-error",
+                        title: "Error",
+                        message: "Failed to remove user values. Please try again.",
+                        color: "red",
+                        icon: <IconSendOff />,
+                    });
+                    buttonStateHandler.close();
+                    return;
                 }
-
-                notifications.show({
-                    id: "user-delete-fields-success",
-                    title: "Success",
-                    message: "Selected fields cleared successfully.",
-                    color: "green",
-                    icon: <IconPencilCheck />,
-                });
             }
 
             // Filter out fields that were deleted from the update object to avoid conflicts

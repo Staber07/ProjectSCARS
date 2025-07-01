@@ -455,6 +455,33 @@ export type SchoolCreate = {
 };
 
 /**
+ * SchoolDelete
+ * A model for deleting a school.
+ */
+export type SchoolDelete = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Address
+     */
+    address?: boolean;
+    /**
+     * Phone
+     */
+    phone?: boolean;
+    /**
+     * Email
+     */
+    email?: boolean;
+    /**
+     * Website
+     */
+    website?: boolean;
+};
+
+/**
  * UserCreate
  * A model used for creating new user accounts.
  */
@@ -1532,6 +1559,29 @@ export type GetAllSchoolsEndpointV1SchoolsAllGetResponses = {
 };
 
 export type GetAllSchoolsEndpointV1SchoolsAllGetResponse = GetAllSchoolsEndpointV1SchoolsAllGetResponses[keyof GetAllSchoolsEndpointV1SchoolsAllGetResponses];
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteData = {
+    body: SchoolDelete;
+    path?: never;
+    query?: never;
+    url: '/v1/schools/';
+};
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteError = DeleteSchoolInfoEndpointV1SchoolsDeleteErrors[keyof DeleteSchoolInfoEndpointV1SchoolsDeleteErrors];
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type GetSchoolEndpointV1SchoolsGetData = {
     body?: never;
