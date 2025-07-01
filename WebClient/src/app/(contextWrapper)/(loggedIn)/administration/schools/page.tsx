@@ -506,8 +506,9 @@ export default function SchoolsPage(): JSX.Element {
                     size="md"
                     style={{ width: "400px" }}
                 />
-                <SchoolStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
+
                 <Flex ml="auto" gap="sm" align="center">
+                    <SchoolStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
                     <ActionIcon
                         disabled={!userCtx.userPermissions?.includes("schools:create")}
                         size="input-md"
