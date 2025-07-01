@@ -6,9 +6,11 @@ import { UserFilters } from "@/components/UserManagement/UserFilters";
 import {
     Role,
     School,
+    UserDelete,
     UserPublic,
     UserUpdate,
     deleteUserAvatarEndpointV1UsersAvatarDelete,
+    deleteUserInfoEndpointV1UsersDelete,
     getAllRolesV1AuthRolesGet,
     getAllUsersEndpointV1UsersAllGet,
     getUserAvatarEndpointV1UsersAvatarGet,
@@ -133,6 +135,17 @@ export default function UsersPage(): JSX.Element {
 
         if (result.error) {
             throw new Error(`Failed to remove avatar: ${result.response.status} ${result.response.statusText}`);
+        }
+    };
+
+    const DeleteUserInfo = async (userDelete: UserDelete): Promise<void> => {
+        const result = await deleteUserInfoEndpointV1UsersDelete({
+            body: userDelete,
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to delete user fields: ${result.response.status} ${result.response.statusText}`);
         }
     };
 
@@ -835,6 +848,7 @@ export default function UsersPage(): JSX.Element {
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
                         RemoveUserAvatar={RemoveUserAvatar}
+                        DeleteUserInfo={DeleteUserInfo}
                         fetchUserAvatar={fetchUserAvatar}
                     />
                 )}

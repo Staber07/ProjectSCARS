@@ -18,4 +18,6 @@ export type SchoolUpdateType = {
     website?: string | null;
 
     logoUrn?: string | null;
+
+    deactivated?: boolean | null;
 };

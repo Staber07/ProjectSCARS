@@ -68,66 +68,83 @@ export function ForgotPasswordComponent(): React.ReactElement {
             return;
         }
 
-        const result = await requestPasswordRecoveryV1AuthEmailRecoveryRequestPost({
-            query: {
-                username: values.username,
-                email: values.email,
-            },
-        });
+        try {
+            const result = await requestPasswordRecoveryV1AuthEmailRecoveryRequestPost({
+                query: {
+                    username: values.username,
+                    email: values.email,
+                },
+            });
 
-        let response;
-        if (result.error) {
-            response = { message: "Request failed" };
-        } else {
-            response = result.data;
-        }
+            const response = result.data;
 
-        if (response?.message === "ok") {
-            requestSentHandler.open();
-            notifications.show({
-                id: "forgot-password-success",
-                title: "Account recovery email request sent",
-                message:
-                    "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
-                color: "green",
-                icon: <IconMail />,
-            });
-            buttonStateHandler.close();
-        } else if (response?.message === "User not found.") {
-            notifications.show({
-                id: "forgot-password-user-not-found",
-                title: "Account recovery failed",
-                message: "The provided username does not exist.",
-                color: "red",
-                icon: <IconX />,
-            });
-            buttonStateHandler.close();
-        } else if (response?.message === "The user does not have an email address set for password recovery.") {
-            notifications.show({
-                id: "forgot-password-no-email",
-                title: "Account recovery failed",
-                message: "No recovery email found for the provided username.",
-                color: "red",
-                icon: <IconMailCancel />,
-            });
-            buttonStateHandler.close();
-        } else if (response?.message === "Email does not match the user's email address.") {
-            notifications.show({
-                id: "forgot-password-email-mismatch",
-                title: "Account recovery failed",
-                message: "The provided email does not match the user's email address.",
-                color: "red",
-                icon: <IconSendOff />,
-            });
-            buttonStateHandler.close();
-        } else {
-            notifications.show({
-                id: "forgot-password-error",
-                title: "Account recovery failed",
-                message: "An error occurred while sending the recovery email. Please try again.",
-                color: "red",
-                icon: <IconX />,
-            });
+            if (response?.message === "ok") {
+                requestSentHandler.open();
+                notifications.show({
+                    id: "forgot-password-success",
+                    title: "Account recovery email request sent",
+                    message:
+                        "If you entered the details correctly, an email will be sent. Please check your mail to proceed.",
+                    color: "green",
+                    icon: <IconMail />,
+                });
+                buttonStateHandler.close();
+            } else if (response?.message === "User not found.") {
+                notifications.show({
+                    id: "forgot-password-user-not-found",
+                    title: "Account recovery failed",
+                    message: "The provided username does not exist.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+                buttonStateHandler.close();
+            } else if (response?.message === "The user does not have an email address set for password recovery.") {
+                notifications.show({
+                    id: "forgot-password-no-email",
+                    title: "Account recovery failed",
+                    message: "No recovery email found for the provided username.",
+                    color: "red",
+                    icon: <IconMailCancel />,
+                });
+                buttonStateHandler.close();
+            } else if (response?.message === "Email does not match the user's email address.") {
+                notifications.show({
+                    id: "forgot-password-email-mismatch",
+                    title: "Account recovery failed",
+                    message: "The provided email does not match the user's email address.",
+                    color: "red",
+                    icon: <IconSendOff />,
+                });
+                buttonStateHandler.close();
+            } else {
+                notifications.show({
+                    id: "forgot-password-error",
+                    title: "Account recovery failed",
+                    message: "An error occurred while sending the recovery email. Please try again.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+                buttonStateHandler.close();
+            }
+        } catch (error) {
+            console.error("Unexpected error sending recovery email:", error);
+            if (error instanceof Error) {
+                notifications.show({
+                    id: "forgot-password-error",
+                    title: "Account recovery failed",
+                    message: `An error occurred: ${error.message}`,
+                    color: "red",
+                    icon: <IconX />,
+                });
+            } else {
+                notifications.show({
+                    id: "forgot-password-error",
+                    title: "Account recovery failed",
+                    message: "An error occurred while sending the recovery email. Please try again.",
+                    color: "red",
+                    icon: <IconX />,
+                });
+            }
             buttonStateHandler.close();
         }
     };

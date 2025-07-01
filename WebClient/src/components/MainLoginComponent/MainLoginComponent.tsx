@@ -71,7 +71,7 @@ export function MainLoginComponent(): React.ReactElement {
     });
     const form = useForm<LoginFormValues>({
         mode: "uncontrolled",
-        initialValues: { username: "", password: "", rememberMe: false },
+        initialValues: { username: "", password: "", rememberMe: true },
     });
     const otpForm = useForm<LoginFormValues>({
         mode: "uncontrolled",

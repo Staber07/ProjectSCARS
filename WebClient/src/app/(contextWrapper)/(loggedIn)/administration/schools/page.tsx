@@ -1,6 +1,6 @@
 "use client";
 
-import { School } from "@/lib/api/csclient";
+import { deleteSchoolInfoEndpointV1SchoolsDelete, School, SchoolDelete, SchoolUpdate } from "@/lib/api/csclient";
 import {
     CreateSchool,
     GetAllSchools,
@@ -11,7 +11,6 @@ import {
     UploadSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Anchor,
@@ -28,6 +27,7 @@ import {
     Pagination,
     Select,
     Stack,
+    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -48,6 +48,7 @@ import {
     IconPlus,
     IconSearch,
     IconSendOff,
+    IconTrash,
     IconUser,
     IconUserCheck,
     IconUserExclamation,
@@ -160,16 +161,44 @@ export default function SchoolsPage(): JSX.Element {
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool && editSchool.id != null) {
-            const newSchoolInfo: SchoolUpdateType = {
+            const newSchoolInfo: SchoolUpdate = {
                 id: editSchool.id,
                 name: editSchool.name,
                 address: editSchool.address,
                 phone: editSchool.phone,
                 email: editSchool.email,
                 website: editSchool.website,
-                logoUrn: editSchool.logoUrn,
+                deactivated: editSchool.deactivated,
             };
             try {
+                // Handle value removal first
+                const valuesToRemove: SchoolDelete = {
+                    id: editSchool.id,
+                    address: editSchool.address === null,
+                    phone: editSchool.phone === null,
+                    email: editSchool.email === null,
+                    website: editSchool.website === null,
+                };
+                const hasValuesToRemove = Object.values(valuesToRemove).some(
+                    (field, index) => index > 0 && field === true
+                );
+                console.debug("Has values to remove:", hasValuesToRemove);
+                if (hasValuesToRemove) {
+                    const deleteResult = await deleteSchoolInfoEndpointV1SchoolsDelete({ body: valuesToRemove });
+                    if (deleteResult.error) {
+                        console.error("Failed to remove school values:", deleteResult.error);
+                        notifications.show({
+                            id: "remove-school-values-error",
+                            title: "Error",
+                            message: "Failed to remove school values. Please try again.",
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                        buttonStateHandler.close();
+                        return;
+                    }
+                }
+
                 // update school info first
                 await UpdateSchoolInfo(newSchoolInfo);
                 let updatedSchool = { ...editSchool };
@@ -706,6 +735,20 @@ export default function SchoolsPage(): JSX.Element {
                                     address: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, address: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                         />
                         <TextInput // TODO: Add validation for phone number format
                             label="Phone Number"
@@ -715,6 +758,20 @@ export default function SchoolsPage(): JSX.Element {
                                     ...editSchool,
                                     phone: e.currentTarget.value,
                                 })
+                            }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, phone: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
                             }
                         />
                         <TextInput
@@ -726,6 +783,20 @@ export default function SchoolsPage(): JSX.Element {
                                     email: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, email: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                         />
                         <TextInput
                             label="Website"
@@ -736,6 +807,31 @@ export default function SchoolsPage(): JSX.Element {
                                     website: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, website: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
+                        />
+                        <Switch
+                            label="Deactivate School"
+                            checked={editSchool.deactivated || false}
+                            onChange={(e) =>
+                                setEditSchool({
+                                    ...editSchool,
+                                    deactivated: e.currentTarget.checked,
+                                })
+                            }
+                            description="Deactivate the school and prevent it from being used in any future operations."
                         />
                         <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
                             Save

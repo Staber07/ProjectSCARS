@@ -212,7 +212,8 @@ async def authenticate_user(
                     send_mail,
                     to_address=found_user.email,
                     subject=f"{info.Program.name} | Someone is trying to access your account",
-                    text=get_template("unusual_login.txt").format(
+                    text=get_template(
+                        "unusual_login.txt",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,
@@ -221,7 +222,8 @@ async def authenticate_user(
                         ),
                         last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
                     ),
-                    html=get_template("unusual_login.html").format(
+                    html=get_template(
+                        "unusual_login.html",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,

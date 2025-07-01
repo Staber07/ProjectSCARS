@@ -118,11 +118,13 @@ async def verify_mfa_otp(
                 send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Enabled",
-                text=get_template("mfa_otp_enabled.txt").format(
+                text=get_template(
+                    "mfa_otp_enabled.txt",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
-                html=get_template("mfa_otp_enabled.html").format(
+                html=get_template(
+                    "mfa_otp_enabled.html",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
@@ -288,11 +290,13 @@ async def mfa_otp_recovery(
                 send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
-                text=get_template("mfa_otp_disabled.txt").format(
+                text=get_template(
+                    "mfa_otp_disabled.txt",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
-                html=get_template("mfa_otp_disabled.html").format(
+                html=get_template(
+                    "mfa_otp_disabled.html",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
@@ -366,11 +370,13 @@ async def disable_mfa_otp(
                 send_mail,
                 to_address=user.email,
                 subject=f"{info.Program.name} | Two-Factor Authentication Disabled",
-                text=get_template("mfa_otp_disabled.txt").format(
+                text=get_template(
+                    "mfa_otp_disabled.txt",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
-                html=get_template("mfa_otp_disabled.html").format(
+                html=get_template(
+                    "mfa_otp_disabled.html",
                     name=user.nameFirst or user.username,
                     app_name=info.Program.name,
                 ),
