@@ -68,6 +68,14 @@ const DashboardContent = memo(function DashboardContent() {
         }
     };
 
+    useEffect(() => {
+        // Check if forceupdateinfo is true
+        if (userCtx.userInfo?.forceUpdateInfo) {
+            // Redirect to profile update page
+            window.location.href = "/account/welcome";
+        }
+    }, [userCtx.userInfo?.forceUpdateInfo]);
+
     // Load user info and avatar
     useEffect(() => {
         let mounted = true;
