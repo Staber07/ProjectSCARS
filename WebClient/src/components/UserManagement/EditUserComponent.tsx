@@ -43,12 +43,12 @@ interface EditUserProps {
     availableRoles: Role[];
     currentPage: number;
     setIndex: React.Dispatch<React.SetStateAction<number | null>>;
-    fetchUsers: (page: number) => void;
     UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
     UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
     RemoveUserAvatar: (userId: string) => Promise<void>;
     DeleteUserInfo: (userDelete: UserDelete) => Promise<void>;
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
+    onUserUpdate?: (updatedUser: UserPublic) => void;
 }
 
 interface EditUserValues {
@@ -72,12 +72,12 @@ export function EditUserComponent({
     availableRoles,
     currentPage,
     setIndex,
-    fetchUsers,
     UpdateUserInfo,
     UploadUserAvatar,
     RemoveUserAvatar,
     DeleteUserInfo,
     fetchUserAvatar,
+    onUserUpdate,
 }: EditUserProps) {
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
@@ -331,7 +331,7 @@ export function EditUserComponent({
             if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "" && !avatarRemoved) {
                 fetchUserAvatar(updatedUser.avatarUrn);
             }
-            fetchUsers(currentPage);
+            if (onUserUpdate) onUserUpdate(updatedUser);
             setIndex(null);
         } catch (error) {
             try {
