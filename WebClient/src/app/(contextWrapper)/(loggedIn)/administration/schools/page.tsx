@@ -265,6 +265,15 @@ export default function SchoolsPage(): JSX.Element {
                     updatedSchools[editIndex] = updatedSchool;
                     return updatedSchools;
                 });
+                setAllSchools((prevAllSchools) => {
+                    const idx = prevAllSchools.findIndex((s) => s.id === updatedSchool.id);
+                    if (idx !== -1) {
+                        const updated = [...prevAllSchools];
+                        updated[idx] = updatedSchool;
+                        return updated;
+                    }
+                    return prevAllSchools;
+                });
                 notifications.show({
                     id: "school-update-success",
                     title: "Success",
