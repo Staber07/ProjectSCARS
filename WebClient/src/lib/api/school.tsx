@@ -1,6 +1,7 @@
 import {
     School,
     SchoolCreate,
+    SchoolUpdate,
     createSchoolEndpointV1SchoolsCreatePost,
     deleteSchoolLogoV1SchoolsLogoDelete,
     getAllSchoolsEndpointV1SchoolsAllGet,
@@ -10,7 +11,6 @@ import {
     patchSchoolLogoV1SchoolsLogoPatch,
     updateSchoolEndpointV1SchoolsPatch,
 } from "@/lib/api/csclient";
-import { SchoolUpdateType } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
 
 export async function GetAllSchools(offset: number, limit: number): Promise<School[]> {
@@ -46,7 +46,7 @@ export async function GetSchoolLogo(fn: string): Promise<Blob> {
     return logoBlob;
 }
 
-export async function UpdateSchoolInfo(school: SchoolUpdateType): Promise<School> {
+export async function UpdateSchoolInfo(school: SchoolUpdate): Promise<School> {
     const result = await updateSchoolEndpointV1SchoolsPatch({
         headers: { Authorization: GetAccessTokenHeader() },
         body: school,

@@ -14,7 +14,12 @@ from centralserver.internals.auth_handler import (
 )
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models.school import School, SchoolCreate, SchoolDelete
+from centralserver.internals.models.school import (
+    School,
+    SchoolCreate,
+    SchoolDelete,
+    SchoolUpdate,
+)
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
 from centralserver.internals.school_handler import (
@@ -103,8 +108,15 @@ async def get_all_schools_endpoint(
     session: Annotated[Session, Depends(get_db_session)],
     limit: int = 100,
     offset: int = 0,
+    show_all: bool = False,
 ) -> list[School]:
-    """Get all schools and their information."""
+    """Get all schools and their information.
+
+    Args:
+        limit: The maximum number of schools to return.
+        offset: The number of schools to skip before starting to collect the result set.
+        show_all: If True, include deactivated schools.
+    """
 
     if not await verify_user_permission("schools:global:read", session, token):
         raise HTTPException(
@@ -112,10 +124,17 @@ async def get_all_schools_endpoint(
             detail="You do not have permission to view all schools.",
         )
 
-    return [
-        school
-        for school in session.exec(select(School).limit(limit).offset(offset)).all()
-    ]
+    if show_all:
+        return list(session.exec(select(School).limit(limit).offset(offset)).all())
+
+    return list(
+        session.exec(
+            select(School)
+            .where(School.deactivated == False)  # pylint: disable=C0121
+            .limit(limit)
+            .offset(offset)
+        ).all()
+    )
 
 
 @router.get("/", response_model=School)
@@ -202,7 +221,7 @@ async def get_school_logo_endpoint(
 
 @router.patch("/", response_model=School)
 async def update_school_endpoint(
-    updated_school_info: School,
+    updated_school_info: SchoolUpdate,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> School:
@@ -247,9 +266,10 @@ async def update_school_endpoint(
     if updated_school_info.website:
         school.website = updated_school_info.website
 
-    school.lastModified = datetime.datetime.now(datetime.timezone.utc)
-    # school.lastModifiedById = token.id
+    if updated_school_info.deactivated is not None:
+        school.deactivated = updated_school_info.deactivated
 
+    school.lastModified = datetime.datetime.now(datetime.timezone.utc)
     session.add(school)
     session.commit()
     session.refresh(school)
@@ -303,6 +323,8 @@ async def delete_school_info_endpoint(
 
     if school.website:
         selected_school.website = None
+
+    selected_school.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
     session.commit()
     session.refresh(selected_school)

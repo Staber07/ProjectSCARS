@@ -416,6 +416,11 @@ export type School = {
      */
     logoUrn?: string | null;
     /**
+     * Deactivated
+     * Indicates whether the school is deactivated or not.
+     */
+    deactivated?: boolean;
+    /**
      * Datecreated
      * The timestamp when the record was created.
      */
@@ -479,6 +484,41 @@ export type SchoolDelete = {
      * Website
      */
     website?: boolean;
+};
+
+/**
+ * SchoolUpdate
+ * A model for updating school information.
+ */
+export type SchoolUpdate = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Address
+     */
+    address?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Website
+     */
+    website?: string | null;
+    /**
+     * Deactivated
+     */
+    deactivated?: boolean | null;
 };
 
 /**
@@ -1614,7 +1654,7 @@ export type GetSchoolEndpointV1SchoolsGetResponses = {
 export type GetSchoolEndpointV1SchoolsGetResponse = GetSchoolEndpointV1SchoolsGetResponses[keyof GetSchoolEndpointV1SchoolsGetResponses];
 
 export type UpdateSchoolEndpointV1SchoolsPatchData = {
-    body: School;
+    body: SchoolUpdate;
     path?: never;
     query?: never;
     url: '/v1/schools/';

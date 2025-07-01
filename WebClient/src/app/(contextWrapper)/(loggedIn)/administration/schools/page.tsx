@@ -1,6 +1,6 @@
 "use client";
 
-import { deleteSchoolInfoEndpointV1SchoolsDelete, School, SchoolDelete } from "@/lib/api/csclient";
+import { deleteSchoolInfoEndpointV1SchoolsDelete, School, SchoolDelete, SchoolUpdate } from "@/lib/api/csclient";
 import {
     CreateSchool,
     GetAllSchools,
@@ -11,7 +11,6 @@ import {
     UploadSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { SchoolUpdateType } from "@/lib/types";
 import {
     ActionIcon,
     Anchor,
@@ -28,6 +27,7 @@ import {
     Pagination,
     Select,
     Stack,
+    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -161,14 +161,14 @@ export default function SchoolsPage(): JSX.Element {
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool && editSchool.id != null) {
-            const newSchoolInfo: SchoolUpdateType = {
+            const newSchoolInfo: SchoolUpdate = {
                 id: editSchool.id,
                 name: editSchool.name,
                 address: editSchool.address,
                 phone: editSchool.phone,
                 email: editSchool.email,
                 website: editSchool.website,
-                logoUrn: editSchool.logoUrn,
+                deactivated: editSchool.deactivated,
             };
             try {
                 // Handle value removal first
@@ -821,6 +821,17 @@ export default function SchoolsPage(): JSX.Element {
                                     onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
                                 />
                             }
+                        />
+                        <Switch
+                            label="Deactivate School"
+                            checked={editSchool.deactivated || false}
+                            onChange={(e) =>
+                                setEditSchool({
+                                    ...editSchool,
+                                    deactivated: e.currentTarget.checked,
+                                })
+                            }
+                            description="Deactivate the school and prevent it from being used in any future operations."
                         />
                         <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
                             Save

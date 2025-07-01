@@ -37,6 +37,10 @@ class School(SQLModel, table=True):
         default=None,
         description="A link or identifier to the schools's logo within the file storage server.",
     )
+    deactivated: bool = Field(
+        default=False,
+        description="Indicates whether the school is deactivated or not.",
+    )
 
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
@@ -49,6 +53,18 @@ class School(SQLModel, table=True):
 
     # lastModifiedBy: "User" = Relationship(back_populates="lastModifiedSchools")
     users: list["User"] = Relationship(back_populates="school")
+
+
+class SchoolUpdate(SQLModel):
+    """A model for updating school information."""
+
+    id: int
+    name: str
+    address: str | None = None
+    phone: str | None = None
+    email: EmailStr | None = None
+    website: str | None = None
+    deactivated: bool | None = None
 
 
 class SchoolCreate(SQLModel):
