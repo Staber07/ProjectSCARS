@@ -1319,6 +1319,10 @@ export type GetAllUsersEndpointV1UsersAllGetData = {
          * Offset
          */
         offset?: number;
+        /**
+         * Show All
+         */
+        show_all?: boolean;
     };
     url: '/v1/users/all';
 };
@@ -1577,6 +1581,10 @@ export type GetAllSchoolsEndpointV1SchoolsAllGetData = {
          * Offset
          */
         offset?: number;
+        /**
+         * Show All
+         */
+        show_all?: boolean;
     };
     url: '/v1/schools/all';
 };

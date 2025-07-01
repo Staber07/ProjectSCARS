@@ -99,6 +99,7 @@ async def get_all_users_endpoint(
     session: Annotated[Session, Depends(get_db_session)],
     limit: int = 25,
     offset: int = 0,
+    show_all: bool = False,
 ) -> list[UserPublic]:
     """Get all users and their information.
 
@@ -107,6 +108,7 @@ async def get_all_users_endpoint(
         session: The session to the database.
         limit: The maximum number of users to return (default is 25).
         offset: The number of users to skip (default is 0).
+        show_all: If True, include deactivated users.
 
     Returns:
         A list of users and their information.
@@ -119,9 +121,20 @@ async def get_all_users_endpoint(
         )
 
     logger.debug("user %s fetching all user info", token.id)
+    if show_all:
+        return [
+            UserPublic.model_validate(user)
+            for user in session.exec(select(User).limit(limit).offset(offset)).all()
+        ]
+
     return [
         UserPublic.model_validate(user)
-        for user in session.exec(select(User).limit(limit).offset(offset)).all()
+        for user in session.exec(
+            select(User)
+            .where(User.deactivated == False)  # pylint: disable=C0121
+            .limit(limit)
+            .offset(offset)
+        ).all()
     ]
 
 

@@ -461,6 +461,7 @@ export const getUserProfileEndpointV1UsersMeGet = <ThrowOnError extends boolean 
  * session: The session to the database.
  * limit: The maximum number of users to return (default is 25).
  * offset: The number of users to skip (default is 0).
+ * show_all: If True, include deactivated users.
  *
  * Returns:
  * A list of users and their information.
@@ -690,6 +691,11 @@ export const getAssignedSchoolsEndpointV1SchoolsMeGet = <ThrowOnError extends bo
 /**
  * Get All Schools Endpoint
  * Get all schools and their information.
+ *
+ * Args:
+ * limit: The maximum number of schools to return.
+ * offset: The number of schools to skip before starting to collect the result set.
+ * show_all: If True, include deactivated schools.
  */
 export const getAllSchoolsEndpointV1SchoolsAllGet = <ThrowOnError extends boolean = false>(options?: Options<GetAllSchoolsEndpointV1SchoolsAllGetData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetAllSchoolsEndpointV1SchoolsAllGetResponses, GetAllSchoolsEndpointV1SchoolsAllGetErrors, ThrowOnError>({
