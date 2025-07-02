@@ -40,7 +40,7 @@ export function CreatableUnitSelect({
     return (
         <Combobox
             store={combobox}
-            withinPortal={false}
+            withinPortal={true}
             onOptionSubmit={(val) => {
                 if (val === "$create") {
                     const newUnit = search.trim();
@@ -75,7 +75,7 @@ export function CreatableUnitSelect({
                 />
             </Combobox.Target>
             <Combobox.Dropdown>
-                <Combobox.Options>
+                <Combobox.Options style={{ maxHeight: 200, overflowY: "auto" }}>
                     {options}
                     {!exactOptionMatch && search.trim().length > 0 && (
                         <Combobox.Option value="$create">+ Create &quot;{search}&quot;</Combobox.Option>
