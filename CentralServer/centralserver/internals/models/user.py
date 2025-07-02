@@ -73,7 +73,7 @@ class User(SQLModel, table=True):
         description="Whether the user account is deactivated.",
     )
     forceUpdateInfo: bool = Field(
-        default=False,
+        default=True,
         description="Whether the user is required to update their information.",
     )
     emailVerified: bool = Field(

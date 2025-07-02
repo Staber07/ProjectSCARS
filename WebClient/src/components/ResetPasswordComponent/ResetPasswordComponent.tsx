@@ -3,7 +3,7 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { resetPasswordV1AuthEmailRecoveryResetPost } from "@/lib/api/csclient";
-import { Box, Button, Container, Paper, PasswordInput, Progress, Text, TextInput } from "@mantine/core";
+import { Button, Container, Paper, PasswordInput, Progress, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
@@ -12,45 +12,11 @@ import { motion, useAnimation } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { getStrength, PasswordRequirement, requirements } from "@/components/Password";
 import classes from "@/components/ResetPasswordComponent/ResetPasswordComponent.module.css";
 
 interface ResetPasswordValues {
     new_password: string;
-}
-
-/**
- * A component that displays password requirements and checks if the password meets them.
- * @param {Object} props - The component props.
- * @param {boolean} props.meets - Whether the password meets the requirement.
- * @param {string} props.label - The label for the password requirement.
- * @returns {JSX.Element} The rendered component.
- */
-function PasswordRequirement({ meets, label }: { meets: boolean; label: string }) {
-    return (
-        <Text c={meets ? "teal" : "red"} style={{ display: "flex", alignItems: "center" }} mt={7} size="sm">
-            {meets ? <IconCheck size={14} /> : <IconX size={14} />}
-            <Box ml={10}>{label}</Box>
-        </Text>
-    );
-}
-
-const requirements = [
-    { re: /.{8,}/, label: "At least 8 characters" },
-    { re: /[0-9]/, label: "Includes number" },
-    { re: /[a-z]/, label: "Includes lowercase letter" },
-    { re: /[A-Z]/, label: "Includes uppercase letter" },
-];
-
-function getStrength(password: string) {
-    let multiplier = password.length > 5 ? 0 : 1;
-
-    requirements.forEach((requirement) => {
-        if (!requirement.re.test(password)) {
-            multiplier += 1;
-        }
-    });
-
-    return Math.max(100 - (100 / (requirements.length + 1)) * multiplier, 10);
 }
 
 /**

@@ -7,7 +7,6 @@ import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from "@mantine/c
 import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
 
-import "@gfazioli/mantine-onboarding-tour/styles.css";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/spotlight/styles.css";

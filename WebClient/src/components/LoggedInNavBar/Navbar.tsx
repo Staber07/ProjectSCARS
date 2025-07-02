@@ -176,11 +176,7 @@ export const Navbar: React.FC = () => {
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
-                <Group
-                    className={classes.header}
-                    justify="space-between"
-                    data-onboarding-tour-id="onboarding-navbar-header"
-                >
+                <Group className={classes.header} justify="space-between">
                     <Group>
                         <Image
                             src="/assets/logos/BENTO.svg"

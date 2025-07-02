@@ -41,7 +41,6 @@ interface EditUserProps {
     user: UserPublic;
     availableSchools: School[];
     availableRoles: Role[];
-    currentPage: number;
     setIndex: React.Dispatch<React.SetStateAction<number | null>>;
     UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
     UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
@@ -70,7 +69,6 @@ export function EditUserComponent({
     user,
     availableSchools,
     availableRoles,
-    currentPage,
     setIndex,
     UpdateUserInfo,
     UploadUserAvatar,

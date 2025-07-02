@@ -588,7 +588,9 @@ async def update_user_info(
 
     if target_user.forceUpdateInfo is not None:
         if not await verify_user_permission(
-            "users:global:forceupdate", session=session, token=token
+            "users:self:forceupdate" if updating_self else "users:global:forceupdate",
+            session=session,
+            token=token,
         ):
             logger.warning(
                 "Failed to update user: %s (permission denied: force update)",
