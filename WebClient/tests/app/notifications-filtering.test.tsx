@@ -1,20 +1,13 @@
+import { Notification } from "@/lib/api/csclient";
 import { describe, it, expect, beforeEach } from 'vitest';
 
 /**
  * Test for the notifications filtering logic
  * This test validates that the filtering logic properly handles archived and unarchived notifications
- * based on the filter state ('all' vs 'unread')
+ * based on the filter state ('all' vs 'unread') using the same Notification type from the API client
  */
 describe('Notifications Filtering Logic', () => {
-    interface MockNotification {
-        id: string;
-        title: string;
-        content: string;
-        archived: boolean;
-        type?: string;
-    }
-
-    let mockNotifications: MockNotification[];
+    let mockNotifications: Notification[];
 
     beforeEach(() => {
         mockNotifications = [
@@ -27,15 +20,16 @@ describe('Notifications Filtering Logic', () => {
 
     /**
      * Simulates the filtering logic from the notifications page
+     * This mirrors the logic in NotificationsPage component's useEffect
      */
-    const applyFilter = (notifications: MockNotification[], filter: string, search: string = '') => {
+    const applyFilter = (notifications: Notification[], filter: string, search: string = '') => {
         let result = [...notifications];
         if (filter === "unread") result = result.filter((n) => !n.archived);
         if (search.trim()) {
             result = result.filter(
                 (n) =>
-                    n.title.toLowerCase().includes(search.toLowerCase()) ||
-                    n.content.toLowerCase().includes(search.toLowerCase())
+                    n.title?.toLowerCase().includes(search.toLowerCase()) ||
+                    n.content?.toLowerCase().includes(search.toLowerCase())
             );
         }
         return result.filter((n) => n.id !== undefined);
@@ -43,8 +37,9 @@ describe('Notifications Filtering Logic', () => {
 
     /**
      * Simulates the archive operation from the notifications page
+     * This mirrors the logic in NotificationsPage component's handleArchive function
      */
-    const archiveNotification = (notifications: MockNotification[], id: string, unarchive: boolean) => {
+    const archiveNotification = (notifications: Notification[], id: string, unarchive: boolean) => {
         return notifications.map((n) => 
             n.id === id ? { ...n, archived: !unarchive } : n
         );
@@ -52,8 +47,9 @@ describe('Notifications Filtering Logic', () => {
 
     /**
      * Simulates the bulk archive operation from the notifications page
+     * This mirrors the logic in NotificationsPage component's bulk archive functionality
      */
-    const bulkArchiveNotifications = (notifications: MockNotification[], ids: string[], allArchived: boolean) => {
+    const bulkArchiveNotifications = (notifications: Notification[], ids: string[], allArchived: boolean) => {
         return notifications.map((n) =>
             n.id && ids.includes(n.id) ? { ...n, archived: !allArchived } : n
         );
@@ -113,7 +109,7 @@ describe('Notifications Filtering Logic', () => {
     it('should properly handle bulk archive operations', () => {
         // Select notifications '1' and '3' (both unarchived)
         const selectedIds = ['1', '3'];
-        const selectedNotifications = mockNotifications.filter(n => selectedIds.includes(n.id));
+        const selectedNotifications = mockNotifications.filter(n => n.id && selectedIds.includes(n.id));
         const allArchived = selectedNotifications.every(n => n.archived); // false
         
         // Bulk archive the selected notifications
@@ -138,7 +134,7 @@ describe('Notifications Filtering Logic', () => {
     it('should properly handle bulk unarchive operations', () => {
         // Select notifications '2' and '4' (both archived)
         const selectedIds = ['2', '4'];
-        const selectedNotifications = mockNotifications.filter(n => selectedIds.includes(n.id));
+        const selectedNotifications = mockNotifications.filter(n => n.id && selectedIds.includes(n.id));
         const allArchived = selectedNotifications.every(n => n.archived); // true
         
         // Bulk unarchive the selected notifications
