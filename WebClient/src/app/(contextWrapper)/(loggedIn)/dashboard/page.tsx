@@ -30,6 +30,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
@@ -41,6 +42,7 @@ const stepsToComplete: [string, boolean][] = [
 
 const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
+    const router = useRouter();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
     const [HVNotifications, setHVNotifications] = useState<Notification[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
@@ -71,10 +73,9 @@ const DashboardContent = memo(function DashboardContent() {
     useEffect(() => {
         // Check if forceupdateinfo is true
         if (userCtx.userInfo?.forceUpdateInfo) {
-            // Redirect to profile update page
-            window.location.href = "/account/welcome";
+            router.push("/account/welcome");
         }
-    }, [userCtx.userInfo?.forceUpdateInfo]);
+    }, [router, userCtx.userInfo?.forceUpdateInfo]);
 
     // Load user info and avatar
     useEffect(() => {
