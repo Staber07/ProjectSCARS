@@ -11,6 +11,16 @@ export type BodyPatchSchoolLogoV1SchoolsLogoPatch = {
 };
 
 /**
+ * Body_refresh_access_token_v1_auth_refresh_post
+ */
+export type BodyRefreshAccessTokenV1AuthRefreshPost = {
+    /**
+     * Refresh Token
+     */
+    refresh_token: string;
+};
+
+/**
  * Body_request_access_token_v1_auth_login_post
  */
 export type BodyRequestAccessTokenV1AuthLoginPost = {
@@ -121,6 +131,10 @@ export type JwtToken = {
      * Access Token
      */
     access_token: string;
+    /**
+     * Refresh Token
+     */
+    refresh_token?: string | null;
     /**
      * Token Type
      */
@@ -402,6 +416,11 @@ export type School = {
      */
     logoUrn?: string | null;
     /**
+     * Deactivated
+     * Indicates whether the school is deactivated or not.
+     */
+    deactivated?: boolean;
+    /**
      * Datecreated
      * The timestamp when the record was created.
      */
@@ -441,6 +460,68 @@ export type SchoolCreate = {
 };
 
 /**
+ * SchoolDelete
+ * A model for deleting a school.
+ */
+export type SchoolDelete = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Address
+     */
+    address?: boolean;
+    /**
+     * Phone
+     */
+    phone?: boolean;
+    /**
+     * Email
+     */
+    email?: boolean;
+    /**
+     * Website
+     */
+    website?: boolean;
+};
+
+/**
+ * SchoolUpdate
+ * A model for updating school information.
+ */
+export type SchoolUpdate = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Address
+     */
+    address?: string | null;
+    /**
+     * Phone
+     */
+    phone?: string | null;
+    /**
+     * Email
+     */
+    email?: string | null;
+    /**
+     * Website
+     */
+    website?: string | null;
+    /**
+     * Deactivated
+     */
+    deactivated?: boolean | null;
+};
+
+/**
  * UserCreate
  * A model used for creating new user accounts.
  */
@@ -457,6 +538,41 @@ export type UserCreate = {
      * Password
      */
     password: string;
+};
+
+/**
+ * UserDelete
+ * A model used for deleting user's information.
+ */
+export type UserDelete = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Email
+     */
+    email?: boolean;
+    /**
+     * Namefirst
+     */
+    nameFirst?: boolean;
+    /**
+     * Namemiddle
+     */
+    nameMiddle?: boolean;
+    /**
+     * Namelast
+     */
+    nameLast?: boolean;
+    /**
+     * Position
+     */
+    position?: boolean;
+    /**
+     * Schoolid
+     */
+    schoolId?: boolean;
 };
 
 /**
@@ -1063,7 +1179,12 @@ export type CreateNewUserV1AuthCreatePostResponse = CreateNewUserV1AuthCreatePos
 export type RequestAccessTokenV1AuthLoginPostData = {
     body: BodyRequestAccessTokenV1AuthLoginPost;
     path?: never;
-    query?: never;
+    query?: {
+        /**
+         * Remember Me
+         */
+        remember_me?: boolean;
+    };
     url: '/v1/auth/login';
 };
 
@@ -1087,6 +1208,31 @@ export type RequestAccessTokenV1AuthLoginPostResponses = {
 };
 
 export type RequestAccessTokenV1AuthLoginPostResponse = RequestAccessTokenV1AuthLoginPostResponses[keyof RequestAccessTokenV1AuthLoginPostResponses];
+
+export type RefreshAccessTokenV1AuthRefreshPostData = {
+    body: BodyRefreshAccessTokenV1AuthRefreshPost;
+    path?: never;
+    query?: never;
+    url: '/v1/auth/refresh';
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostError = RefreshAccessTokenV1AuthRefreshPostErrors[keyof RefreshAccessTokenV1AuthRefreshPostErrors];
+
+export type RefreshAccessTokenV1AuthRefreshPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: JwtToken;
+};
+
+export type RefreshAccessTokenV1AuthRefreshPostResponse = RefreshAccessTokenV1AuthRefreshPostResponses[keyof RefreshAccessTokenV1AuthRefreshPostResponses];
 
 export type GetAllRolesV1AuthRolesGetData = {
     body?: never;
@@ -1173,6 +1319,10 @@ export type GetAllUsersEndpointV1UsersAllGetData = {
          * Offset
          */
         offset?: number;
+        /**
+         * Show All
+         */
+        show_all?: boolean;
     };
     url: '/v1/users/all';
 };
@@ -1195,6 +1345,29 @@ export type GetAllUsersEndpointV1UsersAllGetResponses = {
 };
 
 export type GetAllUsersEndpointV1UsersAllGetResponse = GetAllUsersEndpointV1UsersAllGetResponses[keyof GetAllUsersEndpointV1UsersAllGetResponses];
+
+export type DeleteUserInfoEndpointV1UsersDeleteData = {
+    body: UserDelete;
+    path?: never;
+    query?: never;
+    url: '/v1/users/';
+};
+
+export type DeleteUserInfoEndpointV1UsersDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteUserInfoEndpointV1UsersDeleteError = DeleteUserInfoEndpointV1UsersDeleteErrors[keyof DeleteUserInfoEndpointV1UsersDeleteErrors];
+
+export type DeleteUserInfoEndpointV1UsersDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type GetUserEndpointV1UsersGetData = {
     body?: never;
@@ -1408,6 +1581,10 @@ export type GetAllSchoolsEndpointV1SchoolsAllGetData = {
          * Offset
          */
         offset?: number;
+        /**
+         * Show All
+         */
+        show_all?: boolean;
     };
     url: '/v1/schools/all';
 };
@@ -1430,6 +1607,29 @@ export type GetAllSchoolsEndpointV1SchoolsAllGetResponses = {
 };
 
 export type GetAllSchoolsEndpointV1SchoolsAllGetResponse = GetAllSchoolsEndpointV1SchoolsAllGetResponses[keyof GetAllSchoolsEndpointV1SchoolsAllGetResponses];
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteData = {
+    body: SchoolDelete;
+    path?: never;
+    query?: never;
+    url: '/v1/schools/';
+};
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteError = DeleteSchoolInfoEndpointV1SchoolsDeleteErrors[keyof DeleteSchoolInfoEndpointV1SchoolsDeleteErrors];
+
+export type DeleteSchoolInfoEndpointV1SchoolsDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
 
 export type GetSchoolEndpointV1SchoolsGetData = {
     body?: never;
@@ -1462,7 +1662,7 @@ export type GetSchoolEndpointV1SchoolsGetResponses = {
 export type GetSchoolEndpointV1SchoolsGetResponse = GetSchoolEndpointV1SchoolsGetResponses[keyof GetSchoolEndpointV1SchoolsGetResponses];
 
 export type UpdateSchoolEndpointV1SchoolsPatchData = {
-    body: School;
+    body: SchoolUpdate;
     path?: never;
     query?: never;
     url: '/v1/schools/';

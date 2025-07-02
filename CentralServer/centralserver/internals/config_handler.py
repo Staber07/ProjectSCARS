@@ -152,6 +152,7 @@ class Authentication:
         "encryption_secret_key",
         "signing_algorithm",
         "encryption_algorithm",
+        "encrypt_jwt",
         "encoding",
         "access_token_expire_minutes",
         "refresh_token_expire_minutes",
@@ -166,6 +167,7 @@ class Authentication:
         encryption_secret_key: str | None = None,
         signing_algorithm: str | None = None,
         encryption_algorithm: str | None = None,
+        encrypt_jwt: bool | None = None,
         encoding: str | None = None,
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
@@ -181,6 +183,7 @@ class Authentication:
             encryption_secret_key: The secret key used for encryption. (Required)
             signing_algorithm: The algorithm to use for hashing.
             encryption_algorithm: The algorithm to use for encrypting.
+            encrypt_jwt: Whether to encrypt JWT tokens. (Default: True)
             encoding: The encoding to use when decoding encrypted data.
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
@@ -229,6 +232,7 @@ class Authentication:
         self.encryption_secret_key: str = encryption_secret_key
         self.signing_algorithm: str = signing_algorithm or "HS256"
         self.encryption_algorithm: str = encryption_algorithm or "A256GCM"
+        self.encrypt_jwt: bool = encrypt_jwt if encrypt_jwt is not None else True
         self.encoding: str = encoding or "utf-8"
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
@@ -625,6 +629,7 @@ def read_config(
             encryption_algorithm=authentication_config.get(
                 "encryption_algorithm", None
             ),
+            encrypt_jwt=authentication_config.get("encrypt_jwt", None),
             encoding=authentication_config.get("encoding", None),
             access_token_expire_minutes=authentication_config.get(
                 "access_token_expire_minutes", None

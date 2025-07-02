@@ -1,10 +1,33 @@
-<p>Hello, {name}.</p>
-<p>
-    Your two-factor authentication (2FA) has been disabled on your {app_name} account. You will no longer need to enter
-    a one-time password (OTP) to log in.
-</p>
-<p>If you did not disable 2FA, please contact support immediately.</p>
-<p>
-    If you wish to re-enable 2FA, please visit your account settings and follow the instructions to set up an
-    authenticator app.
-</p>
+{% extends "base.html" %} {% block title %}🔒 Two-Factor Authentication Disabled{% endblock %} {% block content %}
+<div class="container">
+    <div class="header">
+        <h1 class="alert-title">🔒 Two-Factor Authentication Disabled</h1>
+    </div>
+    <p>Hello <strong>{{name}}</strong>,</p>
+    <p>
+        Your two-factor authentication (2FA) has been disabled on your <strong>{{app_name}}</strong> account. You will
+        no longer need to enter a one-time password (OTP) to log in.
+    </p>
+    <p><strong>Important Security Information:</strong></p>
+    <div class="details">
+        <ul>
+            <li>Two-factor authentication is now <strong>disabled</strong></li>
+            <li>Your account security level has been reduced</li>
+            <li>Only your password will be required for login</li>
+        </ul>
+    </div>
+    <p><strong>What should you do?</strong></p>
+    <ol>
+        <li>If you did not disable 2FA, contact support immediately</li>
+        <li>Consider re-enabling 2FA for enhanced security</li>
+        <li>Visit your account settings to set up an authenticator app</li>
+    </ol>
+    <div class="footer">
+        <p>
+            If you wish to re-enable 2FA, please visit your account settings and follow the instructions to set up an
+            authenticator app.
+        </p>
+        <p>This is an automated security notification from {{app_name}}.</p>
+    </div>
+</div>
+{% endblock %}

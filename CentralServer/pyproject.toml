@@ -1,12 +1,13 @@
 [project]
 name = "centralserver"
-version = "0.4.1"
+version = "0.4.2"
 description = "The central server for the project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "concurrent-log-handler>=0.9.28",
     "fastapi[standard]>=0.115.12",
+    "jinja2>=3.1.6",
     "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
     "pillow>=11.2.1",

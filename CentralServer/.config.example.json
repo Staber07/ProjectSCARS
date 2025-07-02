@@ -39,8 +39,9 @@
         "encryption_secret_key": "UPDATE_THIS_VALUE",
         "signing_algorithm": "HS256",
         "encryption_algorithm": "A256GCM",
+        "encrypt_jwt": true,
         "access_token_expire_minutes": 30,
-        "refresh_token_expire_minutes": 10080,
+        "refresh_token_expire_minutes": 129600,
         "recovery_token_expire_minutes": 15,
         "otp_nonce_expire_minutes": 5,
         "oauth": {

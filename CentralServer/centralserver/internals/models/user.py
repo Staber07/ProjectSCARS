@@ -73,7 +73,7 @@ class User(SQLModel, table=True):
         description="Whether the user account is deactivated.",
     )
     forceUpdateInfo: bool = Field(
-        default=False,
+        default=True,
         description="Whether the user is required to update their information.",
     )
     emailVerified: bool = Field(
@@ -222,6 +222,20 @@ class UserUpdate(SQLModel):
     forceUpdateInfo: bool | None = None
 
     password: str | None = None
+
+
+class UserDelete(SQLModel):
+    """A model used for deleting user's information."""
+
+    # All nullable fields can be deleted.
+    # If a field is to be deleted, it should be set to True.
+    id: str  # The ID of the user to be deleted.
+    email: bool = False
+    nameFirst: bool = False
+    nameMiddle: bool = False
+    nameLast: bool = False
+    position: bool = False
+    schoolId: bool = False
 
 
 class UserCreate(SQLModel):
