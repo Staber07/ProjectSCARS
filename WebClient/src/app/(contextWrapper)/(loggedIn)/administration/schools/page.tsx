@@ -422,6 +422,7 @@ export default function SchoolsPage(): JSX.Element {
                 icon: <IconCheck />,
             });
             setSchools((prevSchools) => [...prevSchools, createdSchool]);
+            setAllSchools((prevAllSchools) => [...prevAllSchools, createdSchool]);
             setAddModalOpen(false);
             setCreateSchoolName("");
             setCreateAddress("");
