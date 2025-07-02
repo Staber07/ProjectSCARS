@@ -844,23 +844,33 @@ export default function UsersPage(): JSX.Element {
                         availableRoles={availableRoles}
                         currentPage={currentPage}
                         setIndex={setSelectedUserIndex}
-                        fetchUsers={fetchUsers}
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
                         RemoveUserAvatar={RemoveUserAvatar}
                         DeleteUserInfo={DeleteUserInfo}
                         fetchUserAvatar={fetchUserAvatar}
+                        onUserUpdate={(updatedUser) => {
+                            setAllUsers((prev) => {
+                                const idx = prev.findIndex((u) => u.id === updatedUser.id);
+                                if (idx === -1) return prev;
+                                const newArr = [...prev];
+                                newArr[idx] = updatedUser;
+                                return newArr;
+                            });
+                        }}
                     />
                 )}
                 {openCreateUserModal === true && (
                     <CreateUserComponent
                         modalOpen={openCreateUserModal}
                         setModalOpen={setOpenCreateUserModal}
-                        fetchUsers={fetchUsers}
                         currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
                         UpdateUserInfo={UpdateUserInfo}
+                        onUserCreate={(newUser) => {
+                            setAllUsers((prev) => [newUser, ...prev]);
+                        }}
                     />
                 )}
             </Stack>

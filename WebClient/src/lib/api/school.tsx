@@ -16,7 +16,7 @@ import { GetAccessTokenHeader } from "@/lib/utils/token";
 export async function GetAllSchools(offset: number, limit: number): Promise<School[]> {
     const result = await getAllSchoolsEndpointV1SchoolsAllGet({
         headers: { Authorization: GetAccessTokenHeader() },
-        query: { offset, limit },
+        query: { offset: offset, limit: limit, show_all: true },
     });
 
     if (result.error) {
