@@ -1,0 +1,21 @@
+You're Invited to {{app_name}}!
+===================================
+
+Hello {{name}},
+
+You have been invited to join {{app_name}}!
+Your temporary account details are listed below:
+
+Login Details:
+- Username: {{username}}
+- Password: {{password}}
+
+Log In Now: {{base_url}}
+
+Important:
+
+- Please immediately log in and change your password to ensure your account's security
+- If you weren't expecting this invitation, please ignore this email
+
+-----------------------------------
+This is an automated message from {{app_name}}.

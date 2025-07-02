@@ -111,7 +111,11 @@ export default function NotificationsPage() {
                     icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             }
-            setAllNotifications((prev) => prev.filter((n) => n.id !== id));
+            setAllNotifications((prev) => 
+                prev.map((n) => 
+                    n.id === id ? { ...n, archived: !unarchive } : n
+                )
+            );
         } catch (error) {
             if (error instanceof Error) {
                 notifications.show({
@@ -262,7 +266,9 @@ export default function NotificationsPage() {
                                                 icon: <IconCircleCheck />,
                                             });
                                             setAllNotifications((prev) =>
-                                                prev.filter((n) => !n.id || !ids.includes(n.id))
+                                                prev.map((n) =>
+                                                    n.id && ids.includes(n.id) ? { ...n, archived: !allArchived } : n
+                                                )
                                             );
                                             setSelected(new Set());
                                         })
