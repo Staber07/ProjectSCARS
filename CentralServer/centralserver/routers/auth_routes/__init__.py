@@ -17,16 +17,17 @@ from fastapi import (
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
+from centralserver import info
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
-    crypt_ctx,
     verify_access_token,
     verify_user_permission,
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.mail_handler import get_template, send_mail
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
 from centralserver.internals.models.user import User, UserCreate, UserInvite, UserPublic
@@ -249,6 +250,7 @@ async def invite_user(
     new_user: UserInvite,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
+    background_tasks: BackgroundTasks,
 ) -> UserPublic:
     """Invite a new user to the system.
 
@@ -301,7 +303,7 @@ async def invite_user(
             UserCreate(
                 username=new_user.username,
                 roleId=new_user.roleId,
-                password=crypt_ctx.hash(genpass),
+                password=genpass,
             ),
             session,
         )
@@ -312,7 +314,6 @@ async def invite_user(
         created_user.nameLast = new_user.nameLast
         created_user.position = new_user.position
         created_user.schoolId = new_user.schoolId
-        created_user.password = genpass  # Set the generated password
         created_user.email = new_user.email
 
         logger.debug("Committing the new user to the database")
@@ -322,6 +323,30 @@ async def invite_user(
 
         logger.debug("User created successfully: %s", created_user.username)
         invited_user = UserPublic.model_validate(created_user)
+
+        logger.debug("Sending invitation email to the new user")
+        background_tasks.add_task(
+            send_mail,
+            to_address=new_user.email,
+            subject=f"Invitation to {info.Program.name}",
+            text=get_template(
+                "invite.txt",
+                app_name=info.Program.name,
+                name=invited_user.nameFirst or invited_user.username,
+                username=invited_user.username,
+                password=genpass,
+                base_url=app_config.connection.base_url,
+            ),
+            html=get_template(
+                "invite.html",
+                app_name=info.Program.name,
+                name=invited_user.nameFirst or invited_user.username,
+                username=invited_user.username,
+                password=genpass,
+                base_url=app_config.connection.base_url,
+            ),
+        )
+
         logger.debug("Returning invited user information: %s", invited_user.id)
         return invited_user
 
