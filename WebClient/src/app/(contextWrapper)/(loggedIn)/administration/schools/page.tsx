@@ -52,11 +52,14 @@ import {
     IconUser,
     IconUserCheck,
     IconUserExclamation,
+    IconLock,
+    IconLockOpen,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
+import SchoolStatusFilter from "@/components/SchoolManagement/SchoolStatusFilter";
 
 const userPerPageOptions: number[] = [10, 25, 50, 100];
 
@@ -69,6 +72,7 @@ export default function SchoolsPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
+    const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const [schools, setSchools] = useState<School[]>([]);
     const [allSchools, setAllSchools] = useState<School[]>([]);
@@ -260,6 +264,15 @@ export default function SchoolsPage(): JSX.Element {
                     const updatedSchools = [...prevSchools];
                     updatedSchools[editIndex] = updatedSchool;
                     return updatedSchools;
+                });
+                setAllSchools((prevAllSchools) => {
+                    const idx = prevAllSchools.findIndex((s) => s.id === updatedSchool.id);
+                    if (idx !== -1) {
+                        const updated = [...prevAllSchools];
+                        updated[idx] = updatedSchool;
+                        return updated;
+                    }
+                    return prevAllSchools;
                 });
                 notifications.show({
                     id: "school-update-success",
@@ -463,6 +476,13 @@ export default function SchoolsPage(): JSX.Element {
                     school.email?.toLowerCase().includes(lower)
             );
         }
+        if (statusFilter !== "all") {
+            filtered = filtered.filter((school) => {
+                if (statusFilter === "active") return !school.deactivated;
+                if (statusFilter === "deactivated") return !!school.deactivated;
+                return true;
+            });
+        }
         setTotalSchools(filtered.length);
         setTotalPages(Math.max(1, Math.ceil(filtered.length / schoolPerPage)));
 
@@ -473,7 +493,7 @@ export default function SchoolsPage(): JSX.Element {
         const start = (safePage - 1) * schoolPerPage;
         const end = start + schoolPerPage;
         setSchools(filtered.slice(start, end));
-    }, [allSchools, searchTerm, schoolPerPage, currentPage]);
+    }, [allSchools, searchTerm, statusFilter, schoolPerPage, currentPage]);
 
     console.debug("Rendering SchoolsPage");
     return (
@@ -486,7 +506,9 @@ export default function SchoolsPage(): JSX.Element {
                     size="md"
                     style={{ width: "400px" }}
                 />
+
                 <Flex ml="auto" gap="sm" align="center">
+                    <SchoolStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
                     <ActionIcon
                         disabled={!userCtx.userPermissions?.includes("schools:create")}
                         size="input-md"
@@ -504,12 +526,13 @@ export default function SchoolsPage(): JSX.Element {
             <Table highlightOnHover stickyHeader>
                 <TableThead>
                     <TableTr>
-                        <TableTh></TableTh> {/* Checkbox and Logo */}
+                        <TableTh></TableTh>
                         <TableTh>School Name</TableTh>
                         <TableTh>Address</TableTh>
                         <TableTh>Phone Number</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Website</TableTh>
+                        <TableTh>Status</TableTh>
                         <TableTh>Last Modified</TableTh>
                         <TableTh>Date Created</TableTh>
                         <TableTh></TableTh>
@@ -580,6 +603,13 @@ export default function SchoolsPage(): JSX.Element {
                                     </Anchor>
                                 ) : (
                                     <Text size="sm">N/A</Text>
+                                )}
+                            </TableTd>
+                            <TableTd>
+                                {school.deactivated ? (
+                                    <IconLock size={18} color="red" title="School is deactivated" />
+                                ) : (
+                                    <IconLockOpen size={18} color="green" title="School is active" />
                                 )}
                             </TableTd>
                             <Tooltip
