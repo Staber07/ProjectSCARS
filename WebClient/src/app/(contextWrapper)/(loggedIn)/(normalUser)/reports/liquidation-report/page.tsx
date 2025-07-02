@@ -9,7 +9,6 @@ import { Suspense, useState } from "react";
 import dayjs from "dayjs";
 import {
     ActionIcon,
-    Badge,
     Button,
     Card,
     Divider,
@@ -31,16 +30,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput, DateInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
-import {
-    IconCalendar,
-    IconEye,
-    IconFileText,
-    IconPlus,
-    IconTrash,
-    IconUpload,
-    IconX,
-    IconHistory,
-} from "@tabler/icons-react";
+import { IconCalendar, IconPlus, IconTrash, IconUpload, IconX, IconHistory } from "@tabler/icons-react";
 
 const report_type = {
     operating_expenses: "Operating Expenses",
@@ -141,15 +131,6 @@ function LiquidationReportContent() {
         if (!unitOptions.includes(newUnit)) {
             setUnitOptions([...unitOptions, newUnit]);
         }
-    };
-
-    const getFileTypeInfo = (file: File) => {
-        if (file.type.startsWith("image/")) {
-            return { icon: IconEye, color: "blue", label: "Image" };
-        } else if (file.type === "application/pdf") {
-            return { icon: IconFileText, color: "red", label: "PDF" };
-        }
-        return { icon: IconFileText, color: "gray", label: "File" };
     };
 
     const handleFileUpload = (files: File[]) => {
@@ -446,50 +427,48 @@ function LiquidationReportContent() {
                                 </Text>
                                 <Stack gap="xs">
                                     {attachments.map((file, index) => {
-                                        const { icon: Icon, color, label } = getFileTypeInfo(file);
                                         const isImage = file.type.startsWith("image/");
                                         const isPDF = file.type === "application/pdf";
+                                        const canPreview = isImage || isPDF;
 
                                         return (
-                                            <Paper key={index} p="sm" withBorder className="hover:bg-gray-50">
+                                            <Paper
+                                                key={index}
+                                                p="sm"
+                                                withBorder
+                                                className={canPreview ? "hover:bg-gray-50" : ""}
+                                                style={{ cursor: canPreview ? "pointer" : "default" }}
+                                                onClick={canPreview ? () => handlePreviewFile(file) : undefined}
+                                            >
                                                 <Group justify="space-between">
                                                     <Group gap="sm">
-                                                        <div className="flex items-center gap-2">
-                                                            <Icon size={16} color={color} />
-                                                            <Badge variant="light" color={color} size="xs">
-                                                                {label}
-                                                            </Badge>
-                                                        </div>
                                                         <div>
                                                             <Text size="sm" fw={500}>
                                                                 {file.name}
                                                             </Text>
-                                                            <Text size="xs" c="dimmed">
-                                                                {(file.size / 1024).toFixed(1)} KB
-                                                            </Text>
+                                                            <Group gap="xs">
+                                                                <Text size="xs" c="dimmed">
+                                                                    {(file.size / 1024).toFixed(1)} KB
+                                                                </Text>
+                                                                {canPreview && (
+                                                                    <Text size="xs" c="gray">
+                                                                        Click to preview
+                                                                    </Text>
+                                                                )}
+                                                            </Group>
                                                         </div>
                                                     </Group>
 
                                                     <Group gap="xs">
-                                                        {(isImage || isPDF) && (
-                                                            <Tooltip label={`Preview ${label.toLowerCase()}`}>
-                                                                <ActionIcon
-                                                                    size="sm"
-                                                                    variant="light"
-                                                                    color="blue"
-                                                                    onClick={() => handlePreviewFile(file)}
-                                                                    className="hover:bg-blue-50"
-                                                                >
-                                                                    <IconEye size={14} />
-                                                                </ActionIcon>
-                                                            </Tooltip>
-                                                        )}
                                                         <Tooltip label="Remove file">
                                                             <ActionIcon
                                                                 size="sm"
                                                                 color="red"
                                                                 variant="light"
-                                                                onClick={() => removeAttachment(index)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    removeAttachment(index);
+                                                                }}
                                                                 className="hover:bg-red-50"
                                                             >
                                                                 <IconX size={14} />
