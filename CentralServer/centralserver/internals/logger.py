@@ -149,6 +149,7 @@ def log_app_info(logger: logging.Logger):
         )
         stats["Signing Algorithm"] = app_config.authentication.signing_algorithm
         stats["Encryption Algorithm"] = app_config.authentication.encryption_algorithm
+        stats["Encrypt JWT"] = "Yes" if app_config.authentication.encrypt_jwt else "No"
         stats["Encrypted Data Encoding"] = app_config.authentication.encoding
         stats["Access Token Expiry"] = (
             f"{app_config.authentication.access_token_expire_minutes} minutes"

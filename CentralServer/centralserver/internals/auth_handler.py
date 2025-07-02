@@ -212,7 +212,8 @@ async def authenticate_user(
                     send_mail,
                     to_address=found_user.email,
                     subject=f"{info.Program.name} | Someone is trying to access your account",
-                    text=get_template("unusual_login.txt").format(
+                    text=get_template(
+                        "unusual_login.txt",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,
@@ -221,7 +222,8 @@ async def authenticate_user(
                         ),
                         last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
                     ),
-                    html=get_template("unusual_login.html").format(
+                    html=get_template(
+                        "unusual_login.html",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,
@@ -272,23 +274,27 @@ async def create_access_token(
         "exp": datetime.datetime.now(datetime.timezone.utc) + expiration_td,
     }
 
-    access_token = jwe.encrypt(
-        plaintext=jwt.encode(
-            claims=token_data,
-            key=app_config.authentication.signing_secret_key,
-            algorithm=app_config.authentication.signing_algorithm,
-        ),
-        key=app_config.authentication.encryption_secret_key.encode(
-            app_config.authentication.encoding
-        ),
-        algorithm=app_config.authentication.encryption_algorithm,
-    ).decode("utf-8")
+    access_token = jwt.encode(
+        claims=token_data,
+        key=app_config.authentication.signing_secret_key,
+        algorithm=app_config.authentication.signing_algorithm,
+    )
+
+    if app_config.authentication.encrypt_jwt:
+        logger.debug("Encrypting access token...")
+        access_token = jwe.encrypt(
+            plaintext=access_token,
+            key=app_config.authentication.encryption_secret_key.encode(
+                app_config.authentication.encoding
+            ),
+            algorithm=app_config.authentication.encryption_algorithm,
+        ).decode("utf-8")
 
     # logger.debug("Access token: %s", access_token)
     return access_token
 
 
-def verify_access_token(
+async def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
 ) -> DecodedJWTToken:
     """Get the current user from the JWE token.
@@ -304,25 +310,27 @@ def verify_access_token(
     """
 
     try:
-        logger.debug("Decrypting access token...")
-        # logger.debug("Token: %s", token)
-        decoded_jwe = jwe.decrypt(
-            token,
-            app_config.authentication.encryption_secret_key.encode(
-                app_config.authentication.encoding
-            ),
-        )
-
-        if decoded_jwe is None:
-            logger.warning("Failed to decrypt JWE")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Failed to validate user.",
+        if app_config.authentication.encrypt_jwt:
+            logger.debug("Decrypting access token...")
+            decoded_jwe = jwe.decrypt(
+                token,
+                app_config.authentication.encryption_secret_key.encode(
+                    app_config.authentication.encoding
+                ),
             )
+            if decoded_jwe is None:
+                logger.warning("Failed to decrypt JWE")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Failed to validate user.",
+                )
+            token_to_decode = decoded_jwe.decode(app_config.authentication.encoding)
+        else:
+            token_to_decode = token
 
         logger.debug("Decoding access token...")
         payload = jwt.decode(
-            decoded_jwe.decode(app_config.authentication.encoding),
+            token_to_decode,
             app_config.authentication.signing_secret_key,
             algorithms=[app_config.authentication.signing_algorithm],
         )
@@ -524,6 +532,13 @@ async def oauth_google_authenticate(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
                 False,
+            ),
+            refresh_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.refresh_token_expire_minutes
+                ),
+                True,
             ),
             token_type="bearer",
         ),

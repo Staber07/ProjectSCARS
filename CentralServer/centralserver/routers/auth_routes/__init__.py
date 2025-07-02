@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import (
     APIRouter,
     BackgroundTasks,
+    Body,
     Depends,
     HTTPException,
     Request,
@@ -104,16 +105,19 @@ async def request_access_token(
     session: Annotated[Session, Depends(get_db_session)],
     request: Request,
     background_tasks: BackgroundTasks,
+    remember_me: bool = False,
 ) -> JWTToken | dict[str, str]:
-    """Get an access token for a user.
+    """Get an access token for a user, and optionally a refresh token if 'Remember Me' is enabled.
 
     Args:
         data: The data from the OAuth2 password request form.
         session: The database session.
         request: The HTTP request object.
+        background_tasks: Background tasks to run after the request is processed.
+        remember_me: Whether to remember the user on this device.
 
     Returns:
-        A JWT token or a MFA code if MFA is enabled.
+        A dictionary containing the access token, and optionally the refresh token.
 
     Raises:
         HTTPException: If the user cannot be authenticated.
@@ -154,21 +158,87 @@ async def request_access_token(
     else:
         user.lastLoggedInTime = datetime.datetime.now(datetime.timezone.utc)
         user.lastLoggedInIp = request.client.host if request.client else None
-        resp = JWTToken(
-            uid=uuid.uuid4(),
-            access_token=await create_access_token(
+        access_token = await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        )
+        refresh_token = (
+            await create_access_token(
                 user.id,
                 datetime.timedelta(
-                    minutes=app_config.authentication.access_token_expire_minutes
+                    minutes=app_config.authentication.refresh_token_expire_minutes
                 ),
-                False,
-            ),
+                True,
+            )
+            if remember_me
+            else None
+        )
+
+        resp = JWTToken(
+            uid=uuid.uuid4(),
+            access_token=access_token,
+            refresh_token=refresh_token,
             token_type="bearer",
         )
 
     session.commit()
     session.refresh(user)
     return resp
+
+
+@router.post("/refresh", response_model=JWTToken)
+async def refresh_access_token(
+    refresh_token: Annotated[str, Body(embed=True)],
+    session: Annotated[Session, Depends(get_db_session)],
+):
+    """Refresh the access token for the user.
+
+    This endpoint is used to refresh the access token when it has expired.
+    It requires a valid refresh token to be provided in the request.
+
+    Args:
+        refresh_token: The refresh token to validate.
+        session: The database session.
+
+    Returns:
+        A new JWTToken containing the refreshed access token and optionally a new refresh token.
+    """
+    try:
+        # Verify the refresh token
+        decoded_token = await verify_access_token(refresh_token)
+
+        # Check if the user still exists
+        user = session.get(User, decoded_token.id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found.",
+            )
+
+        # Generate new access token
+        new_access_token = await create_access_token(
+            user.id,
+            datetime.timedelta(
+                minutes=app_config.authentication.access_token_expire_minutes
+            ),
+            False,
+        )
+
+        return JWTToken(
+            uid=uuid.uuid4(),
+            access_token=new_access_token,
+            refresh_token=refresh_token,
+            token_type="bearer",
+        )
+
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token.",
+        ) from e
 
 
 @router.get("/roles", response_model=list[Role])

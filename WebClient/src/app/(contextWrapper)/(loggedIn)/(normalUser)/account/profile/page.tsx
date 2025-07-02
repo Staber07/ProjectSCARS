@@ -1,24 +1,33 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
 import {
-    DisableTOTP,
-    GenerateTOTP,
-    GetAllRoles,
-    GetOAuthSupport,
-    GetUserInfo,
-    OAuthGoogleUnlink,
-    RequestVerificationEmail,
-    VerifyTOTP,
-    VerifyUserEmail,
-} from "@/lib/api/auth";
-import { OtpToken, UserPublic } from "@/lib/api/csclient";
+    deleteUserAvatarEndpointV1UsersAvatarDelete,
+    deleteUserInfoEndpointV1UsersDelete,
+    disableMfaOtpV1AuthMfaOtpDisablePost,
+    generateMfaOtpV1AuthMfaOtpGeneratePost,
+    getAllRolesV1AuthRolesGet,
+    getOauthConfigV1AuthConfigOauthGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
+    getUserProfileEndpointV1UsersMeGet,
+    oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet,
+    OtpToken,
+    requestVerificationEmailV1AuthEmailRequestPost,
+    Role,
+    updateUserAvatarEndpointV1UsersAvatarPatch,
+    updateUserEndpointV1UsersPatch,
+    UserDelete,
+    UserPublic,
+    UserUpdate,
+    verifyEmailV1AuthEmailVerifyPost,
+    verifyMfaOtpV1AuthMfaOtpVerifyPost,
+} from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { GetUserAvatar, RemoveUserProfile, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { LocalStorage, userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { UserPreferences } from "@/lib/types";
-import { UserUpdate } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     ActionIcon,
     Anchor,
@@ -59,6 +68,7 @@ import {
     IconMailOpened,
     IconPencilCheck,
     IconSendOff,
+    IconTrash,
     IconUserExclamation,
     IconX,
 } from "@tabler/icons-react";
@@ -117,6 +127,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [avatarRemoved, setAvatarRemoved] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
     const [availableSchools, setAvailableSchools] = useState<string[]>([]);
+    const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
         google: false,
         // TODO: OAuth adapters below are not implemented yet.
@@ -136,7 +147,16 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const fetchUserAvatar = async (avatarUrn: string): Promise<string | undefined> => {
         try {
-            const blob = await GetUserAvatar(avatarUrn);
+            const result = await getUserAvatarEndpointV1UsersAvatarGet({
+                query: { fn: avatarUrn },
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to fetch avatar: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            const blob = result.data as Blob;
             const url = URL.createObjectURL(blob);
             if (avatarUrn && !currentAvatarUrn) URL.revokeObjectURL(avatarUrn);
             setCurrentAvatarUrn(avatarUrn);
@@ -208,12 +228,12 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         const roleId = await GetSelectValue(values.role);
         const newUserInfo: UserUpdate = {
             id: values.id,
-            username: values.username !== userInfo?.username && values.username ? values.username : undefined,
-            nameFirst: values.nameFirst !== userInfo?.nameFirst && values.nameFirst ? values.nameFirst : undefined,
-            nameMiddle: values.nameMiddle !== userInfo?.nameMiddle && values.nameMiddle ? values.nameMiddle : undefined,
-            nameLast: values.nameLast !== userInfo?.nameLast && values.nameLast ? values.nameLast : undefined,
-            position: values.position !== userInfo?.position && values.position ? values.position : undefined,
-            email: values.email !== userInfo?.email && values.email ? values.email : undefined,
+            username: values.username !== userInfo?.username ? values.username : undefined,
+            nameFirst: values.nameFirst !== userInfo?.nameFirst ? values.nameFirst || null : undefined,
+            nameMiddle: values.nameMiddle !== userInfo?.nameMiddle ? values.nameMiddle || null : undefined,
+            nameLast: values.nameLast !== userInfo?.nameLast ? values.nameLast || null : undefined,
+            position: values.position !== userInfo?.position ? values.position || null : undefined,
+            email: values.email !== userInfo?.email ? values.email || null : undefined,
             schoolId: Number(schoolId) !== userInfo?.schoolId && schoolId ? Number(schoolId) : null,
             roleId: Number(roleId) !== userInfo?.roleId && roleId ? Number(roleId) : null,
             deactivated: values.deactivated !== userInfo?.deactivated ? values.deactivated : undefined,
@@ -221,8 +241,65 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             finishedTutorials: null,
             password: null,
         };
+
+        // Check for fields that were cleared (set to null) and need to be deleted
+        const fieldsToDelete: UserDelete = {
+            id: values.id,
+            email: (values.email === "" || values.email === null) && userInfo?.email !== null,
+            nameFirst: (values.nameFirst === "" || values.nameFirst === null) && userInfo?.nameFirst !== null,
+            nameMiddle: (values.nameMiddle === "" || values.nameMiddle === null) && userInfo?.nameMiddle !== null,
+            nameLast: (values.nameLast === "" || values.nameLast === null) && userInfo?.nameLast !== null,
+            position: (values.position === "" || values.position === null) && userInfo?.position !== null,
+            schoolId: values.school === null && userInfo?.schoolId !== null,
+        };
+
+        const hasFieldsToDelete = Object.values(fieldsToDelete).some(
+            (field, index) => index > 0 && field === true // Skip the id field at index 0
+        );
         try {
-            let updatedUser = await UpdateUserInfo(newUserInfo);
+            console.debug("Has values to remove:", hasFieldsToDelete);
+            if (hasFieldsToDelete) {
+                const deleteResult = await deleteUserInfoEndpointV1UsersDelete({
+                    body: fieldsToDelete,
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (deleteResult.error) {
+                    console.error(
+                        `Failed to delete user fields: ${deleteResult.response.status} ${deleteResult.response.statusText}`
+                    );
+                    notifications.show({
+                        id: "user-delete-fields-error",
+                        title: "Error",
+                        message: "Failed to remove user values. Please try again.",
+                        color: "red",
+                        icon: <IconSendOff />,
+                    });
+                    buttonStateHandler.close();
+                    return;
+                }
+            }
+
+            // Filter out fields that were deleted from the update object to avoid conflicts
+            const filteredUserInfo: UserUpdate = { ...newUserInfo };
+            if (fieldsToDelete.email) filteredUserInfo.email = undefined;
+            if (fieldsToDelete.nameFirst) filteredUserInfo.nameFirst = undefined;
+            if (fieldsToDelete.nameMiddle) filteredUserInfo.nameMiddle = undefined;
+            if (fieldsToDelete.nameLast) filteredUserInfo.nameLast = undefined;
+            if (fieldsToDelete.position) filteredUserInfo.position = undefined;
+            if (fieldsToDelete.schoolId) filteredUserInfo.schoolId = undefined;
+
+            // Then handle regular updates
+            const result = await updateUserEndpointV1UsersPatch({
+                body: filteredUserInfo,
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to update user: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            let updatedUser = result.data as UserPublic;
             notifications.show({
                 id: "user-update-success",
                 title: "Success",
@@ -234,7 +311,17 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             if (avatarRemoved && currentAvatarUrn) {
                 try {
                     console.debug("Removing avatar...");
-                    await RemoveUserProfile(values.id);
+                    const deleteResult = await deleteUserAvatarEndpointV1UsersAvatarDelete({
+                        query: { user_id: values.id },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (deleteResult.error) {
+                        throw new Error(
+                            `Failed to remove avatar: ${deleteResult.response.status} ${deleteResult.response.statusText}`
+                        );
+                    }
+
                     console.debug("Avatar removed successfully.");
                     notifications.show({
                         id: "avatar-remove-success",
@@ -260,7 +347,19 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             if (editUserAvatar) {
                 try {
                     console.debug("Uploading avatar...");
-                    updatedUser = await UploadUserAvatar(values.id, editUserAvatar);
+                    const uploadResult = await updateUserAvatarEndpointV1UsersAvatarPatch({
+                        query: { user_id: values.id },
+                        body: { img: editUserAvatar },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (uploadResult.error) {
+                        throw new Error(
+                            `Failed to upload avatar: ${uploadResult.response.status} ${uploadResult.response.statusText}`
+                        );
+                    }
+
+                    updatedUser = uploadResult.data as UserPublic;
                     if (updatedUser.avatarUrn) {
                         fetchUserAvatar(updatedUser.avatarUrn);
                         console.debug("Avatar uploaded successfully.");
@@ -321,8 +420,18 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 icon: <IconSendOff />,
             });
         } finally {
-            const updatedUserInfo = await GetUserInfo();
-            userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1], editUserAvatar);
+            const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (userInfoResult.error) {
+                throw new Error(
+                    `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                );
+            }
+
+            const [updatedUserInfo, updatedPermissions] = userInfoResult.data as [UserPublic, string[]];
+            userCtx.updateUserInfo(updatedUserInfo, updatedPermissions, editUserAvatar);
             buttonStateHandler.close();
         }
     };
@@ -352,7 +461,17 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         // Fetch available roles and schools
         const fetchRolesAndSchools = async () => {
             try {
-                const rolesData = await GetAllRoles();
+                const rolesResult = await getAllRolesV1AuthRolesGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (rolesResult.error) {
+                    throw new Error(
+                        `Failed to get roles: ${rolesResult.response.status} ${rolesResult.response.statusText}`
+                    );
+                }
+
+                const rolesData = rolesResult.data as Role[];
                 const formattedRoles = await Promise.all(
                     rolesData.map((role) => SetSelectValue(role.id?.toString() || "", role.description))
                 );
@@ -380,8 +499,19 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     useEffect(() => {
         console.debug("MainLoginComponent mounted, checking OAuth support");
         // Check if OAuth is supported by the server
-        GetOAuthSupport()
-            .then((response) => {
+        const fetchOAuthSupport = async () => {
+            try {
+                const result = await getOauthConfigV1AuthConfigOauthGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (result.error) {
+                    throw new Error(
+                        `Failed to get OAuth config: ${result.response.status} ${result.response.statusText}`
+                    );
+                }
+
+                const response = result.data;
                 console.debug("OAuth support response:", response);
                 if (response) {
                     setOAuthSupport({
@@ -400,8 +530,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         icon: <IconX />,
                     });
                 }
-            })
-            .catch((error) => {
+            } catch (error) {
                 console.error("Error fetching OAuth support:", error);
                 notifications.show({
                     id: "oauth-support-fetch-error",
@@ -410,7 +539,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     color: "red",
                     icon: <IconX />,
                 });
-            });
+            }
+        };
+
+        fetchOAuthSupport();
     }, []);
 
     // Check if email verification token is present in the URL and verify it
@@ -418,8 +550,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         const emailVerificationToken = searchParams.get("emailVerificationToken");
         if (emailVerificationToken) {
             console.debug("Email verification token found:", emailVerificationToken);
-            VerifyUserEmail(emailVerificationToken)
-                .then(() => {
+
+            const verifyEmail = async () => {
+                try {
+                    const result = await verifyEmailV1AuthEmailVerifyPost({
+                        query: { token: emailVerificationToken },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (result.error) {
+                        throw new Error(
+                            `Failed to verify email: ${result.response.status} ${result.response.statusText}`
+                        );
+                    }
+
                     notifications.show({
                         id: "email-verification-success",
                         title: "Your email has been verified",
@@ -427,8 +571,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         color: "green",
                         icon: <IconMailOpened />,
                     });
-                })
-                .catch((error) => {
+                } catch (error) {
                     if (error instanceof Error) {
                         notifications.show({
                             id: "email-verification-failure",
@@ -446,7 +589,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             icon: <IconMailOff />,
                         });
                     }
-                });
+                }
+            };
+
+            verifyEmail();
         }
     }, [searchParams]);
 
@@ -548,6 +694,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         placeholder="School"
                         data={availableSchools}
                         key={form.key("school")}
+                        clearable
                         searchable
                         {...form.getInputProps("school")}
                     />
@@ -593,6 +740,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="First Name"
                             placeholder="First Name"
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => form.setFieldValue("nameFirst", "")}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                             key={form.key("nameFirst")}
                             {...form.getInputProps("nameFirst")}
                         />
@@ -606,6 +767,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="Middle Name"
                             placeholder="Middle Name"
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => form.setFieldValue("nameMiddle", "")}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                             key={form.key("nameMiddle")}
                             {...form.getInputProps("nameMiddle")}
                         />
@@ -619,6 +794,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             disabled={!userPermissions?.includes("users:self:modify:name")}
                             label="Last Name"
                             placeholder="Last Name"
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => form.setFieldValue("nameLast", "")}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                             key={form.key("nameLast")}
                             {...form.getInputProps("nameLast")}
                         />
@@ -635,9 +824,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             withArrow
                         >
                             <TextInput
-                                disabled={!userPermissions?.includes("users:self:modify:email")}
+                                disabled
                                 label="Email"
-                                placeholder="Email"
+                                placeholder="No Email Set"
                                 rightSection={
                                     form.values.email &&
                                     (userInfo?.emailVerified && form.values.email === userInfo?.email ? (
@@ -655,9 +844,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                             withArrow
                                             multiline
                                             w={250}
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 try {
-                                                    RequestVerificationEmail();
+                                                    const result = await requestVerificationEmailV1AuthEmailRequestPost(
+                                                        {
+                                                            headers: { Authorization: GetAccessTokenHeader() },
+                                                        }
+                                                    );
+
+                                                    if (result.error) {
+                                                        throw new Error(
+                                                            `Failed to send verification email: ${result.response.status} ${result.response.statusText}`
+                                                        );
+                                                    }
+
                                                     notifications.show({
                                                         id: "verification-email-sent",
                                                         title: "Verification Email Sent",
@@ -707,6 +907,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             width: 165,
                             flexShrink: 0,
                         }}
+                        onClick={() => {
+                            setShowChangeEmailModal(true);
+                        }}
                     >
                         Change email
                     </Button>
@@ -716,7 +919,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     <Stack w="100%" style={{ flexGrow: 1, minWidth: 0 }}>
                         <TextInput
                             label="Password"
-                            value="********"
+                            value="(unchanged)"
                             size="sm"
                             disabled
                             w="100%"
@@ -796,20 +999,37 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                         });
                                         return;
                                     }
-                                    const otpData = await GenerateTOTP();
+                                    const otpResult = await generateMfaOtpV1AuthMfaOtpGeneratePost({
+                                        headers: { Authorization: GetAccessTokenHeader() },
+                                    });
+
+                                    if (otpResult.error) {
+                                        throw new Error(
+                                            `Failed to generate OTP: ${otpResult.response.status} ${otpResult.response.statusText}`
+                                        );
+                                    }
+
+                                    const otpData = otpResult.data as OtpToken;
                                     setOtpGenData(otpData);
                                     setShowOTPModal(true);
                                 } else {
-                                    await DisableTOTP().then(() => {
-                                        notifications.show({
-                                            title: "Two-Step Verification Disabled",
-                                            message:
-                                                "You will no longer be prompted for a verification code during login.",
-                                            color: "yellow",
-                                            icon: <IconKey />,
-                                        });
-                                        setOtpEnabled(false);
+                                    const disableResult = await disableMfaOtpV1AuthMfaOtpDisablePost({
+                                        headers: { Authorization: GetAccessTokenHeader() },
                                     });
+
+                                    if (disableResult.error) {
+                                        throw new Error(
+                                            `Failed to disable OTP: ${disableResult.response.status} ${disableResult.response.statusText}`
+                                        );
+                                    }
+
+                                    notifications.show({
+                                        title: "Two-Step Verification Disabled",
+                                        message: "You will no longer be prompted for a verification code during login.",
+                                        color: "yellow",
+                                        icon: <IconKey />,
+                                    });
+                                    setOtpEnabled(false);
                                 }
                             } catch (error) {
                                 notifications.show({
@@ -820,8 +1040,21 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                 });
                                 setOtpVerifyHasError(true);
                             } finally {
-                                const updatedUserInfo = await GetUserInfo();
-                                userCtx.updateUserInfo(updatedUserInfo[0], updatedUserInfo[1]);
+                                const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                                    headers: { Authorization: GetAccessTokenHeader() },
+                                });
+
+                                if (userInfoResult.error) {
+                                    throw new Error(
+                                        `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                                    );
+                                }
+
+                                const [updatedUserInfo, updatedPermissions] = userInfoResult.data as [
+                                    UserPublic,
+                                    string[]
+                                ];
+                                userCtx.updateUserInfo(updatedUserInfo, updatedPermissions);
                             }
                         }}
                     />
@@ -892,17 +1125,26 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             color="blue"
                             onClick={async () => {
                                 try {
-                                    await VerifyTOTP(verifyOtpCode).then(() => {
-                                        notifications.show({
-                                            title: "Two-Step Verification Enabled",
-                                            message: "You will now be prompted for a verification code during login.",
-                                            color: "green",
-                                            icon: <IconKey />,
-                                        });
-                                        setOtpEnabled(true);
-                                        setShowOTPModal(false);
-                                        setShowRecoveryCodeModal(true);
+                                    const result = await verifyMfaOtpV1AuthMfaOtpVerifyPost({
+                                        query: { otp: verifyOtpCode },
+                                        headers: { Authorization: GetAccessTokenHeader() },
                                     });
+
+                                    if (result.error) {
+                                        throw new Error(
+                                            `Failed to verify OTP: ${result.response.status} ${result.response.statusText}`
+                                        );
+                                    }
+
+                                    notifications.show({
+                                        title: "Two-Step Verification Enabled",
+                                        message: "You will now be prompted for a verification code during login.",
+                                        color: "green",
+                                        icon: <IconKey />,
+                                    });
+                                    setOtpEnabled(true);
+                                    setShowOTPModal(false);
+                                    setShowRecoveryCodeModal(true);
                                 } catch (error) {
                                     notifications.show({
                                         title: "Error Enabling Two-Step Verification",
@@ -1003,20 +1245,29 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             disabled={!oauthSupport.google}
                             onClick={async () => {
                                 try {
-                                    await OAuthGoogleUnlink();
-                                } catch {
+                                    const result = await oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet({
+                                        headers: { Authorization: GetAccessTokenHeader() },
+                                    });
+
+                                    if (result.error) {
+                                        throw new Error(
+                                            `Failed to unlink Google account: ${result.response.status} ${result.response.statusText}`
+                                        );
+                                    }
+
+                                    notifications.show({
+                                        title: "Unlink Successful",
+                                        message: "Your Google account has been unlinked successfully.",
+                                        color: "green",
+                                    });
+                                } catch (error) {
+                                    console.error("Failed to unlink Google account:", error);
                                     notifications.show({
                                         title: "Unlink Failed",
                                         message: "Failed to unlink your Google account. Please try again later.",
                                         color: "red",
                                     });
-                                    return;
                                 }
-                                notifications.show({
-                                    title: "Unlink Successful",
-                                    message: "Your Google account has been unlinked successfully.",
-                                    color: "green",
-                                });
                             }}
                         >
                             Unlink Account
@@ -1204,6 +1455,31 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     />
                 </Stack>
             </Paper>
+            <ChangeEmailComponent
+                modalOpen={showChangeEmailModal}
+                setModalOpen={setShowChangeEmailModal}
+                oldEmail={userInfo?.email}
+                userId={userInfo?.id}
+                onEmailChanged={async () => {
+                    // Refresh user information after email change
+                    try {
+                        const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                            headers: { Authorization: GetAccessTokenHeader() },
+                        });
+
+                        if (userInfoResult.error) {
+                            throw new Error(
+                                `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                            );
+                        }
+
+                        const [updatedUserInfo, updatedPermissions] = userInfoResult.data as [UserPublic, string[]];
+                        userCtx.updateUserInfo(updatedUserInfo, updatedPermissions);
+                    } catch (error) {
+                        console.error("Failed to refresh user info after email change:", error);
+                    }
+                }}
+            />
         </Box>
     );
 }

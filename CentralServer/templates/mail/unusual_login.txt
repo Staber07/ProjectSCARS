@@ -1,10 +1,25 @@
-Hello {name},
+Unusual Login Activity Detected
+===================================
 
-Someone has attempted to log in to your account on {app_name}.
-Please check your account activity and change your password if you did not initiate this login.
+Hello {{name}},
 
-- Login attempts: {failed_login_attempts}
-- Last login attempt time: {last_failed_login_time}
-- Last login attempt IP: {last_failed_login_ip}
+We've detected unusual login activity on your {{app_name}} account. Someone has attempted to
+log in to your account without success.
 
-If you continue to experience issues, please contact support.
+For your security, please review the following details:
+
+- Failed login attempts: {{failed_login_attempts}}
+- Last attempt time: {{last_failed_login_time}}
+- Last attempt IP address: {{last_failed_login_ip}}
+
+What should you do?
+
+- Check your recent account activity
+- Change your password immediately if you didn't initiate these login attempts
+- Enable two-factor authentication for added security
+
+If you continue to experience issues or have concerns about your account security, please contact our
+support team immediately.
+
+-----------------------------------
+This is an automated security notification from {{app_name}}.

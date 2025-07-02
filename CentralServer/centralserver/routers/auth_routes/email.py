@@ -102,13 +102,15 @@ async def request_verification_email(
             send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Email Verification Request",
-            text=get_template("email_verification.txt").format(
+            text=get_template(
+                "email_verification.txt",
                 name=user.nameFirst or user.username,
                 app_name=info.Program.name,
                 verification_link=recovery_link,
                 expiration_time=app_config.authentication.recovery_token_expire_minutes,
             ),
-            html=get_template("email_verification.html").format(
+            html=get_template(
+                "email_verification.html",
                 name=user.nameFirst or user.username,
                 app_name=info.Program.name,
                 verification_link=recovery_link,
@@ -263,13 +265,15 @@ async def request_password_recovery(
             send_mail,
             to_address=user.email,
             subject=f"{info.Program.name} | Password Recovery Request",
-            text=get_template("password_recovery.txt").format(
+            text=get_template(
+                "password_recovery.txt",
                 name=user.nameFirst or user.username,
                 app_name=info.Program.name,
                 recovery_link=recovery_link,
                 expiration_time=app_config.authentication.recovery_token_expire_minutes,
             ),
-            html=get_template("password_recovery.html").format(
+            html=get_template(
+                "password_recovery.html",
                 name=user.nameFirst or user.username,
                 app_name=info.Program.name,
                 recovery_link=recovery_link,

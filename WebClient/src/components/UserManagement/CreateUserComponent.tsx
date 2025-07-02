@@ -1,7 +1,7 @@
 "use client";
-import { CreateUser } from "@/lib/api/auth";
-import { UpdateUserInfo } from "@/lib/api/user";
-import { Role, School } from "@/lib/api/csclient";
+
+import { Role, School, UserPublic, UserUpdate, createNewUserV1AuthCreatePost } from "@/lib/api/csclient";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { Button, Modal, PasswordInput, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
@@ -12,19 +12,21 @@ import { useCallback, useMemo } from "react";
 interface CreateUserComponentProps {
     modalOpen: boolean;
     setModalOpen: (open: boolean) => void;
-    fetchUsers: (page: number) => void;
     currentPage: number;
     availableSchools: School[];
     availableRoles: Role[];
+    UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
+    onUserCreate?: (newUser: UserPublic) => void;
 }
 
 export function CreateUserComponent({
     modalOpen,
     setModalOpen,
-    fetchUsers,
     currentPage,
     availableSchools,
     availableRoles,
+    UpdateUserInfo,
+    onUserCreate,
 }: CreateUserComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
 
@@ -71,11 +73,20 @@ export function CreateUserComponent({
     const handleCreateUser = useCallback(
         async (values: typeof form.values) => {
             buttonStateHandler.open();
-
             try {
-                const new_user = await CreateUser(values.username, Number(values.role), values.password);
-
-                await UpdateUserInfo({
+                const result = await createNewUserV1AuthCreatePost({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                    body: {
+                        username: values.username,
+                        roleId: Number(values.role),
+                        password: values.password,
+                    },
+                });
+                if (result.error) {
+                    throw new Error(`Failed to create user: ${result.response.status} ${result.response.statusText}`);
+                }
+                const new_user = result.data;
+                const updatedUser = await UpdateUserInfo({
                     id: new_user.id,
                     username: values.username,
                     email: values.email || null,
@@ -86,7 +97,6 @@ export function CreateUserComponent({
                     schoolId: values.assignedSchool ? Number(values.assignedSchool) : null,
                     roleId: Number(values.role),
                 });
-
                 notifications.show({
                     id: "create-user-success",
                     title: "Success",
@@ -94,10 +104,9 @@ export function CreateUserComponent({
                     color: "green",
                     icon: <IconUserCheck />,
                 });
-
                 setModalOpen(false);
                 form.reset();
-                fetchUsers(currentPage);
+                if (onUserCreate) onUserCreate(updatedUser);
             } catch (err) {
                 notifications.show({
                     id: "create-user-error",
@@ -110,7 +119,7 @@ export function CreateUserComponent({
                 buttonStateHandler.close();
             }
         },
-        [buttonStateHandler, currentPage, fetchUsers, form, setModalOpen]
+        [buttonStateHandler, currentPage, form, setModalOpen, UpdateUserInfo, onUserCreate]
     );
 
     return (

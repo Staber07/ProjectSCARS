@@ -224,6 +224,20 @@ class UserUpdate(SQLModel):
     password: str | None = None
 
 
+class UserDelete(SQLModel):
+    """A model used for deleting user's information."""
+
+    # All nullable fields can be deleted.
+    # If a field is to be deleted, it should be set to True.
+    id: str  # The ID of the user to be deleted.
+    email: bool = False
+    nameFirst: bool = False
+    nameMiddle: bool = False
+    nameLast: bool = False
+    position: bool = False
+    schoolId: bool = False
+
+
 class UserCreate(SQLModel):
     """A model used for creating new user accounts."""
 

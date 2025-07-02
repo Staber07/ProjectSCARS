@@ -1,17 +1,16 @@
 "use client";
 
+import { deleteSchoolInfoEndpointV1SchoolsDelete, School, SchoolDelete, SchoolUpdate } from "@/lib/api/csclient";
 import {
     CreateSchool,
     GetAllSchools,
-    GetSchooLogo,
+    GetSchoolLogo,
     GetSchoolQuantity,
     RemoveSchoolLogo,
     UpdateSchoolInfo,
     UploadSchoolLogo,
 } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { SchoolUpdateType } from "@/lib/types";
-import { School } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Anchor,
@@ -28,6 +27,7 @@ import {
     Pagination,
     Select,
     Stack,
+    Switch,
     Table,
     TableTbody,
     TableTd,
@@ -48,14 +48,18 @@ import {
     IconPlus,
     IconSearch,
     IconSendOff,
+    IconTrash,
     IconUser,
     IconUserCheck,
     IconUserExclamation,
+    IconLock,
+    IconLockOpen,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { motion } from "motion/react";
 import { JSX, useEffect, useState } from "react";
+import SchoolStatusFilter from "@/components/SchoolManagement/SchoolStatusFilter";
 
 const userPerPageOptions: number[] = [10, 25, 50, 100];
 
@@ -68,6 +72,7 @@ export default function SchoolsPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
+    const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const [schools, setSchools] = useState<School[]>([]);
     const [allSchools, setAllSchools] = useState<School[]>([]);
@@ -98,7 +103,7 @@ export default function SchoolsPage(): JSX.Element {
         setEditSchool(school);
         setLogoToRemove(false);
         if (school.logoUrn && school.id != null) {
-            const logoUrl = fetchSchoolLogo(school.logoUrn, school.id);
+            const logoUrl = fetchSchoolLogo(school.logoUrn);
             setEditSchoolLogoUrl(logoUrl ? logoUrl : null);
         } else {
             setEditSchoolLogo(null);
@@ -113,14 +118,14 @@ export default function SchoolsPage(): JSX.Element {
         setSelected(updated);
     };
 
-    const fetchSchoolLogo = (logoUrn: string, schoolId: number): string | undefined => {
+    const fetchSchoolLogo = (logoUrn: string): string | undefined => {
         if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
             return logos.get(logoUrn);
         } else if (logosRequested.has(logoUrn)) {
             return undefined; // Logo is requested but not yet available
         }
         setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        GetSchooLogo(logoUrn, schoolId)
+        GetSchoolLogo(logoUrn)
             .then((blob) => {
                 if (blob.size > 0) {
                     const url = URL.createObjectURL(blob);
@@ -160,16 +165,44 @@ export default function SchoolsPage(): JSX.Element {
     const handleSave = async () => {
         buttonStateHandler.open();
         if (editIndex !== null && editSchool && editSchool.id != null) {
-            const newSchoolInfo: SchoolUpdateType = {
+            const newSchoolInfo: SchoolUpdate = {
                 id: editSchool.id,
                 name: editSchool.name,
                 address: editSchool.address,
                 phone: editSchool.phone,
                 email: editSchool.email,
                 website: editSchool.website,
-                logoUrn: editSchool.logoUrn,
+                deactivated: editSchool.deactivated,
             };
             try {
+                // Handle value removal first
+                const valuesToRemove: SchoolDelete = {
+                    id: editSchool.id,
+                    address: editSchool.address === null,
+                    phone: editSchool.phone === null,
+                    email: editSchool.email === null,
+                    website: editSchool.website === null,
+                };
+                const hasValuesToRemove = Object.values(valuesToRemove).some(
+                    (field, index) => index > 0 && field === true
+                );
+                console.debug("Has values to remove:", hasValuesToRemove);
+                if (hasValuesToRemove) {
+                    const deleteResult = await deleteSchoolInfoEndpointV1SchoolsDelete({ body: valuesToRemove });
+                    if (deleteResult.error) {
+                        console.error("Failed to remove school values:", deleteResult.error);
+                        notifications.show({
+                            id: "remove-school-values-error",
+                            title: "Error",
+                            message: "Failed to remove school values. Please try again.",
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                        buttonStateHandler.close();
+                        return;
+                    }
+                }
+
                 // update school info first
                 await UpdateSchoolInfo(newSchoolInfo);
                 let updatedSchool = { ...editSchool };
@@ -212,7 +245,7 @@ export default function SchoolsPage(): JSX.Element {
                         const schoolAfterLogoUpload = await UploadSchoolLogo(editSchool.id, editSchoolLogo);
                         updatedSchool = schoolAfterLogoUpload;
                         if (schoolAfterLogoUpload.logoUrn) {
-                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn, editSchool.id);
+                            fetchSchoolLogo(schoolAfterLogoUpload.logoUrn);
                         }
                         console.debug("Logo uploaded successfully.");
                     } catch (error) {
@@ -231,6 +264,15 @@ export default function SchoolsPage(): JSX.Element {
                     const updatedSchools = [...prevSchools];
                     updatedSchools[editIndex] = updatedSchool;
                     return updatedSchools;
+                });
+                setAllSchools((prevAllSchools) => {
+                    const idx = prevAllSchools.findIndex((s) => s.id === updatedSchool.id);
+                    if (idx !== -1) {
+                        const updated = [...prevAllSchools];
+                        updated[idx] = updatedSchool;
+                        return updated;
+                    }
+                    return prevAllSchools;
                 });
                 notifications.show({
                     id: "school-update-success",
@@ -434,6 +476,13 @@ export default function SchoolsPage(): JSX.Element {
                     school.email?.toLowerCase().includes(lower)
             );
         }
+        if (statusFilter !== "all") {
+            filtered = filtered.filter((school) => {
+                if (statusFilter === "active") return !school.deactivated;
+                if (statusFilter === "deactivated") return !!school.deactivated;
+                return true;
+            });
+        }
         setTotalSchools(filtered.length);
         setTotalPages(Math.max(1, Math.ceil(filtered.length / schoolPerPage)));
 
@@ -444,7 +493,7 @@ export default function SchoolsPage(): JSX.Element {
         const start = (safePage - 1) * schoolPerPage;
         const end = start + schoolPerPage;
         setSchools(filtered.slice(start, end));
-    }, [allSchools, searchTerm, schoolPerPage, currentPage]);
+    }, [allSchools, searchTerm, statusFilter, schoolPerPage, currentPage]);
 
     console.debug("Rendering SchoolsPage");
     return (
@@ -457,7 +506,9 @@ export default function SchoolsPage(): JSX.Element {
                     size="md"
                     style={{ width: "400px" }}
                 />
+
                 <Flex ml="auto" gap="sm" align="center">
+                    <SchoolStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
                     <ActionIcon
                         disabled={!userCtx.userPermissions?.includes("schools:create")}
                         size="input-md"
@@ -475,12 +526,13 @@ export default function SchoolsPage(): JSX.Element {
             <Table highlightOnHover stickyHeader>
                 <TableThead>
                     <TableTr>
-                        <TableTh></TableTh> {/* Checkbox and Logo */}
+                        <TableTh></TableTh>
                         <TableTh>School Name</TableTh>
                         <TableTh>Address</TableTh>
                         <TableTh>Phone Number</TableTh>
                         <TableTh>Email</TableTh>
                         <TableTh>Website</TableTh>
+                        <TableTh>Status</TableTh>
                         <TableTh>Last Modified</TableTh>
                         <TableTh>Date Created</TableTh>
                         <TableTh></TableTh>
@@ -494,7 +546,7 @@ export default function SchoolsPage(): JSX.Element {
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
                                     {school.logoUrn && school.id != null ? (
-                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn, school.id)}>
+                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn)}>
                                             <IconUser />
                                         </Avatar>
                                     ) : (
@@ -551,6 +603,13 @@ export default function SchoolsPage(): JSX.Element {
                                     </Anchor>
                                 ) : (
                                     <Text size="sm">N/A</Text>
+                                )}
+                            </TableTd>
+                            <TableTd>
+                                {school.deactivated ? (
+                                    <IconLock size={18} color="red" title="School is deactivated" />
+                                ) : (
+                                    <IconLockOpen size={18} color="green" title="School is active" />
                                 )}
                             </TableTd>
                             <Tooltip
@@ -706,6 +765,20 @@ export default function SchoolsPage(): JSX.Element {
                                     address: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, address: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                         />
                         <TextInput // TODO: Add validation for phone number format
                             label="Phone Number"
@@ -715,6 +788,20 @@ export default function SchoolsPage(): JSX.Element {
                                     ...editSchool,
                                     phone: e.currentTarget.value,
                                 })
+                            }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, phone: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
                             }
                         />
                         <TextInput
@@ -726,6 +813,20 @@ export default function SchoolsPage(): JSX.Element {
                                     email: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, email: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
                         />
                         <TextInput
                             label="Website"
@@ -736,6 +837,31 @@ export default function SchoolsPage(): JSX.Element {
                                     website: e.currentTarget.value,
                                 })
                             }
+                            rightSection={
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => setEditSchool({ ...editSchool, website: null })}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            }
+                        />
+                        <Switch
+                            label="Deactivate School"
+                            checked={editSchool.deactivated || false}
+                            onChange={(e) =>
+                                setEditSchool({
+                                    ...editSchool,
+                                    deactivated: e.currentTarget.checked,
+                                })
+                            }
+                            description="Deactivate the school and prevent it from being used in any future operations."
                         />
                         <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} onClick={handleSave}>
                             Save

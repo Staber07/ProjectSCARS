@@ -25,4 +25,4 @@ the Philippines.
     </p>
 </details>
 
-Documentation: [Central Server Documentation](../docs/central-server.md)
+Documentation: [GitHub Wiki](https://github.com/Chris1320/ProjectSCARS/wiki)

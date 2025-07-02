@@ -11,7 +11,7 @@ import {
 export const Program = {
     name: "BENTO",
     description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
-    version: "0.4.1",
+    version: "0.4.2",
 };
 
 export const Connections = {
@@ -22,7 +22,6 @@ export const Connections = {
 
 export const LocalStorage = {
     accessToken: "at",
-    refreshToken: "rt",
     userData: "ud",
     userPermissions: "up",
     userAvatar: "ua",
