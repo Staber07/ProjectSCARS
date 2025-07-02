@@ -38,6 +38,7 @@ import {
     type BodyRequestAccessTokenV1AuthLoginPost,
     type UserPublic,
 } from "@/lib/api/csclient";
+import { noRetryClient } from "@/lib/api/customClient";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { useEffect, useState } from "react";
 
@@ -105,6 +106,7 @@ export function MainLoginComponent(): React.ReactElement {
                 icon: <IconX />,
             });
             buttonStateHandler.close();
+            form.setFieldValue("password", "");
             return;
         }
 
@@ -123,7 +125,6 @@ export function MainLoginComponent(): React.ReactElement {
             }
 
             let loginResponse: JwtToken | { [key: string]: string };
-
             if (!values.otpCode) {
                 // Initial login attempt
                 const loginFormData: BodyRequestAccessTokenV1AuthLoginPost = {
@@ -137,10 +138,12 @@ export function MainLoginComponent(): React.ReactElement {
                     query: {
                         remember_me: values.rememberMe,
                     },
+                    client: noRetryClient, // Use no-retry client for login to avoid retrying failed credentials
                 });
 
                 if (result.error) {
                     const errorMessage = `Failed to log in: ${result.response.status} ${result.response.statusText}`;
+                    form.setFieldValue("password", "");
                     console.error(result.error);
                     throw new Error(errorMessage);
                 }
@@ -189,6 +192,7 @@ export function MainLoginComponent(): React.ReactElement {
 
             if (userInfoResult.error) {
                 const errorMessage = `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`;
+                form.setFieldValue("password", "");
                 console.error(errorMessage);
                 throw new Error(errorMessage);
             }
