@@ -77,12 +77,14 @@ async def validate_password(password: str) -> tuple[bool, str | None]:
 async def create_user(
     new_user: UserCreate,
     session: Session,
+    commit: bool = True,
 ) -> User:
     """Create a new user in the database.
 
     Args:
         new_user: The new user's information.
         session: The database session to use.
+        commit: Whether to commit the changes to the database.
 
     Returns:
         A new user object.
@@ -126,7 +128,9 @@ async def create_user(
         roleId=new_user.roleId,
     )
     session.add(user)
-    session.commit()
+    if commit:
+        session.commit()
+
     session.refresh(user)
 
     await push_notification(

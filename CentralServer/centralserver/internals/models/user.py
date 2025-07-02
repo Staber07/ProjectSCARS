@@ -246,6 +246,19 @@ class UserCreate(SQLModel):
     password: str
 
 
+class UserInvite(SQLModel):
+    """A model used for inviting a new user to the system."""
+
+    email: EmailStr
+    username: str
+    roleId: int
+    nameFirst: str | None = None
+    nameMiddle: str | None = None
+    nameLast: str | None = None
+    position: str | None = None
+    schoolId: int | None = None
+
+
 class UserRecover(SQLModel):
     """A model used for recovering a user account."""
 
