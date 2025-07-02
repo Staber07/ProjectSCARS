@@ -5,6 +5,7 @@ import { performLogout } from "../utils/logout";
 import { GetRefreshToken } from "../utils/token";
 import { JwtToken } from "./csclient";
 import type { CreateClientConfig } from "./csclient/client.gen";
+import { createClient, createConfig } from "./csclient/client";
 
 const methods = ["get", "post", "put", "head", "delete", "options", "trace", "patch"];
 const statusCodes = [401, 408, 413, 429, 500, 502, 503, 504];
@@ -12,6 +13,19 @@ const statusCodes = [401, 408, 413, 429, 500, 502, 503, 504];
 const logRequest = (request: KyRequest) => {
     // Add any global headers or authentication here
     console.log(`🚀 Making request to: ${request.url}`);
+
+    // Always set the latest access token from localStorage
+    const accessTokenData = localStorage.getItem(LocalStorage.accessToken);
+    if (accessTokenData) {
+        try {
+            const tokenObj = JSON.parse(accessTokenData);
+            if (tokenObj.access_token) {
+                request.headers.set("Authorization", `Bearer ${tokenObj.access_token}`);
+            }
+        } catch (error) {
+            console.warn("Failed to parse access token from localStorage:", error);
+        }
+    }
 };
 const logRequestComplete = (request: KyRequest, options: NormalizedOptions, response: KyResponse) => {
     // Log successful responses
@@ -115,8 +129,30 @@ const defaultKyClient = ky.create({
     },
 });
 
+// Create a ky instance without retries for specific requests (like login)
+const noRetryKyClient = ky.create({
+    prefixUrl: Connections.CentralServer.endpoint,
+    timeout: 30000, // 30 seconds timeout
+    retry: 0, // No retries
+    hooks: {
+        beforeRequest: [logRequest],
+        afterResponse: [logRequestComplete],
+        beforeError: [logError],
+        // No beforeRetry hook since we don't want retries
+    },
+});
+
 export const createClientConfig: CreateClientConfig = (config) => ({
     ...config,
     baseUrl: Connections.CentralServer.endpoint,
     fetch: defaultKyClient, // Use ky as the fetch implementation
 });
+
+export const createNoRetryClientConfig: CreateClientConfig = (config) => ({
+    ...config,
+    baseUrl: Connections.CentralServer.endpoint,
+    fetch: noRetryKyClient, // Use no-retry ky client
+});
+
+// Create a no-retry client instance for specific API calls that shouldn't be retried
+export const noRetryClient = createClient(createNoRetryClientConfig(createConfig({})));
