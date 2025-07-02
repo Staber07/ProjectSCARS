@@ -576,6 +576,45 @@ export type UserDelete = {
 };
 
 /**
+ * UserInvite
+ * A model used for inviting a new user to the system.
+ */
+export type UserInvite = {
+    /**
+     * Email
+     */
+    email: string;
+    /**
+     * Username
+     */
+    username: string;
+    /**
+     * Roleid
+     */
+    roleId: number;
+    /**
+     * Namefirst
+     */
+    nameFirst?: string | null;
+    /**
+     * Namemiddle
+     */
+    nameMiddle?: string | null;
+    /**
+     * Namelast
+     */
+    nameLast?: string | null;
+    /**
+     * Position
+     */
+    position?: string | null;
+    /**
+     * Schoolid
+     */
+    schoolId?: number | null;
+};
+
+/**
  * UserPasswordResetRequest
  * A model used for resetting a user's password.
  */
@@ -1233,6 +1272,31 @@ export type RefreshAccessTokenV1AuthRefreshPostResponses = {
 };
 
 export type RefreshAccessTokenV1AuthRefreshPostResponse = RefreshAccessTokenV1AuthRefreshPostResponses[keyof RefreshAccessTokenV1AuthRefreshPostResponses];
+
+export type InviteUserV1AuthInvitePostData = {
+    body: UserInvite;
+    path?: never;
+    query?: never;
+    url: '/v1/auth/invite';
+};
+
+export type InviteUserV1AuthInvitePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type InviteUserV1AuthInvitePostError = InviteUserV1AuthInvitePostErrors[keyof InviteUserV1AuthInvitePostErrors];
+
+export type InviteUserV1AuthInvitePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type InviteUserV1AuthInvitePostResponse = InviteUserV1AuthInvitePostResponses[keyof InviteUserV1AuthInvitePostResponses];
 
 export type GetAllRolesV1AuthRolesGetData = {
     body?: never;

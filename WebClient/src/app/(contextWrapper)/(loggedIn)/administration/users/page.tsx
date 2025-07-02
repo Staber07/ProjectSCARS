@@ -2,6 +2,7 @@
 
 import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
+import { InviteUserComponent } from "@/components/UserManagement/InviteUserComponent";
 import { UserFilters } from "@/components/UserManagement/UserFilters";
 import {
     Role,
@@ -54,6 +55,7 @@ import {
     IconLock,
     IconLockOpen,
     IconMail,
+    IconMailPlus,
     IconPlus,
     IconSearch,
     IconSendOff,
@@ -90,6 +92,7 @@ export default function UsersPage(): JSX.Element {
     const [selectedUser, setSelectedUser] = useState<UserPublic | null>(null);
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
+    const [openInviteUserModal, setOpenInviteUserModal] = useState(false);
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
 
     const [roleFilter, setRoleFilter] = useState<string | null>(null);
@@ -204,6 +207,14 @@ export default function UsersPage(): JSX.Element {
         setSelectedUser(null);
         setSelectedUserIndex(null);
         setOpenCreateUserModal(true);
+    };
+
+    const handleInvite = () => {
+        console.debug("Inviting new user");
+        // Clear selected user when opening invite modal
+        setSelectedUser(null);
+        setSelectedUserIndex(null);
+        setOpenInviteUserModal(true);
     };
 
     const handleEdit = (index: number, user: UserPublic) => {
@@ -448,6 +459,15 @@ export default function UsersPage(): JSX.Element {
                         style={{ width: "400px" }}
                     />
                     <Flex ml="auto" gap="sm" align="center">
+                        <ActionIcon
+                            disabled={!userCtx.userPermissions?.includes("users:create")}
+                            size="input-md"
+                            variant="filled"
+                            color="blue"
+                            onClick={handleInvite}
+                        >
+                            <IconMailPlus size={18} />
+                        </ActionIcon>
                         <ActionIcon
                             disabled={!userCtx.userPermissions?.includes("users:create")}
                             size="input-md"
@@ -823,6 +843,17 @@ export default function UsersPage(): JSX.Element {
                                 newArr[idx] = updatedUser;
                                 return newArr;
                             });
+                        }}
+                    />
+                )}
+                {openInviteUserModal === true && (
+                    <InviteUserComponent
+                        modalOpen={openInviteUserModal}
+                        setModalOpen={setOpenInviteUserModal}
+                        availableSchools={availableSchools}
+                        availableRoles={availableRoles}
+                        onUserInvite={(newUser) => {
+                            setAllUsers((prev) => [newUser, ...prev]);
                         }}
                     />
                 )}
