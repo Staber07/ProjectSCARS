@@ -182,39 +182,6 @@ export default function UsersPage(): JSX.Element {
         return filtered;
     };
 
-    // Fetch users when the page loads or filters change
-    const fetchUsers = async (page: number) => {
-        try {
-            const result = await getAllUsersEndpointV1UsersAllGet({
-                query: {
-                    offset: (page - 1) * userPerPage,
-                    limit: userPerPage,
-                },
-                headers: { Authorization: GetAccessTokenHeader() },
-            });
-
-            if (result.error) {
-                throw new Error(`Failed to fetch users: ${result.response.status} ${result.response.statusText}`);
-            }
-
-            const data = result.data as UserPublic[];
-            setAllUsers(data);
-            const filtered = applyFilters(data);
-
-            setUsers(filtered);
-            setTotalUsers(filtered.length);
-            setTotalPages(Math.ceil(filtered.length / userPerPage));
-            setCurrentPage(page);
-
-            setSelected(new Set());
-            setSelectedUser(null);
-            setSelectedUserIndex(null);
-        } catch (error) {
-            console.error("Failed to fetch users:", error);
-            handleFetchError();
-        }
-    };
-
     const handleFilterChange = () => {
         setCurrentPage(1);
     };
@@ -842,7 +809,6 @@ export default function UsersPage(): JSX.Element {
                         user={selectedUser}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
-                        currentPage={currentPage}
                         setIndex={setSelectedUserIndex}
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
@@ -864,7 +830,6 @@ export default function UsersPage(): JSX.Element {
                     <CreateUserComponent
                         modalOpen={openCreateUserModal}
                         setModalOpen={setOpenCreateUserModal}
-                        currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
                         UpdateUserInfo={UpdateUserInfo}

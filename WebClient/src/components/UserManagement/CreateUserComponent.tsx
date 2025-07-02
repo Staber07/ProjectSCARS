@@ -12,7 +12,6 @@ import { useCallback, useMemo } from "react";
 interface CreateUserComponentProps {
     modalOpen: boolean;
     setModalOpen: (open: boolean) => void;
-    currentPage: number;
     availableSchools: School[];
     availableRoles: Role[];
     UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
@@ -22,7 +21,6 @@ interface CreateUserComponentProps {
 export function CreateUserComponent({
     modalOpen,
     setModalOpen,
-    currentPage,
     availableSchools,
     availableRoles,
     UpdateUserInfo,
@@ -119,7 +117,7 @@ export function CreateUserComponent({
                 buttonStateHandler.close();
             }
         },
-        [buttonStateHandler, currentPage, form, setModalOpen, UpdateUserInfo, onUserCreate]
+        [buttonStateHandler, form, setModalOpen, UpdateUserInfo, onUserCreate]
     );
 
     return (

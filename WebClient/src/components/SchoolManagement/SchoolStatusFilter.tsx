@@ -1,5 +1,4 @@
 import { Select } from "@mantine/core";
-import { IconLock, IconLockOpen } from "@tabler/icons-react";
 import React from "react";
 
 interface SchoolStatusFilterProps {
