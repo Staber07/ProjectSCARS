@@ -1,4 +1,6 @@
 import datetime
+import random
+import string
 import uuid
 from typing import Annotated
 
@@ -18,6 +20,7 @@ from sqlmodel import Session, select
 from centralserver.internals.auth_handler import (
     authenticate_user,
     create_access_token,
+    crypt_ctx,
     verify_access_token,
     verify_user_permission,
 )
@@ -26,8 +29,8 @@ from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.token import DecodedJWTToken, JWTToken
-from centralserver.internals.models.user import User, UserCreate, UserPublic
-from centralserver.internals.user_handler import create_user
+from centralserver.internals.models.user import User, UserCreate, UserInvite, UserPublic
+from centralserver.internals.user_handler import create_user, validate_password
 from centralserver.routers.auth_routes.email import router as email_router
 from centralserver.routers.auth_routes.multifactor import router as multifactor_router
 from centralserver.routers.auth_routes.oauth import google_oauth_adapter
@@ -238,6 +241,97 @@ async def refresh_access_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired refresh token.",
+        ) from e
+
+
+@router.post("/invite", response_model=UserPublic)
+async def invite_user(
+    new_user: UserInvite,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> UserPublic:
+    """Invite a new user to the system.
+
+    Args:
+        new_user: The new user's information.
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+
+    Returns:
+        A newly created user object.
+    """
+
+    if not await verify_user_permission("users:create", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to invite a user.",
+        )
+
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="User not found."
+        )
+
+    user_role = session.get(Role, new_user.roleId)
+    if not user_role:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role ID provided.",
+        )
+
+    if new_user.roleId < user.roleId:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to invite a user with this role.",
+        )
+
+    logger.info("Inviting new user: %s", new_user.email)
+    logger.debug("Invited by user: %s", token.id)
+
+    # Generate a random password for the new user
+    genpass = "".join(random.choices(string.ascii_letters + string.digits, k=12))
+    while not (await validate_password(genpass))[0]:
+        # Regenerate the password if it does not meet the requirements
+        genpass = "".join(random.choices(string.ascii_letters + string.digits, k=12))
+
+    try:
+        logger.debug("Creating new user with generated password")
+        created_user = await create_user(
+            UserCreate(
+                username=new_user.username,
+                roleId=new_user.roleId,
+                password=crypt_ctx.hash(genpass),
+            ),
+            session,
+        )
+
+        logger.debug("Updating user information with the new user data")
+        created_user.nameFirst = new_user.nameFirst
+        created_user.nameMiddle = new_user.nameMiddle
+        created_user.nameLast = new_user.nameLast
+        created_user.position = new_user.position
+        created_user.schoolId = new_user.schoolId
+        created_user.password = genpass  # Set the generated password
+        created_user.email = new_user.email
+
+        logger.debug("Committing the new user to the database")
+        session.add(created_user)
+        session.commit()
+        session.refresh(created_user)
+
+        logger.debug("User created successfully: %s", created_user.username)
+        invited_user = UserPublic.model_validate(created_user)
+        logger.debug("Returning invited user information: %s", invited_user.id)
+        return invited_user
+
+    except (ValueError, AttributeError) as e:
+        logger.error("Failed to update user information: %s", e)
+        logger.debug("Rolling back the session due to error")
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Failed to create user. Please check the provided information.",
         ) from e
 
 
