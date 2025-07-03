@@ -3,6 +3,12 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
+    "compounds": [
+        {
+            "name": "Run CentralServer & WebClient",
+            "configurations": ["Python Debugger: uvicorn", "WebClient: Next.js dev"]
+        }
+    ],
     "configurations": [
         {
             "name": "Python Debugger: uvicorn",
@@ -12,6 +18,15 @@
             "cwd": "${workspaceFolder}/CentralServer",
             "args": ["centralserver.main:app", "--reload", "--port", "8081"],
             "jinja": true
+        },
+        {
+            "name": "WebClient: Next.js dev",
+            "type": "node",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/WebClient",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": ["run", "dev"],
+            "console": "integratedTerminal"
         }
     ]
 }
