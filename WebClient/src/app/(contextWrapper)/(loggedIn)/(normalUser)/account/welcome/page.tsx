@@ -422,7 +422,14 @@ function WelcomeContent({ userInfo, userPermissions }: ProfileContentProps) {
 
     return (
         <Modal opened={true} onClose={() => {}} size="auto" centered fullScreen withCloseButton={false}>
-            <form>
+            <form
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && active < maxSteps) {
+                        e.preventDefault();
+                        nextStep();
+                    }
+                }}
+            >
                 <Stepper active={active} onStepClick={setActive} allowNextStepsSelect={false}>
                     {/* Welcome step */}
                     <Stepper.Step label="Welcome" description={`Welcome to ${Program.name}!`}>

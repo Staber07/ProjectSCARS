@@ -61,6 +61,28 @@ export type BodyUpdateUserAvatarEndpointV1UsersAvatarPatch = {
 };
 
 /**
+ * DailyEntryData
+ * Model for creating daily sales and purchases entries.
+ */
+export type DailyEntryData = {
+    /**
+     * Day
+     * Day of the month (1-31)
+     */
+    day: number;
+    /**
+     * Sales
+     * Total sales for the day
+     */
+    sales: number;
+    /**
+     * Purchases
+     * Total purchases for the day
+     */
+    purchases: number;
+};
+
+/**
  * DailyFinancialReport
  * A model representing the daily sales and purchases report.
  *
@@ -2166,7 +2188,7 @@ export type DeleteSchoolDailyReportV1ReportsDailySchoolIdYearMonthDeleteResponse
     200: unknown;
 };
 
-export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetData = {
+export type GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetData = {
     body?: never;
     path: {
         /**
@@ -2186,27 +2208,23 @@ export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetData 
     url: '/v1/reports/daily/{school_id}/{year}/{month}';
 };
 
-export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetErrors = {
+export type GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetError = GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetErrors[keyof GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetErrors];
+export type GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetError = GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetErrors[keyof GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetErrors];
 
-export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetResponses = {
+export type GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetResponses = {
     /**
-     * Response Get School Daily Financial Report V1 Reports Daily  School Id   Year   Month  Get
      * Successful Response
      */
-    200: [
-        DailyFinancialReport,
-        Array<DailyFinancialReportEntry>
-    ];
+    200: DailyFinancialReport;
 };
 
-export type GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetResponse = GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetResponses[keyof GetSchoolDailyFinancialReportV1ReportsDailySchoolIdYearMonthGetResponses];
+export type GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetResponse = GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetResponses[keyof GetSchoolDailyReportV1ReportsDailySchoolIdYearMonthGetResponses];
 
 export type CreateSchoolDailyReportV1ReportsDailySchoolIdYearMonthPatchData = {
     body?: never;
@@ -2328,7 +2346,7 @@ export type GetSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet
 
 export type GetSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGetResponse = GetSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGetResponses[keyof GetSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGetResponses];
 
-export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchData = {
+export type CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostData = {
     body?: never;
     path: {
         /**
@@ -2358,26 +2376,215 @@ export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPa
          */
         purchases: number;
     };
-    url: '/v1/reports/daily/{school_id}/{year}/{month}/entry';
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries';
 };
 
-export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchErrors = {
+export type CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchError = UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchErrors[keyof UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchErrors];
+export type CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostError = CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostErrors[keyof CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostErrors];
 
-export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchResponses = {
+export type CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyFinancialReportEntry;
+};
+
+export type CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostResponse = CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostResponses[keyof CreateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesPostResponses];
+
+export type DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Day
+         */
+        day: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries/{day}';
+};
+
+export type DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteError = DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteErrors[keyof DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteErrors];
+
+export type DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteResponses = {
+    /**
+     * Response Delete Daily Sales And Purchases Entry V1 Reports Daily  School Id   Year   Month  Entries  Day  Delete
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteResponse = DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteResponses[keyof DeleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDeleteResponses];
+
+export type GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Day
+         */
+        day: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries/{day}';
+};
+
+export type GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetError = GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetErrors[keyof GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetErrors];
+
+export type GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyFinancialReportEntry;
+};
+
+export type GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetResponse = GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetResponses[keyof GetDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayGetResponses];
+
+export type UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Day
+         */
+        day: number;
+    };
+    query: {
+        /**
+         * Sales
+         */
+        sales: number;
+        /**
+         * Purchases
+         */
+        purchases: number;
+    };
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries/{day}';
+};
+
+export type UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchError = UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchErrors[keyof UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchErrors];
+
+export type UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchResponses = {
     /**
      * Successful Response
      */
     200: DailyFinancialReport;
 };
 
-export type UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchResponse = UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchResponses[keyof UpdateSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntryPatchResponses];
+export type UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchResponse = UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchResponses[keyof UpdateSchoolDailyReportEntryLegacyV1ReportsDailySchoolIdYearMonthEntriesDayPatchResponses];
+
+export type UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Day
+         */
+        day: number;
+    };
+    query: {
+        /**
+         * Sales
+         */
+        sales: number;
+        /**
+         * Purchases
+         */
+        purchases: number;
+    };
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries/{day}';
+};
+
+export type UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutError = UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutErrors[keyof UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutErrors];
+
+export type UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyFinancialReportEntry;
+};
+
+export type UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutResponse = UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutResponses[keyof UpdateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPutResponses];
 
 export type GetSchoolDailyFinancialReportsV1ReportsDailySchoolIdGetData = {
     body?: never;
@@ -2419,8 +2626,8 @@ export type GetSchoolDailyFinancialReportsV1ReportsDailySchoolIdGetResponses = {
 
 export type GetSchoolDailyFinancialReportsV1ReportsDailySchoolIdGetResponse = GetSchoolDailyFinancialReportsV1ReportsDailySchoolIdGetResponses[keyof GetSchoolDailyFinancialReportsV1ReportsDailySchoolIdGetResponses];
 
-export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutData = {
-    body: DailyFinancialReportEntry;
+export type GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetData = {
+    body?: never;
     path: {
         /**
          * School Id
@@ -2435,32 +2642,116 @@ export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutDat
          */
         month: number;
     };
-    query: {
-        /**
-         * Day
-         */
-        day: number;
-    };
-    url: '/v1/reports/daily/{school_id}/{year}/{month}/add';
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/full';
 };
 
-export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutErrors = {
+export type GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutError = AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutErrors[keyof AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutErrors];
+export type GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetError = GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetErrors[keyof GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetErrors];
 
-export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutResponses = {
+export type GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetResponses = {
     /**
+     * Response Get School Daily Financial Report With Entries V1 Reports Daily  School Id   Year   Month  Full Get
      * Successful Response
      */
-    200: DailyFinancialReport;
+    200: [
+        DailyFinancialReport,
+        Array<DailyFinancialReportEntry>
+    ];
 };
 
-export type AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutResponse = AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutResponses[keyof AddDailyFinancialReportEntryV1ReportsDailySchoolIdYearMonthAddPutResponses];
+export type GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetResponse = GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetResponses[keyof GetSchoolDailyFinancialReportWithEntriesV1ReportsDailySchoolIdYearMonthFullGetResponses];
+
+export type CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostData = {
+    /**
+     * Entries
+     */
+    body: Array<DailyEntryData>;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/entries/bulk';
+};
+
+export type CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostError = CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostErrors[keyof CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostErrors];
+
+export type CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostResponses = {
+    /**
+     * Response Create Bulk Daily Sales And Purchases Entries V1 Reports Daily  School Id   Year   Month  Entries Bulk Post
+     * Successful Response
+     */
+    200: Array<DailyFinancialReportEntry>;
+};
+
+export type CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostResponse = CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostResponses[keyof CreateBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPostResponses];
+
+export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/summary';
+};
+
+export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetError = GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetErrors[keyof GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetErrors];
+
+export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses = {
+    /**
+     * Response Get Daily Sales And Purchases Summary V1 Reports Daily  School Id   Year   Month  Summary Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: number | number | {
+            [key: string]: number | number;
+        } | null;
+    };
+};
+
+export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponse = GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses[keyof GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;
