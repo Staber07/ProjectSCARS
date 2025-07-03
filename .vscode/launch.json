@@ -10,15 +10,7 @@
             "request": "launch",
             "module": "uvicorn",
             "cwd": "${workspaceFolder}/CentralServer",
-            "args": ["centralserver.main:app", "--reload"],
-            "jinja": true
-        },
-        {
-            "name": "Python Debugger: CentralServer",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "centralserver.main",
-            "cwd": "${workspaceFolder}/CentralServer",
+            "args": ["centralserver.main:app", "--reload", "--port", "8081"],
             "jinja": true
         }
     ]
