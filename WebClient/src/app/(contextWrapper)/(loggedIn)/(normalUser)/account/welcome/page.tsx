@@ -489,7 +489,7 @@ function WelcomeContent({ userInfo, userPermissions }: ProfileContentProps) {
                                             experience. This will be used in reports, notifications, and other
                                             communications.
                                         </Text>
-                                        <Flex justify="center" align="center" gap="md">
+                                        <Flex justify="center" align="top" gap="md">
                                             <TextInput
                                                 required
                                                 mt="md"
