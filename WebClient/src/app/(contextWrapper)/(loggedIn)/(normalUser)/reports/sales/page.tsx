@@ -514,6 +514,25 @@ function SalesandPurchasesContent() {
                                 className="w-64"
                                 minDate={currentMonth ? dayjs(currentMonth).startOf("month").toDate() : undefined}
                                 maxDate={currentMonth ? dayjs(currentMonth).endOf("month").toDate() : new Date()}
+                                getDayProps={(date) => {
+                                    // e.date is always the first of the month (YYYY-MM-01), but e.day is the actual day
+                                    // So reconstruct the real date string for comparison
+                                    const dateStr = dayjs(date).format("YYYY-MM-DD");
+                                    if (
+                                        dailyEntries.some((e) => {
+                                            // Compose the real date from e.date (month) and e.day
+                                            const entryDate = dayjs(e.date).date(e.day).format("YYYY-MM-DD");
+                                            return entryDate === dateStr;
+                                        })
+                                    ) {
+                                        return {
+                                            style: {
+                                                backgroundColor: "#d1fadf", // light green
+                                            },
+                                        };
+                                    }
+                                    return {};
+                                }}
                             />
                             <ActionIcon
                                 variant="outline"
