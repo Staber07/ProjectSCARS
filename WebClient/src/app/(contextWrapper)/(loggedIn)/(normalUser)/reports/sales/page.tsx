@@ -2,9 +2,8 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
-import { GetDailySalesAndPurchasesReportEntries, SetDailySalesAndPurchasesReportEntries } from "@/lib/api/report";
+import * as csclient from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
-import { DailyFinancialReportEntry } from "@/lib/api/csclient";
 import {
     ActionIcon,
     Alert,
@@ -25,10 +24,10 @@ import {
 import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { notifications } from "@mantine/notifications";
-import { IconAlertCircle, IconCalendar, IconEdit, IconHistory, IconLock, IconTrash, IconX } from "@tabler/icons-react";
+import { IconAlertCircle, IconCalendar, IconHistory, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
 interface DailyEntry {
     date: string;
@@ -39,38 +38,53 @@ interface DailyEntry {
 }
 
 function SalesandPurchasesContent() {
-    console.debug("Rendering SalesandPurchasesPage");
     const router = useRouter();
     const userCtx = useUser();
-
     const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
     const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
+    const [originalEntries, setOriginalEntries] = useState<DailyEntry[]>([]);
     const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
     const [modalOpened, setModalOpened] = useState(false);
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyFinancialReportEntry | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
 
+    // Fetch entries for the current month
     useEffect(() => {
-        // Fetch initial entries for the current month when component mounts
         const fetchEntries = async () => {
             if (userCtx.userInfo?.schoolId) {
-                const reportEntries = await GetDailySalesAndPurchasesReportEntries(
-                    userCtx.userInfo.schoolId,
-                    currentMonth.getFullYear(),
-                    currentMonth.getMonth() + 1
-                );
-                setDailyEntries(
-                    (reportEntries || []).map((entry: DailyFinancialReportEntry) => ({
-                        date: entry.parent,
-                        day: entry.day,
-                        sales: entry.sales,
-                        purchases: entry.purchases,
-                        netIncome: entry.sales - entry.purchases,
-                    }))
-                );
+                try {
+                    const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+                        path: {
+                            school_id: userCtx.userInfo.schoolId,
+                            year: currentMonth.getFullYear(),
+                            month: currentMonth.getMonth() + 1,
+                        },
+                    });
+                    const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
+                    if (entries.length === 0) {
+                        setDailyEntries([]);
+                        setOriginalEntries([]);
+                    } else {
+                        const mapped = entries.map((entry) => ({
+                            date: entry.parent,
+                            day: entry.day,
+                            sales: entry.sales,
+                            purchases: entry.purchases,
+                            netIncome: entry.sales - entry.purchases,
+                        }));
+                        setDailyEntries(mapped);
+                        setOriginalEntries(mapped); // Track original entries for diffing
+                    }
+                } catch {
+                    setDailyEntries([]);
+                    setOriginalEntries([]);
+                }
+            } else {
+                setDailyEntries([]);
+                setOriginalEntries([]);
             }
         };
         fetchEntries();
@@ -80,108 +94,173 @@ function SalesandPurchasesContent() {
         router.push("/reports");
     };
 
-    const handleDateSelect = (date: Date | null) => {
-        if (!date) return;
-
-        setSelectedDate(date);
-
-        if (!dayjs(date).isSame(currentMonth, "month")) {
-            setCurrentMonth(date);
-        }
-
-        const dateStr = dayjs(date).format("YYYY-MM-DD");
-        const existingEntry = dailyEntries.find((e) => e.date === dateStr);
-
-        if (existingEntry) {
-            // Edit existing entry
-            setEditingEntry(existingEntry);
-            setModalSales(existingEntry.sales);
-            setModalPurchases(existingEntry.purchases);
-        } else {
-            // Create new entry
-            const newEntry: DailyEntry = {
-                date: dateStr,
-                day: dayjs(date).date(),
-                sales: 0,
-                purchases: 0,
-                netIncome: 0,
-            };
-            setEditingEntry(newEntry);
-            setModalSales(0);
-            setModalPurchases(0);
-        }
-
-        setModalOpened(true);
-    };
+    const handleDateSelect = useCallback(
+        (date: Date | null) => {
+            if (!date) return;
+            setSelectedDate(date);
+            if (!dayjs(date).isSame(currentMonth, "month")) {
+                setCurrentMonth(date);
+            }
+            const dateStr = dayjs(date).format("YYYY-MM-DD");
+            const existingEntry = dailyEntries.find((e) => e.date === dateStr);
+            if (existingEntry) {
+                setEditingEntry(existingEntry);
+                setModalSales(existingEntry.sales);
+                setModalPurchases(existingEntry.purchases);
+            } else {
+                const newEntry: DailyEntry = {
+                    date: dateStr,
+                    day: dayjs(date).date(),
+                    sales: 0,
+                    purchases: 0,
+                    netIncome: 0,
+                };
+                setEditingEntry(newEntry);
+                setModalSales(0);
+                setModalPurchases(0);
+            }
+            setModalOpened(true);
+        },
+        [currentMonth, dailyEntries]
+    );
 
     const handleSaveEntry = async () => {
         if (!editingEntry) return;
-
-        const netIncome = modalSales - modalPurchases;
-        const updatedEntry = {
-            ...editingEntry,
-            sales: modalSales,
-            purchases: modalPurchases,
-            netIncome,
-        };
-
+        if (!userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "You are not yet assigned to a school.",
+                color: "red",
+            });
+            return;
+        }
         const existingIndex = dailyEntries.findIndex((entry) => entry.date === editingEntry.date);
-
-        // Construct the API entry with the required 'parent' property
-        // const apiEntry = {
-        //     parent: new Date(currentMonth.getFullYear(), currentMonth.getMonth(), editingEntry.day),
-        //     day: editingEntry.day,
-        //     sales: modalSales,
-        //     purchases: modalPurchases,
-        // };
-
-        // await SetDailySalesAndPurchasesReportEntries(
-        //     userCtx.userInfo?.schoolId || 0,
-        //     currentMonth.getFullYear(),
-        //     currentMonth.getMonth() + 1,
-        //     [apiEntry]
-        // );
-        if (existingIndex >= 0) {
-            // Update existing entry
-            setDailyEntries((prev) => prev.map((entry, index) => (index === existingIndex ? updatedEntry : entry)));
-        } else {
-            // Add new entry and sort by date
-            setDailyEntries((prev) => {
-                const newEntries = [...prev, updatedEntry];
-                return newEntries.sort((a, b) => dayjs(a.date).valueOf() - dayjs(b.date).valueOf());
+        try {
+            if (existingIndex >= 0) {
+                // Update existing entry in backend
+                await csclient.updateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPut({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: dayjs(editingEntry.date).year(),
+                        month: dayjs(editingEntry.date).month() + 1,
+                        day: editingEntry.day,
+                    },
+                    query: {
+                        sales: modalSales,
+                        purchases: modalPurchases,
+                    },
+                });
+            } else {
+                // Create new entry in backend
+                await csclient.createBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: dayjs(editingEntry.date).year(),
+                        month: dayjs(editingEntry.date).month() + 1,
+                    },
+                    body: [
+                        {
+                            day: editingEntry.day,
+                            sales: modalSales,
+                            purchases: modalPurchases,
+                        },
+                    ],
+                });
+            }
+            // Re-fetch entries after save
+            const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year: dayjs(editingEntry.date).year(),
+                    month: dayjs(editingEntry.date).month() + 1,
+                },
+            });
+            const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
+            const mapped = entries.map((entry) => ({
+                date: entry.parent,
+                day: entry.day,
+                sales: entry.sales,
+                purchases: entry.purchases,
+                netIncome: entry.sales - entry.purchases,
+            }));
+            setDailyEntries(mapped);
+            setOriginalEntries(mapped);
+            notifications.show({
+                title: "Success",
+                message: "Entry saved successfully.",
+                color: "green",
+            });
+        } catch (err) {
+            notifications.show({
+                title: "Error",
+                message: err instanceof Error ? err.message : "Failed to save entry.",
+                color: "red",
             });
         }
-
         setModalOpened(false);
         setEditingEntry(null);
     };
 
-    const canEditDate = (date: string) => {
-        const entryDate = dayjs(date);
-        const today = dayjs();
-        return entryDate.isSame(today, "day") || entryDate.isBefore(today, "day");
-    };
-
-    const handleDeleteEntry = (entry: DailyEntry) => {
-        setEntryToDelete({
-            parent: entry.date,
-            day: entry.day,
-            sales: entry.sales,
-            purchases: entry.purchases,
-        });
-        setDeleteModalOpened(true);
-    };
-
-    const confirmDeleteEntry = () => {
-        if (!entryToDelete) return;
-
-        setDailyEntries((prev) => prev.filter((entry) => entry.date !== entryToDelete.parent));
+    const handleDeleteEntry = async (entry: DailyEntry) => {
+        if (!userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "You are not yet assigned to a school.",
+                color: "red",
+            });
+            return;
+        }
+        try {
+            await csclient.deleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDelete({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year: dayjs(entry.date).year(),
+                    month: dayjs(entry.date).month() + 1,
+                    day: entry.day,
+                },
+            });
+            // Re-fetch entries after delete
+            const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year: dayjs(entry.date).year(),
+                    month: dayjs(entry.date).month() + 1,
+                },
+            });
+            const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
+            const mapped = entries.map((entry) => ({
+                date: entry.parent,
+                day: entry.day,
+                sales: entry.sales,
+                purchases: entry.purchases,
+                netIncome: entry.sales - entry.purchases,
+            }));
+            setDailyEntries(mapped);
+            setOriginalEntries(mapped);
+            notifications.show({
+                title: "Deleted",
+                message: "Entry deleted successfully.",
+                color: "green",
+            });
+        } catch (err) {
+            notifications.show({
+                title: "Error",
+                message: err instanceof Error ? err.message : "Failed to delete entry.",
+                color: "red",
+            });
+        }
         setDeleteModalOpened(false);
         setEntryToDelete(null);
     };
 
+    const confirmDeleteEntry = () => {
+        if (entryToDelete) {
+            handleDeleteEntry(entryToDelete);
+        }
+    };
+
     const calculateTotals = () => {
-        const totals = dailyEntries.reduce(
+        return dailyEntries.reduce(
             (acc, entry) => ({
                 sales: acc.sales + entry.sales,
                 purchases: acc.purchases + entry.purchases,
@@ -189,13 +268,11 @@ function SalesandPurchasesContent() {
             }),
             { sales: 0, purchases: 0, netIncome: 0 }
         );
-        return totals;
     };
-
     const totals = calculateTotals();
 
+    // Bulk submit all entries for the month
     const handleSubmit = async () => {
-        console.log("Submit clicked");
         if (!userCtx.userInfo) {
             notifications.show({
                 title: "Error",
@@ -204,7 +281,6 @@ function SalesandPurchasesContent() {
             });
             return;
         }
-
         if (!userCtx.userInfo.schoolId) {
             notifications.show({
                 title: "Error",
@@ -213,24 +289,154 @@ function SalesandPurchasesContent() {
             });
             return;
         }
-
-        await SetDailySalesAndPurchasesReportEntries(
-            userCtx.userInfo.schoolId,
-            currentMonth.getFullYear(),
-            currentMonth.getMonth() + 1,
-            dailyEntries.map((entry) => ({
-                parent: entry.date,
+        try {
+            // Find new entries (not in originalEntries)
+            const originalDays = new Set(originalEntries.map((e) => e.day));
+            const newEntries = dailyEntries.filter((e) => !originalDays.has(e.day));
+            // Find updated entries (in both, but values changed)
+            const updatedEntries = dailyEntries.filter((e) => {
+                const orig = originalEntries.find((o) => o.day === e.day);
+                return orig && (orig.sales !== e.sales || orig.purchases !== e.purchases);
+            });
+            // Find deleted entries (in originalEntries but not in dailyEntries)
+            const deletedEntries = originalEntries.filter((e) => !dailyEntries.some((d) => d.day === e.day));
+            // Bulk create new entries
+            if (newEntries.length > 0) {
+                await csclient.createBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: currentMonth.getFullYear(),
+                        month: currentMonth.getMonth() + 1,
+                    },
+                    body: newEntries.map((entry) => ({
+                        day: entry.day,
+                        sales: entry.sales,
+                        purchases: entry.purchases,
+                    })),
+                });
+            }
+            // Update changed entries
+            for (const entry of updatedEntries) {
+                await csclient.updateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPut({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: currentMonth.getFullYear(),
+                        month: currentMonth.getMonth() + 1,
+                        day: entry.day,
+                    },
+                    query: {
+                        sales: entry.sales,
+                        purchases: entry.purchases,
+                    },
+                });
+            }
+            // Delete removed entries
+            for (const entry of deletedEntries) {
+                await csclient.deleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDelete({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: currentMonth.getFullYear(),
+                        month: currentMonth.getMonth() + 1,
+                        day: entry.day,
+                    },
+                });
+            }
+            notifications.show({
+                title: "Submission",
+                message: "Your entries have been submitted successfully.",
+                color: "green",
+            });
+            // Refresh data after submit
+            const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year: currentMonth.getFullYear(),
+                    month: currentMonth.getMonth() + 1,
+                },
+            });
+            const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
+            const mapped = entries.map((entry) => ({
+                date: entry.parent,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
-            }))
-        );
-        notifications.show({
-            title: "Submission",
-            message: "Your entries have been submitted successfully.",
-            color: "green",
-        });
+                netIncome: entry.sales - entry.purchases,
+            }));
+            setDailyEntries(mapped);
+            setOriginalEntries(mapped);
+        } catch (err) {
+            notifications.show({
+                title: "Error",
+                message: err instanceof Error ? err.message : "Failed to submit entries.",
+                color: "red",
+            });
+        }
     };
+
+    const tableRows = useMemo(
+        () =>
+            dailyEntries.map((entry) => (
+                <Table.Tr key={`${entry.date}-${entry.day}`}>
+                    <Table.Td className="text-center">
+                        <Group justify="left" gap="xs">
+                            {(() => {
+                                const dateObj = dayjs(entry.date).date(entry.day);
+                                return (
+                                    <>
+                                        <Text size="sm">{dateObj.format("MMM DD, YYYY")}</Text>
+                                        {dateObj.isSame(dayjs(), "day") && (
+                                            <Badge color="blue" size="xs">
+                                                Today
+                                            </Badge>
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </Group>
+                    </Table.Td>
+                    <Table.Td className="text-center">
+                        <Text>₱{entry.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                    </Table.Td>
+                    <Table.Td className="text-center">
+                        <Text>₱{entry.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                    </Table.Td>
+                    <Table.Td className="text-center">
+                        <Text>₱{entry.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                    </Table.Td>
+                    <Table.Td className="text-center">
+                        <Group gap="xs">
+                            <Button
+                                size="xs"
+                                variant="light"
+                                onClick={() => {
+                                    const entryDate = dayjs(entry.date).toDate();
+                                    setCurrentMonth(entryDate);
+                                    setSelectedDate(entryDate);
+                                    setEditingEntry(entry);
+                                    setModalSales(entry.sales);
+                                    setModalPurchases(entry.purchases);
+                                    setModalOpened(true);
+                                }}
+                            >
+                                Edit
+                            </Button>
+                            <Button
+                                size="xs"
+                                color="red"
+                                variant="light"
+                                onClick={() => {
+                                    setEntryToDelete(entry);
+                                    setDeleteModalOpened(true);
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </Group>
+                    </Table.Td>
+                </Table.Tr>
+            )),
+        [dailyEntries]
+    );
 
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
@@ -285,24 +491,7 @@ function SalesandPurchasesContent() {
                                     if (value) {
                                         const newMonth = new Date(value);
                                         setCurrentMonth(newMonth);
-                                        setSelectedDate(null); // Reset selected day when month changes
-                                        if (userCtx.userInfo?.schoolId) {
-                                            const report = await GetDailySalesAndPurchasesReportEntries(
-                                                userCtx.userInfo?.schoolId,
-                                                newMonth.getFullYear(),
-                                                newMonth.getMonth() + 1
-                                            );
-                                            console.debug("Fetched report entries:", report);
-                                            setDailyEntries(
-                                                (report || []).map((entry: DailyFinancialReportEntry) => ({
-                                                    date: entry.parent,
-                                                    day: entry.day,
-                                                    sales: entry.sales,
-                                                    purchases: entry.purchases,
-                                                    netIncome: entry.sales - entry.purchases,
-                                                }))
-                                            );
-                                        }
+                                        setSelectedDate(null);
                                     }
                                 }}
                                 leftSection={<IconCalendar size={16} />}
@@ -314,7 +503,6 @@ function SalesandPurchasesContent() {
                                 onChange={(value) => {
                                     if (value) {
                                         const date = new Date(value);
-                                        console.debug("Selected date:", date);
                                         if (!isNaN(date.getTime())) {
                                             handleDateSelect(date);
                                         }
@@ -362,93 +550,7 @@ function SalesandPurchasesContent() {
                                     <Table.Th className="text-center"></Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
-                            <Table.Tbody>
-                                {dailyEntries.map((entry) => (
-                                    <Table.Tr key={entry.date}>
-                                        <Table.Td className="text-center">
-                                            <Group justify="left" gap="xs">
-                                                <Text size="sm">{dayjs(entry.date).format("DD-MMM-YY")}</Text>
-                                                {dayjs(entry.date).isSame(dayjs(), "day") && (
-                                                    <Badge size="xs" color="blue">
-                                                        Today
-                                                    </Badge>
-                                                )}
-                                            </Group>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text>
-                                                ₱{entry.sales.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text>
-                                                ₱{entry.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text>
-                                                ₱{entry.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Group justify="center" gap="sm">
-                                                <ActionIcon
-                                                    variant={canEditDate(entry.date) ? "light" : "subtle"}
-                                                    color={canEditDate(entry.date) ? "blue" : "gray"}
-                                                    disabled={!canEditDate(entry.date)}
-                                                    onClick={() => {
-                                                        if (canEditDate(entry.date)) {
-                                                            setEditingEntry(entry);
-                                                            setModalSales(entry.sales);
-                                                            setModalPurchases(entry.purchases);
-                                                            setModalOpened(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    {canEditDate(entry.date) ? (
-                                                        <IconEdit size={16} />
-                                                    ) : (
-                                                        <IconLock size={16} />
-                                                    )}
-                                                </ActionIcon>
-                                                <ActionIcon
-                                                    variant="light"
-                                                    color="red"
-                                                    onClick={() => handleDeleteEntry(entry)}
-                                                    className="ml-2"
-                                                >
-                                                    <IconTrash size={16} />
-                                                </ActionIcon>
-                                            </Group>
-                                        </Table.Td>
-                                    </Table.Tr>
-                                ))}
-                                {dailyEntries.length > 0 && (
-                                    <Table.Tr className="bg-gray-50 font-semibold">
-                                        <Table.Td className="text-center">
-                                            <Text fw={700}>TOTAL</Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text fw={700}>
-                                                ₱{totals.sales.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text fw={700}>
-                                                ₱
-                                                {totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td className="text-center">
-                                            <Text fw={700}>
-                                                ₱
-                                                {totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                                            </Text>
-                                        </Table.Td>
-                                        <Table.Td></Table.Td>
-                                    </Table.Tr>
-                                )}
-                            </Table.Tbody>
+                            <Table.Tbody>{tableRows}</Table.Tbody>
                         </Table>
                     )}
                 </Card>
@@ -463,7 +565,7 @@ function SalesandPurchasesContent() {
                                     Total Sales
                                 </Text>
                                 <Text size="xl" fw={700} c="blue">
-                                    ₱{totals.sales.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    ₱{totals.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </Text>
                             </div>
                         </Group>
@@ -477,7 +579,7 @@ function SalesandPurchasesContent() {
                                     Total Purchases
                                 </Text>
                                 <Text size="xl" fw={700} c="orange">
-                                    ₱{totals.purchases.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                    ₱{totals.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </Text>
                             </div>
                         </Group>
@@ -490,8 +592,8 @@ function SalesandPurchasesContent() {
                                 <Text size="sm" c="dimmed" fw={500}>
                                     Gross Income
                                 </Text>
-                                <Text size="xl" fw={700} c={totals.netIncome >= 0 ? "green" : "red"}>
-                                    ₱{totals.netIncome.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                <Text size="xl" fw={700} c="green">
+                                    ₱{totals.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                                 </Text>
                             </div>
                         </Group>
@@ -541,7 +643,7 @@ function SalesandPurchasesContent() {
                         <Paper p="sm" className="bg-gray-50">
                             <Text size="sm" c="dimmed">
                                 Net Income: ₱
-                                {(modalSales - modalPurchases).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                                {(modalSales - modalPurchases).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </Text>
                         </Paper>
                         <Group justify="end">
@@ -563,7 +665,10 @@ function SalesandPurchasesContent() {
                 >
                     <Text size="sm" c="dimmed">
                         Are you sure you want to delete the entry for{" "}
-                        {entryToDelete ? dayjs(entryToDelete.parent).format("MMMM DD, YYYY") : "this date"}?
+                        {entryToDelete
+                            ? `${entryToDelete.day} ${dayjs(entryToDelete.date).format("MMMM YYYY")}`
+                            : "this date"}
+                        ?
                     </Text>
                     <Group justify="end" mt="md">
                         <Button variant="subtle" onClick={() => setDeleteModalOpened(false)}>
