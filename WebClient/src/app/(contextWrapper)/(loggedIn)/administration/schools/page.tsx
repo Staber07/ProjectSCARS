@@ -340,11 +340,7 @@ export default function SchoolsPage(): JSX.Element {
                                     position="bottom"
                                     withArrow
                                 >
-                                    {school.deactivated ? (
-                                        <IconLock size={18} color="red" />
-                                    ) : (
-                                        <IconLockOpen size={18} color="green" />
-                                    )}
+                                    {school.deactivated ? <IconLock color="red" /> : <IconLockOpen color="green" />}
                                 </Tooltip>
                             </TableTd>
                             <Tooltip
