@@ -69,7 +69,7 @@ function SalesandPurchasesContent() {
                         setOriginalEntries([]);
                     } else {
                         const mapped = entries.map((entry) => ({
-                            date: entry.parent,
+                            date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
                             day: entry.day,
                             sales: entry.sales,
                             purchases: entry.purchases,
@@ -177,7 +177,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: entry.parent,
+                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -229,7 +229,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: entry.parent,
+                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -356,7 +356,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: entry.parent,
+                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
