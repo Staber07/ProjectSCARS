@@ -69,7 +69,7 @@ function SalesandPurchasesContent() {
                         setOriginalEntries([]);
                     } else {
                         const mapped = entries.map((entry) => ({
-                            date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
+                            date: entry.parent,
                             day: entry.day,
                             sales: entry.sales,
                             purchases: entry.purchases,
@@ -101,16 +101,21 @@ function SalesandPurchasesContent() {
             if (!dayjs(date).isSame(currentMonth, "month")) {
                 setCurrentMonth(date);
             }
-            const dateStr = dayjs(date).format("YYYY-MM-DD");
-            const existingEntry = dailyEntries.find((e) => e.date === dateStr);
+            const selectedDay = dayjs(date).date();
+            const selectedMonth = dayjs(date).format("YYYY-MM");
+            const existingEntry = dailyEntries.find((e) => {
+                const entryMonth = dayjs(e.date).format("YYYY-MM");
+                return e.day === selectedDay && entryMonth === selectedMonth;
+            });
             if (existingEntry) {
                 setEditingEntry(existingEntry);
                 setModalSales(existingEntry.sales);
                 setModalPurchases(existingEntry.purchases);
             } else {
+                const dateStr = dayjs(date).format("YYYY-MM-DD");
                 const newEntry: DailyEntry = {
                     date: dateStr,
-                    day: dayjs(date).date(),
+                    day: selectedDay,
                     sales: 0,
                     purchases: 0,
                     netIncome: 0,
@@ -177,7 +182,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
+                date: entry.parent,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -229,7 +234,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
+                date: entry.parent,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
@@ -356,7 +361,7 @@ function SalesandPurchasesContent() {
             });
             const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
             const mapped = entries.map((entry) => ({
-                date: dayjs(entry.parent).date(entry.day).format("YYYY-MM-DD"),
+                date: entry.parent,
                 day: entry.day,
                 sales: entry.sales,
                 purchases: entry.purchases,
