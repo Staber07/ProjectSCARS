@@ -98,11 +98,12 @@ function SalesandPurchasesContent() {
         (date: Date | null) => {
             if (!date) return;
             setSelectedDate(date);
-            if (!dayjs(date).isSame(currentMonth, "month")) {
+            const dateObj = dayjs(date);
+            if (!dateObj.isSame(currentMonth, "month")) {
                 setCurrentMonth(date);
             }
-            const selectedDay = dayjs(date).date();
-            const selectedMonth = dayjs(date).format("YYYY-MM");
+            const selectedDay = dateObj.date();
+            const selectedMonth = dateObj.format("YYYY-MM");
             const existingEntry = dailyEntries.find((e) => {
                 const entryMonth = dayjs(e.date).format("YYYY-MM");
                 return e.day === selectedDay && entryMonth === selectedMonth;
@@ -112,7 +113,7 @@ function SalesandPurchasesContent() {
                 setModalSales(existingEntry.sales);
                 setModalPurchases(existingEntry.purchases);
             } else {
-                const dateStr = dayjs(date).format("YYYY-MM-DD");
+                const dateStr = dateObj.format("YYYY-MM-DD");
                 const newEntry: DailyEntry = {
                     date: dateStr,
                     day: selectedDay,
