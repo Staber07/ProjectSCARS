@@ -105,8 +105,7 @@ function SalesandPurchasesContent() {
             const selectedDay = dateObj.date();
             const selectedMonth = dateObj.format("YYYY-MM");
             const existingEntry = dailyEntries.find((e) => {
-                const entryMonth = dayjs(e.date).format("YYYY-MM");
-                return e.day === selectedDay && entryMonth === selectedMonth;
+                return e.day === selectedDay && e.date.startsWith(selectedMonth);
             });
             if (existingEntry) {
                 setEditingEntry(existingEntry);
