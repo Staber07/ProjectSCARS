@@ -375,66 +375,77 @@ function SalesandPurchasesContent() {
 
     const tableRows = useMemo(
         () =>
-            dailyEntries.map((entry) => (
-                <Table.Tr key={`${entry.date}-${entry.day}`}>
-                    <Table.Td className="text-center">
-                        <Group justify="left" gap="xs">
-                            {(() => {
-                                const dateObj = dayjs(entry.date).date(entry.day);
-                                return (
-                                    <>
-                                        <Text size="sm">{dateObj.format("MMM DD, YYYY")}</Text>
-                                        {dateObj.isSame(dayjs(), "day") && (
-                                            <Badge color="blue" size="xs">
-                                                Today
-                                            </Badge>
-                                        )}
-                                    </>
-                                );
-                            })()}
-                        </Group>
-                    </Table.Td>
-                    <Table.Td className="text-center">
-                        <Text>₱{entry.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-                    </Table.Td>
-                    <Table.Td className="text-center">
-                        <Text>₱{entry.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-                    </Table.Td>
-                    <Table.Td className="text-center">
-                        <Text>₱{entry.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-                    </Table.Td>
-                    <Table.Td className="text-center">
-                        <Group gap="xs">
-                            <Button
-                                size="xs"
-                                variant="light"
-                                onClick={() => {
-                                    const entryDate = dayjs(entry.date).toDate();
-                                    setCurrentMonth(entryDate);
-                                    setSelectedDate(entryDate);
-                                    setEditingEntry(entry);
-                                    setModalSales(entry.sales);
-                                    setModalPurchases(entry.purchases);
-                                    setModalOpened(true);
-                                }}
-                            >
-                                Edit
-                            </Button>
-                            <Button
-                                size="xs"
-                                color="red"
-                                variant="light"
-                                onClick={() => {
-                                    setEntryToDelete(entry);
-                                    setDeleteModalOpened(true);
-                                }}
-                            >
-                                Delete
-                            </Button>
-                        </Group>
-                    </Table.Td>
-                </Table.Tr>
-            )),
+            dailyEntries
+                .slice()
+                .sort((a, b) => {
+                    // Sort by YYYY-MM (from date) then by day
+                    const aMonth = dayjs(a.date).format("YYYY-MM");
+                    const bMonth = dayjs(b.date).format("YYYY-MM");
+                    if (aMonth !== bMonth) {
+                        return aMonth.localeCompare(bMonth);
+                    }
+                    return a.day - b.day;
+                })
+                .map((entry) => (
+                    <Table.Tr key={`${entry.date}-${entry.day}`}>
+                        <Table.Td className="text-center">
+                            <Group justify="left" gap="xs">
+                                {(() => {
+                                    const dateObj = dayjs(entry.date).date(entry.day);
+                                    return (
+                                        <>
+                                            <Text size="sm">{dateObj.format("MMM DD, YYYY")}</Text>
+                                            {dateObj.isSame(dayjs(), "day") && (
+                                                <Badge color="blue" size="xs">
+                                                    Today
+                                                </Badge>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </Group>
+                        </Table.Td>
+                        <Table.Td className="text-center">
+                            <Text>₱{entry.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                        </Table.Td>
+                        <Table.Td className="text-center">
+                            <Text>₱{entry.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                        </Table.Td>
+                        <Table.Td className="text-center">
+                            <Text>₱{entry.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                        </Table.Td>
+                        <Table.Td className="text-center">
+                            <Group gap="xs">
+                                <Button
+                                    size="xs"
+                                    variant="light"
+                                    onClick={() => {
+                                        const entryDate = dayjs(entry.date).toDate();
+                                        setCurrentMonth(entryDate);
+                                        setSelectedDate(entryDate);
+                                        setEditingEntry(entry);
+                                        setModalSales(entry.sales);
+                                        setModalPurchases(entry.purchases);
+                                        setModalOpened(true);
+                                    }}
+                                >
+                                    Edit
+                                </Button>
+                                <Button
+                                    size="xs"
+                                    color="red"
+                                    variant="light"
+                                    onClick={() => {
+                                        setEntryToDelete(entry);
+                                        setDeleteModalOpened(true);
+                                    }}
+                                >
+                                    Delete
+                                </Button>
+                            </Group>
+                        </Table.Td>
+                    </Table.Tr>
+                )),
         [dailyEntries]
     );
 
@@ -514,6 +525,25 @@ function SalesandPurchasesContent() {
                                 className="w-64"
                                 minDate={currentMonth ? dayjs(currentMonth).startOf("month").toDate() : undefined}
                                 maxDate={currentMonth ? dayjs(currentMonth).endOf("month").toDate() : new Date()}
+                                getDayProps={(date) => {
+                                    // e.date is always the first of the month (YYYY-MM-01), but e.day is the actual day
+                                    // So reconstruct the real date string for comparison
+                                    const dateStr = dayjs(date).format("YYYY-MM-DD");
+                                    if (
+                                        dailyEntries.some((e) => {
+                                            // Compose the real date from e.date (month) and e.day
+                                            const entryDate = dayjs(e.date).date(e.day).format("YYYY-MM-DD");
+                                            return entryDate === dateStr;
+                                        })
+                                    ) {
+                                        return {
+                                            style: {
+                                                backgroundColor: "#d1fadf", // light green
+                                            },
+                                        };
+                                    }
+                                    return {};
+                                }}
                             />
                             <ActionIcon
                                 variant="outline"

@@ -1,11 +1,7 @@
 "use client";
 
 import { School } from "@/lib/api/csclient";
-import {
-    GetAllSchools,
-    GetSchoolLogo,
-    GetSchoolQuantity,
-} from "@/lib/api/school";
+import { GetAllSchools, GetSchoolLogo, GetSchoolQuantity } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -339,11 +335,13 @@ export default function SchoolsPage(): JSX.Element {
                                 )}
                             </TableTd>
                             <TableTd>
-                                {school.deactivated ? (
-                                    <IconLock size={18} color="red" title="School is deactivated" />
-                                ) : (
-                                    <IconLockOpen size={18} color="green" title="School is active" />
-                                )}
+                                <Tooltip
+                                    label={school.deactivated ? "School is deactivated" : "School is active"}
+                                    position="bottom"
+                                    withArrow
+                                >
+                                    {school.deactivated ? <IconLock color="red" /> : <IconLockOpen color="green" />}
+                                </Tooltip>
                             </TableTd>
                             <Tooltip
                                 label={
@@ -417,7 +415,7 @@ export default function SchoolsPage(): JSX.Element {
                     allowDeselect={false}
                 />
             </Group>
-            
+
             <EditSchoolComponent
                 index={editIndex}
                 school={editSchool}
