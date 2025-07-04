@@ -8,7 +8,7 @@ import type { CreateClientConfig } from "./csclient/client.gen";
 import { createClient, createConfig } from "./csclient/client";
 
 const methods = ["get", "post", "put", "head", "delete", "options", "trace", "patch"];
-const statusCodes = [401, 408, 413, 429, 500, 502, 503, 504];
+const statusCodes = [401, 403, 408, 413, 429, 500, 502, 503, 504];
 
 const logRequest = (request: KyRequest) => {
     // Add any global headers or authentication here

@@ -53,3 +53,11 @@ class DailyFinancialReportEntry(SQLModel, table=True):
     purchases: float  # Positive float representing the total purchases for the day
 
     parent_report: DailyFinancialReport = Relationship(back_populates="entries")
+
+
+class DailyEntryData(SQLModel):
+    """Model for creating daily sales and purchases entries."""
+
+    day: int = Field(..., ge=1, le=31, description="Day of the month (1-31)")
+    sales: float = Field(..., ge=0, description="Total sales for the day")
+    purchases: float = Field(..., ge=0, description="Total purchases for the day")
