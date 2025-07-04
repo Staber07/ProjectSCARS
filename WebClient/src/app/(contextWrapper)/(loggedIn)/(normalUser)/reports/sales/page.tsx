@@ -648,7 +648,9 @@ function SalesandPurchasesContent() {
                     opened={modalOpened}
                     onClose={() => setModalOpened(false)}
                     title={
-                        editingEntry ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}` : "Edit Entry"
+                        editingEntry
+                            ? `Entry for ${dayjs(editingEntry.date).date(editingEntry.day).format("MMMM DD, YYYY")}`
+                            : "Edit Entry"
                     }
                     centered
                 >
