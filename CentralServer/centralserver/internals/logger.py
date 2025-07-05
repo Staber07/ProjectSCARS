@@ -50,12 +50,6 @@ class LoggerFactory:
         if not logger.handlers:
             # handlers
             stream_handler = logging.StreamHandler()
-            file_handler = ConcurrentRotatingFileHandler(
-                app_config.logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
-                maxBytes=app_config.logging.max_bytes,
-                backupCount=app_config.logging.backup_count,
-                encoding=app_config.logging.encoding,
-            )
 
             # formatters
             formatter = logging.Formatter(
@@ -65,11 +59,20 @@ class LoggerFactory:
 
             # add formatters to handlers
             stream_handler.setFormatter(formatter)
-            file_handler.setFormatter(formatter)
 
             # add handlers to logger
             logger.addHandler(stream_handler)
-            logger.addHandler(file_handler)
+
+            # Only add file handler if file logging is enabled
+            if app_config.logging.file_logging_enabled:
+                file_handler = ConcurrentRotatingFileHandler(
+                    app_config.logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
+                    maxBytes=app_config.logging.max_bytes,
+                    backupCount=app_config.logging.backup_count,
+                    encoding=app_config.logging.encoding,
+                )
+                file_handler.setFormatter(formatter)
+                logger.addHandler(file_handler)
 
         return logger
 
@@ -112,6 +115,9 @@ def log_app_info(logger: logging.Logger):
         stats["Base URL"] = app_config.connection.base_url or "Not set"
 
         # Logging
+        stats["File Logging"] = (
+            "Enabled" if app_config.logging.file_logging_enabled else "Disabled"
+        )
         stats["Log File Path"] = app_config.logging.filepath
         stats["Max Log File Size"] = (
             f"{app_config.logging.max_bytes / (1024 * 1024):.2f} MB"
