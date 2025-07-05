@@ -98,19 +98,24 @@ function SalesandPurchasesContent() {
         (date: Date | null) => {
             if (!date) return;
             setSelectedDate(date);
-            if (!dayjs(date).isSame(currentMonth, "month")) {
+            const dateObj = dayjs(date);
+            if (!dateObj.isSame(currentMonth, "month")) {
                 setCurrentMonth(date);
             }
-            const dateStr = dayjs(date).format("YYYY-MM-DD");
-            const existingEntry = dailyEntries.find((e) => e.date === dateStr);
+            const selectedDay = dateObj.date();
+            const selectedMonth = dateObj.format("YYYY-MM");
+            const existingEntry = dailyEntries.find((e) => {
+                return e.day === selectedDay && e.date.startsWith(selectedMonth);
+            });
             if (existingEntry) {
                 setEditingEntry(existingEntry);
                 setModalSales(existingEntry.sales);
                 setModalPurchases(existingEntry.purchases);
             } else {
+                const dateStr = dateObj.format("YYYY-MM-DD");
                 const newEntry: DailyEntry = {
                     date: dateStr,
-                    day: dayjs(date).date(),
+                    day: selectedDay,
                     sales: 0,
                     purchases: 0,
                     netIncome: 0,
@@ -643,7 +648,9 @@ function SalesandPurchasesContent() {
                     opened={modalOpened}
                     onClose={() => setModalOpened(false)}
                     title={
-                        editingEntry ? `Entry for ${dayjs(editingEntry.date).format("MMMM DD, YYYY")}` : "Edit Entry"
+                        editingEntry
+                            ? `Entry for ${dayjs(editingEntry.date).date(editingEntry.day).format("MMMM DD, YYYY")}`
+                            : "Edit Entry"
                     }
                     centered
                 >
