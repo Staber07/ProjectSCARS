@@ -32,6 +32,7 @@ import {
     Flex,
     Group,
     Menu,
+    Modal,
     Pagination,
     Select,
     Stack,
@@ -57,6 +58,7 @@ import {
     IconMail,
     IconMailPlus,
     IconPlus,
+    IconSchool,
     IconSearch,
     IconSendOff,
     IconUser,
@@ -94,6 +96,7 @@ export default function UsersPage(): JSX.Element {
 
     const [openInviteUserModal, setOpenInviteUserModal] = useState(false);
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
+    const [openBulkSchoolModal, setOpenBulkSchoolModal] = useState(false);
 
     const [roleFilter, setRoleFilter] = useState<string | null>(null);
     const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
@@ -278,6 +281,76 @@ export default function UsersPage(): JSX.Element {
                 icon: <IconUserExclamation />,
             });
         }
+    };
+
+    // Handle bulk school assignment for selected users
+    const handleBulkSchoolAssignment = async (schoolId: number | null) => {
+        const selectedUsers = Array.from(selected).map((idx) => users[idx]);
+
+        try {
+            // Update all selected users with the new school assignment
+            await Promise.all(
+                selectedUsers.map(async (user) => {
+                    const result = await updateUserEndpointV1UsersPatch({
+                        body: {
+                            id: user.id,
+                            schoolId: schoolId,
+                        },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (result.error) {
+                        throw new Error(
+                            `Failed to update user: ${result.response.status} ${result.response.statusText}`
+                        );
+                    }
+
+                    return result.data;
+                })
+            );
+
+            // Update local state to reflect changes
+            const updatedAllUsers = [...allUsers];
+            Array.from(selected).forEach((idx) => {
+                const userToUpdate = users[idx];
+                const allUsersIndex = updatedAllUsers.findIndex((u) => u.id === userToUpdate.id);
+                if (allUsersIndex !== -1) {
+                    updatedAllUsers[allUsersIndex] = {
+                        ...updatedAllUsers[allUsersIndex],
+                        schoolId: schoolId,
+                    };
+                }
+            });
+            setAllUsers(updatedAllUsers);
+
+            // Clear selection
+            setSelected(new Set());
+            setOpenBulkSchoolModal(false);
+
+            const schoolName = schoolId
+                ? availableSchools.find((school) => school.id === schoolId)?.name || "Unknown School"
+                : "No School (Unassigned)";
+
+            notifications.show({
+                title: "Success",
+                message: `Successfully assigned ${selectedUsers.length} user(s) to ${schoolName}`,
+                color: "green",
+                icon: <IconSchool />,
+            });
+        } catch (error) {
+            console.error("Bulk school assignment error:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to assign school to users",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+        }
+    };
+
+    // Handle opening the bulk school assignment modal
+    const handleOpenBulkSchoolModal = () => {
+        setOpenBulkSchoolModal(true);
     };
 
     const toggleSelected = (index: number) => {
@@ -527,6 +600,13 @@ export default function UsersPage(): JSX.Element {
                                                     onClick={() => handleBulkAction("reactivate")}
                                                 >
                                                     Reactivate Users
+                                                </Menu.Item>
+                                                <Menu.Divider />
+                                                <Menu.Item
+                                                    leftSection={<IconSchool size={14} />}
+                                                    onClick={handleOpenBulkSchoolModal}
+                                                >
+                                                    Assign School
                                                 </Menu.Item>
                                             </Menu.Dropdown>
                                         </Menu>
@@ -869,6 +949,44 @@ export default function UsersPage(): JSX.Element {
                         }}
                     />
                 )}
+                {/* Bulk School Assignment Modal */}
+                <Modal
+                    opened={openBulkSchoolModal}
+                    onClose={() => setOpenBulkSchoolModal(false)}
+                    title="Assign School to Selected Users"
+                    size="md"
+                >
+                    <Stack gap="md">
+                        <Text size="sm" c="dimmed">
+                            Select a school to assign to {selected.size} selected user(s):
+                        </Text>
+                        <Select
+                            placeholder="Select a school"
+                            data={[
+                                { value: "null", label: "No School (Unassign)" },
+                                ...availableSchools
+                                    .filter((school) => school.id != null)
+                                    .map((school) => ({
+                                        value: school.id!.toString(),
+                                        label: school.name,
+                                    })),
+                            ]}
+                            searchable
+                            clearable
+                            onChange={(value) => {
+                                if (value !== null) {
+                                    const schoolId = value === "null" ? null : parseInt(value);
+                                    handleBulkSchoolAssignment(schoolId);
+                                }
+                            }}
+                        />
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="outline" onClick={() => setOpenBulkSchoolModal(false)}>
+                                Cancel
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
             </Stack>
         </>
     );
