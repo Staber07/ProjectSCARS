@@ -1,5 +1,5 @@
 import { GetAccessTokenHeader } from "@/lib/utils/token";
-import { client } from "@/lib/api/csclient/client.gen";
+import { getServerConfigV1AdminConfigGet, updateServerConfigV1AdminConfigPut } from "@/lib/api/csclient";
 
 export interface ServerConfig {
     debug: {
@@ -56,8 +56,7 @@ export interface ConfigUpdateRequest {
 }
 
 export const GetServerConfig = async (): Promise<ServerConfig> => {
-    const result = await client.get({
-        url: "/v1/admin/config",
+    const result = await getServerConfigV1AdminConfigGet({
         headers: {
             Authorization: GetAccessTokenHeader(),
         },
@@ -69,15 +68,13 @@ export const GetServerConfig = async (): Promise<ServerConfig> => {
         );
     }
 
-    return result.data as ServerConfig;
+    return result.data as unknown as ServerConfig;
 };
 
 export const UpdateServerConfig = async (configUpdate: ConfigUpdateRequest): Promise<{ message: string }> => {
-    const result = await client.put({
-        url: "/v1/admin/config",
+    const result = await updateServerConfigV1AdminConfigPut({
         headers: {
             Authorization: GetAccessTokenHeader(),
-            "Content-Type": "application/json",
         },
         body: configUpdate,
     });

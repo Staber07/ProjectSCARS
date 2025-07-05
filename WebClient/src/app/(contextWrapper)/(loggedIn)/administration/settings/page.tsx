@@ -22,6 +22,7 @@ import { notifications } from "@mantine/notifications";
 import { IconBrandGithub, IconInfoCircle, IconLockAccess, IconTool } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { GetServerConfig, UpdateServerConfig, ServerConfig } from "@/lib/api/config";
+import { Program } from "@/lib/info";
 
 export default function SettingsPage() {
     const [loading, setLoading] = useState(true);
@@ -258,7 +259,8 @@ export default function SettingsPage() {
                                         data={[
                                             "http://127.0.0.1:8080",
                                             "http://localhost:8080",
-                                            "https://localhost:3000",
+                                            "https://127.0.0.1:8080",
+                                            "https://localhost:8080",
                                         ]}
                                         searchable
                                         description="CORS allowed origins"
@@ -405,14 +407,16 @@ export default function SettingsPage() {
 
             <Paper shadow="sm" p="md" radius="md" mt="xl">
                 <Title order={4} mb="xs">
-                    ℹ️ About
+                    <Group gap="xs">
+                        <IconInfoCircle /> <Text size="lg">About</Text>
+                    </Group>
                 </Title>
                 <Stack>
                     <Group>
                         <ThemeIcon variant="light" color="blue">
                             <IconTool size={18} />
                         </ThemeIcon>
-                        <Text size="sm">Version: 0.3.6</Text>
+                        <Text size="sm">Version: {Program.version}</Text>
                     </Group>
                     <Group>
                         <ThemeIcon variant="light" color="gray">
@@ -421,12 +425,6 @@ export default function SettingsPage() {
                         <Text size="sm" component="a" href="https://github.com/Chris1320/ProjectSCARS" target="_blank">
                             View on GitHub
                         </Text>
-                    </Group>
-                    <Group>
-                        <ThemeIcon variant="light" color="teal">
-                            <IconInfoCircle size={18} />
-                        </ThemeIcon>
-                        <Text size="sm">License: MIT</Text>
                     </Group>
                 </Stack>
             </Paper>

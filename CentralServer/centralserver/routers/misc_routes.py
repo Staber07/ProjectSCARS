@@ -1,7 +1,10 @@
 import json
+import os
+import signal
+import sys
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlmodel import Session
 
 from centralserver.info import FORBIDDEN_CONFIG_KEYS
@@ -17,6 +20,42 @@ from centralserver.internals.models.token import DecodedJWTToken
 router = APIRouter(prefix="/v1")
 
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
+
+
+def _restart_application() -> None:
+    """
+    Restart the application gracefully.
+
+    This method works for both development and production:
+    - Development: Uses os.execv to restart the Python process
+    - Production: Sends appropriate signal for graceful restart
+    - Docker: The container will restart automatically if configured with restart policies
+    """
+
+    try:
+        # Check if we're running in a production environment (e.g., with gunicorn)
+        if hasattr(os, "getppid") and os.getppid() != 1:
+            # Try to signal the parent process for graceful restart
+            try:
+                # Use SIGTERM on Windows, SIGUSR1 on Unix-like systems
+                restart_signal = (
+                    signal.SIGTERM
+                    if sys.platform == "win32"
+                    else getattr(signal, "SIGUSR1", signal.SIGTERM)
+                )
+                os.kill(os.getppid(), restart_signal)
+                return
+
+            except (OSError, AttributeError):
+                pass
+
+        # Development restart - restart the current Python process
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+
+    except (OSError, SystemExit):
+        # If all else fails, exit with code 3 which many process managers interpret as "restart"
+        sys.exit(3)
 
 
 @router.get("/healthcheck")
@@ -94,6 +133,7 @@ async def get_server_config(
 @router.put("/admin/config")
 async def update_server_config(
     new_config: ConfigUpdateRequest,
+    background_tasks: BackgroundTasks,
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
 ) -> dict[str, str]:
@@ -140,8 +180,12 @@ async def update_server_config(
         with open(app_config.filepath, "w", encoding=app_config.encoding) as f:
             json.dump(current_config, f, indent=4)
 
+        # Schedule a restart in the background after the response is sent
+        # This allows the client to receive the success response before restart
+        background_tasks.add_task(_restart_application)
+
         return {
-            "message": "Configuration updated successfully. Server restart required for changes to take effect."
+            "message": "Configuration updated successfully. Server will restart to apply changes."
         }
 
     except Exception as e:
