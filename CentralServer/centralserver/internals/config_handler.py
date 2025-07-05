@@ -94,6 +94,7 @@ class Logging:
     """The logging configuration."""
 
     __exportable_fields = [
+        "file_logging_enabled",
         "filepath",
         "max_bytes",
         "backup_count",
@@ -104,6 +105,7 @@ class Logging:
 
     def __init__(
         self,
+        file_logging_enabled: bool | None = None,
         filepath: str | None = None,
         max_bytes: int | None = None,
         backup_count: int | None = None,
@@ -114,6 +116,7 @@ class Logging:
         """Create a configuration object for logging.
 
         Args:
+            file_logging_enabled: Whether to enable logging to file. (Default: True)
             filepath: The file path for the log file.
             max_bytes: The maximum size of the log file before it is rotated.
             backup_count: The maximum number of backup files to keep.
@@ -122,6 +125,7 @@ class Logging:
             date_format: The format of the date in the log messages.
         """
 
+        self.file_logging_enabled: bool = file_logging_enabled if file_logging_enabled is not None else True
         self.filepath: str = filepath or os.path.join(
             os.getcwd(), "logs", "centralserver-{0}.log"
         )
@@ -437,14 +441,9 @@ class AppConfig:
 
         return self.__enc
 
-    def save(self) -> None:
-        """Save the current configuration to the file.
-
-        Args:
-            enc: The encoding to use when saving the file.
-        """
-
-        new_values: dict[str, Any] = {
+    @property
+    def values(self) -> dict[str, Any]:
+        return {
             "debug": self.debug.export(),
             "connection": self.connection.export(),
             "logging": self.logging.export(),
@@ -455,8 +454,15 @@ class AppConfig:
             "mailing": self.mailing.export(),
         }
 
+    def save(self) -> None:
+        """Save the current configuration to the file.
+
+        Args:
+            enc: The encoding to use when saving the file.
+        """
+
         with open(self.filepath, "w", encoding=self.__enc) as f:
-            json.dump(new_values, f, indent=4)
+            json.dump(self.values, f, indent=4)
 
 
 def read_config(
@@ -608,6 +614,7 @@ def read_config(
             base_url=connection_config.get("base_url", None),
         ),
         logging=Logging(
+            file_logging_enabled=logging_config.get("file_logging_enabled", None),
             filepath=logging_config.get("filepath", None),
             max_bytes=logging_config.get("max_bytes", None),
             backup_count=logging_config.get("backup_count", None),

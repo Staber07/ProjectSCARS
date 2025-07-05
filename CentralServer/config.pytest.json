@@ -5,6 +5,7 @@
         "show_sql": true
     },
     "logging": {
+        "file_logging_enabled": true,
         "filepath": "./logs/centralserver-pytest.log",
         "max_bytes": 10485760,
         "backup_count": 5,

@@ -11,6 +11,7 @@
         "base_url": "http://localhost:8080"
     },
     "logging": {
+        "file_logging_enabled": true,
         "filepath": "./logs/centralserver.log",
         "max_bytes": 10485760,
         "backup_count": 5,
