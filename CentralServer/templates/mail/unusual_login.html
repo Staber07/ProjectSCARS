@@ -1,12 +1,33 @@
-<p>Hello {name},</p>
-
-<p>Someone has attempted to log in to your account on {app_name}.</p>
-<p>Please check your account activity and change your password if you did not initiate this login.</p>
-
-<ul>
-    <li>Login attempts: {failed_login_attempts}</li>
-    <li>Last login attempt time: {last_failed_login_time}</li>
-    <li>Last login attempt IP: {last_failed_login_ip}</li>
-</ul>
-
-<p>If you continue to experience issues, please contact support.</p>
+{% extends "base.html" %} {% block title %}⚠️ Unusual Login Activity Detected{% endblock %} {% block content %}
+<div class="container">
+    <div class="header">
+        <h1 class="alert-title">⚠️ Unusual Login Activity Detected</h1>
+    </div>
+    <p>Hello <strong>{{name}}</strong>,</p>
+    <p>
+        We've detected unusual login activity on your <strong>{{app_name}}</strong> account. Someone has attempted to
+        log in to your account without success.
+    </p>
+    <p><strong>For your security, please review the following details:</strong></p>
+    <div class="details">
+        <ul>
+            <li><strong>Failed login attempts:</strong> {{failed_login_attempts}}</li>
+            <li><strong>Last attempt time:</strong> {{last_failed_login_time}}</li>
+            <li><strong>Last attempt IP address:</strong> {{last_failed_login_ip}}</li>
+        </ul>
+    </div>
+    <p><strong>What should you do?</strong></p>
+    <ol>
+        <li>Check your recent account activity</li>
+        <li>Change your password immediately if you didn't initiate these login attempts</li>
+        <li>Enable two-factor authentication for added security</li>
+    </ol>
+    <div class="footer">
+        <p>
+            If you continue to experience issues or have concerns about your account security, please contact our
+            support team immediately.
+        </p>
+        <p>This is an automated security notification from {{app_name}}.</p>
+    </div>
+</div>
+{% endblock %}

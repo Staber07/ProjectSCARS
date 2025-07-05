@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}{% endblock %} | BENTO</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 600px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+            }
+            .container {
+                background-color: #ffffff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                border-bottom: 2px solid #228be6;
+                padding-bottom: 15px;
+                margin-bottom: 20px;
+            }
+            .alert-title {
+                color: #228be6;
+                font-size: 24px;
+                font-weight: bold;
+                margin: 0;
+            }
+            .details {
+                background-color: #f8f9fa;
+                border-left: 4px solid #228be6;
+                padding: 15px;
+                margin: 20px 0;
+            }
+            .details li {
+                margin: 8px 0;
+            }
+            .footer {
+                margin-top: 30px;
+                padding-top: 15px;
+                border-top: 1px solid #eee;
+                font-size: 14px;
+                color: #666;
+            }
+        </style>
+    </head>
+    <body>
+        {% block content %}{% endblock %}
+    </body>
+</html>

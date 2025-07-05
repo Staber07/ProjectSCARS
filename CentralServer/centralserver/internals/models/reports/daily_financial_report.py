@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.reports.report_status import ReportStatus
+
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -20,8 +22,12 @@ class DailyFinancialReport(SQLModel, table=True):
         index=True,
         foreign_key="monthlyReports.id",
     )
+    reportStatus: ReportStatus | None = Field(
+        default=ReportStatus.DRAFT,
+        description="The status of the report.",
+    )
     preparedBy: str = Field(foreign_key="users.id")
-    notedBy: str = Field(foreign_key="users.id")
+    notedBy: str | None = Field(default=None, foreign_key="users.id")
 
     parent_report: "MonthlyReport" = Relationship(
         back_populates="daily_financial_report"
@@ -36,11 +42,22 @@ class DailyFinancialReportEntry(SQLModel, table=True):
 
     __tablename__: str = "dailyFinancialReportsEntries"  # type: ignore
 
-    parent: datetime.date = Field(
-        primary_key=True, index=True, foreign_key="dailyFinancialReports.parent"
+    day: int = Field(  # The day of the month (1-31, depending on the month)
+        primary_key=True,
+        index=True,
     )
-    day: int  # The day of the month (1-31, depending on the month)
+    parent: datetime.date = Field(
+        primary_key=True, foreign_key="dailyFinancialReports.parent"
+    )
     sales: float  # Positive float representing the total sales for the day
     purchases: float  # Positive float representing the total purchases for the day
 
     parent_report: DailyFinancialReport = Relationship(back_populates="entries")
+
+
+class DailyEntryData(SQLModel):
+    """Model for creating daily sales and purchases entries."""
+
+    day: int = Field(..., ge=1, le=31, description="Day of the month (1-31)")
+    sales: float = Field(..., ge=0, description="Total sales for the day")
+    purchases: float = Field(..., ge=0, description="Total purchases for the day")

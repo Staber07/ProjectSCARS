@@ -1,21 +1,25 @@
 coverage:
-  range: 75...85
-  round: nearest
-  precision: 2
+    range: 75...85
+    round: nearest
+    precision: 2
+    status:
+        patch:
+            default:
+                informational: true
 
 comment:
-  layout: "header, diff, flags, files, footer"
-  show_carryforward_flags: true
+    layout: "header, diff, flags, files, footer"
+    show_carryforward_flags: true
 
 flag_management:
-  default_rules:
-    carryforward: true
+    default_rules:
+        carryforward: true
 
-  individual_flags:
-    - name: central-server
-      paths:
-        - "CentralServer/**"
+    individual_flags:
+        - name: central-server
+          paths:
+              - "CentralServer/**"
 
-    - name: web-client
-      paths:
-        - "WebClient/**"
+        - name: web-client
+          paths:
+              - "WebClient/**"

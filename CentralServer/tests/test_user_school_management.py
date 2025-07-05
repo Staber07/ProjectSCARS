@@ -22,7 +22,7 @@ def _request_token(username: str, password: str) -> Response:
         "password": password,
     }
 
-    return client.post("/api/v1/auth/token", data=creds)
+    return client.post("/api/v1/auth/login", data=creds)
 
 
 def test_create_schools():

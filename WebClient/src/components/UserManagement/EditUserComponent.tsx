@@ -1,8 +1,12 @@
 "use client";
+
+import { Role, School, UserDelete, UserPublic, UserUpdate } from "@/lib/api/csclient";
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType, UserUpdateType } from "@/lib/types";
+import { getStrength, PasswordRequirement, requirements } from "@/components/Password";
 import {
+    Badge,
+    Box,
     Button,
     Card,
     Center,
@@ -11,8 +15,13 @@ import {
     Group,
     Image,
     Modal,
+    PasswordInput,
+    Progress,
     Select,
+    Stack,
     Switch,
+    Table,
+    Text,
     TextInput,
     Tooltip,
 } from "@mantine/core";
@@ -25,22 +34,26 @@ import {
     IconDeviceFloppy,
     IconPencilCheck,
     IconSendOff,
+    IconTrash,
     IconUser,
 } from "@tabler/icons-react";
+import dayjs from "dayjs";
 import { motion } from "motion/react";
+
 import { useEffect, useState } from "react";
 
 interface EditUserProps {
     index: number;
-    user: UserPublicType;
-    availableSchools: SchoolType[];
-    availableRoles: RoleType[];
-    currentPage: number;
+    user: UserPublic;
+    availableSchools: School[];
+    availableRoles: Role[];
     setIndex: React.Dispatch<React.SetStateAction<number | null>>;
-    fetchUsers: (page: number) => void;
-    UpdateUserInfo: (userInfo: UserUpdateType) => Promise<UserPublicType>;
-    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublicType>;
+    UpdateUserInfo: (userInfo: UserUpdate) => Promise<UserPublic>;
+    UploadUserAvatar: (userId: string, file: File) => Promise<UserPublic>;
+    RemoveUserAvatar: (userId: string) => Promise<void>;
+    DeleteUserInfo: (userDelete: UserDelete) => Promise<void>;
     fetchUserAvatar: (avatarUrn: string) => string | undefined;
+    onUserUpdate?: (updatedUser: UserPublic) => void;
 }
 
 interface EditUserValues {
@@ -49,7 +62,9 @@ interface EditUserValues {
     nameFirst: string | null;
     nameMiddle: string | null;
     nameLast: string | null;
+    position: string | null;
     email: string | null;
+    password: string;
     school: string | null;
     role: string | null;
     deactivated: boolean;
@@ -61,16 +76,20 @@ export function EditUserComponent({
     user,
     availableSchools,
     availableRoles,
-    currentPage,
     setIndex,
-    fetchUsers,
     UpdateUserInfo,
     UploadUserAvatar,
+    RemoveUserAvatar,
+    DeleteUserInfo,
     fetchUserAvatar,
+    onUserUpdate,
 }: EditUserProps) {
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(null);
+    const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
+    const [avatarRemoved, setAvatarRemoved] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [passwordValue, setPasswordValue] = useState("");
     const userCtx = useUser();
     const availableSchoolNames = availableSchools.map(
         (school) => `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}`
@@ -84,7 +103,9 @@ export function EditUserComponent({
             nameFirst: user.nameFirst || null,
             nameMiddle: user.nameMiddle || null,
             nameLast: user.nameLast || null,
+            position: user.position || null,
             email: user.email || null,
+            password: "",
             school: availableSchools.find((school) => school.id === user.schoolId)
                 ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
                       availableSchools.find((school) => school.id === user.schoolId)!.name
@@ -103,11 +124,15 @@ export function EditUserComponent({
     console.debug("form initial values:", form.values);
     useEffect(() => {
         console.debug("EditUserComponent mounted with index:", index);
+        setAvatarRemoved(false);
+        setEditUserAvatar(null);
+        setPasswordValue(""); // Reset password field when component mounts
         if (user.avatarUrn) {
+            setCurrentAvatarUrn(user.avatarUrn);
             const avatarUrl = fetchUserAvatar(user.avatarUrn);
             setEditUserAvatarUrl(avatarUrl ? avatarUrl : null);
         } else {
-            setEditUserAvatar(null);
+            setCurrentAvatarUrn(null);
             setEditUserAvatarUrl(null);
         }
     }, [index, user, fetchUserAvatar]);
@@ -139,19 +164,31 @@ export function EditUserComponent({
             return;
         }
 
+        setAvatarRemoved(false);
         setEditUserAvatar(file);
         setEditUserAvatarUrl((prevUrl) => {
-            if (prevUrl) {
+            if (prevUrl && !currentAvatarUrn) {
                 URL.revokeObjectURL(prevUrl); // Clean up previous URL
             }
             return URL.createObjectURL(file); // Create a new URL for the selected file
         });
     };
+
+    const removeProfilePicture = () => {
+        setAvatarRemoved(true);
+        setEditUserAvatar(null);
+        if (editUserAvatarUrl && !currentAvatarUrn) {
+            URL.revokeObjectURL(editUserAvatarUrl);
+        }
+        setEditUserAvatarUrl(null);
+    };
+
     const handleSave = async (values: EditUserValues): Promise<void> => {
         buttonStateHandler.open();
         const selectedSchool = availableSchools.find(
             (school) =>
-                school.name === values.school || `[${school.id}] ${school.name} (${school.address})` === values.school
+                school.name === values.school ||
+                `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}` === values.school
         );
         if (values.school && !selectedSchool) {
             notifications.show({
@@ -179,22 +216,61 @@ export function EditUserComponent({
         }
 
         // NOTE: Only update fields that have changed
-        const newUserInfo: UserUpdateType = {
+        // For nullable fields, we need to send null explicitly when they are cleared
+        const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== user.username ? values.username : undefined,
-            nameFirst: values.nameFirst !== user.nameFirst ? values.nameFirst : undefined,
-            nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle : undefined,
-            nameLast: values.nameLast !== user.nameLast ? values.nameLast : undefined,
-            email: values.email !== user.email ? values.email : undefined,
+            nameFirst: values.nameFirst !== user.nameFirst ? values.nameFirst || null : undefined,
+            nameMiddle: values.nameMiddle !== user.nameMiddle ? values.nameMiddle || null : undefined,
+            nameLast: values.nameLast !== user.nameLast ? values.nameLast || null : undefined,
+            position: values.position !== user.position ? values.position || null : undefined,
+            email: values.email !== user.email ? values.email || null : undefined,
+            password: values.password && values.password.trim() !== "" ? values.password : null,
             schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
             roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
             deactivated: values.deactivated !== user.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== user.forceUpdateInfo ? values.forceUpdateInfo : undefined,
             finishedTutorials: null,
-            password: null,
         };
+
+        // Check for fields that were cleared (set to null) and need to be deleted
+        const fieldsToDelete: UserDelete = {
+            id: values.id,
+            email: values.email === null && user.email !== null,
+            nameFirst: values.nameFirst === null && user.nameFirst !== null,
+            nameMiddle: values.nameMiddle === null && user.nameMiddle !== null,
+            nameLast: values.nameLast === null && user.nameLast !== null,
+            position: values.position === null && user.position !== null,
+            schoolId: values.school === null && user.schoolId !== null,
+        };
+
+        const hasFieldsToDelete = Object.values(fieldsToDelete).some(
+            (field, index) => index > 0 && field === true // Skip the id field at index 0
+        );
         try {
-            let updatedUser = await UpdateUserInfo(newUserInfo);
+            // First handle field deletions if any
+            if (hasFieldsToDelete) {
+                await DeleteUserInfo(fieldsToDelete);
+                notifications.show({
+                    id: "user-delete-fields-success",
+                    title: "Success",
+                    message: "Selected fields cleared successfully.",
+                    color: "green",
+                    icon: <IconPencilCheck />,
+                });
+            }
+
+            // Filter out fields that were deleted from the update object to avoid conflicts
+            const filteredUserInfo: UserUpdate = { ...newUserInfo };
+            if (fieldsToDelete.email) filteredUserInfo.email = undefined;
+            if (fieldsToDelete.nameFirst) filteredUserInfo.nameFirst = undefined;
+            if (fieldsToDelete.nameMiddle) filteredUserInfo.nameMiddle = undefined;
+            if (fieldsToDelete.nameLast) filteredUserInfo.nameLast = undefined;
+            if (fieldsToDelete.position) filteredUserInfo.position = undefined;
+            if (fieldsToDelete.schoolId) filteredUserInfo.schoolId = undefined;
+
+            // Then handle regular updates
+            let updatedUser = await UpdateUserInfo(filteredUserInfo);
             notifications.show({
                 id: "user-update-success",
                 title: "Success",
@@ -203,6 +279,32 @@ export function EditUserComponent({
                 icon: <IconPencilCheck />,
             });
 
+            if (avatarRemoved && currentAvatarUrn) {
+                try {
+                    console.debug("Removing avatar...");
+                    await RemoveUserAvatar(values.id);
+                    console.debug("Avatar removed successfully.");
+                    notifications.show({
+                        id: "avatar-remove-success",
+                        title: "Success",
+                        message: "Avatar removed successfully.",
+                        color: "green",
+                        icon: <IconPencilCheck />,
+                    });
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to remove avatar.";
+                        console.error("Avatar removal failed:", detail);
+                        notifications.show({
+                            id: "avatar-remove-error",
+                            title: "Avatar Removal Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
             if (editUserAvatar) {
                 try {
                     console.debug("Uploading avatar...");
@@ -234,318 +336,632 @@ export function EditUserComponent({
                     buttonStateHandler.close();
                 }
             }
-            if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "") {
+            if (updatedUser.avatarUrn && updatedUser.avatarUrn.trim() !== "" && !avatarRemoved) {
                 fetchUserAvatar(updatedUser.avatarUrn);
             }
-            fetchUsers(currentPage);
+            if (onUserUpdate) onUserUpdate(updatedUser);
             setIndex(null);
         } catch (error) {
-            if (error instanceof Error && error.message.includes("status code 403")) {
-                const detail = error.message || "Failed to update user information.";
+            try {
+                if (error instanceof Error && error.message.includes("status code 403")) {
+                    const detail = error.message || "Failed to update user information.";
+                    notifications.show({
+                        id: "user-update-error",
+                        title: "Error",
+                        message: detail,
+                        color: "red",
+                        icon: <IconSendOff />,
+                    });
+                }
+                console.error("Update process failed:", error);
                 notifications.show({
                     id: "user-update-error",
                     title: "Error",
-                    message: detail,
+                    message: (error as Error).message || "Failed to update user information. Please try again later.",
                     color: "red",
                     icon: <IconSendOff />,
                 });
+            } finally {
+                buttonStateHandler.close();
             }
-            console.error("Update process failed:", error);
-            notifications.show({
-                id: "user-update-error",
-                title: "Error",
-                message: (error as Error).message || "Failed to update user information. Please try again later.",
-                color: "red",
-                icon: <IconSendOff />,
-            });
         }
-        buttonStateHandler.close();
     };
 
+    const showRemoveButton = editUserAvatar || (currentAvatarUrn && !avatarRemoved);
+
     return (
-        <Modal opened={index !== null} onClose={() => setIndex(null)} title="Edit User" centered>
-            <Flex direction="column" gap="md">
-                <Center>
-                    <Card shadow="sm" radius="xl" withBorder style={{ position: "relative", cursor: "pointer" }}>
-                        <FileButton onChange={setAvatar} accept="image/png,image/jpeg">
-                            {(props) => (
-                                <motion.div whileHover={{ scale: 1.05 }} style={{ position: "relative" }} {...props}>
-                                    {editUserAvatarUrl ? (
-                                        <Image
-                                            id="edit-user-avatar"
-                                            src={editUserAvatarUrl}
-                                            alt="User Avatar"
-                                            h={150}
-                                            w={150}
-                                            radius="xl"
-                                        />
-                                    ) : (
-                                        <IconUser size={150} color="gray" />
-                                    )}
+        <Modal opened={index !== null} onClose={() => setIndex(null)} title="Edit User" centered size="auto">
+            <Group gap="md" justify="apart" style={{ marginBottom: "1rem" }}>
+                <Flex direction="column" gap="md" p="lg">
+                    <Center>
+                        <Card shadow="sm" radius="xl" withBorder style={{ position: "relative", cursor: "pointer" }}>
+                            <FileButton onChange={setAvatar} accept="image/png,image/jpeg">
+                                {(props) => (
                                     <motion.div
-                                        initial={{ opacity: 0 }}
-                                        whileHover={{ opacity: 1 }}
-                                        style={{
-                                            position: "absolute",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                                            borderRadius: "var(--mantine-radius-xl)",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            color: "white",
-                                            fontWeight: 500,
-                                        }}
+                                        whileHover={{ scale: 1.05 }}
+                                        style={{ position: "relative" }}
+                                        {...props}
                                     >
-                                        Upload Picture
+                                        {editUserAvatarUrl && !avatarRemoved ? (
+                                            <Image
+                                                id="edit-user-avatar"
+                                                src={editUserAvatarUrl}
+                                                alt="User Avatar"
+                                                h={150}
+                                                w={150}
+                                                radius="xl"
+                                            />
+                                        ) : (
+                                            <IconUser size={150} color="gray" />
+                                        )}
+                                        <motion.div
+                                            initial={{ opacity: 0 }}
+                                            whileHover={{ opacity: 1 }}
+                                            style={{
+                                                position: "absolute",
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                                                borderRadius: "var(--mantine-radius-xl)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: "white",
+                                                fontWeight: 500,
+                                            }}
+                                        >
+                                            Upload Picture
+                                        </motion.div>
                                     </motion.div>
-                                </motion.div>
+                                )}
+                            </FileButton>
+                        </Card>
+                    </Center>
+                    {showRemoveButton && (
+                        <Button variant="outline" color="red" mt="md" onClick={removeProfilePicture}>
+                            Remove Profile Picture
+                        </Button>
+                    )}
+                    <Table mt="md" verticalSpacing="xs" withRowBorders p="md">
+                        <Table.Tr>
+                            <Table.Td align="right">Date Created</Table.Td>
+                            <Table.Td align="left" c="dimmed">
+                                {dayjs(user.dateCreated).format("MM/DD/YYYY, h:mm:ss A")}
+                            </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                            <Table.Td align="right">Last Logged In Time</Table.Td>
+                            {user.lastLoggedInTime ? (
+                                <Table.Td align="left" c="dimmed">
+                                    {dayjs(user.lastLoggedInTime).format("MM/DD/YYYY, h:mm:ss A")}
+                                </Table.Td>
+                            ) : (
+                                <Table.Td align="left" c="dimmed">
+                                    Never
+                                </Table.Td>
                             )}
-                        </FileButton>
-                    </Card>
-                </Center>
-                {editUserAvatar && (
-                    <Button
-                        variant="outline"
-                        color="red"
-                        mt="md"
-                        onClick={() => {
-                            setEditUserAvatar(null);
-                            setEditUserAvatarUrl(null);
-                        }}
-                    >
-                        Remove Profile Picture
-                    </Button>
-                )}
-                <form
-                    onSubmit={form.onSubmit(handleSave)}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                            e.preventDefault();
-                            form.onSubmit(handleSave)();
-                        }
-                    }}
-                >
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:username")
-                                : userCtx.userPermissions?.includes("users:global:modify:username")
-                        }
-                        label="Username cannot be changed"
-                        withArrow
-                    >
-                        <TextInput
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:username")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:username")
-                            }
-                            label="Username"
-                            placeholder="Username"
-                            key={form.key("username")}
-                            {...form.getInputProps("username")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:name")
-                                : userCtx.userPermissions?.includes("users:global:modify:name")
-                        }
-                        label="Name cannot be changed"
-                        withArrow
-                    >
-                        <TextInput
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:name")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:name")
-                            }
-                            label="First Name"
-                            placeholder="First Name"
-                            key={form.key("nameFirst")}
-                            {...form.getInputProps("nameFirst")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:name")
-                                : userCtx.userPermissions?.includes("users:global:modify:name")
-                        }
-                        label="Name cannot be changed"
-                        withArrow
-                    >
-                        <TextInput
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:name")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:name")
-                            }
-                            label="Middle Name"
-                            placeholder="Middle Name"
-                            key={form.key("nameMiddle")}
-                            {...form.getInputProps("nameMiddle")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:name")
-                                : userCtx.userPermissions?.includes("users:global:modify:name")
-                        }
-                        label="Name cannot be changed"
-                        withArrow
-                    >
-                        <TextInput
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:name")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:name")
-                            }
-                            label="Last Name"
-                            placeholder="Last Name"
-                            key={form.key("nameLast")}
-                            {...form.getInputProps("nameLast")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:email")
-                                : userCtx.userPermissions?.includes("users:global:modify:email")
-                        }
-                        label="Email cannot be changed"
-                        withArrow
-                    >
-                        <TextInput
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:email")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:email")
-                            }
-                            label="Email"
-                            placeholder="Email"
-                            rightSection={
-                                form.values.email &&
-                                (user.emailVerified && form.values.email === user.email ? (
+                        </Table.Tr>
+                        <Table.Tr>
+                            <Table.Td align="right">Last Logged In IP</Table.Td>
+                            {user.lastLoggedInIp ? (
+                                <Table.Td align="left" c="dimmed">
+                                    {user.lastLoggedInIp}
+                                </Table.Td>
+                            ) : (
+                                <Table.Td align="left" c="dimmed">
+                                    Not available
+                                </Table.Td>
+                            )}
+                        </Table.Tr>
+                        <Table.Tr>
+                            <Table.Td align="right">Two-Factor Authentication</Table.Td>
+                            <Table.Td align="left" c="dimmed">
+                                {user.otpVerified ? (
                                     <Tooltip
-                                        label="This email has been verified. You're good to go!"
+                                        label="Two-Factor Authentication is enabled for this user."
                                         withArrow
                                         multiline
-                                        w={250}
                                     >
-                                        <IconCircleDashedCheck size={16} color="green" />
+                                        <Badge color="green" variant="light">
+                                            Enabled
+                                        </Badge>
                                     </Tooltip>
                                 ) : (
-                                    <Tooltip label="This email has not yet been verified." withArrow multiline w={250}>
-                                        <IconCircleDashedX size={16} color="gray" />
+                                    <Tooltip
+                                        label="Two-Factor Authentication is not enabled for this user."
+                                        withArrow
+                                        multiline
+                                    >
+                                        <Badge color="red" variant="light">
+                                            Disabled
+                                        </Badge>
                                     </Tooltip>
-                                ))
+                                )}
+                            </Table.Td>
+                        </Table.Tr>
+                        <Table.Tr>
+                            <Table.Td align="right">OAuth Connections</Table.Td>
+                            <Table.Td align="left" c="dimmed">
+                                <Flex gap="xs" wrap="wrap">
+                                    {user.oauthLinkedGoogleId ? (
+                                        <Tooltip label="The user has a Google account linked." withArrow multiline>
+                                            <Badge color="red" variant="light">
+                                                <Image
+                                                    src="/assets/logos/google.svg"
+                                                    alt="Google Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{ pointerEvents: "none" }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip label="No Google account is linked to this user." withArrow multiline>
+                                            <Badge color="gray" variant="light">
+                                                <Image
+                                                    src="/assets/logos/google.svg"
+                                                    alt="Google Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{
+                                                        filter: "grayscale(100%)",
+                                                        pointerEvents: "none",
+                                                    }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    )}
+                                    {user.oauthLinkedMicrosoftId ? (
+                                        <Tooltip label="The user has a Microsoft account linked." withArrow multiline>
+                                            <Badge color="blue" variant="light">
+                                                <Image
+                                                    src="/assets/logos/microsoft.svg"
+                                                    alt="Microsoft Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{ pointerEvents: "none" }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip
+                                            label="No Microsoft account is linked to this user."
+                                            withArrow
+                                            multiline
+                                        >
+                                            <Badge color="gray" variant="light">
+                                                <Image
+                                                    src="/assets/logos/microsoft.svg"
+                                                    alt="Microsoft Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{
+                                                        filter: "grayscale(100%)",
+                                                        pointerEvents: "none",
+                                                    }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    )}
+                                    {user.oauthLinkedFacebookId ? (
+                                        <Tooltip label="The user has a Facebook account linked." withArrow multiline>
+                                            <Badge color="blue" variant="light">
+                                                <Image
+                                                    src="/assets/logos/facebook.svg"
+                                                    alt="Facebook Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{ pointerEvents: "none" }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip
+                                            label="No Facebook account is linked to this user."
+                                            withArrow
+                                            multiline
+                                        >
+                                            <Badge color="gray" variant="light">
+                                                <Image
+                                                    src="/assets/logos/facebook.svg"
+                                                    alt="Facebook Logo"
+                                                    h={16}
+                                                    w={16}
+                                                    style={{
+                                                        filter: "grayscale(100%)",
+                                                        pointerEvents: "none",
+                                                    }}
+                                                />
+                                            </Badge>
+                                        </Tooltip>
+                                    )}
+                                </Flex>
+                            </Table.Td>
+                        </Table.Tr>
+                    </Table>
+                </Flex>
+                <Flex direction="column" gap="md">
+                    <form
+                        onSubmit={form.onSubmit(handleSave)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                form.onSubmit(handleSave)();
                             }
-                            key={form.key("email")}
-                            {...form.getInputProps("email")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:school")
-                                : userCtx.userPermissions?.includes("users:global:modify:school")
-                        }
-                        label="School cannot be changed"
-                        withArrow
+                        }}
                     >
-                        <Select
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:school")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:school")
-                            }
-                            label="Assigned School"
-                            placeholder="School"
-                            data={availableSchoolNames}
-                            key={form.key("school")}
-                            searchable
-                            {...form.getInputProps("school")}
-                        />
-                    </Tooltip>
-                    <Tooltip
-                        disabled={
-                            userCtx.userInfo?.id === user?.id
-                                ? userCtx.userPermissions?.includes("users:self:modify:role")
-                                : userCtx.userPermissions?.includes("users:global:modify:role")
-                        }
-                        label="Role cannot be changed"
-                        withArrow
-                    >
-                        <Select
-                            disabled={
-                                userCtx.userInfo?.id === user?.id
-                                    ? !userCtx.userPermissions?.includes("users:self:modify:role")
-                                    : !userCtx.userPermissions?.includes("users:global:modify:role")
-                            }
-                            label="Role"
-                            placeholder="Role"
-                            data={availableRoleDescriptions}
-                            key={form.key("role")}
-                            searchable
-                            {...form.getInputProps("role")}
-                        />
-                    </Tooltip>
-                    <Group mt="md">
                         <Tooltip
                             disabled={
                                 userCtx.userInfo?.id === user?.id
-                                    ? userCtx.userPermissions?.includes("users:self:deactivate")
-                                    : userCtx.userPermissions?.includes("users:global:deactivate")
+                                    ? userCtx.userPermissions?.includes("users:self:modify:username")
+                                    : userCtx.userPermissions?.includes("users:global:modify:username")
                             }
-                            label="Deactivation status cannot be changed"
+                            label="Username cannot be changed"
                             withArrow
                         >
-                            <Switch
+                            <TextInput
                                 disabled={
                                     userCtx.userInfo?.id === user?.id
-                                        ? !userCtx.userPermissions?.includes("users:self:deactivate")
-                                        : !userCtx.userPermissions?.includes("users:global:deactivate")
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:username")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:username")
                                 }
-                                label="Deactivated"
-                                placeholder="Deactivated"
-                                key={form.key("deactivated")}
-                                {...form.getInputProps("deactivated", { type: "checkbox" })}
+                                label="Username"
+                                placeholder="Username"
+                                key={form.key("username")}
+                                {...form.getInputProps("username")}
                             />
                         </Tooltip>
                         <Tooltip
                             disabled={
                                 userCtx.userInfo?.id === user?.id
-                                    ? userCtx.userPermissions?.includes("users:self:forceupdate")
-                                    : userCtx.userPermissions?.includes("users:global:forceupdate")
+                                    ? userCtx.userPermissions?.includes("users:self:modify:name")
+                                    : userCtx.userPermissions?.includes("users:global:modify:name")
                             }
-                            label="Force Update Required cannot be changed"
+                            label="Name cannot be changed"
                             withArrow
                         >
-                            <Switch
+                            <TextInput
                                 disabled={
                                     userCtx.userInfo?.id === user?.id
-                                        ? !userCtx.userPermissions?.includes("users:self:forceupdate")
-                                        : !userCtx.userPermissions?.includes("users:global:forceupdate")
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:name")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:name")
                                 }
-                                label="Force Update Required"
-                                placeholder="Force Update Required"
-                                key={form.key("forceUpdateInfo")}
-                                {...form.getInputProps("forceUpdateInfo", { type: "checkbox" })}
+                                label="First Name"
+                                placeholder="First Name"
+                                rightSection={
+                                    <IconTrash
+                                        size={16}
+                                        color="red"
+                                        onClick={() => form.setFieldValue("nameFirst", null)}
+                                        style={{
+                                            opacity: 0,
+                                            cursor: "pointer",
+                                            transition: "opacity 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                    />
+                                }
+                                key={form.key("nameFirst")}
+                                {...form.getInputProps("nameFirst")}
                             />
                         </Tooltip>
-                    </Group>
-                    <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
-                        Save
-                    </Button>
-                </form>
-            </Flex>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:name")
+                                    : userCtx.userPermissions?.includes("users:global:modify:name")
+                            }
+                            label="Name cannot be changed"
+                            withArrow
+                        >
+                            <TextInput
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:name")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:name")
+                                }
+                                label="Middle Name"
+                                placeholder="Middle Name"
+                                rightSection={
+                                    <IconTrash
+                                        size={16}
+                                        color="red"
+                                        onClick={() => form.setFieldValue("nameMiddle", null)}
+                                        style={{
+                                            opacity: 0,
+                                            cursor: "pointer",
+                                            transition: "opacity 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                    />
+                                }
+                                key={form.key("nameMiddle")}
+                                {...form.getInputProps("nameMiddle")}
+                            />
+                        </Tooltip>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:name")
+                                    : userCtx.userPermissions?.includes("users:global:modify:name")
+                            }
+                            label="Name cannot be changed"
+                            withArrow
+                        >
+                            <TextInput
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:name")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:name")
+                                }
+                                label="Last Name"
+                                placeholder="Last Name"
+                                rightSection={
+                                    <IconTrash
+                                        size={16}
+                                        color="red"
+                                        onClick={() => form.setFieldValue("nameLast", null)}
+                                        style={{
+                                            opacity: 0,
+                                            cursor: "pointer",
+                                            transition: "opacity 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                    />
+                                }
+                                key={form.key("nameLast")}
+                                {...form.getInputProps("nameLast")}
+                            />
+                        </Tooltip>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:email")
+                                    : userCtx.userPermissions?.includes("users:global:modify:email")
+                            }
+                            label="Email cannot be changed"
+                            withArrow
+                        >
+                            <TextInput
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:email")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:email")
+                                }
+                                label="Email"
+                                placeholder="Email"
+                                leftSection={
+                                    form.values.email &&
+                                    (user.emailVerified && form.values.email === user.email ? (
+                                        <Tooltip
+                                            label="This email has been verified. You're good to go!"
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedCheck size={16} color="green" />
+                                        </Tooltip>
+                                    ) : (
+                                        <Tooltip
+                                            label="This email has not yet been verified."
+                                            withArrow
+                                            multiline
+                                            w={250}
+                                        >
+                                            <IconCircleDashedX size={16} color="gray" />
+                                        </Tooltip>
+                                    ))
+                                }
+                                rightSection={
+                                    <IconTrash
+                                        size={16}
+                                        color="red"
+                                        onClick={() => form.setFieldValue("email", null)}
+                                        style={{
+                                            opacity: 0,
+                                            cursor: "pointer",
+                                            transition: "opacity 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                    />
+                                }
+                                key={form.key("email")}
+                                {...form.getInputProps("email")}
+                            />
+                        </Tooltip>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:position")
+                                    : userCtx.userPermissions?.includes("users:global:modify:position")
+                            }
+                            label="Position cannot be changed"
+                            withArrow
+                        >
+                            <TextInput
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:position")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:position")
+                                }
+                                label="Position"
+                                placeholder="Position"
+                                rightSection={
+                                    <IconTrash
+                                        size={16}
+                                        color="red"
+                                        onClick={() => form.setFieldValue("position", null)}
+                                        style={{
+                                            opacity: 0,
+                                            cursor: "pointer",
+                                            transition: "opacity 0.2s ease",
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                    />
+                                }
+                                key={form.key("position")}
+                                {...form.getInputProps("position")}
+                            />
+                        </Tooltip>
+                        {/* Password Field */}
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:password")
+                                    : userCtx.userPermissions?.includes("users:global:modify:password")
+                            }
+                            label="Password cannot be changed"
+                            withArrow
+                        >
+                            <Box>
+                                <PasswordInput
+                                    disabled={
+                                        userCtx.userInfo?.id === user?.id
+                                            ? !userCtx.userPermissions?.includes("users:self:modify:password")
+                                            : !userCtx.userPermissions?.includes("users:global:modify:password")
+                                    }
+                                    label="New Password"
+                                    placeholder="Leave empty to keep current password"
+                                    value={passwordValue}
+                                    onChange={(event) => {
+                                        const newValue = event.currentTarget.value;
+                                        setPasswordValue(newValue);
+                                        form.setFieldValue("password", newValue);
+                                    }}
+                                />
+                                {passwordValue && (
+                                    <Stack gap="xs" mt="md">
+                                        <Text size="sm" fw={500}>
+                                            Password strength
+                                        </Text>
+                                        <Progress 
+                                            value={getStrength(passwordValue)} 
+                                            color={getStrength(passwordValue) < 50 ? 'red' : getStrength(passwordValue) < 80 ? 'yellow' : 'teal'} 
+                                            size="sm" 
+                                        />
+                                        <Box>
+                                            {requirements.map((requirement, index) => (
+                                                <PasswordRequirement
+                                                    key={index}
+                                                    label={requirement.label}
+                                                    meets={requirement.re.test(passwordValue)}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Stack>
+                                )}
+                            </Box>
+                        </Tooltip>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:school")
+                                    : userCtx.userPermissions?.includes("users:global:modify:school")
+                            }
+                            label="School cannot be changed"
+                            withArrow
+                        >
+                            <Select
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:school")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:school")
+                                }
+                                label="Assigned School"
+                                placeholder="School"
+                                data={availableSchoolNames}
+                                key={form.key("school")}
+                                clearable
+                                searchable
+                                {...form.getInputProps("school")}
+                            />
+                        </Tooltip>
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:role")
+                                    : userCtx.userPermissions?.includes("users:global:modify:role")
+                            }
+                            label="Role cannot be changed"
+                            withArrow
+                        >
+                            <Select
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? !userCtx.userPermissions?.includes("users:self:modify:role")
+                                        : !userCtx.userPermissions?.includes("users:global:modify:role")
+                                }
+                                label="Role"
+                                placeholder="Role"
+                                data={availableRoleDescriptions}
+                                key={form.key("role")}
+                                searchable
+                                {...form.getInputProps("role")}
+                            />
+                        </Tooltip>
+                        <Group mt="md">
+                            <Tooltip
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? userCtx.userPermissions?.includes("users:self:deactivate")
+                                        : userCtx.userPermissions?.includes("users:global:deactivate")
+                                }
+                                label="Deactivation status cannot be changed"
+                                withArrow
+                            >
+                                <Switch
+                                    disabled={
+                                        userCtx.userInfo?.id === user?.id
+                                            ? !userCtx.userPermissions?.includes("users:self:deactivate")
+                                            : !userCtx.userPermissions?.includes("users:global:deactivate")
+                                    }
+                                    label="Deactivated"
+                                    placeholder="Deactivated"
+                                    key={form.key("deactivated")}
+                                    {...form.getInputProps("deactivated", { type: "checkbox" })}
+                                />
+                            </Tooltip>
+                            <Tooltip
+                                disabled={
+                                    userCtx.userInfo?.id === user?.id
+                                        ? userCtx.userPermissions?.includes("users:self:forceupdate")
+                                        : userCtx.userPermissions?.includes("users:global:forceupdate")
+                                }
+                                label="Force Update Required cannot be changed"
+                                withArrow
+                            >
+                                <Switch
+                                    disabled={
+                                        userCtx.userInfo?.id === user?.id
+                                            ? !userCtx.userPermissions?.includes("users:self:forceupdate")
+                                            : !userCtx.userPermissions?.includes("users:global:forceupdate")
+                                    }
+                                    label="Force Update Required"
+                                    placeholder="Force Update Required"
+                                    key={form.key("forceUpdateInfo")}
+                                    {...form.getInputProps("forceUpdateInfo", { type: "checkbox" })}
+                                />
+                            </Tooltip>
+                        </Group>
+                        <Button
+                            loading={buttonLoading}
+                            rightSection={<IconDeviceFloppy />}
+                            type="submit"
+                            fullWidth
+                            mt="xl"
+                        >
+                            Save
+                        </Button>
+                    </form>
+                </Flex>
+            </Group>
         </Modal>
     );
 }

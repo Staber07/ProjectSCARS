@@ -6,6 +6,10 @@ data-dev/
 .config.*.json
 config.*.json
 config.json
+.__centralserver.lock
+.__centralserver.*.lock
+.__centralserver-*.lock
+*.log.*
 
 #--------------------------------------------------#
 # The following was generated with gitignore.nvim: #

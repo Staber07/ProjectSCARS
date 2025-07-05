@@ -8,6 +8,7 @@ class JWTToken(SQLModel):
 
     uid: uuid.UUID
     access_token: str
+    refresh_token: str | None = None
     token_type: str
 
 
@@ -16,3 +17,25 @@ class DecodedJWTToken(SQLModel):
 
     id: str
     is_refresh_token: bool
+
+
+class OTPToken(SQLModel):
+    """A model representing a request to create an OTP token."""
+
+    secret: str
+    recovery_code: str
+    provisioning_uri: str
+
+
+class OTPVerificationToken(SQLModel):
+    """A model representing a request to verify an OTP token."""
+
+    otp: str
+    nonce: str
+
+
+class OTPRecoveryCode(SQLModel):
+    """A model representing a request to verify an OTP recovery code."""
+
+    recovery_code: str
+    nonce: str

@@ -6,7 +6,6 @@ from fastapi.responses import StreamingResponse
 from minio.error import S3Error
 from sqlmodel import Session, func, select
 
-from centralserver.internals.adapters.object_store import validate_and_process_image
 from centralserver.internals.auth_handler import (
     get_user,
     verify_access_token,
@@ -15,10 +14,11 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.user import User, UserPublic, UserUpdate
+from centralserver.internals.models.user import User, UserDelete, UserPublic, UserUpdate
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
+    remove_user_info,
     update_user_avatar,
     update_user_info,
 )
@@ -56,7 +56,9 @@ async def get_users_quantity_endpoint(
         )
 
     logger.debug("user %s fetching users quantity", token.id)
-    return session.exec(select(func.count(User.id))).one()  # type: ignore
+    return session.exec(
+        select(func.count()).select_from(User)  # pylint: disable=not-callable
+    ).one()
 
 
 @router.get("/me", response_model=tuple[UserPublic, list[str]])
@@ -97,6 +99,7 @@ async def get_all_users_endpoint(
     session: Annotated[Session, Depends(get_db_session)],
     limit: int = 25,
     offset: int = 0,
+    show_all: bool = False,
 ) -> list[UserPublic]:
     """Get all users and their information.
 
@@ -105,6 +108,7 @@ async def get_all_users_endpoint(
         session: The session to the database.
         limit: The maximum number of users to return (default is 25).
         offset: The number of users to skip (default is 0).
+        show_all: If True, include deactivated users.
 
     Returns:
         A list of users and their information.
@@ -117,9 +121,20 @@ async def get_all_users_endpoint(
         )
 
     logger.debug("user %s fetching all user info", token.id)
+    if show_all:
+        return [
+            UserPublic.model_validate(user)
+            for user in session.exec(select(User).limit(limit).offset(offset)).all()
+        ]
+
     return [
         UserPublic.model_validate(user)
-        for user in session.exec(select(User).limit(limit).offset(offset)).all()
+        for user in session.exec(
+            select(User)
+            .where(User.deactivated == False)  # pylint: disable=C0121
+            .limit(limit)
+            .offset(offset)
+        ).all()
     ]
 
 
@@ -246,6 +261,35 @@ async def update_user_endpoint(
     return await update_user_info(
         target_user=updated_user_info, token=token, session=session
     )
+
+
+@router.delete("/")
+async def delete_user_info_endpoint(
+    user_info: UserDelete,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> None:
+    """Delete a user's profile information.
+
+    Args:
+        user_info: The user information to delete.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+    """
+
+    updating_self = user_info.id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify", session, token
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to modify user profiles.",
+        )
+
+    logger.debug(
+        "user %s is removing fields of user profile %s...", token.id, user_info.id
+    )
+    await remove_user_info(user_info, session)
 
 
 @router.patch("/avatar", response_model=UserPublic)

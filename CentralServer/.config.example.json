@@ -2,9 +2,12 @@
     "debug": {
         "enabled": false,
         "logenv_optout": true,
-        "show_sql": false
+        "show_sql": false,
+        "hot_reload": false
     },
     "connection": {
+        "host": "0.0.0.0",
+        "port": 8081,
         "base_url": "http://localhost:8080"
     },
     "logging": {
@@ -18,7 +21,7 @@
     "database": {
         "type": "sqlite",
         "config": {
-            "filepath": "./centralserver.db"
+            "filepath": "./db/centralserver.db"
         }
     },
     "object_store": {
@@ -36,9 +39,18 @@
         "encryption_secret_key": "UPDATE_THIS_VALUE",
         "signing_algorithm": "HS256",
         "encryption_algorithm": "A256GCM",
+        "encrypt_jwt": true,
         "access_token_expire_minutes": 30,
-        "refresh_token_expire_minutes": 10080,
-        "recovery_token_expire_minutes": 15
+        "refresh_token_expire_minutes": 129600,
+        "recovery_token_expire_minutes": 15,
+        "otp_nonce_expire_minutes": 5,
+        "oauth": {
+            "google": {
+                "client_id": "UPDATE_THIS_VALUE",
+                "client_secret": "UPDATE_THIS_VALUE",
+                "redirect_uri": "http://localhost:8080/login/oauth/google"
+            }
+        }
     },
     "security": {
         "allow_origins": ["http://127.0.0.1:8080", "http://localhost:8080"],

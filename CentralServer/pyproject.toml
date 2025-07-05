@@ -1,20 +1,24 @@
 [project]
 name = "centralserver"
-version = "0.3.8"
+version = "0.5.0"
 description = "The central server for the project"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "concurrent-log-handler>=0.9.28",
     "fastapi[standard]>=0.115.12",
+    "jinja2>=3.1.6",
     "minio>=7.2.15",
     "passlib[argon2]>=1.7.4",
     "pillow>=11.2.1",
     "psycopg[binary]>=3.2.9",
     "pymysql>=1.1.1",
+    "pyotp>=2.9.0",
     "python-jose[cryptography]>=3.4.0",
     "sqlalchemy>=2.0.40",
     "sqlmodel>=0.0.24",
     "types-pillow>=10.2.0.20240822",
+    "uvicorn>=0.34.0",
 ]
 
 [dependency-groups]

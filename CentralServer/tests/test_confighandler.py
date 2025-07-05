@@ -3,6 +3,7 @@ from typing import Final
 
 from centralserver.internals import config_handler
 from centralserver.internals.adapters import config
+from centralserver.internals.models.oauth import OAuthConfigs
 
 DEFAULT_VALUE: Final[str] = "UPDATE_THIS_VALUE"
 VALID_SIGNING_KEY: Final[str] = (
@@ -22,6 +23,7 @@ def test_config_authentication_all_keys_unpopulated() -> None:
             signing_secret_key=DEFAULT_VALUE,
             refresh_signing_secret_key=DEFAULT_VALUE,
             encryption_secret_key=DEFAULT_VALUE,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -39,6 +41,7 @@ def test_config_authentication_signing_key_unpopulated() -> None:
             signing_secret_key=DEFAULT_VALUE,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -56,6 +59,7 @@ def test_config_authentication_refresh_signing_key_unpopulated() -> None:
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=DEFAULT_VALUE,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -73,6 +77,7 @@ def test_config_authentication_encryption_key_unpopulated() -> None:
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=DEFAULT_VALUE,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -89,6 +94,7 @@ def test_config_authentication_signing_key_none() -> None:
         _ = config_handler.Authentication(
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -105,6 +111,7 @@ def test_config_authentication_refresh_signing_key_none() -> None:
         _ = config_handler.Authentication(
             signing_secret_key=VALID_SIGNING_KEY,
             encryption_secret_key=VALID_ENCRYPTION_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -121,6 +128,7 @@ def test_config_authentication_encryption_key_none() -> None:
         _ = config_handler.Authentication(
             signing_secret_key=VALID_SIGNING_KEY,
             refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
+            oauth=OAuthConfigs(),
         )
 
     except ValueError:
@@ -144,6 +152,7 @@ def test_config_authentication_signing_key_invalid() -> None:
                 signing_secret_key=key,
                 refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
                 encryption_secret_key=VALID_ENCRYPTION_KEY,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -167,6 +176,7 @@ def test_config_authentication_refresh_signing_key_invalid() -> None:
                 signing_secret_key=VALID_SIGNING_KEY,
                 refresh_signing_secret_key=key,
                 encryption_secret_key=VALID_ENCRYPTION_KEY,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -190,6 +200,7 @@ def test_config_authentication_encryption_key_invalid() -> None:
                 signing_secret_key=VALID_SIGNING_KEY,
                 refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
                 encryption_secret_key=key,
+                oauth=OAuthConfigs(),
             )
 
         except ValueError:
@@ -206,11 +217,12 @@ def test_config_authentication_all_keys_valid() -> None:
         signing_secret_key=VALID_SIGNING_KEY,
         refresh_signing_secret_key=VALID_REFRESH_SIGNING_KEY,
         encryption_secret_key=VALID_ENCRYPTION_KEY,
+        oauth=OAuthConfigs(),
     )
 
 
 def test_configreader_sqlite_local():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "sqlite"
@@ -218,13 +230,13 @@ def test_configreader_sqlite_local():
     confdata["object_store"]["type"] = "local"
     confdata["object_store"]["config"] = {}  # Use default config
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
     assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
 
 
 def test_configreader_sqlite_minio():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "sqlite"
@@ -235,13 +247,13 @@ def test_configreader_sqlite_minio():
         "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
 
 
 def test_configreader_sqlite_garage():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "sqlite"
@@ -252,13 +264,13 @@ def test_configreader_sqlite_garage():
         "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
     assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
 
 
 def test_configreader_mysql_local():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "mysql"
@@ -266,13 +278,13 @@ def test_configreader_mysql_local():
     confdata["object_store"]["type"] = "local"
     confdata["object_store"]["config"] = {}  # Use default config
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
 
 
 def test_configreader_mysql_minio():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "mysql"
@@ -283,13 +295,13 @@ def test_configreader_mysql_minio():
         "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
 
 
 def test_configreader_mysql_garage():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "mysql"
@@ -300,13 +312,13 @@ def test_configreader_mysql_garage():
         "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.MySQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
 
 
 def test_configreader_postgresql_local():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "postgres"
@@ -314,13 +326,13 @@ def test_configreader_postgresql_local():
     confdata["object_store"]["type"] = "local"
     confdata["object_store"]["config"] = {}  # Use default config
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
 
 
 def test_configreader_postgresql_minio():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "postgres"
@@ -331,13 +343,13 @@ def test_configreader_postgresql_minio():
         "secret_key": "533af9863ea0252a5607bb397dbc3fc1",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.MinIOObjectStoreAdapterConfig)
 
 
 def test_configreader_postgresql_garage():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "postgres"
@@ -348,41 +360,41 @@ def test_configreader_postgresql_garage():
         "secret_key": "501b94b27eb2c87ff02fceec96cd4748a7aa1f043e1e8c12cfc6c0a8797e9bfd",
     }
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.PostgreSQLDatabaseConfig)
     assert isinstance(appconfig.object_store, config.GarageObjectStoreAdapterConfig)
 
 
 def test_configreader_no_objectstore():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["object_store"]["type"] = None  # Will use default object store
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
     assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
 
 
 def test_configreader_no_database():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = None  # Will use default database
 
-    appconfig = config_handler.read_config(confdata)
+    appconfig = config_handler.read_config("confdata", "utf-8", confdata)
     assert isinstance(appconfig.database, config.SQLiteDatabaseConfig)
     assert isinstance(appconfig.object_store, config.LocalObjectStoreAdapterConfig)
 
 
 def test_configreader_invalid_database():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["database"]["type"] = "invalid database type"
 
     try:
-        _ = config_handler.read_config(confdata)
+        _ = config_handler.read_config("confdata", "utf-8", confdata)
 
     except ValueError as e:
         assert str(e) == "Unsupported invalid database type database type."
@@ -392,13 +404,13 @@ def test_configreader_invalid_database():
 
 
 def test_configreader_invalid_objectstore():
-    with open("./config.pytest.json", "r") as f:
+    with open("./config.pytest.json", "r", encoding="utf-8") as f:
         confdata = json.load(f)
 
     confdata["object_store"]["type"] = "invalid object store type"
 
     try:
-        _ = config_handler.read_config(confdata)
+        _ = config_handler.read_config("confdata", "utf-8", confdata)
 
     except ValueError as e:
         assert str(e) == "Unsupported invalid object store type object store type."

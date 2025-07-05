@@ -1,0 +1,25 @@
+Two-Factor Authentication Disabled
+===================================
+
+Hello, {{name}}.
+
+Your two-factor authentication (2FA) has been disabled on your {{app_name}} account.
+You will no longer need to enter a one-time password (OTP) to log in.
+
+Important Security Information:
+
+- Two-factor authentication is now disabled
+- Your account security level has been reduced
+- Only your password will be required for login
+
+What should you do?
+
+- If you did not disable 2FA, contact support immediately
+- Consider re-enabling 2FA for enhanced security
+- Visit your account settings to set up an authenticator app
+
+If you wish to re-enable 2FA, please visit your account settings and follow the
+instructions to set up an authenticator app.
+
+-----------------------------------
+This is an automated security notification from {{app_name}}.

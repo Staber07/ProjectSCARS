@@ -7,6 +7,7 @@ from centralserver import info
 from centralserver.internals.adapters.config import (
     DatabaseAdapterConfig,
     GarageObjectStoreAdapterConfig,
+    GoogleOAuthAdapterConfig,
     LocalObjectStoreAdapterConfig,
     MinIOObjectStoreAdapterConfig,
     MySQLDatabaseConfig,
@@ -14,16 +15,20 @@ from centralserver.internals.adapters.config import (
     PostgreSQLDatabaseConfig,
     SQLiteDatabaseConfig,
 )
+from centralserver.internals.models.oauth import OAuthConfigs
 
 
 class Debug:
     """The debugging configuration."""
+
+    __exportable_fields = ["enabled", "logenv_optout", "show_sql", "hot_reload"]
 
     def __init__(
         self,
         enabled: bool | None = None,
         logenv_optout: bool | None = None,
         show_sql: bool | None = None,
+        hot_reload: bool | None = None,
     ):
         """Create a configuration object for debugging.
 
@@ -31,31 +36,71 @@ class Debug:
             enabled: If True, enable debugging mode.
             logenv_optout: If True, disable logging environment variables.
             show_sql: If True, print executed SQL statements.
+            hot_reload: If True, enable hot reloading of the server.
         """
 
         self.enabled: bool = enabled or False
         self.logenv_optout: bool = logenv_optout or False
         self.show_sql: bool = show_sql or False
+        self.hot_reload: bool = hot_reload or False
+
+    def export(self) -> dict[str, Any]:
+        """Export the debugging configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Debug.__exportable_fields
+            if hasattr(self, field)
+        }
 
 
 class Connection:
     """The connection configuration."""
 
+    __exportable_fields = ["host", "port", "base_url"]
+
     def __init__(
         self,
+        host: str | None = None,
+        port: int | None = None,
         base_url: str | None = None,
     ):
         """Create a configuration object for the connection.
 
         Args:
-            base_url: The base URL for the connection. (Default: None)
+            host: Where to listen for incoming connections.
+            port: Which port to listen on for incoming connections.
+            base_url: The base URL of the web client.
+            host: Where to listen for incoming connections.
+            port: Which port to listen on for incoming connections.
+            base_url: The base URL of the web client.
         """
 
+        self.host: str = host or "localhost"
+        self.port: int = port or 8081
         self.base_url: str = base_url or "http://localhost:8080"
+
+    def export(self) -> dict[str, Any]:
+        """Export the connection configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Connection.__exportable_fields
+            if hasattr(self, field)
+        }
 
 
 class Logging:
     """The logging configuration."""
+
+    __exportable_fields = [
+        "filepath",
+        "max_bytes",
+        "backup_count",
+        "encoding",
+        "log_format",
+        "date_format",
+    ]
 
     def __init__(
         self,
@@ -88,9 +133,32 @@ class Logging:
         )
         self.date_format: str = date_format or "%d-%m-%y_%H-%M-%S"
 
+    def export(self) -> dict[str, Any]:
+        """Export the logging configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Logging.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Authentication:
     """The authentication configuration."""
+
+    __exportable_fields = [
+        "signing_secret_key",
+        "refresh_signing_secret_key",
+        "encryption_secret_key",
+        "signing_algorithm",
+        "encryption_algorithm",
+        "encrypt_jwt",
+        "encoding",
+        "access_token_expire_minutes",
+        "refresh_token_expire_minutes",
+        "recovery_token_expire_minutes",
+        "otp_nonce_expire_minutes",
+    ]
 
     def __init__(
         self,
@@ -99,10 +167,13 @@ class Authentication:
         encryption_secret_key: str | None = None,
         signing_algorithm: str | None = None,
         encryption_algorithm: str | None = None,
+        encrypt_jwt: bool | None = None,
         encoding: str | None = None,
         access_token_expire_minutes: int | None = None,
         refresh_token_expire_minutes: int | None = None,
         recovery_token_expire_minutes: int | None = None,
+        otp_nonce_expire_minutes: int | None = None,
+        oauth: OAuthConfigs | None = None,
     ):
         """Create a configuration object for authentication.
 
@@ -112,10 +183,13 @@ class Authentication:
             encryption_secret_key: The secret key used for encryption. (Required)
             signing_algorithm: The algorithm to use for hashing.
             encryption_algorithm: The algorithm to use for encrypting.
+            encrypt_jwt: Whether to encrypt JWT tokens. (Default: True)
             encoding: The encoding to use when decoding encrypted data.
             access_token_expire_minutes: How long the access token is valid in minutes.
             refresh_token_expire_minutes: How long the refresh token is valid in minutes.
             recovery_token_expire_minutes: How long the recovery token is valid in minutes.
+            otp_nonce_expire_minutes: How long the OTP nonce is valid in minutes.
+            oauth: OAuth configurations, if any. (Default: None)
         """
 
         if (
@@ -148,18 +222,56 @@ class Authentication:
                 "Encryption secret key is not valid. Please update the configuration file."
             )
 
+        if oauth is None:
+            raise ValueError(
+                "OAuth configurations are required in the authentication configuration."
+            )
+
         self.signing_secret_key: str = signing_secret_key
         self.refresh_signing_secret_key: str = refresh_signing_secret_key
         self.encryption_secret_key: str = encryption_secret_key
         self.signing_algorithm: str = signing_algorithm or "HS256"
         self.encryption_algorithm: str = encryption_algorithm or "A256GCM"
+        self.encrypt_jwt: bool = encrypt_jwt if encrypt_jwt is not None else True
         self.encoding: str = encoding or "utf-8"
         self.access_token_expire_minutes: int = access_token_expire_minutes or 30
         self.refresh_token_expire_minutes: int = refresh_token_expire_minutes or 10080
         self.recovery_token_expire_minutes: int = recovery_token_expire_minutes or 15
+        self.otp_nonce_expire_minutes: int = otp_nonce_expire_minutes or 5
+        self.oauth: OAuthConfigs = oauth
+
+    def export(self) -> dict[str, Any]:
+        """Export the authentication configuration as a dictionary."""
+
+        export = {
+            field: getattr(self, field)
+            for field in Authentication.__exportable_fields
+            if hasattr(self, field)
+        }
+        export["oauth"] = {
+            "google": self.oauth.google.export() if self.oauth.google else None,
+            "microsoft": (
+                self.oauth.microsoft.export() if self.oauth.microsoft else None
+            ),
+            "facebook": self.oauth.facebook.export() if self.oauth.facebook else None,
+        }
+
+        return export
 
 
 class Security:
+    """The security configuration."""
+
+    __exportable_fields = [
+        "allow_origins",
+        "allow_credentials",
+        "allow_methods",
+        "allow_headers",
+        "failed_login_notify_attempts",
+        "failed_login_lockout_attempts",
+        "failed_login_lockout_minutes",
+    ]
+
     def __init__(
         self,
         allow_origins: list[str] | None = None,
@@ -193,8 +305,30 @@ class Security:
         self.failed_login_lockout_attempts: int = failed_login_lockout_attempts or 5
         self.failed_login_lockout_minutes: int = failed_login_lockout_minutes or 15
 
+    def export(self) -> dict[str, Any]:
+        """Export the security configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Security.__exportable_fields
+            if hasattr(self, field)
+        }
+
 
 class Mailing:
+    """The mailing configuration."""
+
+    __exportable_fields = [
+        "enabled",
+        "server",
+        "port",
+        "from_address",
+        "username",
+        "password",
+        "templates_dir",
+        "templates_encoding",
+    ]
+
     def __init__(
         self,
         enabled: bool | None = None,
@@ -219,6 +353,9 @@ class Mailing:
             templates_encoding: The encoding of the email templates. (Default: "utf-8")
         """
 
+        if enabled and (not server or not from_address or not username or not password):
+            raise ValueError("Mailing is enabled, but required values are not set.")
+
         self.enabled: bool = enabled or False
         self.server: str = server  # type: ignore
         self.port: int = port or 587
@@ -230,10 +367,14 @@ class Mailing:
         )
         self.templates_encoding: str = templates_encoding or "utf-8"
 
-        if self.enabled and (
-            not self.server or not self.port or not self.username or not self.password
-        ):
-            raise ValueError("Mailing is enabled, but required values are not set.")
+    def export(self) -> dict[str, Any]:
+        """Export the mailing configuration as a dictionary."""
+
+        return {
+            field: getattr(self, field)
+            for field in Mailing.__exportable_fields
+            if hasattr(self, field)
+        }
 
 
 class AppConfig:
@@ -241,6 +382,8 @@ class AppConfig:
 
     def __init__(
         self,
+        fp: str | Path,
+        enc: str,
         debug: Debug | None = None,
         connection: Connection | None = None,
         logging: Logging | None = None,
@@ -253,6 +396,8 @@ class AppConfig:
         """Create a configuration object for the application.
 
         Args:
+            fp: The file path to the configuration file.
+            enc: The encoding of the configuration file.
             debug: Debugging configuration.
             connection: Connection configuration.
             logging: Logging configuration.
@@ -264,6 +409,9 @@ class AppConfig:
             mailing: Mailing configuration.
         """
 
+        self.__filepath: str | Path = fp
+        self.__enc: str = enc
+        self.run_internal: bool = False  # Indicates if app is running using __main__
         self.debug: Debug = debug or Debug()
         self.connection: Connection = connection or Connection()
         self.logging: Logging = logging or Logging()
@@ -277,12 +425,57 @@ class AppConfig:
         self.security: Security = security or Security()
         self.mailing: Mailing = mailing or Mailing()
 
+    @property
+    def filepath(self) -> str | Path:
+        """Get the file path to the configuration file."""
 
-def read_config(config: dict[str, Any]) -> AppConfig:
+        return self.__filepath
+
+    @property
+    def encoding(self) -> str:
+        """Get the encoding of the configuration file."""
+
+        return self.__enc
+
+    def save(self) -> None:
+        """Save the current configuration to the file.
+
+        Args:
+            enc: The encoding to use when saving the file.
+        """
+
+        new_values: dict[str, Any] = {
+            "debug": self.debug.export(),
+            "connection": self.connection.export(),
+            "logging": self.logging.export(),
+            "database": self.database.export() if self.database else None,
+            "object_store": self.object_store.export() if self.object_store else None,
+            "authentication": self.authentication.export(),
+            "security": self.security.export(),
+            "mailing": self.mailing.export(),
+        }
+
+        with open(self.filepath, "w", encoding=self.__enc) as f:
+            json.dump(new_values, f, indent=4)
+
+
+def read_config(
+    fp: str | Path,
+    enc: str,
+    config: dict[str, Any],
+    host: str | None = None,
+    port: int | None = None,
+    hot_reload: bool | None = None,
+) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
     Args:
+        fp: The file path to the JSON configuration file.
+        enc: The encoding of the file.
         config: The configuration file contents.
+        host: The host to listen on for incoming connections. (Optional)
+        port: The port to listen on for incoming connections. (Optional)
+        hot_reload: Enables hot reloading of the server. (Optional)
 
     Returns:
         A new AppConfig object.
@@ -381,13 +574,37 @@ def read_config(config: dict[str, Any]) -> AppConfig:
         case _:  # Error if the object store type is not supported
             raise ValueError(f"Unsupported {object_store_type} object store type.")
 
+    oauth_config: dict[str, dict[str, str]] | None = authentication_config.get(
+        "oauth", None
+    )
+    oauth_google_config: dict[str, str] | None = (
+        oauth_config.get("google", None) if oauth_config else None
+    )
+    oauth_google_configs = (
+        GoogleOAuthAdapterConfig(
+            client_id=oauth_google_config.get("client_id", None),
+            client_secret=oauth_google_config.get("client_secret", None),
+            redirect_uri=oauth_google_config.get("redirect_uri", None),
+        )
+        if oauth_google_config
+        else None
+    )
+    oauth_configs = OAuthConfigs(
+        google=oauth_google_configs,
+    )
+
     return AppConfig(
+        fp,
+        enc,
         debug=Debug(
             enabled=debug_config.get("enabled", None),
             logenv_optout=debug_config.get("logenv_optout", None),
             show_sql=debug_config.get("show_sql", None),
+            hot_reload=hot_reload or debug_config.get("hot_reload", None),
         ),
         connection=Connection(
+            host=host or connection_config.get("host", None),
+            port=port or connection_config.get("port", None),
             base_url=connection_config.get("base_url", None),
         ),
         logging=Logging(
@@ -412,6 +629,7 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             encryption_algorithm=authentication_config.get(
                 "encryption_algorithm", None
             ),
+            encrypt_jwt=authentication_config.get("encrypt_jwt", None),
             encoding=authentication_config.get("encoding", None),
             access_token_expire_minutes=authentication_config.get(
                 "access_token_expire_minutes", None
@@ -422,6 +640,10 @@ def read_config(config: dict[str, Any]) -> AppConfig:
             recovery_token_expire_minutes=authentication_config.get(
                 "recovery_token_expire_minutes", None
             ),
+            otp_nonce_expire_minutes=authentication_config.get(
+                "otp_nonce_expire_minutes", None
+            ),
+            oauth=oauth_configs,
         ),
         security=Security(
             allow_origins=security_config.get("allow_origins", None),
@@ -454,23 +676,38 @@ def read_config(config: dict[str, Any]) -> AppConfig:
 def __read_config_file(
     fp: str | Path,
     enc: str = info.Configuration.default_encoding,
+    host: str | None = None,
+    port: int | None = None,
+    hot_reload: bool | None = None,
 ) -> AppConfig:
     """Update the application's configuration from a JSON file.
 
     Args:
         fp: The file path to the JSON configuration file.
         enc: The encoding of the file.
+        host: The host to listen on for incoming connections. (Optional)
+        port: The port to listen on for incoming connections. (Optional)
+        hot_reload: Enables hot reloading of the server.
 
     Returns:
         A new AppConfig object with the updated configuration.
     """
 
     with open(fp, "r", encoding=enc) as f:
-        return read_config(json.load(f))
+        return read_config(
+            fp, enc, json.load(f), host=host, port=port, hot_reload=hot_reload
+        )
 
 
 # The global configuration object for the application.
+__port = os.getenv("CENTRAL_SERVER_PORT", None)
+if __port is not None:
+    __port = int(__port)
+
 app_config = __read_config_file(
     os.getenv("CENTRAL_SERVER_CONFIG_FILE", str(info.Configuration.default_filepath)),
     os.getenv("CENTRAL_SERVER_CONFIG_ENCODING", info.Configuration.default_encoding),
+    os.getenv("CENTRAL_SERVER_HOST", None),
+    __port,
+    os.getenv("CENTRAL_SERVER_HOT_RELOAD", "false").lower() == "true",
 )

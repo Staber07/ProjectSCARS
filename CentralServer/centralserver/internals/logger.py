@@ -1,7 +1,9 @@
 import logging
 import os
-from logging.handlers import RotatingFileHandler
+import sys
 from time import strftime
+
+from concurrent_log_handler import ConcurrentRotatingFileHandler
 
 from centralserver import info
 from centralserver.internals.config_handler import app_config
@@ -48,7 +50,7 @@ class LoggerFactory:
         if not logger.handlers:
             # handlers
             stream_handler = logging.StreamHandler()
-            file_handler = RotatingFileHandler(
+            file_handler = ConcurrentRotatingFileHandler(
                 app_config.logging.filepath.format(strftime("%Y-%m-%d_%H-%M-%S")),
                 maxBytes=app_config.logging.max_bytes,
                 backupCount=app_config.logging.backup_count,
@@ -79,70 +81,126 @@ def log_app_info(logger: logging.Logger):
         logger: The logger to use.
     """
 
-    logger.info(f"{info.Program.name=}")
-    logger.info(f"info.Program.version={'.'.join(map(str, info.Program.version))}")
-    logger.debug(f"{info.Configuration.default_filepath=}")
-    logger.debug(f"{info.Configuration.default_encoding=}")
+    stats: dict[str, str] = {}
 
-    logger.debug(f"{app_config.debug.enabled=}")
-    logger.debug(f"{app_config.debug.logenv_optout=}")
-    logger.debug(f"{app_config.debug.show_sql=}")
+    app_title = f"{info.Program.name} v{'.'.join(map(str, info.Program.version))}"
+    border_length = len(app_title) + 2
+    logger.info(f".{"-" * border_length}.")
+    logger.info(f"| {app_title} |")
+    logger.info(f"`{'-' * border_length}`")
+    logger.info(f"Running on Python {sys.version} ({sys.platform})")
 
-    logger.debug(f"{app_config.connection.base_url=}")
+    stats["Loaded Configuration"] = str(app_config.filepath)
+    stats["Configuration Encoding"] = app_config.encoding
 
-    logger.debug(f"{app_config.logging.filepath=}")
-    logger.debug(f"{app_config.logging.max_bytes=}")
-    logger.debug(f"{app_config.logging.backup_count=}")
-    logger.debug(f"{app_config.logging.encoding=}")
-    logger.debug(f"{app_config.logging.log_format=}")
-    logger.debug(f"{app_config.logging.date_format=}")
+    stats["Debug Mode"] = "Enabled" if app_config.debug.enabled else "Disabled"
+    stats["Running via __main__"] = "Yes" if app_config.run_internal else "No"
 
-    logger.debug(f"{app_config.database.info=}")
-    logger.debug(f"{app_config.object_store.info=}")
+    if app_config.debug.enabled:
+        # Debug
+        stats["Log Environment Variables"] = (
+            "Opted out" if app_config.debug.logenv_optout else "Enabled"
+        )
+        stats["Show SQL Queries"] = (
+            "Enabled" if app_config.debug.show_sql else "Disabled"
+        )
+        stats["Hot Reload"] = "Enabled" if app_config.debug.hot_reload else "Disabled"
 
-    # Hide the secret key in the logs
-    logger.debug(
-        f"app_config.authentication.signing_secret_key={'*' * 8}{app_config.authentication.signing_secret_key[-4:]}"
-        if app_config.authentication.signing_secret_key
-        else "app_config.authentication.signing_secret_key=None"
-    )
-    logger.debug(
-        f"app_config.authentication.refresh_signing_secret_key={'*' * 8}{app_config.authentication.refresh_signing_secret_key[-4:]}"
-        if app_config.authentication.refresh_signing_secret_key
-        else "app_config.authentication.refresh_signing_secret_key=None"
-    )
-    logger.debug(
-        f"app_config.authentication.encryption_secret_key={'*' * 8}{app_config.authentication.encryption_secret_key[-4:]}"
-        if app_config.authentication.encryption_secret_key
-        else "app_config.authentication.encryption_secret_key=None"
-    )
-    logger.debug(f"{app_config.authentication.signing_algorithm=}")
-    logger.debug(f"{app_config.authentication.encryption_algorithm=}")
-    logger.debug(f"{app_config.authentication.access_token_expire_minutes=}")
-    logger.debug(f"{app_config.authentication.refresh_token_expire_minutes=}")
-    logger.debug(f"{app_config.authentication.recovery_token_expire_minutes=}")
+        # Connection
+        stats["Host"] = app_config.connection.host or "Not set"
+        stats["Port"] = str(app_config.connection.port) or "Not set"
+        stats["Base URL"] = app_config.connection.base_url or "Not set"
 
-    logger.debug(f"{app_config.security.allow_origins=}")
-    logger.debug(f"{app_config.security.allow_credentials=}")
-    logger.debug(f"{app_config.security.allow_methods=}")
-    logger.debug(f"{app_config.security.allow_headers=}")
-    logger.debug(f"{app_config.security.failed_login_lockout_attempts=}")
-    logger.debug(f"{app_config.security.failed_login_notify_attempts=}")
-    logger.debug(f"{app_config.security.failed_login_lockout_minutes=}")
+        # Logging
+        stats["Log File Path"] = app_config.logging.filepath
+        stats["Max Log File Size"] = (
+            f"{app_config.logging.max_bytes / (1024 * 1024):.2f} MB"
+        )
+        stats["Backup Count"] = str(app_config.logging.backup_count)
+        stats["Log Encoding"] = app_config.logging.encoding
+        stats["Log Format"] = app_config.logging.log_format
+        stats["Date Format"] = app_config.logging.date_format
 
-    logger.debug(f"{app_config.mailing.enabled=}")
-    logger.debug(f"{app_config.mailing.server=}")
-    logger.debug(f"{app_config.mailing.port=}")
-    logger.debug(f"{app_config.mailing.from_address=}")
-    logger.debug(f"{app_config.mailing.username=}")
-    logger.debug(
-        f"app_config.mailing.password={'*' * 8}"
-        if app_config.mailing.password
-        else "app_config.mailing.password=None"
-    )
+        # Database
+        for key, value in app_config.database.export().items():
+            stats[f"Database {key.replace('_', ' ').title()}"] = str(value) or "Not set"
 
-    logger.debug(
-        "Environment Variables: opted out"
-        if app_config.debug.logenv_optout
-        else f"Environment Variables:\n{os.environ}"
-    )
+        # Object Storage
+        for key, value in app_config.object_store.export().items():
+            stats[f"Object Store {key.replace('_', ' ').title()}"] = (
+                str(value) or "Not set"
+            )
+
+        # Authentication
+        stats["Signing Secret Key"] = (
+            f"{'*' * 8}{app_config.authentication.signing_secret_key[-4:]}"
+            if app_config.authentication.signing_secret_key
+            else "Not set"
+        )
+        stats["Refresh Signing Secret Key"] = (
+            f"{'*' * 8}{app_config.authentication.refresh_signing_secret_key[-4:]}"
+            if app_config.authentication.refresh_signing_secret_key
+            else "Not set"
+        )
+        stats["Encryption Secret Key"] = (
+            f"{'*' * 8}{app_config.authentication.encryption_secret_key[-4:]}"
+            if app_config.authentication.encryption_secret_key
+            else "Not set"
+        )
+        stats["Signing Algorithm"] = app_config.authentication.signing_algorithm
+        stats["Encryption Algorithm"] = app_config.authentication.encryption_algorithm
+        stats["Encrypt JWT"] = "Yes" if app_config.authentication.encrypt_jwt else "No"
+        stats["Encrypted Data Encoding"] = app_config.authentication.encoding
+        stats["Access Token Expiry"] = (
+            f"{app_config.authentication.access_token_expire_minutes} minutes"
+        )
+        stats["Refresh Token Expiry"] = (
+            f"{app_config.authentication.refresh_token_expire_minutes} minutes"
+        )
+        stats["Recovery Token Expiry"] = (
+            f"{app_config.authentication.recovery_token_expire_minutes} minutes"
+        )
+        stats["OTP Nonce Expiry"] = (
+            f"{app_config.authentication.otp_nonce_expire_minutes} minutes"
+        )
+
+        # Security
+        stats["Allowed Origins"] = ", ".join(app_config.security.allow_origins)
+        stats["Allow Credentials"] = (
+            "Enabled" if app_config.security.allow_credentials else "Disabled"
+        )
+        stats["Allowed Methods"] = ", ".join(app_config.security.allow_methods)
+        stats["Allowed Headers"] = ", ".join(app_config.security.allow_headers)
+        stats["Failed Login Notify Attempts"] = str(
+            app_config.security.failed_login_notify_attempts
+        )
+        stats["Failed Login Lockout Attempts"] = str(
+            app_config.security.failed_login_lockout_attempts
+        )
+        stats["Failed Login Lockout Minutes"] = (
+            f"{app_config.security.failed_login_lockout_minutes} minutes"
+        )
+
+        # Mailing
+        stats["Mailing Enabled"] = (
+            "Enabled" if app_config.mailing.enabled else "Disabled"
+        )
+        stats["Mailing Server"] = app_config.mailing.server or "Not set"
+        stats["Mailing Port"] = str(app_config.mailing.port) or "Not set"
+        stats["Mailing From Address"] = app_config.mailing.from_address or "Not set"
+        stats["Mailing Username"] = app_config.mailing.username or "Not set"
+        stats["Mailing Password"] = (
+            f"{'*' * 8}" if app_config.mailing.password else "Not set"
+        )
+        stats["Templates Directory"] = app_config.mailing.templates_dir or "Not set"
+        stats["Templates Encoding"] = app_config.mailing.templates_encoding or "Not set"
+
+        # Environment Variables
+        stats["Environment Variables"] = (
+            "Opted Out" if app_config.debug.logenv_optout else str(os.environ)
+        )
+
+    max_key_length = max(map(len, stats))
+    _l = logger.debug if app_config.debug.enabled else logger.info
+    for key, value in stats.items():
+        _l(f"{key.rjust(max_key_length)} : {value}")

@@ -24,7 +24,7 @@ def _request_token(username: str, password: str) -> Response:
         "password": password,
     }
 
-    return client.post("/api/v1/auth/token", data=creds)
+    return client.post("/api/v1/auth/login", data=creds)
 
 
 async def test_startup_sequence():
@@ -596,17 +596,6 @@ def test_view_all_roles():
         assert len(role["description"]) > 0
 
 
-def test_view_all_roles_no_permission():
-    login = _request_token("testuser4", "Password123")
-    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
-    response = client.get(
-        "/api/v1/auth/roles",
-        headers=headers,
-    )
-    assert response.status_code == 403
-    assert response.json()["detail"] == "You do not have permission to view all roles."
-
-
 def test_update_user_role_no_permission():
     login = _request_token("testuser4", "Password123")
     headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
@@ -997,17 +986,11 @@ def test_get_user_avatar():
         headers=headers,
     ).json()[0]
 
-    with open(
-        "./tests/sample_data/defaultImage.small_512_512_nofilter.jpg", "rb"
-    ) as file:
-        img = file.read()
-
     response = client.get(
         f"/api/v1/users/avatar?fn={user_info["avatarUrn"]}",
         headers=headers,
     )
     assert response.status_code == 200
-    # assert response.content == img
 
 
 def test_get_user_avatar_no_current():

@@ -1,13 +1,19 @@
 "use client";
 
+import { HomeSection } from "@/components/Dashboard/HomeSection";
+import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
-import { GetUserInfo } from "@/lib/api/auth";
-import { GetSelfNotifications } from "@/lib/api/notification";
-import { GetUserAvatar } from "@/lib/api/user";
+import {
+    Notification,
+    getUserAvatarEndpointV1UsersAvatarGet,
+    getUserNotificationsV1NotificationsMeGet,
+    getUserProfileEndpointV1UsersMeGet,
+    type UserPublic,
+} from "@/lib/api/csclient";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { NotificationType } from "@/lib/types";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     Avatar,
     Card,
@@ -24,7 +30,8 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -33,92 +40,222 @@ const stepsToComplete: [string, boolean][] = [
     ["Set up two-factor authentication", false],
 ];
 
-function DashboardContent() {
+const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
+    const router = useRouter();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
-    const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
-    const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(false);
+    const [HVNotifications, setHVNotifications] = useState<Notification[]>([]);
+    const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
+        () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
+    );
+    const [isLoading, setIsLoading] = useState(true);
+    const [isNotificationLoading, setIsNotificationLoading] = useState(true);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        setSetupCompleteDismissed(localStorage.getItem("setupCompleteDismissed") === "true");
-        GetUserInfo()
-            .then((userInfo) => {
-                if (userInfo[0].avatarUrn) {
-                    GetUserAvatar(userInfo[0].avatarUrn).then((userAvatar) => {
-                        if (userAvatar) {
-                            console.debug("User avatar fetched successfully", { size: userAvatar.size });
-                        } else {
-                            console.warn("No avatar found for user, using default avatar.");
-                        }
-                        userCtx.updateUserInfo(userInfo[0], userInfo[1], userAvatar);
-                    });
-                } else {
-                    userCtx.updateUserInfo(userInfo[0], userInfo[1]);
-                }
-            })
-            .catch((error) => {
-                console.error("Failed to fetch user info:", error);
-                notifications.show({
-                    id: "session-expired",
-                    title: "Session expired",
-                    message: "Your session has expired. Please log in again.",
-                    color: "red",
-                    icon: <IconRefreshAlert />,
-                });
-            });
-        const fetchNotifications = async () => {
-            const notifications = await GetSelfNotifications(true, true, 0, 1);
-            setHVNotifications(notifications);
-        };
-        fetchNotifications();
-    });
-
-    useEffect(() => {
-        if (userCtx.userInfo) {
-            const totalSteps = stepsToComplete.length;
-            let completedSteps = 0;
-
-            if (userCtx.userInfo?.emailVerified) {
-                completedSteps++;
-                stepsToComplete[0][1] = true;
-            }
-            if (userCtx.userInfo?.nameFirst && userCtx.userInfo?.nameLast) {
-                completedSteps++;
-                stepsToComplete[1][1] = true;
-            }
-            if (userCtx.userInfo?.avatarUrn) {
-                completedSteps++;
-                stepsToComplete[2][1] = true;
-            }
-            // TODO: Uncomment when two-factor authentication is implemented
-            // if (userCtx.userInfo.twoFactorEnabled) {completedSteps++; stepsToComplete[3][1] = true;}
-
-            setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
+    const handleStepClick = (index: number) => {
+        switch (index) {
+            case 0:
+                window.location.href = "/account/profile";
+                break;
+            case 1:
+                window.location.href = "/account/profile";
+                break;
+            case 2:
+                window.location.href = "/account/profile";
+                break;
+            case 3:
+                window.location.href = "/account/profile";
+                break;
+            default:
+                break;
         }
+    };
+
+    useEffect(() => {
+        // Check if forceupdateinfo is true
+        if (userCtx.userInfo?.forceUpdateInfo) {
+            router.push("/account/welcome");
+        }
+    }, [router, userCtx.userInfo?.forceUpdateInfo]);
+
+    // Load user info and avatar
+    useEffect(() => {
+        let mounted = true;
+
+        const loadUserInfo = async () => {
+            if (!userCtx.userInfo) return;
+
+            try {
+                const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (userInfoResult.error) {
+                    throw new Error(
+                        `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                    );
+                }
+
+                const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
+                if (!mounted) return;
+
+                if (userInfo.avatarUrn) {
+                    const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                        query: { fn: userInfo.avatarUrn },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (!avatarResult.error && mounted) {
+                        const userAvatar = avatarResult.data as Blob;
+                        userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+                    } else if (mounted) {
+                        console.warn("Failed to fetch avatar:", avatarResult.error);
+                        userCtx.updateUserInfo(userInfo, userPermissions);
+                    }
+                } else if (mounted) {
+                    userCtx.updateUserInfo(userInfo, userPermissions);
+                }
+            } catch (error) {
+                console.error("Failed to fetch user info:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "user-info-error",
+                        title: "Error",
+                        message: "Failed to load user information",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
+            } finally {
+                if (mounted) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        if (userCtx.userInfo) {
+            loadUserInfo();
+        } else {
+            setIsLoading(false);
+        }
+
+        return () => {
+            mounted = false;
+        };
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Load notifications
+    useEffect(() => {
+        let mounted = true;
+
+        const loadNotifications = async () => {
+            try {
+                const result = await getUserNotificationsV1NotificationsMeGet({
+                    query: {
+                        unarchived_only: true,
+                        important_only: true,
+                        offset: 0,
+                        limit: 1,
+                    },
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (result.error) {
+                    throw new Error(
+                        `Failed to fetch notifications: ${result.response.status} ${result.response.statusText}`
+                    );
+                }
+
+                const notifications = result.data as Notification[];
+                if (mounted) {
+                    setHVNotifications(notifications);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notifications:", error);
+                if (mounted) {
+                    notifications.show({
+                        id: "notifications-error",
+                        title: "Error",
+                        message: "Failed to load notifications",
+                        color: "red",
+                        icon: <IconRefreshAlert />,
+                    });
+                }
+            } finally {
+                if (mounted) {
+                    setIsNotificationLoading(false);
+                }
+            }
+        };
+
+        loadNotifications();
+
+        return () => {
+            mounted = false;
+        };
+    }, []); // Load notifications once on mount
+
+    const calculateSteps = useCallback(() => {
+        if (!userCtx.userInfo) return;
+
+        const totalSteps = stepsToComplete.length;
+        let completedSteps = 0;
+        const updatedSteps = [...stepsToComplete];
+
+        if (userCtx.userInfo.emailVerified) {
+            completedSteps++;
+            updatedSteps[0][1] = true;
+        }
+
+        if (userCtx.userInfo.nameFirst && userCtx.userInfo.nameLast && userCtx.userInfo.email) {
+            completedSteps++;
+            updatedSteps[1][1] = true;
+        }
+
+        if (userCtx.userInfo.avatarUrn) {
+            completedSteps++;
+            updatedSteps[2][1] = true;
+        }
+
+        if (userCtx.userInfo.otpVerified) {
+            completedSteps++;
+            updatedSteps[3][1] = true;
+        }
+
+        setProfileCompletionPercentage(Math.round((completedSteps / totalSteps) * 100));
+        return updatedSteps;
     }, [userCtx.userInfo]);
 
-    console.debug("Rendering DashboardPage");
+    useEffect(() => {
+        calculateSteps();
+    }, [calculateSteps]);
+
+    if (isLoading) {
+        return <LoadingComponent message="Loading dashboard..." withBorder={false} />;
+    }
+
     return (
-        <Container>
-            <SpotlightComponent />
-            <Group gap={20}>
-                <Avatar
-                    variant="light"
-                    radius="lg"
-                    size={100}
-                    color="#258ce6"
-                    src={userCtx.userAvatarUrl ? userCtx.userAvatarUrl : undefined}
-                />
-                {userCtx.userInfo?.nameFirst ? (
-                    <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
-                ) : userCtx.userInfo?.username ? (
-                    <Title>Welcome, {userCtx.userInfo.username}!</Title>
-                ) : (
-                    <Title>Welcome!</Title>
-                )}
-            </Group>
-            <Container mt={20}>
+        <Container size="xl" py="md">
+            <Stack gap="md">
+                <SpotlightComponent />
+
+                {/* User Welcome Section */}
+                <Card shadow="sm" p="md" radius="md" withBorder>
+                    <Group gap={20}>
+                        <Avatar variant="light" radius="lg" size={100} color="#258ce6" src={userCtx.userAvatarUrl} />
+                        <Stack gap="xs">
+                            {userCtx.userInfo?.nameFirst ? (
+                                <Title>Welcome, {userCtx.userInfo.nameFirst}!</Title>
+                            ) : userCtx.userInfo?.username ? (
+                                <Title>Welcome, {userCtx.userInfo.username}!</Title>
+                            ) : (
+                                <Title>Welcome!</Title>
+                            )}
+                            <Text c="dimmed">Here&apos;s what&apos;s happening with your account</Text>
+                        </Stack>
+                    </Group>
+                </Card>
+
+                {/* Account Setup Section */}
                 {profileCompletionPercentage !== 100 && !setupCompleteDismissed && (
                     <Card p="md" radius="md" withBorder>
                         <Flex justify="space-between" align="center" mb={20}>
@@ -145,10 +282,15 @@ function DashboardContent() {
                                                 </ThemeIcon>
                                             }
                                             c={completed ? "gray" : "dark"}
+                                            style={{ cursor: completed ? "default" : "pointer" }}
+                                            onClick={() => !completed && handleStepClick(index)}
                                         >
                                             <Text
                                                 size="sm"
-                                                style={{ textDecoration: completed ? "line-through" : "none" }}
+                                                style={{
+                                                    textDecoration: completed ? "line-through" : "none",
+                                                    cursor: completed ? "default" : "pointer",
+                                                }}
                                             >
                                                 {step}
                                             </Text>
@@ -163,7 +305,9 @@ function DashboardContent() {
                             ta="right"
                             style={{ cursor: "pointer" }}
                             onClick={() => {
-                                localStorage.setItem("setupCompleteDismissed", "true");
+                                if (typeof window !== "undefined") {
+                                    localStorage.setItem("setupCompleteDismissed", "true");
+                                }
                                 setSetupCompleteDismissed(true);
                             }}
                         >
@@ -171,28 +315,15 @@ function DashboardContent() {
                         </Text>
                     </Card>
                 )}
-                <Card p="md" radius="md">
+
+                {/* Notifications Section */}
+                <Card p="md" radius="md" withBorder mb="xl">
                     <Title order={4}>Important Notifications</Title>
-                    {HVNotifications.length > 0 ? (
+                    {isNotificationLoading ? (
+                        <LoadingComponent message="Loading notifications..." withBorder={false} />
+                    ) : HVNotifications.length > 0 ? (
                         HVNotifications.map((notification) => (
-                            <Link
-                                key={notification.id}
-                                href="/account/notifications"
-                                style={{ textDecoration: "none" }}
-                            >
-                                <Card key={notification.id} withBorder radius="md" p="md">
-                                    <Group>
-                                        <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                                            {notificationIcons[notification.type]?.[0] &&
-                                                React.createElement(notificationIcons[notification.type][0])}
-                                        </Avatar>
-                                        <Text size="sm">{notification.content}</Text>
-                                    </Group>
-                                    <Text size="xs" c="dimmed" ta="right" mt={5}>
-                                        {new Date(notification.created).toLocaleString()}
-                                    </Text>
-                                </Card>
-                            </Link>
+                            <NotificationCard key={notification.id} notification={notification} />
                         ))
                     ) : (
                         <Text size="sm" c="dimmed" mt={10}>
@@ -200,14 +331,45 @@ function DashboardContent() {
                         </Text>
                     )}
                 </Card>
-            </Container>
+
+                {/* Home Section */}
+                <Suspense fallback={<LoadingComponent message="Loading content..." withBorder={false} />}>
+                    <HomeSection />
+                </Suspense>
+            </Stack>
         </Container>
     );
-}
+});
+
+// Memoize the notification card
+const NotificationCard = memo(function NotificationCard({ notification }: { notification: Notification }) {
+    const notificationType = notification.type || "info";
+    const iconConfig = notificationIcons[notificationType];
+    const [IconComponent, color] = iconConfig || [notificationIcons.info[0], notificationIcons.info[1]];
+
+    return (
+        <Link href="/account/notifications" style={{ textDecoration: "none" }}>
+            <Card withBorder radius="md" p="md">
+                <Group>
+                    <Avatar color={color} radius="xl">
+                        <IconComponent />
+                    </Avatar>
+                    <Text size="sm">{notification.content}</Text>
+                </Group>
+                <Text size="xs" c="dimmed" ta="right" mt={5}>
+                    {notification.created ? new Date(notification.created).toLocaleString() : "Unknown time"}
+                </Text>
+            </Card>
+        </Link>
+    );
+});
+
 export default function DashboardPage() {
     return (
-        <Suspense fallback={<LoadingComponent message="Loading dashboard..." withBorder={false} />}>
-            <DashboardContent />
-        </Suspense>
+        <ErrorBoundary>
+            <Suspense fallback={<LoadingComponent message="Loading dashboard..." withBorder={false} />}>
+                <DashboardContent />
+            </Suspense>
+        </ErrorBoundary>
     );
 }
