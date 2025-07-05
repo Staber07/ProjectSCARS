@@ -3,8 +3,10 @@
 import { Role, School, UserDelete, UserPublic, UserUpdate } from "@/lib/api/csclient";
 import { userAvatarConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
+import { getStrength, PasswordRequirement, requirements } from "@/components/Password";
 import {
     Badge,
+    Box,
     Button,
     Card,
     Center,
@@ -13,9 +15,13 @@ import {
     Group,
     Image,
     Modal,
+    PasswordInput,
+    Progress,
     Select,
+    Stack,
     Switch,
     Table,
+    Text,
     TextInput,
     Tooltip,
 } from "@mantine/core";
@@ -58,6 +64,7 @@ interface EditUserValues {
     nameLast: string | null;
     position: string | null;
     email: string | null;
+    password: string;
     school: string | null;
     role: string | null;
     deactivated: boolean;
@@ -82,6 +89,7 @@ export function EditUserComponent({
     const [currentAvatarUrn, setCurrentAvatarUrn] = useState<string | null>(null);
     const [avatarRemoved, setAvatarRemoved] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [passwordValue, setPasswordValue] = useState("");
     const userCtx = useUser();
     const availableSchoolNames = availableSchools.map(
         (school) => `[${school.id}] ${school.name}${school.address ? ` (${school.address})` : ""}`
@@ -97,6 +105,7 @@ export function EditUserComponent({
             nameLast: user.nameLast || null,
             position: user.position || null,
             email: user.email || null,
+            password: "",
             school: availableSchools.find((school) => school.id === user.schoolId)
                 ? `[${availableSchools.find((school) => school.id === user.schoolId)!.id}] ${
                       availableSchools.find((school) => school.id === user.schoolId)!.name
@@ -117,6 +126,7 @@ export function EditUserComponent({
         console.debug("EditUserComponent mounted with index:", index);
         setAvatarRemoved(false);
         setEditUserAvatar(null);
+        setPasswordValue(""); // Reset password field when component mounts
         if (user.avatarUrn) {
             setCurrentAvatarUrn(user.avatarUrn);
             const avatarUrl = fetchUserAvatar(user.avatarUrn);
@@ -215,12 +225,12 @@ export function EditUserComponent({
             nameLast: values.nameLast !== user.nameLast ? values.nameLast || null : undefined,
             position: values.position !== user.position ? values.position || null : undefined,
             email: values.email !== user.email ? values.email || null : undefined,
+            password: values.password && values.password.trim() !== "" ? values.password : null,
             schoolId: selectedSchool?.id !== user.schoolId ? selectedSchool?.id : undefined,
             roleId: selectedRole.id !== user.roleId ? selectedRole.id : undefined,
             deactivated: values.deactivated !== user.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== user.forceUpdateInfo ? values.forceUpdateInfo : undefined,
             finishedTutorials: null,
-            password: null,
         };
 
         // Check for fields that were cleared (set to null) and need to be deleted
@@ -799,6 +809,55 @@ export function EditUserComponent({
                                 key={form.key("position")}
                                 {...form.getInputProps("position")}
                             />
+                        </Tooltip>
+                        {/* Password Field */}
+                        <Tooltip
+                            disabled={
+                                userCtx.userInfo?.id === user?.id
+                                    ? userCtx.userPermissions?.includes("users:self:modify:password")
+                                    : userCtx.userPermissions?.includes("users:global:modify:password")
+                            }
+                            label="Password cannot be changed"
+                            withArrow
+                        >
+                            <Box>
+                                <PasswordInput
+                                    disabled={
+                                        userCtx.userInfo?.id === user?.id
+                                            ? !userCtx.userPermissions?.includes("users:self:modify:password")
+                                            : !userCtx.userPermissions?.includes("users:global:modify:password")
+                                    }
+                                    label="New Password"
+                                    placeholder="Leave empty to keep current password"
+                                    value={passwordValue}
+                                    onChange={(event) => {
+                                        const newValue = event.currentTarget.value;
+                                        setPasswordValue(newValue);
+                                        form.setFieldValue("password", newValue);
+                                    }}
+                                />
+                                {passwordValue && (
+                                    <Stack gap="xs" mt="md">
+                                        <Text size="sm" fw={500}>
+                                            Password strength
+                                        </Text>
+                                        <Progress 
+                                            value={getStrength(passwordValue)} 
+                                            color={getStrength(passwordValue) < 50 ? 'red' : getStrength(passwordValue) < 80 ? 'yellow' : 'teal'} 
+                                            size="sm" 
+                                        />
+                                        <Box>
+                                            {requirements.map((requirement, index) => (
+                                                <PasswordRequirement
+                                                    key={index}
+                                                    label={requirement.label}
+                                                    meets={requirement.re.test(passwordValue)}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Stack>
+                                )}
+                            </Box>
                         </Tooltip>
                         <Tooltip
                             disabled={
