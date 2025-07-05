@@ -437,14 +437,9 @@ class AppConfig:
 
         return self.__enc
 
-    def save(self) -> None:
-        """Save the current configuration to the file.
-
-        Args:
-            enc: The encoding to use when saving the file.
-        """
-
-        new_values: dict[str, Any] = {
+    @property
+    def values(self) -> dict[str, Any]:
+        return {
             "debug": self.debug.export(),
             "connection": self.connection.export(),
             "logging": self.logging.export(),
@@ -455,8 +450,15 @@ class AppConfig:
             "mailing": self.mailing.export(),
         }
 
+    def save(self) -> None:
+        """Save the current configuration to the file.
+
+        Args:
+            enc: The encoding to use when saving the file.
+        """
+
         with open(self.filepath, "w", encoding=self.__enc) as f:
-            json.dump(new_values, f, indent=4)
+            json.dump(self.values, f, indent=4)
 
 
 def read_config(

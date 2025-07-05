@@ -66,6 +66,7 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:global:modify:username",
         "users:global:modify:email",
         "users:global:modify:name",
+        "users:global:modify:password",
         "users:global:modify:position",
         "users:global:modify:avatar",
         "users:global:modify:role",
@@ -102,7 +103,6 @@ ROLE_PERMISSIONS: Final[dict[int, list[str]]] = {
         "users:global:modify:email",
         "users:global:modify:name",
         "users:global:modify:position",
-        "users:global:modify:password",  # NOTE: I think only the website admin should be able to modify passwords
         "users:global:modify:avatar",
         "users:global:modify:school",
         "users:global:modify:role",
