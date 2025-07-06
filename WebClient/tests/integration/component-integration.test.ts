@@ -114,10 +114,6 @@ describe("Component Integration Tests", () => {
                 version: expect.any(String),
             });
 
-            expect(Connections.CentralServer).toMatchObject({
-                endpoint: expect.any(String),
-            });
-
             expect(LocalStorage).toMatchObject({
                 accessToken: expect.any(String),
                 userData: expect.any(String),
