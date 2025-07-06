@@ -102,7 +102,7 @@ const retryRequest = async ({
 
 // Create a simple ky instance for token refresh (without retry logic to avoid circular dependencies)
 const tokenRefreshClient = ky.create({
-    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
+    prefixUrl: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     timeout: 10000, // 10 seconds timeout for token refresh
     retry: 0, // No retries for token refresh to avoid circular dependencies
     hooks: {
@@ -114,7 +114,7 @@ const tokenRefreshClient = ky.create({
 
 // Create a ky instance with base configuration
 const defaultKyClient = ky.create({
-    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
+    prefixUrl: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     timeout: 30000, // 30 seconds timeout
     retry: {
         limit: 3,
@@ -131,7 +131,7 @@ const defaultKyClient = ky.create({
 
 // Create a ky instance without retries for specific requests (like login)
 const noRetryKyClient = ky.create({
-    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
+    prefixUrl: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     timeout: 30000, // 30 seconds timeout
     retry: 0, // No retries
     hooks: {
@@ -144,13 +144,13 @@ const noRetryKyClient = ky.create({
 
 export const createClientConfig: CreateClientConfig = (config) => ({
     ...config,
-    baseUrl: process.env.CENTRAL_SERVER_ENDPOINT,
+    baseUrl: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     fetch: defaultKyClient, // Use ky as the fetch implementation
 });
 
 export const createNoRetryClientConfig: CreateClientConfig = (config) => ({
     ...config,
-    baseUrl: process.env.CENTRAL_SERVER_ENDPOINT,
+    baseUrl: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     fetch: noRetryKyClient, // Use no-retry ky client
 });
 
