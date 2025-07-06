@@ -396,7 +396,9 @@ export function MainLoginComponent(): React.ReactElement {
                             onClick={async (e: React.MouseEvent) => {
                                 e.preventDefault();
                                 try {
-                                    const response = await fetch("http://localhost:8081/v1/auth/oauth/google/login");
+                                    const response = await fetch(
+                                        `${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/auth/oauth/google/login`
+                                    );
                                     const data = await response.json();
                                     if (data.url) {
                                         window.location.href = data.url;

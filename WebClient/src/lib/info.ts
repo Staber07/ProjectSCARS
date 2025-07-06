@@ -16,7 +16,7 @@ export const Program = {
 
 export const Connections = {
     CentralServer: {
-        endpoint: process.env.CENTRAL_SERVER_ENDPOINT,
+        endpoint: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     },
 };
 
