@@ -111,11 +111,7 @@ export default function NotificationsPage() {
                     icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             }
-            setAllNotifications((prev) => 
-                prev.map((n) => 
-                    n.id === id ? { ...n, archived: !unarchive } : n
-                )
-            );
+            setAllNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, archived: !unarchive } : n)));
         } catch (error) {
             if (error instanceof Error) {
                 notifications.show({
@@ -272,16 +268,22 @@ export default function NotificationsPage() {
                                             );
                                             setSelected(new Set());
                                         })
-                                        .catch((error) => {
+                                        .catch((err: any) => {
+                                            if (
+                                                (err?.response && err.response.status === 404) || // axios-style
+                                                err?.status === 404 || // some fetch wrappers
+                                                (typeof err?.message === "string" && err.message.includes("404")) // fallback: message contains 404
+                                            ) {
+                                                // Ignore 404 errors
+                                                return;
+                                            }
                                             notifications.show({
                                                 id: `error-archive-${allArchived ? "un" : ""}all`,
                                                 title: `Error ${
                                                     allArchived ? "Unarchiving" : "Archiving"
                                                 } Notifications`,
                                                 message:
-                                                    error instanceof Error
-                                                        ? error.message
-                                                        : "An unknown error occurred.",
+                                                    err instanceof Error ? err.message : "An unknown error occurred.",
                                                 color: "red",
                                                 icon: <IconAlertCircle />,
                                             });
