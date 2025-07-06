@@ -40,43 +40,162 @@ import SchoolStatusFilter from "@/components/SchoolManagement/SchoolStatusFilter
 import { CreateSchoolComponent } from "@/components/SchoolManagement/CreateSchoolComponent";
 import { EditSchoolComponent } from "@/components/SchoolManagement/EditSchoolComponent";
 
-type SchoolStatus = "all" | "active" | "deactivated";
-
 const userPerPageOptions: number[] = [10, 25, 50, 100];
 
 dayjs.extend(relativeTime);
 
-function showErrorNotification(title: string, message: string) {
-    notifications.show({
-        id: `error-${title.toLowerCase().replace(/\s+/g, "-")}`,
-        title,
-        message,
-        color: "red",
-        icon: <IconUserExclamation />,
-    });
-}
-
 export default function SchoolsPage(): JSX.Element {
     const userCtx = useUser();
-    const [schoolPerPage, setSchoolPerPage] = useState(userPerPageOptions[0]);
+    const [schoolPerPage, setSchoolPerPage] = useState(10);
     const [totalSchools, setTotalSchools] = useState(0);
     const [searchTerm, setSearchTerm] = useState("");
     const [logos, setLogos] = useState<Map<string, string>>(new Map());
     const [logosRequested, setLogosRequested] = useState<Set<string>>(new Set());
-    const [statusFilter, setStatusFilter] = useState<SchoolStatus>("all");
+    const [statusFilter, setStatusFilter] = useState<string>("all");
 
     const [schools, setSchools] = useState<School[]>([]);
     const [allSchools, setAllSchools] = useState<School[]>([]);
     const [selected, setSelected] = useState<Set<number>>(new Set());
     const [editIndex, setEditIndex] = useState<number | null>(null);
     const [editSchool, setEditSchool] = useState<School | null>(null);
+
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+
+    //Handler for School Creation
     const [addModalOpen, setAddModalOpen] = useState(false);
 
-    // Always filter and paginate from allSchools
-    const applyFilters = (schools: School[]): School[] => {
-        let filtered = [...schools];
+    const handleSearch = () => {
+        setCurrentPage(1);
+    };
+    const handleEdit = (index: number, school: School) => {
+        setEditIndex(index);
+        setEditSchool(school);
+    };
+
+    const toggleSelected = (index: number) => {
+        const updated = new Set(selected);
+        if (updated.has(index)) updated.delete(index);
+        else updated.add(index);
+        setSelected(updated);
+    };
+
+    const fetchSchoolLogo = (logoUrn: string): string | undefined => {
+        if (logosRequested.has(logoUrn) && logos.has(logoUrn)) {
+            return logos.get(logoUrn);
+        } else if (logosRequested.has(logoUrn)) {
+            return undefined; // Logo is requested but not yet available
+        }
+        setLogosRequested((prev) => new Set(prev).add(logoUrn));
+        GetSchoolLogo(logoUrn)
+            .then((blob) => {
+                if (blob.size > 0) {
+                    const url = URL.createObjectURL(blob);
+                    setLogos((prev) => new Map(prev).set(logoUrn, url));
+                    return url;
+                } else {
+                    console.debug("Logo file is empty, removing from cache");
+                    setLogosRequested((prev) => {
+                        const newSet = new Set(prev);
+                        newSet.delete(logoUrn);
+                        return newSet;
+                    });
+                    return undefined;
+                }
+            })
+            .catch((error) => {
+                console.error("Failed to fetch school logo:", error);
+                setLogosRequested((prev) => {
+                    const newSet = new Set(prev);
+                    newSet.delete(logoUrn);
+                    return newSet;
+                });
+                if (!error.message.includes("404")) {
+                    notifications.show({
+                        id: "fetch-school-logo-error",
+                        title: "Error",
+                        message: "Failed to fetch school logo.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                }
+                return undefined;
+            });
+        return undefined;
+    };
+
+    const fetchSchools = async (page: number, pageLimit: number = schoolPerPage) => {
+        setCurrentPage(page);
+        const pageOffset = (page - 1) * pageLimit;
+
+        // deselect all schools when fetching new page
+        setSelected(new Set());
+
+        try {
+            const quantity = await GetSchoolQuantity();
+            setTotalSchools(quantity);
+            setTotalPages(Math.ceil(quantity / pageLimit));
+        } catch (error) {
+            console.error("Failed to fetch school quantity:", error);
+            notifications.show({
+                id: "fetch-school-quantity-error",
+                title: "Error",
+                message: "Failed to fetch school quantity. Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+            setTotalPages(1); // Default to 1 page if fetching fails
+        }
+
+        try {
+            const data = await GetAllSchools(pageOffset, pageLimit);
+            setSchools(data);
+        } catch (error) {
+            console.error("Failed to fetch schools:", error);
+            notifications.show({
+                id: "fetch-schools-error",
+                title: "Failed to fetch schools list",
+                message: "Please try again later.",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+            setSchools([]);
+        }
+    };
+
+    // Fetch all schools for the dropdown in the add modal
+    const fetchAllSchools = async () => {
+        try {
+            const data = await GetAllSchools(0, 10000); // fetch all schools
+            setAllSchools(data);
+        } catch (error) {
+            if (error instanceof Error) {
+                notifications.show({
+                    id: "fetch-all-schools-error",
+                    title: "Error",
+                    message: error.message,
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            } else {
+                notifications.show({
+                    id: "fetch-schools-error",
+                    title: "Failed to fetch schools list",
+                    message: "Please try again later.",
+                    color: "red",
+                    icon: <IconUserExclamation />,
+                });
+            }
+            setAllSchools([]);
+        }
+    };
+
+    useEffect(() => {
+        fetchAllSchools();
+    }, []);
+
+    useEffect(() => {
+        let filtered = allSchools;
         if (searchTerm.trim()) {
             const lower = searchTerm.trim().toLowerCase();
             filtered = filtered.filter(
@@ -87,133 +206,23 @@ export default function SchoolsPage(): JSX.Element {
             );
         }
         if (statusFilter !== "all") {
-            filtered = filtered.filter((school) =>
-                statusFilter === "active" ? !school.deactivated : school.deactivated
-            );
+            filtered = filtered.filter((school) => {
+                if (statusFilter === "active") return !school.deactivated;
+                if (statusFilter === "deactivated") return !!school.deactivated;
+                return true;
+            });
         }
-        return filtered;
-    };
+        setTotalSchools(filtered.length);
+        setTotalPages(Math.max(1, Math.ceil(filtered.length / schoolPerPage)));
 
-    const updateDisplayedSchools = (filteredSchools: School[]) => {
-        setTotalSchools(filteredSchools.length);
-        const maxPages = Math.max(1, Math.ceil(filteredSchools.length / schoolPerPage));
-        setTotalPages(maxPages);
-        const safePage = Math.min(currentPage, maxPages);
+        // If currentPage is out of bounds, reset to 1
+        const safePage = Math.min(currentPage, Math.ceil(filtered.length / schoolPerPage) || 1);
         if (safePage !== currentPage) setCurrentPage(safePage);
+
         const start = (safePage - 1) * schoolPerPage;
         const end = start + schoolPerPage;
-        setSchools(filteredSchools.slice(start, end));
-    };
-
-    // Clear selection on filter/search/page change
-    useEffect(() => {
-        setSelected(new Set());
-    }, [statusFilter, searchTerm, schoolPerPage, currentPage]);
-
-    // Filtering and pagination effect
-    useEffect(() => {
-        const filtered = applyFilters(allSchools);
-        updateDisplayedSchools(filtered);
+        setSchools(filtered.slice(start, end));
     }, [allSchools, searchTerm, statusFilter, schoolPerPage, currentPage]);
-
-    // Fetch all schools on mount
-    useEffect(() => {
-        const fetchAllSchoolsData = async () => {
-            try {
-                const data = await GetAllSchools(0, 10000);
-                setAllSchools(data);
-            } catch (error) {
-                const message = error instanceof Error ? error.message : "Please try again later.";
-                showErrorNotification("Failed to fetch schools list", message);
-                setAllSchools([]);
-            }
-        };
-        fetchAllSchoolsData();
-        return () => {
-            logos.forEach((url) => URL.revokeObjectURL(url));
-        };
-    }, []);
-
-    // Async, robust logo fetch
-    const fetchSchoolLogo = async (logoUrn: string): Promise<string | undefined> => {
-        if (logosRequested.has(logoUrn) && logos.has(logoUrn)) return logos.get(logoUrn);
-        if (logosRequested.has(logoUrn)) return undefined;
-        setLogosRequested((prev) => new Set(prev).add(logoUrn));
-        try {
-            const blob = await GetSchoolLogo(logoUrn);
-            if (blob.size === 0) {
-                setLogosRequested((prev) => {
-                    const newSet = new Set(prev);
-                    newSet.delete(logoUrn);
-                    return newSet;
-                });
-                return undefined;
-            }
-            const url = URL.createObjectURL(blob);
-            setLogos((prev) => new Map(prev).set(logoUrn, url));
-            return url;
-        } catch (error) {
-            setLogosRequested((prev) => {
-                const newSet = new Set(prev);
-                newSet.delete(logoUrn);
-                return newSet;
-            });
-            if (error instanceof Error && !error.message.includes("404")) {
-                showErrorNotification("Error", "Failed to fetch school logo");
-            }
-            return undefined;
-        }
-    };
-
-    // Handlers
-    const toggleSelected = (index: number) => {
-        setSelected((prev) => {
-            const newSet = new Set(prev);
-            if (newSet.has(index)) {
-                newSet.delete(index);
-            } else {
-                newSet.add(index);
-            }
-            return newSet;
-        });
-    };
-    const handleEdit = (index: number, school: School) => {
-        setEditIndex(index);
-        setEditSchool(school);
-    };
-    const handleSchoolUpdate = (updatedSchool: School) => {
-        setSchools((prev) => {
-            const idx = prev.findIndex((s) => s.id === updatedSchool.id);
-            if (idx === -1) return prev;
-            const updated = [...prev];
-            updated[idx] = updatedSchool;
-            return updated;
-        });
-        setAllSchools((prev) => {
-            const idx = prev.findIndex((s) => s.id === updatedSchool.id);
-            if (idx === -1) return prev;
-            const updated = [...prev];
-            updated[idx] = updatedSchool;
-            return updated;
-        });
-    };
-    const handleSchoolCreate = (newSchool: School) => {
-        setAllSchools((prev) => [newSchool, ...prev]);
-        const filtered = applyFilters([newSchool, ...allSchools]);
-        updateDisplayedSchools(filtered);
-    };
-    const handleStatusFilterChange = (status: SchoolStatus) => {
-        setStatusFilter(status);
-        setCurrentPage(1);
-    };
-    const handlePerPageChange = (value: string | null) => {
-        if (!value) return;
-        setSchoolPerPage(parseInt(value));
-        setCurrentPage(1);
-    };
-    const handleSearch = () => {
-        setCurrentPage(1);
-    };
 
     console.debug("Rendering SchoolsPage");
     return (
@@ -228,10 +237,7 @@ export default function SchoolsPage(): JSX.Element {
                 />
 
                 <Flex ml="auto" gap="sm" align="center">
-                    <SchoolStatusFilter
-                        statusFilter={statusFilter}
-                        setStatusFilter={(value: string) => setStatusFilter(value as SchoolStatus)}
-                    />
+                    <SchoolStatusFilter statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
                     <ActionIcon
                         disabled={!userCtx.userPermissions?.includes("schools:create")}
                         size="input-md"
@@ -269,7 +275,7 @@ export default function SchoolsPage(): JSX.Element {
                                 <Group>
                                     <Checkbox checked={selected.has(index)} onChange={() => toggleSelected(index)} />
                                     {school.logoUrn && school.id != null ? (
-                                        <Avatar radius="xl" src={logos.get(school.logoUrn)} alt={school.name}>
+                                        <Avatar radius="xl" src={fetchSchoolLogo(school.logoUrn)}>
                                             <IconUser />
                                         </Avatar>
                                     ) : (
@@ -391,7 +397,15 @@ export default function SchoolsPage(): JSX.Element {
                 </Stack>
                 <Select
                     value={schoolPerPage.toString()}
-                    onChange={handlePerPageChange}
+                    onChange={async (value) => {
+                        if (value) {
+                            console.debug("Changing schools per page to", value);
+                            const newSchoolPerPage = parseInt(value);
+                            setSchoolPerPage(newSchoolPerPage);
+                            // Reset to page 1 and fetch users with new page size
+                            await fetchSchools(1, newSchoolPerPage);
+                        }
+                    }}
                     data={userPerPageOptions.map((num) => ({
                         value: num.toString(),
                         label: num.toString(),
@@ -406,14 +420,38 @@ export default function SchoolsPage(): JSX.Element {
                 index={editIndex}
                 school={editSchool}
                 setIndex={setEditIndex}
-                fetchSchoolLogo={(logoUrn: string) => logos.get(logoUrn)}
-                onSchoolUpdate={handleSchoolUpdate}
+                fetchSchoolLogo={fetchSchoolLogo}
+                onSchoolUpdate={(updatedSchool) => {
+                    // Update the school in the list
+                    setSchools((prevSchools) => {
+                        const idx = prevSchools.findIndex((s) => s.id === updatedSchool.id);
+                        if (idx !== -1) {
+                            const updated = [...prevSchools];
+                            updated[idx] = updatedSchool;
+                            return updated;
+                        }
+                        return prevSchools;
+                    });
+                    setAllSchools((prevAllSchools) => {
+                        const idx = prevAllSchools.findIndex((s) => s.id === updatedSchool.id);
+                        if (idx !== -1) {
+                            const updated = [...prevAllSchools];
+                            updated[idx] = updatedSchool;
+                            return updated;
+                        }
+                        return prevAllSchools;
+                    });
+                }}
+                onRefresh={() => fetchSchools(currentPage)}
             />
 
             <CreateSchoolComponent
                 modalOpen={addModalOpen}
                 setModalOpen={setAddModalOpen}
-                onSchoolCreate={handleSchoolCreate}
+                onSchoolCreate={(newSchool) => {
+                    setSchools((prevSchools) => [...prevSchools, newSchool]);
+                    setAllSchools((prevAllSchools) => [...prevAllSchools, newSchool]);
+                }}
             />
         </>
     );
