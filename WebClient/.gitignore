@@ -1,5 +1,6 @@
 .open-next
 .wrangler/tmp
+production.env
 
 openapi-ts-error-*
 test-report.junit.xml
@@ -38,6 +39,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+!.env.prod.example
 
 # vercel
 .vercel

@@ -16,7 +16,7 @@ export const Program = {
 
 export const Connections = {
     CentralServer: {
-        endpoint: "http://localhost:8081",
+        endpoint: process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT,
     },
 };
 

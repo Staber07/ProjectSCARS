@@ -111,11 +111,7 @@ export default function NotificationsPage() {
                     icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             }
-            setAllNotifications((prev) => 
-                prev.map((n) => 
-                    n.id === id ? { ...n, archived: !unarchive } : n
-                )
-            );
+            setAllNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, archived: !unarchive } : n)));
         } catch (error) {
             if (error instanceof Error) {
                 notifications.show({
@@ -272,7 +268,11 @@ export default function NotificationsPage() {
                                             );
                                             setSelected(new Set());
                                         })
-                                        .catch((error) => {
+                                        .catch((error: unknown) => {
+                                            if (error instanceof Error && error.message.includes("404 Not Found")) {
+                                                // Ignore 404 errors
+                                                return;
+                                            }
                                             notifications.show({
                                                 id: `error-archive-${allArchived ? "un" : ""}all`,
                                                 title: `Error ${

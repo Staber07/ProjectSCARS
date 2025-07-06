@@ -125,7 +125,9 @@ class Logging:
             date_format: The format of the date in the log messages.
         """
 
-        self.file_logging_enabled: bool = file_logging_enabled if file_logging_enabled is not None else True
+        self.file_logging_enabled: bool = (
+            file_logging_enabled if file_logging_enabled is not None else True
+        )
         self.filepath: str = filepath or os.path.join(
             os.getcwd(), "logs", "centralserver-{0}.log"
         )

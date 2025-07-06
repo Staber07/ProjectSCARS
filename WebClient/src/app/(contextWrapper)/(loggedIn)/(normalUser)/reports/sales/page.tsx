@@ -195,7 +195,10 @@ function SalesandPurchasesContent() {
                 message: "Entry saved successfully.",
                 color: "green",
             });
-        } catch (err) {
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404 Not Found")) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to save entry.",
@@ -247,7 +250,10 @@ function SalesandPurchasesContent() {
                 message: "Entry deleted successfully.",
                 color: "green",
             });
-        } catch (err) {
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404")) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to delete entry.",
@@ -369,7 +375,10 @@ function SalesandPurchasesContent() {
             }));
             setDailyEntries(mapped);
             setOriginalEntries(mapped);
-        } catch (err) {
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404 Not Found")) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to submit entries.",
