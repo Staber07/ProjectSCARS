@@ -1,69 +1,69 @@
 ---
 name: Tests - Web Client
 permissions:
-  contents: read
-  pull-requests: read
+    contents: read
+    pull-requests: read
 
 on:
-  push:
-    branches:
-      - main
-      - stable
-  pull_request:
-    paths:
-      - "WebClient/**"
-  workflow_dispatch:
+    push:
+        branches:
+            - main
+            - stable
+    pull_request:
+        paths:
+            - "WebClient/**"
+    workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.event.number || github.sha }}
+    cancel-in-progress: true
 
 jobs:
-  test-web-client:
-    name: Test Web Client
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ github.workspace }}/WebClient
+    test-web-client:
+        name: Test Web Client
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ${{ github.workspace }}/WebClient
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: "23.6.0"
-          cache: npm
-          cache-dependency-path: |
-            ${{ github.workspace }}/WebClient/package-lock.json
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: "23.6.0"
+                  cache: npm
+                  cache-dependency-path: |
+                      ${{ github.workspace }}/WebClient/package-lock.json
 
-      - name: Restore Cache
-        uses: actions/cache@v3
-        with:
-          path: ${{ github.workspace }}/WebClient/.next/cache
-          # Generate a new cache whenever packages or source files change.
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
-          # If source files changed but packages didn't, rebuild from a prior cache.
-          restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
+            - name: Restore Cache
+              uses: actions/cache@v3
+              with:
+                  path: ${{ github.workspace }}/WebClient/.next/cache
+                  # Generate a new cache whenever packages or source files change.
+                  key: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-${{ hashFiles('**.[jt]s', '**.[jt]sx') }}
+                  # If source files changed but packages didn't, rebuild from a prior cache.
+                  restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}-
 
-      - name: Install dependencies
-        run: npm ci
+            - name: Install dependencies
+              run: npm ci
 
-      - name: Build with Next.js
-        run: npm run build
-        env:
-          # Used to upload bundle to Codecov for bundle analysis
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+            - name: Build with Next.js
+              run: npm run build
+              env:
+                  # Used to upload bundle to Codecov for bundle analysis
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Run Tests
-        run: npm run test:ci
+            - name: Run Tests
+              run: npm run test:ci
 
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          directory: WebClient/
-          flags: web-client
-          fail_ci_if_error: true
-          token: ${{ secrets.CODECOV_TOKEN }}
+            - name: Upload test results to Codecov
+              if: ${{ !cancelled() }}
+              uses: codecov/test-results-action@v1
+              with:
+                  directory: WebClient/
+                  flags: web-client
+                  fail_ci_if_error: true
+                  token: ${{ secrets.CODECOV_TOKEN }}
