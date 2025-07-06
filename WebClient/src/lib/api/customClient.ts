@@ -1,11 +1,11 @@
 import ky, { HTTPError, KyRequest, KyResponse, NormalizedOptions } from "ky";
 import { AuthenticationError } from "../error";
-import { Connections, LocalStorage } from "../info";
+import { LocalStorage } from "../info";
 import { performLogout } from "../utils/logout";
 import { GetRefreshToken } from "../utils/token";
 import { JwtToken } from "./csclient";
-import type { CreateClientConfig } from "./csclient/client.gen";
 import { createClient, createConfig } from "./csclient/client";
+import type { CreateClientConfig } from "./csclient/client.gen";
 
 const methods = ["get", "post", "put", "head", "delete", "options", "trace", "patch"];
 const statusCodes = [401, 403, 408, 413, 429, 500, 502, 503, 504];
@@ -102,7 +102,7 @@ const retryRequest = async ({
 
 // Create a simple ky instance for token refresh (without retry logic to avoid circular dependencies)
 const tokenRefreshClient = ky.create({
-    prefixUrl: Connections.CentralServer.endpoint,
+    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
     timeout: 10000, // 10 seconds timeout for token refresh
     retry: 0, // No retries for token refresh to avoid circular dependencies
     hooks: {
@@ -114,7 +114,7 @@ const tokenRefreshClient = ky.create({
 
 // Create a ky instance with base configuration
 const defaultKyClient = ky.create({
-    prefixUrl: Connections.CentralServer.endpoint,
+    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
     timeout: 30000, // 30 seconds timeout
     retry: {
         limit: 3,
@@ -131,7 +131,7 @@ const defaultKyClient = ky.create({
 
 // Create a ky instance without retries for specific requests (like login)
 const noRetryKyClient = ky.create({
-    prefixUrl: Connections.CentralServer.endpoint,
+    prefixUrl: process.env.CENTRAL_SERVER_ENDPOINT,
     timeout: 30000, // 30 seconds timeout
     retry: 0, // No retries
     hooks: {
@@ -144,13 +144,13 @@ const noRetryKyClient = ky.create({
 
 export const createClientConfig: CreateClientConfig = (config) => ({
     ...config,
-    baseUrl: Connections.CentralServer.endpoint,
+    baseUrl: process.env.CENTRAL_SERVER_ENDPOINT,
     fetch: defaultKyClient, // Use ky as the fetch implementation
 });
 
 export const createNoRetryClientConfig: CreateClientConfig = (config) => ({
     ...config,
-    baseUrl: Connections.CentralServer.endpoint,
+    baseUrl: process.env.CENTRAL_SERVER_ENDPOINT,
     fetch: noRetryKyClient, // Use no-retry ky client
 });
 

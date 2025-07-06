@@ -21,6 +21,8 @@ services:
         restart: unless-stopped
         depends_on:
             - centralserver
+        env_file:
+            - ./WebClient/production.env
 
 volumes:
     project_scars-centralserver-data:

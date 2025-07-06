@@ -1,4 +1,4 @@
-import { Connections, LocalStorage, Program, randomLoadingMessages } from "@/lib/info";
+import { LocalStorage, Program, randomLoadingMessages } from "@/lib/info";
 import { describe, expect, it } from "vitest";
 
 describe("Info Configuration", () => {
@@ -15,14 +15,6 @@ describe("Info Configuration", () => {
             expect(Program.version).toBeDefined();
             expect(typeof Program.version).toBe("string");
             expect(Program.version).toMatch(/^\d+\.\d+\.\d+$/); // Semantic versioning pattern
-        });
-    });
-
-    describe("Connections configuration", () => {
-        it("has central server endpoint", () => {
-            expect(Connections.CentralServer.endpoint).toBeDefined();
-            expect(typeof Connections.CentralServer.endpoint).toBe("string");
-            expect(Connections.CentralServer.endpoint).toMatch(/^https?:\/\//); // Valid URL pattern
         });
     });
 

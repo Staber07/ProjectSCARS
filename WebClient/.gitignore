@@ -1,5 +1,6 @@
 .open-next
 .wrangler/tmp
+production.env
 
 openapi-ts-error-*
 test-report.junit.xml
