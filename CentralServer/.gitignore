@@ -1,9 +1,5 @@
 data-dev/
 *.db
-!.config.example.json
-!.config.dev.json
-!config.pytest.json
-.config.*.json
 config.*.json
 config.json
 .__centralserver.lock

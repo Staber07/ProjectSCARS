@@ -268,12 +268,8 @@ export default function NotificationsPage() {
                                             );
                                             setSelected(new Set());
                                         })
-                                        .catch((err: any) => {
-                                            if (
-                                                (err?.response && err.response.status === 404) || // axios-style
-                                                err?.status === 404 || // some fetch wrappers
-                                                (typeof err?.message === "string" && err.message.includes("404")) // fallback: message contains 404
-                                            ) {
+                                        .catch((error: unknown) => {
+                                            if (error instanceof Error && error.message.includes("404 Not Found")) {
                                                 // Ignore 404 errors
                                                 return;
                                             }
@@ -283,7 +279,9 @@ export default function NotificationsPage() {
                                                     allArchived ? "Unarchiving" : "Archiving"
                                                 } Notifications`,
                                                 message:
-                                                    err instanceof Error ? err.message : "An unknown error occurred.",
+                                                    error instanceof Error
+                                                        ? error.message
+                                                        : "An unknown error occurred.",
                                                 color: "red",
                                                 icon: <IconAlertCircle />,
                                             });

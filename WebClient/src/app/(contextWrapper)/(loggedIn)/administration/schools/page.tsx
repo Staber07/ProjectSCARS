@@ -1,5 +1,8 @@
 "use client";
 
+import { CreateSchoolComponent } from "@/components/SchoolManagement/CreateSchoolComponent";
+import { EditSchoolComponent } from "@/components/SchoolManagement/EditSchoolComponent";
+import SchoolStatusFilter from "@/components/SchoolManagement/SchoolStatusFilter";
 import { School } from "@/lib/api/csclient";
 import { GetAllSchools, GetSchoolLogo, GetSchoolQuantity } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
@@ -26,19 +29,16 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
     IconEdit,
+    IconLock,
+    IconLockOpen,
     IconPlus,
     IconSearch,
     IconUser,
     IconUserExclamation,
-    IconLock,
-    IconLockOpen,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { JSX, useEffect, useState } from "react";
-import SchoolStatusFilter from "@/components/SchoolManagement/SchoolStatusFilter";
-import { CreateSchoolComponent } from "@/components/SchoolManagement/CreateSchoolComponent";
-import { EditSchoolComponent } from "@/components/SchoolManagement/EditSchoolComponent";
 
 const userPerPageOptions: number[] = [10, 25, 50, 100];
 
