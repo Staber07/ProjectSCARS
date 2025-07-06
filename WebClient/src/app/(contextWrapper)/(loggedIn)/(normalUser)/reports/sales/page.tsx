@@ -369,12 +369,8 @@ function SalesandPurchasesContent() {
             }));
             setDailyEntries(mapped);
             setOriginalEntries(mapped);
-        } catch (err: any) {
-            if (
-                (err?.response && err.response.status === 404) ||
-                err?.status === 404 || // some fetch wrappers
-                (typeof err?.message === "string" && err.message.includes("404")) // fallback: message contains 404
-            ) {
+        } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
             }
             notifications.show({
