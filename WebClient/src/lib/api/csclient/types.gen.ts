@@ -61,6 +61,19 @@ export type BodyUpdateUserAvatarEndpointV1UsersAvatarPatch = {
 };
 
 /**
+ * ConfigUpdateRequest
+ * Request model for updating configuration.
+ */
+export type ConfigUpdateRequest = {
+    /**
+     * Config
+     */
+    config: {
+        [key: string]: unknown;
+    };
+};
+
+/**
  * DailyEntryData
  * Model for creating daily sales and purchases entries.
  */
@@ -2771,6 +2784,53 @@ export type RootV1HealthcheckGetResponses = {
 };
 
 export type RootV1HealthcheckGetResponse = RootV1HealthcheckGetResponses[keyof RootV1HealthcheckGetResponses];
+
+export type GetServerConfigV1AdminConfigGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/admin/config';
+};
+
+export type GetServerConfigV1AdminConfigGetResponses = {
+    /**
+     * Response Get Server Config V1 Admin Config Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type GetServerConfigV1AdminConfigGetResponse = GetServerConfigV1AdminConfigGetResponses[keyof GetServerConfigV1AdminConfigGetResponses];
+
+export type UpdateServerConfigV1AdminConfigPutData = {
+    body: ConfigUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/v1/admin/config';
+};
+
+export type UpdateServerConfigV1AdminConfigPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateServerConfigV1AdminConfigPutError = UpdateServerConfigV1AdminConfigPutErrors[keyof UpdateServerConfigV1AdminConfigPutErrors];
+
+export type UpdateServerConfigV1AdminConfigPutResponses = {
+    /**
+     * Response Update Server Config V1 Admin Config Put
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type UpdateServerConfigV1AdminConfigPutResponse = UpdateServerConfigV1AdminConfigPutResponses[keyof UpdateServerConfigV1AdminConfigPutResponses];
 
 export type ClientOptions = {
     baseUrl: `${string}://${string}/api` | (string & {});
