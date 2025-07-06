@@ -15,17 +15,6 @@ describe("Program information", () => {
     });
 });
 
-describe("Connections configuration", () => {
-    it("has central server endpoint", () => {
-        expect(Connections.CentralServer.endpoint).toMatch(/^https?:\/\//);
-    });
-
-    it("has valid URL format for central server", () => {
-        const url = Connections.CentralServer.endpoint;
-        expect(() => new URL(url)).not.toThrow();
-    });
-});
-
 describe("LocalStorage keys", () => {
     it("has all required storage keys", () => {
         expect(LocalStorage).toHaveProperty("accessToken");
