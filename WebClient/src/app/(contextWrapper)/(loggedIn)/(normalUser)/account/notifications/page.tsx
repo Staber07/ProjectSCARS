@@ -111,11 +111,7 @@ export default function NotificationsPage() {
                     icon: React.createElement(notificationIcons[notifType]?.[0] || IconInfoCircle),
                 });
             }
-            setAllNotifications((prev) => 
-                prev.map((n) => 
-                    n.id === id ? { ...n, archived: !unarchive } : n
-                )
-            );
+            setAllNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, archived: !unarchive } : n)));
         } catch (error) {
             if (error instanceof Error) {
                 notifications.show({
