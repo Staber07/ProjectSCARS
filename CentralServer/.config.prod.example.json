@@ -1,9 +1,9 @@
 {
     "debug": {
-        "enabled": true,
+        "enabled": false,
         "logenv_optout": true,
         "show_sql": false,
-        "hot_reload": true
+        "hot_reload": false
     },
     "connection": {
         "host": "0.0.0.0",
@@ -11,7 +11,7 @@
         "base_url": "http://localhost:8080"
     },
     "logging": {
-        "file_logging_enabled": true,
+        "file_logging_enabled": false,
         "filepath": "./logs/centralserver.log",
         "max_bytes": 10485760,
         "backup_count": 5,
@@ -22,7 +22,7 @@
     "database": {
         "type": "sqlite",
         "config": {
-            "filepath": "./db/centralserver-dev.db"
+            "filepath": "./db/centralserver.db"
         }
     },
     "object_store": {
@@ -40,7 +40,7 @@
         "encryption_secret_key": "UPDATE_THIS_VALUE",
         "signing_algorithm": "HS256",
         "encryption_algorithm": "A256GCM",
-        "encrypt_jwt": false,
+        "encrypt_jwt": true,
         "access_token_expire_minutes": 30,
         "refresh_token_expire_minutes": 129600,
         "recovery_token_expire_minutes": 15,
