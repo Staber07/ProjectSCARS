@@ -2,7 +2,7 @@ import { defineConfig } from "@hey-api/openapi-ts";
 
 export default defineConfig({
     input: {
-        path: `${process.env.CENTRAL_SERVER_ENDPOINT}/api/openapi.json`,
+        path: `${process.env.CENTRAL_SERVER_ENDPOINT}/openapi.json`,
         pagination: { keywords: ["limit", "offset"] },
         // watch: true,
     },
