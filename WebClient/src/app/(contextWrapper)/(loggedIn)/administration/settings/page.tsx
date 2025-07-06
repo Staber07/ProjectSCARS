@@ -422,7 +422,12 @@ export default function SettingsPage() {
                         <ThemeIcon variant="light" color="gray">
                             <IconBrandGithub size={18} />
                         </ThemeIcon>
-                        <Text size="sm" component="a" href="https://github.com/Chris1320/ProjectSCARS" target="_blank">
+                        <Text
+                            size="sm"
+                            component="a"
+                            href="https://github.com/Bento-Project-SCARS/ProjectSCARS"
+                            target="_blank"
+                        >
                             View on GitHub
                         </Text>
                     </Group>
