@@ -279,7 +279,9 @@ export default function NotificationsPage() {
                                                     allArchived ? "Unarchiving" : "Archiving"
                                                 } Notifications`,
                                                 message:
-                                                    err instanceof Error ? err.message : "An unknown error occurred.",
+                                                    error instanceof Error
+                                                        ? error.message
+                                                        : "An unknown error occurred.",
                                                 color: "red",
                                                 icon: <IconAlertCircle />,
                                             });
