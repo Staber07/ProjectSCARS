@@ -22,7 +22,7 @@ services:
         depends_on:
             - centralserver
         env_file:
-            - ./WebClient/production.env
+            - ./WebClient/.env.prod
 
 volumes:
     project_scars-centralserver-data:
