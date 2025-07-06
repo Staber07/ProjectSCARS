@@ -195,7 +195,14 @@ function SalesandPurchasesContent() {
                 message: "Entry saved successfully.",
                 color: "green",
             });
-        } catch (err) {
+        } catch (err: any) {
+            if (
+                (err?.response && err.response.status === 404) ||
+                err?.status === 404 ||
+                (typeof err?.message === "string" && err.message.includes("404"))
+            ) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to save entry.",
@@ -247,7 +254,14 @@ function SalesandPurchasesContent() {
                 message: "Entry deleted successfully.",
                 color: "green",
             });
-        } catch (err) {
+        } catch (err: any) {
+            if (
+                (err?.response && err.response.status === 404) ||
+                err?.status === 404 ||
+                (typeof err?.message === "string" && err.message.includes("404"))
+            ) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to delete entry.",
