@@ -765,7 +765,7 @@ function WelcomeContent({ userInfo, userPermissions }: ProfileContentProps) {
                                                     disabled={!oauthSupport.google}
                                                     onClick={async () => {
                                                         const response = await fetch(
-                                                            "http://localhost:8081/v1/auth/oauth/google/login"
+                                                            `${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/auth/oauth/google/login`
                                                         );
                                                         const data = await response.json();
                                                         if (data.url) {
