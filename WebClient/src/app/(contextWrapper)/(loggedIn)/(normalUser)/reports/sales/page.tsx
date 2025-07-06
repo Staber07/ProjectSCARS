@@ -196,6 +196,9 @@ function SalesandPurchasesContent() {
                 color: "green",
             });
         } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404 Not Found")) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to save entry.",
@@ -248,6 +251,9 @@ function SalesandPurchasesContent() {
                 color: "green",
             });
         } catch (err: unknown) {
+            if (err instanceof Error && err.message.includes("404")) {
+                return;
+            }
             notifications.show({
                 title: "Error",
                 message: err instanceof Error ? err.message : "Failed to delete entry.",
