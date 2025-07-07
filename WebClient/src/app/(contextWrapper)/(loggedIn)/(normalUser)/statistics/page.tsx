@@ -1,64 +1,66 @@
 "use client";
 
-import { Box, Group, Title, Text, Card, SimpleGrid, Select, ScrollArea, Divider } from "@mantine/core";
-import { IconBuilding, IconUsers, IconCertificate, IconBook, IconSchool, IconUser } from "@tabler/icons-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import React, { useState } from "react";
+import { Box, Card, Divider, Group, ScrollArea, SimpleGrid, Text, Title } from "@mantine/core";
+import { IconBook, IconBuilding, IconCertificate, IconSchool, IconUser, IconUsers } from "@tabler/icons-react";
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 const sampleData = [
     {
         school: "School A",
-        students: 450,
-        avgScore: 88,
-        graduationRate: 92,
-        teachers: 25,
-        classrooms: 18,
-        attendanceRate: 95,
+        sales: 120000,
+        purchases: 70000,
+        netIncome: 30000,
+        operationalCosts: 15000,
+        administrationCosts: 5000,
+        otherExpenses: 10000,
     },
     {
         school: "School B",
-        students: 320,
-        avgScore: 79,
-        graduationRate: 85,
-        teachers: 20,
-        classrooms: 15,
-        attendanceRate: 90,
+        sales: 95000,
+        purchases: 60000,
+        netIncome: 20000,
+        operationalCosts: 12000,
+        administrationCosts: 4000,
+        otherExpenses: 8000,
     },
     {
         school: "School C",
-        students: 210,
-        avgScore: 91,
-        graduationRate: 96,
-        teachers: 18,
-        classrooms: 12,
-        attendanceRate: 97,
+        sales: 80000,
+        purchases: 45000,
+        netIncome: 18000,
+        operationalCosts: 10000,
+        administrationCosts: 3500,
+        otherExpenses: 6500,
     },
     {
         school: "School D",
-        students: 390,
-        avgScore: 84,
-        graduationRate: 88,
-        teachers: 22,
-        classrooms: 16,
-        attendanceRate: 93,
+        sales: 110000,
+        purchases: 65000,
+        netIncome: 25000,
+        operationalCosts: 14000,
+        administrationCosts: 4500,
+        otherExpenses: 9500,
     },
 ];
 
 export default function SchoolStatisticsPage() {
-    const [groupBy, setGroupBy] = useState("Region");
-
+    // Since the new sampleData only has financial fields, update the statistics accordingly
     const totalSchools = sampleData.length;
-    const totalStudents = sampleData.reduce((sum, s) => sum + s.students, 0);
-    const totalTeachers = sampleData.reduce((sum, s) => sum + s.teachers, 0);
-    const avgScore = (sampleData.reduce((sum, s) => sum + s.avgScore, 0) / sampleData.length).toFixed(1);
-    const graduationRate = (sampleData.reduce((sum, s) => sum + s.graduationRate, 0) / sampleData.length).toFixed(1);
-    const avgAttendance = (sampleData.reduce((sum, s) => sum + s.attendanceRate, 0) / sampleData.length).toFixed(1);
+    const totalSales = sampleData.reduce((sum, s) => sum + s.sales, 0);
+    const totalPurchases = sampleData.reduce((sum, s) => sum + s.purchases, 0);
+    const totalNetIncome = sampleData.reduce((sum, s) => sum + s.netIncome, 0);
+    const avgOperationalCosts = (
+        sampleData.reduce((sum, s) => sum + s.operationalCosts, 0) / sampleData.length
+    ).toFixed(2);
+    const avgAdministrationCosts = (
+        sampleData.reduce((sum, s) => sum + s.administrationCosts, 0) / sampleData.length
+    ).toFixed(2);
+    const avgOtherExpenses = (sampleData.reduce((sum, s) => sum + s.otherExpenses, 0) / sampleData.length).toFixed(2);
 
     return (
         <Box p="lg">
             <Group justify="space-between" mb="lg">
-                <Title order={3}>School Statistics</Title>
-                <Select value={groupBy} onChange={(val) => val && setGroupBy(val)} data={["Region", "Type"]} />
+                <Title order={3}>School Financial Statistics</Title>
             </Group>
 
             <Divider my="md" />
@@ -72,32 +74,38 @@ export default function SchoolStatisticsPage() {
                 </Card>
                 <Card withBorder>
                     <Group>
-                        <IconUsers />
-                        <Text fw={700}>Total Students: {totalStudents}</Text>
+                        <IconBook />
+                        <Text fw={700}>Total Sales: {totalSales.toLocaleString()}</Text>
                     </Group>
                 </Card>
                 <Card withBorder>
                     <Group>
                         <IconBook />
-                        <Text fw={700}>Avg Score: {avgScore}</Text>
+                        <Text fw={700}>Total Purchases: {totalPurchases.toLocaleString()}</Text>
                     </Group>
                 </Card>
                 <Card withBorder>
                     <Group>
                         <IconCertificate />
-                        <Text fw={700}>Graduation Rate: {graduationRate}%</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconUser />
-                        <Text fw={700}>Total Teachers: {totalTeachers}</Text>
+                        <Text fw={700}>Total Net Income: {totalNetIncome.toLocaleString()}</Text>
                     </Group>
                 </Card>
                 <Card withBorder>
                     <Group>
                         <IconBuilding />
-                        <Text fw={700}>Avg Attendance: {avgAttendance}%</Text>
+                        <Text fw={700}>Avg Operational Costs: {avgOperationalCosts}</Text>
+                    </Group>
+                </Card>
+                <Card withBorder>
+                    <Group>
+                        <IconUser />
+                        <Text fw={700}>Avg Administration Costs: {avgAdministrationCosts}</Text>
+                    </Group>
+                </Card>
+                <Card withBorder>
+                    <Group>
+                        <IconUsers />
+                        <Text fw={700}>Avg Other Expenses: {avgOtherExpenses}</Text>
                     </Group>
                 </Card>
             </SimpleGrid>
@@ -105,13 +113,16 @@ export default function SchoolStatisticsPage() {
             <ScrollArea h={400}>
                 <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={sampleData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 10 }}>
-                        <XAxis type="number" domain={[0, 100]} />
+                        <XAxis type="number" />
                         <YAxis type="category" dataKey="school" width={100} />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="avgScore" fill="#8884d8" name="Average Score" />
-                        <Bar dataKey="graduationRate" fill="#82ca9d" name="Graduation Rate" />
-                        <Bar dataKey="attendanceRate" fill="#ffc658" name="Attendance Rate" />
+                        <Bar dataKey="sales" fill="#8884d8" name="Sales" />
+                        <Bar dataKey="purchases" fill="#82ca9d" name="Purchases" />
+                        <Bar dataKey="netIncome" fill="#ffc658" name="Net Income" />
+                        <Bar dataKey="operationalCosts" fill="#ff8042" name="Operational Costs" />
+                        <Bar dataKey="administrationCosts" fill="#8dd1e1" name="Administration Costs" />
+                        <Bar dataKey="otherExpenses" fill="#a4de6c" name="Other Expenses" />
                     </BarChart>
                 </ResponsiveContainer>
             </ScrollArea>
