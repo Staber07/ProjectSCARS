@@ -3,10 +3,17 @@
 import { ErrorComponent } from "@/components/ErrorComponent";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { MainLoginComponent } from "@/components/MainLoginComponent/MainLoginComponent";
-import { GetUserInfo, OAuthGoogleAuthenticate, OAuthGoogleLink } from "@/lib/api/auth";
-import { GetUserAvatar } from "@/lib/api/user";
+import {
+    getUserAvatarEndpointV1UsersAvatarGet,
+    getUserProfileEndpointV1UsersMeGet,
+    googleOauthCallbackV1AuthOauthGoogleCallbackGet,
+    oauthLinkGoogleV1AuthOauthGoogleLinkGet,
+    type JwtToken,
+    type UserPublic,
+} from "@/lib/api/csclient";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconX } from "@tabler/icons-react";
@@ -36,7 +43,16 @@ function OAuthGoogleContent() {
                 if (authCtx.isAuthenticated) {
                     console.debug("User is already authenticated, linking Google account.");
                     try {
-                        await OAuthGoogleLink(code);
+                        const result = await oauthLinkGoogleV1AuthOauthGoogleLinkGet({
+                            query: { code: code },
+                            headers: { Authorization: GetAccessTokenHeader() },
+                        });
+
+                        if (result.error) {
+                            throw new Error(
+                                `Failed to link Google account: ${result.response.status} ${result.response.statusText}`
+                            );
+                        }
                         notifications.show({
                             id: "google-link-success",
                             title: "Google account linked",
@@ -75,19 +91,47 @@ function OAuthGoogleContent() {
                 }
 
                 console.debug("User is not authenticated, proceeding with OAuth authentication.");
-                const tokens = await OAuthGoogleAuthenticate(code);
+                const result = await googleOauthCallbackV1AuthOauthGoogleCallbackGet({
+                    query: { code: code },
+                });
+
+                if (result.error) {
+                    throw new Error(
+                        `Failed to authenticate with Google: ${result.response.status} ${result.response.statusText}`
+                    );
+                }
+
+                const tokens = result.data as JwtToken;
                 authCtx.login(tokens);
 
-                const [userInfo, userPermissions] = await GetUserInfo();
+                const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (userInfoResult.error) {
+                    throw new Error(
+                        `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                    );
+                }
+
+                const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
                 console.debug("User info fetched successfully", { id: userInfo.id, username: userInfo.username });
                 let userAvatar: Blob | null = null;
                 if (userInfo.avatarUrn) {
-                    userAvatar = await GetUserAvatar(userInfo.avatarUrn);
-                    if (userAvatar) {
+                    const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                        query: { fn: userInfo.avatarUrn },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (!avatarResult.error) {
+                        userAvatar = avatarResult.data as Blob;
                         console.debug("User avatar fetched successfully", { size: userAvatar.size });
                     } else {
-                        console.warn("No avatar found for user, using default avatar.");
+                        console.warn("Failed to fetch avatar:", avatarResult.error);
+                        userAvatar = null;
                     }
+                } else {
+                    console.warn("No avatar found for user, using default avatar.");
                 }
                 userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
                 notifications.show({

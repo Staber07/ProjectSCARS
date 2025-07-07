@@ -18,7 +18,13 @@ from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.school import School
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.user import User, UserCreate, UserPublic, UserUpdate
+from centralserver.internals.models.user import (
+    User,
+    UserCreate,
+    UserDelete,
+    UserPublic,
+    UserUpdate,
+)
 from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.permissions import DEFAULT_ROLES
 
@@ -71,12 +77,14 @@ async def validate_password(password: str) -> tuple[bool, str | None]:
 async def create_user(
     new_user: UserCreate,
     session: Session,
+    commit: bool = True,
 ) -> User:
     """Create a new user in the database.
 
     Args:
         new_user: The new user's information.
         session: The database session to use.
+        commit: Whether to commit the changes to the database.
 
     Returns:
         A new user object.
@@ -120,7 +128,9 @@ async def create_user(
         roleId=new_user.roleId,
     )
     session.add(user)
-    session.commit()
+    if commit:
+        session.commit()
+
     session.refresh(user)
 
     await push_notification(
@@ -582,7 +592,9 @@ async def update_user_info(
 
     if target_user.forceUpdateInfo is not None:
         if not await verify_user_permission(
-            "users:global:forceupdate", session=session, token=token
+            "users:self:forceupdate" if updating_self else "users:global:forceupdate",
+            session=session,
+            token=token,
         ):
             logger.warning(
                 "Failed to update user: %s (permission denied: force update)",
@@ -611,6 +623,54 @@ async def update_user_info(
         )
     logger.info("User info for `%s` updated.", selected_user.username)
     return UserPublic.model_validate(selected_user)
+
+
+async def remove_user_info(
+    target_user: UserDelete,
+    session: Session,
+) -> None:
+    """Remove fields of a user in the database.
+
+    Args:
+        target_user: The fields to remove from the user.
+        session: The database session to use.
+
+    Raises:
+        HTTPException: Thrown when the user does not exist or cannot be removed.
+    """
+
+    selected_user = session.get(User, target_user.id)
+    if not selected_user:  # Check if user exists
+        logger.warning(
+            "Failed to remove user info: %s (user not found)", target_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    if target_user.email:
+        selected_user.email = None
+        selected_user.emailVerified = False
+
+    if target_user.nameFirst:
+        selected_user.nameFirst = None
+
+    if target_user.nameMiddle:
+        selected_user.nameMiddle = None
+
+    if target_user.nameLast:
+        selected_user.nameLast = None
+
+    if target_user.position:
+        selected_user.position = None
+
+    if target_user.schoolId:
+        selected_user.schoolId = None
+
+    session.commit()
+    session.refresh(selected_user)
+    logger.info("Selected fields for user `%s` removed.", selected_user.username)
 
 
 async def get_user_avatar(fn: str) -> BucketObject | None:

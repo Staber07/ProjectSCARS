@@ -73,7 +73,7 @@ class User(SQLModel, table=True):
         description="Whether the user account is deactivated.",
     )
     forceUpdateInfo: bool = Field(
-        default=False,
+        default=True,
         description="Whether the user is required to update their information.",
     )
     emailVerified: bool = Field(
@@ -146,6 +146,10 @@ class User(SQLModel, table=True):
         default=None,
         description="The Microsoft ID linked to the user's OAuth account.",
     )
+    oauthLinkedFacebookId: str | None = Field(
+        default=None,
+        description="The Facebook ID linked to the user's OAuth account.",
+    )
 
     dateCreated: datetime.datetime = Field(
         default_factory=lambda: datetime.datetime.now(datetime.timezone.utc),
@@ -190,6 +194,7 @@ class UserPublic(SQLModel):
     otpVerified: bool
     oauthLinkedGoogleId: str | None
     oauthLinkedMicrosoftId: str | None
+    oauthLinkedFacebookId: str | None
     forceUpdateInfo: bool
     emailVerified: bool
     dateCreated: datetime.datetime
@@ -219,12 +224,39 @@ class UserUpdate(SQLModel):
     password: str | None = None
 
 
+class UserDelete(SQLModel):
+    """A model used for deleting user's information."""
+
+    # All nullable fields can be deleted.
+    # If a field is to be deleted, it should be set to True.
+    id: str  # The ID of the user to be deleted.
+    email: bool = False
+    nameFirst: bool = False
+    nameMiddle: bool = False
+    nameLast: bool = False
+    position: bool = False
+    schoolId: bool = False
+
+
 class UserCreate(SQLModel):
     """A model used for creating new user accounts."""
 
     username: str
     roleId: int
     password: str
+
+
+class UserInvite(SQLModel):
+    """A model used for inviting a new user to the system."""
+
+    email: EmailStr
+    username: str
+    roleId: int
+    nameFirst: str | None = None
+    nameMiddle: str | None = None
+    nameLast: str | None = None
+    position: str | None = None
+    schoolId: int | None = None
 
 
 class UserRecover(SQLModel):

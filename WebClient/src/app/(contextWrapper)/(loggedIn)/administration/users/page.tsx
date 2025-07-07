@@ -2,13 +2,27 @@
 
 import { CreateUserComponent } from "@/components/UserManagement/CreateUserComponent";
 import { EditUserComponent } from "@/components/UserManagement/EditUserComponent";
+import { InviteUserComponent } from "@/components/UserManagement/InviteUserComponent";
 import { UserFilters } from "@/components/UserManagement/UserFilters";
-import { GetAllRoles, RequestVerificationEmail } from "@/lib/api/auth";
+import {
+    Role,
+    School,
+    UserDelete,
+    UserPublic,
+    UserUpdate,
+    deleteUserAvatarEndpointV1UsersAvatarDelete,
+    deleteUserInfoEndpointV1UsersDelete,
+    getAllRolesV1AuthRolesGet,
+    getAllUsersEndpointV1UsersAllGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
+    requestVerificationEmailV1AuthEmailRequestPost,
+    updateUserAvatarEndpointV1UsersAvatarPatch,
+    updateUserEndpointV1UsersPatch,
+} from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { GetAllUsers, GetUserAvatar, UpdateUserInfo, UploadUserAvatar } from "@/lib/api/user";
 import { roles } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { RoleType, SchoolType, UserPublicType } from "@/lib/types";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     ActionIcon,
     Anchor,
@@ -18,6 +32,7 @@ import {
     Flex,
     Group,
     Menu,
+    Modal,
     Pagination,
     Select,
     Stack,
@@ -41,7 +56,9 @@ import {
     IconLock,
     IconLockOpen,
     IconMail,
+    IconMailPlus,
     IconPlus,
+    IconSchool,
     IconSearch,
     IconSendOff,
     IconUser,
@@ -62,10 +79,10 @@ export default function UsersPage(): JSX.Element {
     const [searchTerm, setSearchTerm] = useState("");
     const [avatars, setAvatars] = useState<Map<string, string>>(new Map());
     const [avatarsRequested, setAvatarsRequested] = useState<Set<string>>(new Set());
-    const [availableRoles, setAvailableRoles] = useState<RoleType[]>([]);
-    const [availableSchools, setAvailableSchools] = useState<SchoolType[]>([]); // Assuming schools are strings for simplicity
+    const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+    const [availableSchools, setAvailableSchools] = useState<School[]>([]); // Assuming schools are strings for simplicity
 
-    const [users, setUsers] = useState<UserPublicType[]>([]);
+    const [users, setUsers] = useState<UserPublic[]>([]);
     //const [filteredUsers, setFilteredUsers] = useState<UserPublicType[]>([]); remnants of previous filtering logic
     const [selected, setSelected] = useState<Set<number>>(new Set());
 
@@ -74,19 +91,71 @@ export default function UsersPage(): JSX.Element {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
 
-    const [selectedUser, setSelectedUser] = useState<UserPublicType | null>(null);
+    const [selectedUser, setSelectedUser] = useState<UserPublic | null>(null);
     const [selectedUserIndex, setSelectedUserIndex] = useState<number | null>(null);
 
+    const [openInviteUserModal, setOpenInviteUserModal] = useState(false);
     const [openCreateUserModal, setOpenCreateUserModal] = useState(false);
+    const [openBulkSchoolModal, setOpenBulkSchoolModal] = useState(false);
 
     const [roleFilter, setRoleFilter] = useState<string | null>(null);
     const [schoolFilter, setSchoolFilter] = useState<string | null>(null);
     const [statusFilter, setStatusFilter] = useState<string | null>(null);
     const [updateFilter, setUpdateFilter] = useState<string | null>(null);
 
-    const [allUsers, setAllUsers] = useState<UserPublicType[]>([]);
+    const [allUsers, setAllUsers] = useState<UserPublic[]>([]);
 
-    const applyFilters = (users: UserPublicType[]) => {
+    // Wrapper functions to maintain compatibility with EditUserComponent
+    const UpdateUserInfo = async (userUpdate: UserUpdate): Promise<UserPublic> => {
+        const result = await updateUserEndpointV1UsersPatch({
+            body: userUpdate,
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to update user: ${result.response.status} ${result.response.statusText}`);
+        }
+
+        return result.data as UserPublic;
+    };
+
+    const UploadUserAvatar = async (user_id: string, file: File): Promise<UserPublic> => {
+        const result = await updateUserAvatarEndpointV1UsersAvatarPatch({
+            query: { user_id },
+            body: { img: file },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to upload avatar: ${result.response.status} ${result.response.statusText}`);
+        }
+
+        return result.data as UserPublic;
+    };
+
+    const RemoveUserAvatar = async (user_id: string): Promise<void> => {
+        const result = await deleteUserAvatarEndpointV1UsersAvatarDelete({
+            query: { user_id },
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to remove avatar: ${result.response.status} ${result.response.statusText}`);
+        }
+    };
+
+    const DeleteUserInfo = async (userDelete: UserDelete): Promise<void> => {
+        const result = await deleteUserInfoEndpointV1UsersDelete({
+            body: userDelete,
+            headers: { Authorization: GetAccessTokenHeader() },
+        });
+
+        if (result.error) {
+            throw new Error(`Failed to delete user fields: ${result.response.status} ${result.response.statusText}`);
+        }
+    };
+
+    const applyFilters = (users: UserPublic[]) => {
         let filtered = [...users];
 
         if (roleFilter) {
@@ -119,27 +188,6 @@ export default function UsersPage(): JSX.Element {
         return filtered;
     };
 
-    // Fetch users when the page loads or filters change
-    const fetchUsers = async (page: number) => {
-        try {
-            const data = await GetAllUsers((page - 1) * userPerPage, userPerPage);
-            setAllUsers(data);
-            const filtered = applyFilters(data);
-
-            setUsers(filtered);
-            setTotalUsers(filtered.length);
-            setTotalPages(Math.ceil(filtered.length / userPerPage));
-            setCurrentPage(page);
-
-            setSelected(new Set());
-            setSelectedUser(null);
-            setSelectedUserIndex(null);
-        } catch (error) {
-            console.error("Failed to fetch users:", error);
-            handleFetchError();
-        }
-    };
-
     const handleFilterChange = () => {
         setCurrentPage(1);
     };
@@ -164,7 +212,15 @@ export default function UsersPage(): JSX.Element {
         setOpenCreateUserModal(true);
     };
 
-    const handleEdit = (index: number, user: UserPublicType) => {
+    const handleInvite = () => {
+        console.debug("Inviting new user");
+        // Clear selected user when opening invite modal
+        setSelectedUser(null);
+        setSelectedUserIndex(null);
+        setOpenInviteUserModal(true);
+    };
+
+    const handleEdit = (index: number, user: UserPublic) => {
         console.debug(`Editing user ${index}`, user);
         setSelectedUserIndex(index);
         setSelectedUser(user);
@@ -178,12 +234,23 @@ export default function UsersPage(): JSX.Element {
         try {
             // Update all selected users
             await Promise.all(
-                selectedUsers.map((user) =>
-                    UpdateUserInfo({
-                        id: user.id,
-                        deactivated: isDeactivate,
-                    })
-                )
+                selectedUsers.map(async (user) => {
+                    const result = await updateUserEndpointV1UsersPatch({
+                        body: {
+                            id: user.id,
+                            deactivated: isDeactivate,
+                        },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (result.error) {
+                        throw new Error(
+                            `Failed to update user: ${result.response.status} ${result.response.statusText}`
+                        );
+                    }
+
+                    return result.data;
+                })
             );
 
             // Update local state to reflect changes
@@ -216,6 +283,76 @@ export default function UsersPage(): JSX.Element {
         }
     };
 
+    // Handle bulk school assignment for selected users
+    const handleBulkSchoolAssignment = async (schoolId: number | null) => {
+        const selectedUsers = Array.from(selected).map((idx) => users[idx]);
+
+        try {
+            // Update all selected users with the new school assignment
+            await Promise.all(
+                selectedUsers.map(async (user) => {
+                    const result = await updateUserEndpointV1UsersPatch({
+                        body: {
+                            id: user.id,
+                            schoolId: schoolId,
+                        },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (result.error) {
+                        throw new Error(
+                            `Failed to update user: ${result.response.status} ${result.response.statusText}`
+                        );
+                    }
+
+                    return result.data;
+                })
+            );
+
+            // Update local state to reflect changes
+            const updatedAllUsers = [...allUsers];
+            Array.from(selected).forEach((idx) => {
+                const userToUpdate = users[idx];
+                const allUsersIndex = updatedAllUsers.findIndex((u) => u.id === userToUpdate.id);
+                if (allUsersIndex !== -1) {
+                    updatedAllUsers[allUsersIndex] = {
+                        ...updatedAllUsers[allUsersIndex],
+                        schoolId: schoolId,
+                    };
+                }
+            });
+            setAllUsers(updatedAllUsers);
+
+            // Clear selection
+            setSelected(new Set());
+            setOpenBulkSchoolModal(false);
+
+            const schoolName = schoolId
+                ? availableSchools.find((school) => school.id === schoolId)?.name || "Unknown School"
+                : "No School (Unassigned)";
+
+            notifications.show({
+                title: "Success",
+                message: `Successfully assigned ${selectedUsers.length} user(s) to ${schoolName}`,
+                color: "green",
+                icon: <IconSchool />,
+            });
+        } catch (error) {
+            console.error("Bulk school assignment error:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to assign school to users",
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+        }
+    };
+
+    // Handle opening the bulk school assignment modal
+    const handleOpenBulkSchoolModal = () => {
+        setOpenBulkSchoolModal(true);
+    };
+
     const toggleSelected = (index: number) => {
         const updated = new Set(selected);
         if (updated.has(index)) updated.delete(index);
@@ -230,13 +367,22 @@ export default function UsersPage(): JSX.Element {
             return undefined; // Avatar is requested but not yet available
         }
         setAvatarsRequested((prev) => new Set(prev).add(avatarUrn));
-        GetUserAvatar(avatarUrn)
-            .then((blob) => {
+
+        getUserAvatarEndpointV1UsersAvatarGet({
+            query: { fn: avatarUrn },
+            headers: { Authorization: GetAccessTokenHeader() },
+        })
+            .then((result) => {
+                if (result.error) {
+                    throw new Error(`Failed to fetch avatar: ${result.response.status} ${result.response.statusText}`);
+                }
+
+                const blob = result.data as Blob;
                 const url = URL.createObjectURL(blob);
                 setAvatars((prev) => new Map(prev).set(avatarUrn, url));
                 return url;
             })
-            .catch((error) => {
+            .catch((error: Error) => {
                 console.error("Failed to fetch user avatar:", error);
                 notifications.show({
                     id: "fetch-user-avatar-error",
@@ -265,24 +411,30 @@ export default function UsersPage(): JSX.Element {
 
     useEffect(() => {
         const fetchRoles = async () => {
-            await GetAllRoles()
-                .then((data) => {
-                    setAvailableRoles(data);
-                })
-                .catch((error) => {
-                    console.error("Failed to fetch roles:", error);
-                    if (!fetchRolesErrorShown) {
-                        setFetchRolesErrorShown(true);
-                        notifications.show({
-                            id: "fetch-roles-error",
-                            title: "Failed to fetch roles",
-                            message: "Please try again later.",
-                            color: "red",
-                            icon: <IconUserExclamation />,
-                        });
-                        setAvailableRoles([]);
-                    }
+            try {
+                const result = await getAllRolesV1AuthRolesGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
                 });
+
+                if (result.error) {
+                    throw new Error(`Failed to get roles: ${result.response.status} ${result.response.statusText}`);
+                }
+
+                setAvailableRoles(result.data as Role[]);
+            } catch (error) {
+                console.error("Failed to fetch roles:", error);
+                if (!fetchRolesErrorShown) {
+                    setFetchRolesErrorShown(true);
+                    notifications.show({
+                        id: "fetch-roles-error",
+                        title: "Failed to fetch roles",
+                        message: "Please try again later.",
+                        color: "red",
+                        icon: <IconUserExclamation />,
+                    });
+                    setAvailableRoles([]);
+                }
+            }
         };
         const fetchSchools = async () => {
             await GetAllSchools(0, 999)
@@ -303,7 +455,19 @@ export default function UsersPage(): JSX.Element {
 
         const fetchAllUsers = async () => {
             try {
-                const data = await GetAllUsers(0, 10000); // fetch all users, or use a large enough number
+                const result = await getAllUsersEndpointV1UsersAllGet({
+                    query: {
+                        offset: 0,
+                        limit: 10000,
+                    },
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (result.error) {
+                    throw new Error(`Failed to fetch users: ${result.response.status} ${result.response.statusText}`);
+                }
+
+                const data = result.data as UserPublic[];
                 setAllUsers(data);
             } catch (error) {
                 console.error("Failed to fetch users:", error);
@@ -373,6 +537,15 @@ export default function UsersPage(): JSX.Element {
                             size="input-md"
                             variant="filled"
                             color="blue"
+                            onClick={handleInvite}
+                        >
+                            <IconMailPlus size={18} />
+                        </ActionIcon>
+                        <ActionIcon
+                            disabled={!userCtx.userPermissions?.includes("users:create")}
+                            size="input-md"
+                            variant="filled"
+                            color="blue"
                             onClick={handleCreate}
                         >
                             <IconPlus size={18} />
@@ -427,6 +600,13 @@ export default function UsersPage(): JSX.Element {
                                                     onClick={() => handleBulkAction("reactivate")}
                                                 >
                                                     Reactivate Users
+                                                </Menu.Item>
+                                                <Menu.Divider />
+                                                <Menu.Item
+                                                    leftSection={<IconSchool size={14} />}
+                                                    onClick={handleOpenBulkSchoolModal}
+                                                >
+                                                    Assign School
                                                 </Menu.Item>
                                             </Menu.Dropdown>
                                         </Menu>
@@ -499,9 +679,24 @@ export default function UsersPage(): JSX.Element {
                                                             <IconCircleDashedX
                                                                 size={16}
                                                                 color="gray"
-                                                                onClick={() => {
+                                                                onClick={async () => {
                                                                     try {
-                                                                        RequestVerificationEmail();
+                                                                        const result =
+                                                                            await requestVerificationEmailV1AuthEmailRequestPost(
+                                                                                {
+                                                                                    headers: {
+                                                                                        Authorization:
+                                                                                            GetAccessTokenHeader(),
+                                                                                    },
+                                                                                }
+                                                                            );
+
+                                                                        if (result.error) {
+                                                                            throw new Error(
+                                                                                `Failed to send verification email: ${result.response.status} ${result.response.statusText}`
+                                                                            );
+                                                                        }
+
                                                                         notifications.show({
                                                                             id: "verification-email-sent",
                                                                             title: "Verification Email Sent",
@@ -714,24 +909,84 @@ export default function UsersPage(): JSX.Element {
                         user={selectedUser}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
-                        currentPage={currentPage}
                         setIndex={setSelectedUserIndex}
-                        fetchUsers={fetchUsers}
                         UpdateUserInfo={UpdateUserInfo}
                         UploadUserAvatar={UploadUserAvatar}
+                        RemoveUserAvatar={RemoveUserAvatar}
+                        DeleteUserInfo={DeleteUserInfo}
                         fetchUserAvatar={fetchUserAvatar}
+                        onUserUpdate={(updatedUser) => {
+                            setAllUsers((prev) => {
+                                const idx = prev.findIndex((u) => u.id === updatedUser.id);
+                                if (idx === -1) return prev;
+                                const newArr = [...prev];
+                                newArr[idx] = updatedUser;
+                                return newArr;
+                            });
+                        }}
+                    />
+                )}
+                {openInviteUserModal === true && (
+                    <InviteUserComponent
+                        modalOpen={openInviteUserModal}
+                        setModalOpen={setOpenInviteUserModal}
+                        availableSchools={availableSchools}
+                        availableRoles={availableRoles}
+                        onUserInvite={(newUser) => {
+                            setAllUsers((prev) => [newUser, ...prev]);
+                        }}
                     />
                 )}
                 {openCreateUserModal === true && (
                     <CreateUserComponent
                         modalOpen={openCreateUserModal}
                         setModalOpen={setOpenCreateUserModal}
-                        fetchUsers={fetchUsers}
-                        currentPage={currentPage}
                         availableSchools={availableSchools}
                         availableRoles={availableRoles}
+                        UpdateUserInfo={UpdateUserInfo}
+                        onUserCreate={(newUser) => {
+                            setAllUsers((prev) => [newUser, ...prev]);
+                        }}
                     />
                 )}
+                {/* Bulk School Assignment Modal */}
+                <Modal
+                    opened={openBulkSchoolModal}
+                    onClose={() => setOpenBulkSchoolModal(false)}
+                    title="Assign School to Selected Users"
+                    size="md"
+                >
+                    <Stack gap="md">
+                        <Text size="sm" c="dimmed">
+                            Select a school to assign to {selected.size} selected user(s):
+                        </Text>
+                        <Select
+                            placeholder="Select a school"
+                            data={[
+                                { value: "null", label: "No School (Unassign)" },
+                                ...availableSchools
+                                    .filter((school) => school.id != null)
+                                    .map((school) => ({
+                                        value: school.id!.toString(),
+                                        label: school.name,
+                                    })),
+                            ]}
+                            searchable
+                            clearable
+                            onChange={(value) => {
+                                if (value !== null) {
+                                    const schoolId = value === "null" ? null : parseInt(value);
+                                    handleBulkSchoolAssignment(schoolId);
+                                }
+                            }}
+                        />
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="outline" onClick={() => setOpenBulkSchoolModal(false)}>
+                                Cancel
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
             </Stack>
         </>
     );

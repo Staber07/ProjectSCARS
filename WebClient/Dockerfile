@@ -1,29 +1,33 @@
 # Stage 1: Install dependencies
-FROM node:24-alpine AS dependencies
+FROM oven/bun:1.2.17-alpine AS dependencies
 WORKDIR /app
 COPY ./package.json ./
 COPY ./package-lock.json ./
-RUN npm install
+COPY ./bun.lock ./
+RUN bun install
 
 # Stage 2: Build the web client
-FROM node:24-alpine AS builder
+FROM oven/bun:1.2.17-alpine AS builder
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-RUN npm run build
+RUN bun run build
 
 # Stage 3: Set up the production environment
-FROM node:24-alpine AS production
+FROM oven/bun:1.2.17-alpine AS production
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-COPY --from=builder /app/.next/standalone ./standalone
-COPY --from=builder /app/public /app/standalone/public
-COPY --from=builder /app/.next/static /app/standalone/.next/static
+
+# Copy the entire built application
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 8080
 
-# Start the web client
+# Start the web client using npm run start
 ENV PORT=8080
-CMD ["node", "./standalone/server.js"]
+CMD ["bun", "run", "start"]

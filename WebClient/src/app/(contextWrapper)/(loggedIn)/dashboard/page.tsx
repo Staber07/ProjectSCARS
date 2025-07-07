@@ -4,12 +4,16 @@ import { HomeSection } from "@/components/Dashboard/HomeSection";
 import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SpotlightComponent } from "@/components/SpotlightComponent";
-import { GetUserInfo } from "@/lib/api/auth";
-import { GetSelfNotifications } from "@/lib/api/notification";
-import { GetUserAvatar } from "@/lib/api/user";
+import {
+    Notification,
+    getUserAvatarEndpointV1UsersAvatarGet,
+    getUserNotificationsV1NotificationsMeGet,
+    getUserProfileEndpointV1UsersMeGet,
+    type UserPublic,
+} from "@/lib/api/csclient";
 import { notificationIcons } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
-import { NotificationType } from "@/lib/types";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 import {
     Avatar,
     Card,
@@ -26,7 +30,8 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconCircleCheck, IconCircleDashed, IconRefreshAlert } from "@tabler/icons-react";
 import Link from "next/link";
-import React, { Suspense, memo, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Suspense, memo, useCallback, useEffect, useState } from "react";
 
 const stepsToComplete: [string, boolean][] = [
     ["Add and verify your email address", false],
@@ -37,8 +42,9 @@ const stepsToComplete: [string, boolean][] = [
 
 const DashboardContent = memo(function DashboardContent() {
     const userCtx = useUser();
+    const router = useRouter();
     const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
-    const [HVNotifications, setHVNotifications] = useState<NotificationType[]>([]);
+    const [HVNotifications, setHVNotifications] = useState<Notification[]>([]);
     const [setupCompleteDismissed, setSetupCompleteDismissed] = useState(
         () => typeof window !== "undefined" && localStorage.getItem("setupCompleteDismissed") === "true"
     );
@@ -64,6 +70,13 @@ const DashboardContent = memo(function DashboardContent() {
         }
     };
 
+    useEffect(() => {
+        // Check if forceupdateinfo is true
+        if (userCtx.userInfo?.forceUpdateInfo) {
+            router.push("/account/welcome");
+        }
+    }, [router, userCtx.userInfo?.forceUpdateInfo]);
+
     // Load user info and avatar
     useEffect(() => {
         let mounted = true;
@@ -72,13 +85,31 @@ const DashboardContent = memo(function DashboardContent() {
             if (!userCtx.userInfo) return;
 
             try {
-                const [userInfo, userPermissions] = await GetUserInfo();
+                const userInfoResult = await getUserProfileEndpointV1UsersMeGet({
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (userInfoResult.error) {
+                    throw new Error(
+                        `Failed to get user info: ${userInfoResult.response.status} ${userInfoResult.response.statusText}`
+                    );
+                }
+
+                const [userInfo, userPermissions] = userInfoResult.data as [UserPublic, string[]];
                 if (!mounted) return;
 
                 if (userInfo.avatarUrn) {
-                    const userAvatar = await GetUserAvatar(userInfo.avatarUrn);
-                    if (mounted) {
+                    const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                        query: { fn: userInfo.avatarUrn },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (!avatarResult.error && mounted) {
+                        const userAvatar = avatarResult.data as Blob;
                         userCtx.updateUserInfo(userInfo, userPermissions, userAvatar);
+                    } else if (mounted) {
+                        console.warn("Failed to fetch avatar:", avatarResult.error);
+                        userCtx.updateUserInfo(userInfo, userPermissions);
                     }
                 } else if (mounted) {
                     userCtx.updateUserInfo(userInfo, userPermissions);
@@ -118,7 +149,23 @@ const DashboardContent = memo(function DashboardContent() {
 
         const loadNotifications = async () => {
             try {
-                const notifications = await GetSelfNotifications(true, true, 0, 1);
+                const result = await getUserNotificationsV1NotificationsMeGet({
+                    query: {
+                        unarchived_only: true,
+                        important_only: true,
+                        offset: 0,
+                        limit: 1,
+                    },
+                    headers: { Authorization: GetAccessTokenHeader() },
+                });
+
+                if (result.error) {
+                    throw new Error(
+                        `Failed to fetch notifications: ${result.response.status} ${result.response.statusText}`
+                    );
+                }
+
+                const notifications = result.data as Notification[];
                 if (mounted) {
                     setHVNotifications(notifications);
                 }
@@ -295,19 +342,22 @@ const DashboardContent = memo(function DashboardContent() {
 });
 
 // Memoize the notification card
-const NotificationCard = memo(function NotificationCard({ notification }: { notification: NotificationType }) {
+const NotificationCard = memo(function NotificationCard({ notification }: { notification: Notification }) {
+    const notificationType = notification.type || "info";
+    const iconConfig = notificationIcons[notificationType];
+    const [IconComponent, color] = iconConfig || [notificationIcons.info[0], notificationIcons.info[1]];
+
     return (
         <Link href="/account/notifications" style={{ textDecoration: "none" }}>
             <Card withBorder radius="md" p="md">
                 <Group>
-                    <Avatar color={notificationIcons[notification.type]?.[1]} radius="xl">
-                        {notificationIcons[notification.type]?.[0] &&
-                            React.createElement(notificationIcons[notification.type][0])}
+                    <Avatar color={color} radius="xl">
+                        <IconComponent />
                     </Avatar>
                     <Text size="sm">{notification.content}</Text>
                 </Group>
                 <Text size="xs" c="dimmed" ta="right" mt={5}>
-                    {new Date(notification.created).toLocaleString()}
+                    {notification.created ? new Date(notification.created).toLocaleString() : "Unknown time"}
                 </Text>
             </Card>
         </Link>

@@ -8,6 +8,7 @@ class JWTToken(SQLModel):
 
     uid: uuid.UUID
     access_token: str
+    refresh_token: str | None = None
     token_type: str
 
 

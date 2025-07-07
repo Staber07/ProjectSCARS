@@ -3,7 +3,7 @@ import uuid
 from typing import Annotated, Any
 
 import httpx
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwe, jwt
 from jose.exceptions import JWEError
@@ -99,7 +99,11 @@ async def get_user_role(
 
 
 async def authenticate_user(
-    username: str, plaintext_password: str, login_ip: str | None, session: Session
+    username: str,
+    plaintext_password: str,
+    login_ip: str | None,
+    session: Session,
+    background_tasks: BackgroundTasks,
 ) -> User | tuple[int, str]:
     """Find the user in the database and verify their password.
     This function will not authenticate deactivated and locked out users.
@@ -147,7 +151,7 @@ async def authenticate_user(
             session.refresh(found_user)
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         # Check if the lockout period has expired.
@@ -172,7 +176,7 @@ async def authenticate_user(
             )
             return (
                 status.HTTP_429_TOO_MANY_REQUESTS,
-                f"User is locked out until {locked_out_until} due to too many failed login attempts.",
+                f"User is locked out until {locked_out_until} due to too many failed login attempts.",  # pylint: disable=C0301
             )
 
         else:
@@ -204,10 +208,12 @@ async def authenticate_user(
                 found_user.failedLoginAttempts
                 == app_config.security.failed_login_notify_attempts
             ):
-                send_mail(
+                background_tasks.add_task(
+                    send_mail,
                     to_address=found_user.email,
                     subject=f"{info.Program.name} | Someone is trying to access your account",
-                    text=get_template("unusual_login.txt").format(
+                    text=get_template(
+                        "unusual_login.txt",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,
@@ -216,7 +222,8 @@ async def authenticate_user(
                         ),
                         last_failed_login_ip=found_user.lastFailedLoginIp or "Unknown",
                     ),
-                    html=get_template("unusual_login.html").format(
+                    html=get_template(
+                        "unusual_login.html",
                         name=found_user.nameFirst or found_user.username,
                         app_name=info.Program.name,
                         failed_login_attempts=found_user.failedLoginAttempts,
@@ -267,23 +274,27 @@ async def create_access_token(
         "exp": datetime.datetime.now(datetime.timezone.utc) + expiration_td,
     }
 
-    access_token = jwe.encrypt(
-        plaintext=jwt.encode(
-            claims=token_data,
-            key=app_config.authentication.signing_secret_key,
-            algorithm=app_config.authentication.signing_algorithm,
-        ),
-        key=app_config.authentication.encryption_secret_key.encode(
-            app_config.authentication.encoding
-        ),
-        algorithm=app_config.authentication.encryption_algorithm,
-    ).decode("utf-8")
+    access_token = jwt.encode(
+        claims=token_data,
+        key=app_config.authentication.signing_secret_key,
+        algorithm=app_config.authentication.signing_algorithm,
+    )
+
+    if app_config.authentication.encrypt_jwt:
+        logger.debug("Encrypting access token...")
+        access_token = jwe.encrypt(
+            plaintext=access_token,
+            key=app_config.authentication.encryption_secret_key.encode(
+                app_config.authentication.encoding
+            ),
+            algorithm=app_config.authentication.encryption_algorithm,
+        ).decode("utf-8")
 
     # logger.debug("Access token: %s", access_token)
     return access_token
 
 
-def verify_access_token(
+async def verify_access_token(
     token: Annotated[str, Depends(oauth2_bearer)],
 ) -> DecodedJWTToken:
     """Get the current user from the JWE token.
@@ -299,25 +310,27 @@ def verify_access_token(
     """
 
     try:
-        logger.debug("Decrypting access token...")
-        # logger.debug("Token: %s", token)
-        decoded_jwe = jwe.decrypt(
-            token,
-            app_config.authentication.encryption_secret_key.encode(
-                app_config.authentication.encoding
-            ),
-        )
-
-        if decoded_jwe is None:
-            logger.warning("Failed to decrypt JWE")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Failed to validate user.",
+        if app_config.authentication.encrypt_jwt:
+            logger.debug("Decrypting access token...")
+            decoded_jwe = jwe.decrypt(
+                token,
+                app_config.authentication.encryption_secret_key.encode(
+                    app_config.authentication.encoding
+                ),
             )
+            if decoded_jwe is None:
+                logger.warning("Failed to decrypt JWE")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Failed to validate user.",
+                )
+            token_to_decode = decoded_jwe.decode(app_config.authentication.encoding)
+        else:
+            token_to_decode = token
 
         logger.debug("Decoding access token...")
         payload = jwt.decode(
-            decoded_jwe.decode(app_config.authentication.encoding),
+            token_to_decode,
             app_config.authentication.signing_secret_key,
             algorithms=[app_config.authentication.signing_algorithm],
         )
@@ -376,6 +389,7 @@ async def verify_user_permission(
         Returns True if the user has the required permissions, False otherwise.
     """
 
+    logger.debug("Required permission: %s", required_role)
     if token.is_refresh_token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -518,6 +532,13 @@ async def oauth_google_authenticate(
                     minutes=app_config.authentication.access_token_expire_minutes
                 ),
                 False,
+            ),
+            refresh_token=await create_access_token(
+                user.id,
+                datetime.timedelta(
+                    minutes=app_config.authentication.refresh_token_expire_minutes
+                ),
+                True,
             ),
             token_type="bearer",
         ),

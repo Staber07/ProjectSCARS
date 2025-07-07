@@ -1,19 +1,21 @@
+<!-- markdownlint-disable MD033 MD041 -->
+
 <div align="center">
-    <a href="https://github.com/Chris1320/ProjectSCARS">
-        <img src="https://raw.githubusercontent.com/Chris1320/ProjectSCARS/3686d8959946b31114ca8e45afde372896ad672f/WebClient/public/assets/logos/BENTO.svg" alt="Bento Logo" width="15%" height="auto" />
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS">
+        <img src="https://raw.githubusercontent.com/Bento-Project-SCARS/ProjectSCARS/3686d8959946b31114ca8e45afde372896ad672f/WebClient/public/assets/logos/BENTO.svg" alt="Bento Logo" width="15%" height="auto" />
     </a>
     <h1>
         Bento
-        <a href="https://github.com/Chris1320/ProjectSCARS/tags">
-            <img src="https://img.shields.io/github/v/tag/Chris1320/ProjectSCARS?sort=semver&filter=v*&style=flat&label=&color=0a0a0a" alt="Latest Version" />
+        <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS/tags">
+            <img src="https://img.shields.io/github/v/tag/Bento-Project-SCARS/ProjectSCARS?sort=semver&filter=v*&style=flat&label=&color=0a0a0a" alt="Latest Version" />
         </a>
     </h1>
-    <a href="https://github.com/Chris1320/ProjectSCARS/commits"><img src="https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?label=Last%20Commit&style=flat" alt="GitHub Last Commit" /></a>
-    <a href="https://github.com/Chris1320/ProjectSCARS/issues"><img src="https://img.shields.io/github/issues/Chris1320/ProjectSCARS?label=Issues&style=flat" alt="GitHub Issues or Pull Requests" /></a>
-    <a href="https://github.com/Chris1320/ProjectSCARS/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/lint.yml?flat&label=Codebase%20Style" alt="Linter Results" /></a>
-    <a href="https://codecov.io/gh/Chris1320/ProjectSCARS"><img src="https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage" alt="Code Coverage" /></a>
-    <a href="https://github.com/Chris1320/ProjectSCARS"><img src="https://img.shields.io/github/languages/code-size/Chris1320/ProjectSCARS?label=Repo%20Size&style=flat" alt="GitHub Repository Size" /></a>
-    <a href="https://github.com/Chris1320/ProjectSCARS/milestone/2"><img src="https://img.shields.io/github/milestones/progress-percent/Chris1320/ProjectSCARS/2?style=flat&label=Completed&color=orange" alt="Project Milestone Progress" /></a>
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS/commits"><img src="https://img.shields.io/github/last-commit/Bento-Project-SCARS/ProjectSCARS?label=Last%20Commit&style=flat" alt="GitHub Last Commit" /></a>
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS/issues"><img src="https://img.shields.io/github/issues/Bento-Project-SCARS/ProjectSCARS?label=Issues&style=flat" alt="GitHub Issues or Pull Requests" /></a>
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS/actions/workflows/lint.yml"><img src="https://img.shields.io/github/actions/workflow/status/Bento-Project-SCARS/ProjectSCARS/lint.yml?flat&label=Codebase%20Style" alt="Linter Results" /></a>
+    <a href="https://codecov.io/gh/Bento-Project-SCARS/ProjectSCARS"><img src="https://img.shields.io/codecov/c/github/Bento-Project-SCARS/ProjectSCARS?token=BJWS49M1DI&style=flat&label=Code%20Coverage" alt="Code Coverage" /></a>
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS"><img src="https://img.shields.io/github/languages/code-size/Bento-Project-SCARS/ProjectSCARS?label=Repo%20Size&style=flat" alt="GitHub Repository Size" /></a>
+    <a href="https://github.com/Bento-Project-SCARS/ProjectSCARS/milestone/2"><img src="https://img.shields.io/github/milestones/progress-percent/Bento-Project-SCARS/ProjectSCARS/2?style=flat&label=Completed&color=orange" alt="Project Milestone Progress" /></a>
 </div>
 
 **Bento** is a School Canteen Automated Reporting System for the Department
@@ -31,15 +33,15 @@ the Philippines.
 > >
 > > \- [Wikipedia](https://en.wikipedia.org/wiki/Bento)
 
-| Component      | Open Issues                                                                                                                                                                                                                                                                                                            | Last Commit                                                                                                                                                                                                                  | Test Results                                                                                                                                                                                                                             | Code Coverage                                                                                                                                                                                                    |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Central Server | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20central%20server?style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20central%20server%22) | [![GitHub last commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?path=CentralServer&style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/tree/main/CentralServer) | [![Central Server Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/central-server-tests.yml?style=flat&label=)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/central-server-tests.yml) | [![Central Server Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=central-server&label=&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags) |
-| Web Client     | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Chris1320/ProjectSCARS/scope%20%3E%20web%20client?style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20web%20client%22)         | [![GitHub last commit](https://img.shields.io/github/last-commit/Chris1320/ProjectSCARS?path=WebClient&style=for-the-badge&label=&color=%2300000000)](https://github.com/Chris1320/ProjectSCARS/tree/main/WebClient)         | [![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Chris1320/ProjectSCARS/web-client-tests.yml?style=flat&label=)](https://github.com/Chris1320/ProjectSCARS/actions/workflows/web-client-tests.yml)             | [![Web Client Code Coverage](https://img.shields.io/codecov/c/github/Chris1320/ProjectSCARS?token=BJWS49M1DI&flag=web-client&label=&style=flat)](https://app.codecov.io/gh/Chris1320/ProjectSCARS/flags)         |
+| Component      | Open Issues                                                                                                                                                                                                                                                                                                                                | Last Commit                                                                                                                                                                                                                                      | Test Results                                                                                                                                                                                                                                                 | Code Coverage                                                                                                                                                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Central Server | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Bento-Project-SCARS/ProjectSCARS/scope%20%3E%20central%20server?style=for-the-badge&label=&color=%2300000000)](https://github.com/Bento-Project-SCARS/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20central%20server%22) | [![GitHub last commit](https://img.shields.io/github/last-commit/Bento-Project-SCARS/ProjectSCARS?path=CentralServer&style=for-the-badge&label=&color=%2300000000)](https://github.com/Bento-Project-SCARS/ProjectSCARS/tree/main/CentralServer) | [![Central Server Tests](https://img.shields.io/github/actions/workflow/status/Bento-Project-SCARS/ProjectSCARS/central-server-tests.yml?style=flat&label=)](https://github.com/Bento-Project-SCARS/ProjectSCARS/actions/workflows/central-server-tests.yml) | [![Central Server Code Coverage](https://img.shields.io/codecov/c/github/Bento-Project-SCARS/ProjectSCARS?token=BJWS49M1DI&flag=central-server&label=&style=flat)](https://app.codecov.io/gh/Bento-Project-SCARS/ProjectSCARS/flags) |
+| Web Client     | [![GitHub Issues or Pull Requests by label](https://img.shields.io/github/issues-raw/Bento-Project-SCARS/ProjectSCARS/scope%20%3E%20web%20client?style=for-the-badge&label=&color=%2300000000)](https://github.com/Bento-Project-SCARS/ProjectSCARS/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22scope%20%3E%20web%20client%22)         | [![GitHub last commit](https://img.shields.io/github/last-commit/Bento-Project-SCARS/ProjectSCARS?path=WebClient&style=for-the-badge&label=&color=%2300000000)](https://github.com/Bento-Project-SCARS/ProjectSCARS/tree/main/WebClient)         | [![Web Client Tests](https://img.shields.io/github/actions/workflow/status/Bento-Project-SCARS/ProjectSCARS/web-client-tests.yml?style=flat&label=)](https://github.com/Bento-Project-SCARS/ProjectSCARS/actions/workflows/web-client-tests.yml)             | [![Web Client Code Coverage](https://img.shields.io/codecov/c/github/Bento-Project-SCARS/ProjectSCARS?token=BJWS49M1DI&flag=web-client&label=&style=flat)](https://app.codecov.io/gh/Bento-Project-SCARS/ProjectSCARS/flags)         |
 
 <details>
     <summary>Code Coverage Graph</summary>
-    <a href="https://codecov.io/gh/Chris1320/ProjectSCARS">
-        <img src="https://codecov.io/gh/Chris1320/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI" alt="Code Coverage Graph" />
+    <a href="https://codecov.io/gh/Bento-Project-SCARS/ProjectSCARS">
+        <img src="https://codecov.io/gh/Bento-Project-SCARS/ProjectSCARS/graphs/sunburst.svg?token=BJWS49M1DI" alt="Code Coverage Graph" />
     </a>
     <p>
         The inner-most circle is the entire project, moving away from the center
@@ -51,35 +53,7 @@ the Philippines.
 
 ## Documentation
 
--   [Deployment](./docs/deployment.md)
--   [Development](./docs/development.md)
-
-    -   [Stacks](./docs/development.md#stacks)
-    -   [Central Server](./docs/central-server.md)
-
-        -   [Requirements](./docs/central-server.md#requirements)
-        -   [Development Setup](./docs/central-server-development-setup.md)
-            -   [Resetting Central Server Data](./docs/central-server-development-setup.md#resetting-central-server-data)
-        -   [Database Setup](./docs/central-server-database-setup.md)
-            -   [SQLite](./docs/central-server-database-setup.md#central-server-sqlite-database)
-            -   [MySQL](./docs/central-server-database-setup.md#central-server-mysql-database)
-            -   [PostgreSQL](./docs/central-server-database-setup.md#central-server-postgresql-database)
-        -   [Object Store Setup](./docs/central-server-object-store-setup.md)
-            -   [Local File Object Store](./docs/central-server-object-store-setup.md#local-file-object-store)
-            -   [MinIO](./docs/central-server-object-store-setup.md#minio-s3-compatible-object-store)
-            -   [Garage](./docs/central-server-object-store-setup.md#garage-s3-compatible-object-store)
-        -   [Setting Up SMTP Connection](./docs/central-server-smtp-connection.md)
-            -   [Gmail](./docs/central-server-smtp-connection.md#gmail-smtp-connection)
-        -   [Enabling OAuth Integration](./docs/central-server-enabling-open-authentication.md)
-            -   [Google](./docs/central-server-enabling-open-authentication.md#google-oauth)
-            -   [Microsoft](./docs/central-server-enabling-open-authentication.md#microsoft-oauth)
-            -   [Facebook](./docs/central-server-enabling-open-authentication.md#facebook-oauth)
-
-    -   [Web Client](./docs/web-client.md)
-        -   [Requirements](./docs/web-client.md#requirements)
-        -   [Development Setup](./docs/web-client-development-setup.md)
-
--   [Authors](#authors)
+The documentation has been migrated to [the GitHub Wiki](https://github.com/Bento-Project-SCARS/ProjectSCARS/wiki).
 
 ## Authors
 

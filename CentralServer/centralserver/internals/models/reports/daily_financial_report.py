@@ -27,7 +27,7 @@ class DailyFinancialReport(SQLModel, table=True):
         description="The status of the report.",
     )
     preparedBy: str = Field(foreign_key="users.id")
-    notedBy: str = Field(foreign_key="users.id")
+    notedBy: str | None = Field(default=None, foreign_key="users.id")
 
     parent_report: "MonthlyReport" = Relationship(
         back_populates="daily_financial_report"
@@ -46,8 +46,18 @@ class DailyFinancialReportEntry(SQLModel, table=True):
         primary_key=True,
         index=True,
     )
-    parent: datetime.date = Field(foreign_key="dailyFinancialReports.parent")
+    parent: datetime.date = Field(
+        primary_key=True, foreign_key="dailyFinancialReports.parent"
+    )
     sales: float  # Positive float representing the total sales for the day
     purchases: float  # Positive float representing the total purchases for the day
 
     parent_report: DailyFinancialReport = Relationship(back_populates="entries")
+
+
+class DailyEntryData(SQLModel):
+    """Model for creating daily sales and purchases entries."""
+
+    day: int = Field(..., ge=1, le=31, description="Day of the month (1-31)")
+    sales: float = Field(..., ge=0, description="Total sales for the day")
+    purchases: float = Field(..., ge=0, description="Total purchases for the day")

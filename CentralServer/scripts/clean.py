@@ -65,7 +65,26 @@ def main() -> int:
             print(f"{dbpath} does not exist, skipping...")
 
         except (IOError, PermissionError):
-            print(f"Unable to remove {dbpath}. Please delete it manually.")
+            # If file deletion is not possible, remove the tables instead
+            try:
+                print(f"Unable to remove {dbpath}, attempting to drop tables...")
+                engine = create_engine(f"sqlite:///{dbpath}")
+                with engine.connect() as connection:
+                    result = connection.execute(
+                        text("SELECT name FROM sqlite_master WHERE type='table';")
+                    )
+                    tables = [row[0] for row in result]
+                    for table in tables:
+                        connection.execute(text(f"DROP TABLE IF EXISTS {table};"))
+
+            except Exception as e:  # pylint: disable=W0718
+                print(f"Error dropping SQLite tables: {e}")
+                exit_code += 1
+
+            else:
+                print(
+                    f"All SQLite tables dropped successfully, but {dbpath} could not be removed. Please delete it manually."
+                )
 
     elif config["database"]["type"] == "mysql":
         try:

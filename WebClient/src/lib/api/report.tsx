@@ -1,8 +1,8 @@
 import ky from "ky";
 
-import { GetAccessTokenHeader } from "@/lib/api/auth";
+import { DailyFinancialReport, DailyFinancialReportEntry, MonthlyReport } from "@/lib/api/csclient";
 import { Connections } from "@/lib/info";
-import { DailyFinancialReportEntryType, DailyFinancialReportType, MonthlyReportType } from "@/lib/types";
+import { GetAccessTokenHeader } from "@/lib/utils/token";
 
 const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
 
@@ -10,7 +10,7 @@ export async function GetLocalMonthlyReports(
     schoolId: number,
     offset: number,
     limit: number
-): Promise<MonthlyReportType[]> {
+): Promise<MonthlyReport[]> {
     console.debug(`GetLocalMonthlyReports: schoolId=${schoolId}, offset=${offset}, limit=${limit}`);
     const centralServerResponse = await ky.get(`${endpoint}/reports/monthly/${schoolId}`, {
         searchParams: { offset, limit },
@@ -23,14 +23,7 @@ export async function GetLocalMonthlyReports(
         throw new Error(errorMessage);
     }
 
-    const data: MonthlyReportType[] = await centralServerResponse.json();
-    data.forEach((report) => {
-        report.id = new Date(report.id);
-        report.dateCreated = new Date(report.dateCreated);
-        if (report.dateApproved) report.dateApproved = new Date(report.dateApproved);
-        if (report.dateReceived) report.dateReceived = new Date(report.dateReceived);
-        if (report.lastModified) report.lastModified = new Date(report.lastModified);
-    });
+    const data: MonthlyReport[] = await centralServerResponse.json();
     return data;
 }
 
@@ -38,7 +31,7 @@ export async function GetDailySalesAndPurchasesReport(
     schoolId: number,
     year: number,
     month: number
-): Promise<DailyFinancialReportType | null> {
+): Promise<DailyFinancialReport | null> {
     console.debug(`GetDailySalesAndPurchases: schoolId=${schoolId}, month=${month}`);
     const centralServerResponse = await ky.get(`${endpoint}/reports/daily/${schoolId}/${year}/${month}`, {
         headers: { Authorization: GetAccessTokenHeader() },
@@ -50,7 +43,7 @@ export async function GetDailySalesAndPurchasesReport(
         throw new Error(errorMessage);
     }
 
-    const data: DailyFinancialReportType | null = await centralServerResponse.json();
+    const data: DailyFinancialReport | null = await centralServerResponse.json();
     if (!data) {
         console.warn(
             `No daily sales and purchases report found for schoolId=${schoolId}, year=${year}, month=${month}`
@@ -64,7 +57,7 @@ export async function GetDailySalesAndPurchasesReportEntries(
     schoolId: number,
     year: number,
     month: number
-): Promise<DailyFinancialReportEntryType[]> {
+): Promise<DailyFinancialReportEntry[]> {
     console.debug(`GetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, month=${month}`);
     const centralServerResponse = await ky.get(`${endpoint}/reports/daily/${schoolId}/${year}/${month}/entries`, {
         headers: { Authorization: GetAccessTokenHeader() },
@@ -76,10 +69,7 @@ export async function GetDailySalesAndPurchasesReportEntries(
         throw new Error(errorMessage);
     }
 
-    const data: DailyFinancialReportEntryType[] = await centralServerResponse.json();
-    data.forEach((entry) => {
-        entry.parent = new Date(entry.parent);
-    });
+    const data: DailyFinancialReportEntry[] = await centralServerResponse.json();
     return data;
 }
 
@@ -87,8 +77,8 @@ export async function SetDailySalesAndPurchasesReport(
     schoolId: number,
     year: number,
     month: number,
-    report: DailyFinancialReportType
-): Promise<DailyFinancialReportType> {
+    report: DailyFinancialReport
+): Promise<DailyFinancialReport> {
     console.debug(`SetDailySalesAndPurchasesReport: schoolId=${schoolId}, month=${month}`);
     const centralServerResponse = await ky.patch(`${endpoint}/reports/daily/${schoolId}/${year}/${month}`, {
         json: report,
@@ -101,8 +91,7 @@ export async function SetDailySalesAndPurchasesReport(
         throw new Error(errorMessage);
     }
 
-    const data: DailyFinancialReportType = await centralServerResponse.json();
-    data.parent = new Date(data.parent);
+    const data: DailyFinancialReport = await centralServerResponse.json();
     return data;
 }
 
@@ -110,19 +99,17 @@ export async function SetDailySalesAndPurchasesReportEntries(
     schoolId: number,
     year: number,
     month: number,
-    entries: DailyFinancialReportEntryType[]
+    entries: DailyFinancialReportEntry[]
 ): Promise<void> {
     console.debug(`SetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, month=${month}`);
 
     // For each entry, send a PATCH request to update the entry for the given day
     await Promise.all(
-        entries.map(async (entry) => {
+        entries.map(async (entry: DailyFinancialReportEntry) => {
             // Assuming entry has 'parent' as Date and 'sales', 'purchases' as numbers
-            const day = entry.parent instanceof Date ? entry.parent.getDate() : new Date(entry.parent).getDate();
-
             const response = await ky.patch(`${endpoint}/reports/daily/${schoolId}/${year}/${month}/entry`, {
                 searchParams: {
-                    day,
+                    day: entry.day,
                     sales: entry.sales,
                     purchases: entry.purchases,
                 },
@@ -130,7 +117,7 @@ export async function SetDailySalesAndPurchasesReportEntries(
             });
 
             if (!response.ok) {
-                const errorMessage = `Failed to set daily sales and purchases entry for day ${day}: ${response.status} ${response.statusText}`;
+                const errorMessage = `Failed to set daily sales and purchases entry for day ${entry.day}: ${response.status} ${response.statusText}`;
                 console.error(errorMessage);
                 throw new Error(errorMessage);
             }
