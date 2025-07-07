@@ -1,6 +1,10 @@
 import datetime
+from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
 
 class PayrollReport(SQLModel, table=True):
@@ -16,6 +20,8 @@ class PayrollReport(SQLModel, table=True):
         back_populates="parent_report"
     )
     entries: list["PayrollReportEntry"] = Relationship(back_populates="parent_report")
+
+    parent_report: "MonthlyReport" = Relationship(back_populates="payroll_report")
 
 
 class PayrollReportNotedBy(SQLModel, table=True):

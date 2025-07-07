@@ -30,6 +30,7 @@ from centralserver.internals.models.reports.lr_school_operation_fund import (
 from centralserver.internals.models.reports.lr_supplementary_feeding_fund import (
     LiquidationReportSupplementaryFeedingFund,
 )
+from centralserver.internals.models.reports.payroll_report import PayrollReport
 from centralserver.internals.models.reports.report_status import ReportStatus
 
 
@@ -144,6 +145,7 @@ class MonthlyReport(SQLModel, table=True):
     disbursement_voucher_report: DisbursementVoucher | None = Relationship(
         back_populates="parent_report"
     )
+    payroll_report: PayrollReport | None = Relationship(back_populates="parent_report")
 
 
 class MonthlyReportAuditedBy(SQLModel, table=True):

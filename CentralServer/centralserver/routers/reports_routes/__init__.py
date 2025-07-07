@@ -7,6 +7,7 @@ from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.routers.reports_routes.daily import router as daily_router
 from centralserver.routers.reports_routes.monthly import router as monthly_router
+from centralserver.routers.reports_routes.payroll import router as payroll_router
 
 logger = LoggerFactory().get_logger(__name__)
 router = APIRouter(
@@ -18,3 +19,4 @@ logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
 router.include_router(monthly_router, tags=["Monthly Reports"])
 router.include_router(daily_router, tags=["Daily Reports"])
+router.include_router(payroll_router, tags=["Payroll Reports"])

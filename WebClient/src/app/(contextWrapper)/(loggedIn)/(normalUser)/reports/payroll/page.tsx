@@ -70,7 +70,7 @@ interface WeekPeriod {
 
 function PayrollPageContent() {
     const router = useRouter();
-    
+
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -86,7 +86,7 @@ function PayrollPageContent() {
     const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
 
     const [customRateModalOpened, setCustomRateModalOpened] = useState(false);
-    const [customRateEmployee, setCustomRateEmployee] = useState<{employeeId: string, date: Date} | null>(null);
+    const [customRateEmployee, setCustomRateEmployee] = useState<{ employeeId: string; date: Date } | null>(null);
     const [customRateValue, setCustomRateValue] = useState<number>(0);
 
     useEffect(() => {
@@ -109,49 +109,57 @@ function PayrollPageContent() {
     const generateWeeksForMonth = (monthDate: Date, includedDays: number[] = [1, 2, 3, 4, 5]) => {
         const startOfMonth = dayjs(monthDate).startOf("month");
         const endOfMonth = dayjs(monthDate).endOf("month");
-        
+
         const weeks: WeekPeriod[] = [];
         let currentDate = startOfMonth;
         let weekNumber = 1;
-        
+
         // Group dates by week
         while (currentDate.isSameOrBefore(endOfMonth)) {
             const weekStart = currentDate.startOf("week").add(1, "day"); // Monday
             const weekEnd = weekStart.add(6, "days"); // Sunday
-            
+
             // Generate working days for this week, only within the month
             const workingDays: Date[] = [];
             let dayInWeek = weekStart;
-            
+
             for (let i = 0; i < 7; i++) {
                 // Only include dates within the selected month and matching working days
-                if (dayInWeek.isSameOrAfter(startOfMonth) && 
+                if (
+                    dayInWeek.isSameOrAfter(startOfMonth) &&
                     dayInWeek.isSameOrBefore(endOfMonth) &&
-                    includedDays.includes(dayInWeek.day())) {
+                    includedDays.includes(dayInWeek.day())
+                ) {
                     workingDays.push(dayInWeek.toDate());
                 }
                 dayInWeek = dayInWeek.add(1, "day");
             }
-            
+
             // Only create week if it has working days
             if (workingDays.length > 0) {
                 const newWeek: WeekPeriod = {
                     id: `${monthDate.getFullYear()}-${monthDate.getMonth()}-week-${weekNumber}`,
-                    label: `WEEK ${weekNumber} /DATE COVERED: ${workingDays[0] ? dayjs(workingDays[0]).format("M/D") : ""}-${workingDays[workingDays.length - 1] ? dayjs(workingDays[workingDays.length - 1]).format("D") : ""}`,
+                    label: `WEEK ${weekNumber} /DATE COVERED: ${
+                        workingDays[0] ? dayjs(workingDays[0]).format("M/D") : ""
+                    }-${
+                        workingDays[workingDays.length - 1]
+                            ? dayjs(workingDays[workingDays.length - 1]).format("D")
+                            : ""
+                    }`,
                     startDate: workingDays[0] || weekStart.toDate(),
                     endDate: workingDays[workingDays.length - 1] || weekEnd.toDate(),
                     workingDays,
                     isCompleted: false,
                 };
-                
+
                 weeks.push(newWeek);
                 weekNumber++;
             }
-            
+
             // Move to next week
             currentDate = weekEnd.add(1, "day");
         }
-        
+
         return weeks;
     };
 
@@ -242,11 +250,9 @@ function PayrollPageContent() {
     };
 
     const toggleWeekCompletion = (weekId: string) => {
-        setWeekPeriods(weekPeriods.map(week => 
-            week.id === weekId 
-                ? { ...week, isCompleted: !week.isCompleted }
-                : week
-        ));
+        setWeekPeriods(
+            weekPeriods.map((week) => (week.id === weekId ? { ...week, isCompleted: !week.isCompleted } : week))
+        );
     };
 
     const getAttendanceStatus = (employeeId: string, date: Date): boolean => {
@@ -256,13 +262,13 @@ function PayrollPageContent() {
     };
 
     const openCustomRateModal = (employeeId: string, date: Date) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    if (employee) {
-        setCustomRateEmployee({ employeeId, date });
-        setCustomRateValue(employee.defaultDailyRate); // Set default value
-        setCustomRateModalOpened(true);
-    }
-};
+        const employee = employees.find((emp) => emp.id === employeeId);
+        if (employee) {
+            setCustomRateEmployee({ employeeId, date });
+            setCustomRateValue(employee.defaultDailyRate); // Set default value
+            setCustomRateModalOpened(true);
+        }
+    };
 
     const saveCustomRate = () => {
         if (customRateEmployee && customRateValue > 0) {
@@ -383,7 +389,7 @@ function PayrollPageContent() {
                             <MonthPickerInput
                                 placeholder="Select month"
                                 value={selectedMonth}
-                                onChange={(value) => { 
+                                onChange={(value) => {
                                     setSelectedMonth(value ? dayjs(value).toDate() : null);
                                 }}
                                 leftSection={<IconCalendar size={16} />}
@@ -392,11 +398,13 @@ function PayrollPageContent() {
                                 required
                             />
                         </Group>
-                        
+
                         <Divider />
-                        
+
                         <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
-                            <Text fw={500} size="sm">Working Days</Text>
+                            <Text fw={500} size="sm">
+                                Working Days
+                            </Text>
                             <Group gap="xs">
                                 {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
                                     <ActionIcon
@@ -406,12 +414,22 @@ function PayrollPageContent() {
                                         color={workingDaysSchedule.includes(index) ? "blue" : "gray"}
                                         onClick={() => {
                                             if (workingDaysSchedule.includes(index)) {
-                                                setworkingDaysSchedule(prev => prev.filter(d => d !== index));
+                                                setworkingDaysSchedule((prev) => prev.filter((d) => d !== index));
                                             } else {
-                                                setworkingDaysSchedule(prev => [...prev, index].sort());
+                                                setworkingDaysSchedule((prev) => [...prev, index].sort());
                                             }
                                         }}
-                                        title={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][index]}
+                                        title={
+                                            [
+                                                "Sunday",
+                                                "Monday",
+                                                "Tuesday",
+                                                "Wednesday",
+                                                "Thursday",
+                                                "Friday",
+                                                "Saturday",
+                                            ][index]
+                                        }
                                     >
                                         {day}
                                     </ActionIcon>
@@ -449,18 +467,20 @@ function PayrollPageContent() {
                             <IconCalendarWeek size={20} />
                             <Text fw={500}>Weekly Periods</Text>
                             <Badge variant="light" size="sm">
-                                {weekPeriods.filter(w => w.isCompleted).length}/{weekPeriods.length} completed
+                                {weekPeriods.filter((w) => w.isCompleted).length}/{weekPeriods.length} completed
                             </Badge>
                         </Group>
-                        
+
                         {selectedWeekId && (
                             <Button
                                 size="xs"
                                 variant="light"
-                                color={weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "green" : "blue"}
+                                color={weekPeriods.find((w) => w.id === selectedWeekId)?.isCompleted ? "green" : "blue"}
                                 onClick={() => toggleWeekCompletion(selectedWeekId)}
                             >
-                                {weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "Mark Incomplete" : "Mark Complete"}
+                                {weekPeriods.find((w) => w.id === selectedWeekId)?.isCompleted
+                                    ? "Mark Incomplete"
+                                    : "Mark Complete"}
                             </Button>
                         )}
                     </Group>
@@ -470,7 +490,7 @@ function PayrollPageContent() {
                                 <Button
                                     key={week.id}
                                     variant={selectedWeekId === week.id ? "filled" : "outline"}
-                                    color={week.isCompleted ? "green" : (selectedWeekId === week.id ? "blue" : "gray")}
+                                    color={week.isCompleted ? "green" : selectedWeekId === week.id ? "blue" : "gray"}
                                     size="sm"
                                     onClick={() => setSelectedWeekId(week.id)}
                                     className="whitespace-nowrap flex-shrink-0"
@@ -487,7 +507,7 @@ function PayrollPageContent() {
                 {selectedWeek && employees.length > 0 && (
                     <Card withBorder>
                         <Group justify="space-between" className="mb-4">
-                           <Group gap="sm">
+                            <Group gap="sm">
                                 <Text fw={500}>{selectedWeek.label}</Text>
                                 {selectedWeek.isCompleted && (
                                     <Badge color="green" variant="light" size="sm">
@@ -496,10 +516,16 @@ function PayrollPageContent() {
                                 )}
                             </Group>
                             <Text className="text-right">
-                                <Text component="span" size="sm" c="dimmed">Total Week Amount:
-                                    ₱{weekPeriods.find(w => w.id === selectedWeekId) ?
-                                    employees.reduce((total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!), 0).toFixed(2)
-                                    : "0.00"}
+                                <Text component="span" size="sm" c="dimmed">
+                                    Total Week Amount: ₱
+                                    {weekPeriods.find((w) => w.id === selectedWeekId)
+                                        ? employees
+                                              .reduce(
+                                                  (total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!),
+                                                  0
+                                              )
+                                              .toFixed(2)
+                                        : "0.00"}
                                 </Text>
                             </Text>
                         </Group>
@@ -543,7 +569,8 @@ function PayrollPageContent() {
                                                 const record = attendanceRecords.find(
                                                     (r) => r.employeeId === employee.id && r.date === dateKey
                                                 );
-                                                const displayRate = record?.customDailyRate || employee.defaultDailyRate;
+                                                const displayRate =
+                                                    record?.customDailyRate || employee.defaultDailyRate;
                                                 const hasCustomRate = record?.customDailyRate !== undefined;
 
                                                 return (
@@ -563,7 +590,11 @@ function PayrollPageContent() {
                                                                     }}
                                                                     className="w-16"
                                                                     disabled={selectedWeek.isCompleted}
-                                                                    title={selectedWeek.isCompleted ? "Week is completed" : "Left click: Mark attendance \nRight click: Set custom rate"}
+                                                                    title={
+                                                                        selectedWeek.isCompleted
+                                                                            ? "Week is completed"
+                                                                            : "Left click: Mark attendance \nRight click: Set custom rate"
+                                                                    }
                                                                 >
                                                                     {isPresent ? `₱${displayRate}` : " - "}
                                                                 </Button>
@@ -724,7 +755,9 @@ function PayrollPageContent() {
                                         <Group justify="space-between">
                                             <div>
                                                 <Text fw={500}>{employee.name}</Text>
-                                                <Text size="sm" c="dimmed">₱{employee.defaultDailyRate}/day</Text>
+                                                <Text size="sm" c="dimmed">
+                                                    ₱{employee.defaultDailyRate}/day
+                                                </Text>
                                             </div>
                                             <Group gap="xs">
                                                 <ActionIcon
@@ -773,11 +806,12 @@ function PayrollPageContent() {
             >
                 <Stack gap="md">
                     <Text>
-                        Are you sure you want to delete this employee? This will also remove all their attendance records.
+                        Are you sure you want to delete this employee? This will also remove all their attendance
+                        records.
                     </Text>
                     <Group justify="flex-end" gap="md">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => {
                                 setDeleteEmployeeModalOpened(false);
                                 setEmployeeToDelete(null);
@@ -785,10 +819,7 @@ function PayrollPageContent() {
                         >
                             Cancel
                         </Button>
-                        <Button
-                            color="red"
-                            onClick={confirmDeleteEmployee}
-                        >
+                        <Button color="red" onClick={confirmDeleteEmployee}>
                             Delete
                         </Button>
                     </Group>
@@ -816,23 +847,31 @@ function PayrollPageContent() {
                     {customRateEmployee && (
                         <>
                             <div>
-                                <Text size="sm" c="dimmed">Employee</Text>
+                                <Text size="sm" c="dimmed">
+                                    Employee
+                                </Text>
                                 <Text fw={500}>
-                                    {employees.find(emp => emp.id === customRateEmployee.employeeId)?.name}
+                                    {employees.find((emp) => emp.id === customRateEmployee.employeeId)?.name}
                                 </Text>
                             </div>
-                            
+
                             <div>
-                                <Text size="sm" c="dimmed">Date</Text>
-                                <Text fw={500}>
-                                    {dayjs(customRateEmployee.date).format("MMMM DD, YYYY (dddd)")}
+                                <Text size="sm" c="dimmed">
+                                    Date
                                 </Text>
+                                <Text fw={500}>{dayjs(customRateEmployee.date).format("MMMM DD, YYYY (dddd)")}</Text>
                             </div>
-                            
+
                             <div>
-                                <Text size="sm" c="dimmed">Daily Rate</Text>
+                                <Text size="sm" c="dimmed">
+                                    Daily Rate
+                                </Text>
                                 <Text fw={500}>
-                                    ₱{employees.find(emp => emp.id === customRateEmployee.employeeId)?.defaultDailyRate}
+                                    ₱
+                                    {
+                                        employees.find((emp) => emp.id === customRateEmployee.employeeId)
+                                            ?.defaultDailyRate
+                                    }
                                 </Text>
                             </div>
 
@@ -850,8 +889,8 @@ function PayrollPageContent() {
                     )}
 
                     <Group justify="flex-end" gap="md" mt="md">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => {
                                 setCustomRateModalOpened(false);
                                 setCustomRateEmployee(null);
