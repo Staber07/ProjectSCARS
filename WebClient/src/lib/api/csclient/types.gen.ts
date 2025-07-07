@@ -385,6 +385,92 @@ export type OtpVerificationToken = {
 };
 
 /**
+ * PayrollEntryRequest
+ * Request model for creating payroll entry data.
+ */
+export type PayrollEntryRequest = {
+    /**
+     * Week Number
+     */
+    week_number: number;
+    /**
+     * Employee Name
+     */
+    employee_name: string;
+    /**
+     * Sun
+     */
+    sun?: number;
+    /**
+     * Mon
+     */
+    mon?: number;
+    /**
+     * Tue
+     */
+    tue?: number;
+    /**
+     * Wed
+     */
+    wed?: number;
+    /**
+     * Thu
+     */
+    thu?: number;
+    /**
+     * Fri
+     */
+    fri?: number;
+    /**
+     * Sat
+     */
+    sat?: number;
+    /**
+     * Signature
+     */
+    signature?: string | null;
+};
+
+/**
+ * PayrollEntryUpdateRequest
+ * Request model for updating specific fields in a payroll entry.
+ */
+export type PayrollEntryUpdateRequest = {
+    /**
+     * Sun
+     */
+    sun?: number | null;
+    /**
+     * Mon
+     */
+    mon?: number | null;
+    /**
+     * Tue
+     */
+    tue?: number | null;
+    /**
+     * Wed
+     */
+    wed?: number | null;
+    /**
+     * Thu
+     */
+    thu?: number | null;
+    /**
+     * Fri
+     */
+    fri?: number | null;
+    /**
+     * Sat
+     */
+    sat?: number | null;
+    /**
+     * Signature
+     */
+    signature?: string | null;
+};
+
+/**
  * PayrollReport
  * A model representing the monthly payroll report.
  */
@@ -393,6 +479,15 @@ export type PayrollReport = {
      * Parent
      */
     parent: string;
+    /**
+     * Preparedby
+     * The user who prepared the report.
+     */
+    preparedBy: string;
+    /**
+     * Notedby
+     */
+    notedBy: string | null;
 };
 
 /**
@@ -405,19 +500,20 @@ export type PayrollReportEntry = {
      */
     parent: string;
     /**
-     * Week Number
+     * Weeknumber
      * Week number in the month
      */
-    week_number: number;
+    weekNumber: number;
     /**
-     * Employee Id
-     * Employee identifier
+     * Employeename
+     * Name of the employee
      */
-    employee_id: string;
+    employeeName: string;
     /**
-     * Employee Name
+     * Sun
+     * Amount received on Sunday
      */
-    employee_name: string;
+    sun?: number;
     /**
      * Mon
      * Amount received on Monday
@@ -444,38 +540,30 @@ export type PayrollReportEntry = {
      */
     fri?: number;
     /**
-     * Total
-     * Total amount received for the week
+     * Sat
+     * Amount received on Saturday
      */
-    total?: number;
+    sat?: number;
     /**
      * Signature
-     * Signature or reference
+     * Signature or reference attachments for the entry
      */
     signature?: string | null;
 };
 
 /**
- * PayrollReportNotedBy
- * A model representing the noted by section of the payroll report.
+ * PayrollReportUpdateRequest
+ * Request model for updating payroll report metadata.
  */
-export type PayrollReportNotedBy = {
+export type PayrollReportUpdateRequest = {
     /**
-     * Parent
+     * Prepared By
      */
-    parent: string;
+    prepared_by?: string | null;
     /**
-     * Name
+     * Noted By
      */
-    name: string;
-    /**
-     * Position
-     */
-    position: string;
-    /**
-     * Date
-     */
-    date?: string | null;
+    noted_by?: string | null;
 };
 
 /**
@@ -2955,7 +3043,12 @@ export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchData 
          */
         month: number;
     };
-    query?: never;
+    query?: {
+        /**
+         * Noted By
+         */
+        noted_by?: string | null;
+    };
     url: '/v1/reports/payroll/{school_id}/{year}/{month}';
 };
 
@@ -2976,6 +3069,44 @@ export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchRespo
 };
 
 export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponse = CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponses[keyof CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponses];
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutData = {
+    body: PayrollReportUpdateRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}';
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutError = UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors[keyof UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors];
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReport;
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponse = UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses[keyof UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses];
 
 export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetData = {
     body?: never;
@@ -3017,7 +3148,7 @@ export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntrie
 export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponse = GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponses[keyof GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponses];
 
 export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostData = {
-    body?: never;
+    body: PayrollEntryRequest;
     path: {
         /**
          * School Id
@@ -3032,48 +3163,7 @@ export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPost
          */
         month: number;
     };
-    query: {
-        /**
-         * Week Number
-         */
-        week_number: number;
-        /**
-         * Employee Id
-         */
-        employee_id: string;
-        /**
-         * Employee Name
-         */
-        employee_name: string;
-        /**
-         * Mon
-         */
-        mon?: number;
-        /**
-         * Tue
-         */
-        tue?: number;
-        /**
-         * Wed
-         */
-        wed?: number;
-        /**
-         * Thu
-         */
-        thu?: number;
-        /**
-         * Fri
-         */
-        fri?: number;
-        /**
-         * Total
-         */
-        total?: number;
-        /**
-         * Signature
-         */
-        signature?: string | null;
-    };
+    query?: never;
     url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries';
 };
 
@@ -3095,97 +3185,7 @@ export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPost
 
 export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponse = CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses[keyof CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses];
 
-export type GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetData = {
-    body?: never;
-    path: {
-        /**
-         * School Id
-         */
-        school_id: number;
-        /**
-         * Year
-         */
-        year: number;
-        /**
-         * Month
-         */
-        month: number;
-    };
-    query?: never;
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/noted-by';
-};
-
-export type GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetError = GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetErrors[keyof GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetErrors];
-
-export type GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetResponses = {
-    /**
-     * Response Get School Payroll Report Noted By V1 Reports Payroll  School Id   Year   Month  Noted By Get
-     * Successful Response
-     */
-    200: Array<PayrollReportNotedBy>;
-};
-
-export type GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetResponse = GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetResponses[keyof GetSchoolPayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByGetResponses];
-
-export type CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostData = {
-    body?: never;
-    path: {
-        /**
-         * School Id
-         */
-        school_id: number;
-        /**
-         * Year
-         */
-        year: number;
-        /**
-         * Month
-         */
-        month: number;
-    };
-    query: {
-        /**
-         * Name
-         */
-        name: string;
-        /**
-         * Position
-         */
-        position: string;
-        /**
-         * Date
-         */
-        date?: string | null;
-    };
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/noted-by';
-};
-
-export type CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostError = CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostErrors[keyof CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostErrors];
-
-export type CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostResponses = {
-    /**
-     * Successful Response
-     */
-    200: PayrollReportNotedBy;
-};
-
-export type CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostResponse = CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostResponses[keyof CreatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByPostResponses];
-
-export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteData = {
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteData = {
     body?: never;
     path: {
         /**
@@ -3205,26 +3205,26 @@ export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeek
          */
         week_number: number;
         /**
-         * Employee Id
+         * Employee Name
          */
-        employee_id: string;
+        employee_name: string;
     };
     query?: never;
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_id}';
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}';
 };
 
-export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteErrors = {
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteError = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteErrors[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteErrors];
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteError = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors];
 
-export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteResponses = {
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses = {
     /**
-     * Response Delete Payroll Report Entry V1 Reports Payroll  School Id   Year   Month  Entries  Week Number   Employee Id  Delete
+     * Response Delete Payroll Report Entry V1 Reports Payroll  School Id   Year   Month  Entries  Week Number   Employee Name  Delete
      * Successful Response
      */
     200: {
@@ -3232,10 +3232,10 @@ export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeek
     };
 };
 
-export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteResponse = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteResponses[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdDeleteResponses];
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponse = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses];
 
-export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutData = {
-    body?: never;
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutData = {
+    body: PayrollEntryUpdateRequest;
     path: {
         /**
          * School Id
@@ -3254,156 +3254,31 @@ export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeek
          */
         week_number: number;
         /**
-         * Employee Id
-         */
-        employee_id: string;
-    };
-    query?: {
-        /**
          * Employee Name
          */
-        employee_name?: string | null;
-        /**
-         * Mon
-         */
-        mon?: number | null;
-        /**
-         * Tue
-         */
-        tue?: number | null;
-        /**
-         * Wed
-         */
-        wed?: number | null;
-        /**
-         * Thu
-         */
-        thu?: number | null;
-        /**
-         * Fri
-         */
-        fri?: number | null;
-        /**
-         * Signature
-         */
-        signature?: string | null;
+        employee_name: string;
     };
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_id}';
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}';
 };
 
-export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutErrors = {
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutError = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutErrors[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutErrors];
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutError = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors];
 
-export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutResponses = {
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses = {
     /**
      * Successful Response
      */
     200: PayrollReportEntry;
 };
 
-export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutResponse = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutResponses[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeIdPutResponses];
-
-export type DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteData = {
-    body?: never;
-    path: {
-        /**
-         * School Id
-         */
-        school_id: number;
-        /**
-         * Year
-         */
-        year: number;
-        /**
-         * Month
-         */
-        month: number;
-        /**
-         * Name
-         */
-        name: string;
-    };
-    query?: never;
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/noted-by/{name}';
-};
-
-export type DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteError = DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteErrors[keyof DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteErrors];
-
-export type DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteResponses = {
-    /**
-     * Response Delete Payroll Report Noted By V1 Reports Payroll  School Id   Year   Month  Noted By  Name  Delete
-     * Successful Response
-     */
-    200: {
-        [key: string]: string;
-    };
-};
-
-export type DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteResponse = DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteResponses[keyof DeletePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNameDeleteResponses];
-
-export type UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutData = {
-    body?: never;
-    path: {
-        /**
-         * School Id
-         */
-        school_id: number;
-        /**
-         * Year
-         */
-        year: number;
-        /**
-         * Month
-         */
-        month: number;
-        /**
-         * Name
-         */
-        name: string;
-    };
-    query?: {
-        /**
-         * Position
-         */
-        position?: string | null;
-        /**
-         * Date
-         */
-        date?: string | null;
-    };
-    url: '/v1/reports/payroll/{school_id}/{year}/{month}/noted-by/{name}';
-};
-
-export type UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutErrors = {
-    /**
-     * Validation Error
-     */
-    422: HttpValidationError;
-};
-
-export type UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutError = UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutErrors[keyof UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutErrors];
-
-export type UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutResponses = {
-    /**
-     * Successful Response
-     */
-    200: PayrollReportNotedBy;
-};
-
-export type UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutResponse = UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutResponses[keyof UpdatePayrollReportNotedByV1ReportsPayrollSchoolIdYearMonthNotedByNamePutResponses];
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponse = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;
