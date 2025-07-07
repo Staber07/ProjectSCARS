@@ -18,9 +18,11 @@ from centralserver.internals.models.reports.monthly_report import (
     ReportStatus,
 )
 from centralserver.internals.models.reports.payroll_report import (
+    PayrollEntryRequest,
+    PayrollEntryUpdateRequest,
     PayrollReport,
     PayrollReportEntry,
-    PayrollReportNotedBy,
+    PayrollReportUpdateRequest,
 )
 from centralserver.internals.models.token import DecodedJWTToken
 
@@ -177,78 +179,6 @@ async def get_school_payroll_report_entries(
     return list(payroll_report.entries)
 
 
-@router.get("/{school_id}/{year}/{month}/noted-by")
-async def get_school_payroll_report_noted_by(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-) -> list[PayrollReportNotedBy]:
-    """Get all payroll report noted-by entries for a school for a specific month.
-
-    Args:
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-        school_id: The ID of the school to get reports for.
-        year: The year of the report.
-        month: The month of the report.
-
-    Returns:
-        A list of payroll report noted-by entries for the specified school, year, and month.
-
-    Raises:
-        HTTPException: If the user is not found, lacks permission, or the report is not found.
-    """
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
-    )
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view payroll report noted-by entries.",
-        )
-
-    logger.debug(
-        "user `%s` requesting payroll report noted-by entries of school %s for %s-%s.",
-        token.id,
-        school_id,
-        year,
-        month,
-    )
-
-    try:
-        selected_monthly_report = session.exec(
-            select(MonthlyReport).where(
-                MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-                MonthlyReport.submittedBySchool == school_id,
-            )
-        ).one()
-
-    except NoResultFound as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Monthly report not found.",
-        ) from e
-
-    payroll_report = selected_monthly_report.payroll_report
-    if payroll_report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payroll report not found.",
-        )
-
-    return list(payroll_report.noted_by)
-
-
 @router.patch("/{school_id}/{year}/{month}")
 async def create_school_payroll_report(
     token: logged_in_dep,
@@ -256,6 +186,7 @@ async def create_school_payroll_report(
     school_id: int,
     year: int,
     month: int,
+    noted_by: str | None = None,
 ) -> PayrollReport:
     """Create or update a payroll report of a school for a specific month.
 
@@ -265,6 +196,7 @@ async def create_school_payroll_report(
         school_id: The ID of the school to create or update the report for.
         year: The year of the report.
         month: The month of the report.
+        noted_by: The user who noted the report (optional).
 
     Returns:
         The created or updated payroll report.
@@ -322,6 +254,8 @@ async def create_school_payroll_report(
     if existing_payroll_report is None:
         new_payroll_report = PayrollReport(
             parent=selected_monthly_report.id,
+            preparedBy=user.id,  # Required field - always set to current user
+            notedBy=noted_by,  # Nullable field - can be None
         )
         session.add(new_payroll_report)
         session.commit()
@@ -342,16 +276,7 @@ async def create_payroll_report_entry(
     school_id: int,
     year: int,
     month: int,
-    week_number: int,
-    employee_id: str,
-    employee_name: str,
-    mon: float = 0.0,
-    tue: float = 0.0,
-    wed: float = 0.0,
-    thu: float = 0.0,
-    fri: float = 0.0,
-    total: float = 0.0,
-    signature: str | None = None,
+    entry_data: PayrollEntryRequest,
 ) -> PayrollReportEntry:
     """Create a new payroll report entry for a school for a specific month.
 
@@ -361,16 +286,7 @@ async def create_payroll_report_entry(
         school_id: The ID of the school to create the entry for.
         year: The year of the report.
         month: The month of the report.
-        week_number: The week number in the month.
-        employee_id: The employee identifier.
-        employee_name: The employee name.
-        mon: Amount received on Monday.
-        tue: Amount received on Tuesday.
-        wed: Amount received on Wednesday.
-        thu: Amount received on Thursday.
-        fri: Amount received on Friday.
-        total: Total amount received for the week.
-        signature: Signature or reference.
+        entry_data: The payroll entry data.
 
     Returns:
         The created payroll report entry.
@@ -401,8 +317,8 @@ async def create_payroll_report_entry(
         school_id,
         year,
         month,
-        week_number,
-        employee_id,
+        entry_data.week_number,
+        entry_data.employee_name,
     )
 
     # Ensure the payroll report exists
@@ -427,38 +343,33 @@ async def create_payroll_report_entry(
             detail="Payroll report not found. Create the payroll report first.",
         )
 
-    # Check if entry already exists (composite primary key)
+    # Check if entry already exists (composite primary key: parent, weekNumber, employee_name)
     existing_entry = session.exec(
         select(PayrollReportEntry).where(
             PayrollReportEntry.parent == payroll_report.parent,
-            PayrollReportEntry.week_number == week_number,
-            PayrollReportEntry.employee_id == employee_id,
+            PayrollReportEntry.weekNumber == entry_data.week_number,
+            PayrollReportEntry.employeeName == entry_data.employee_name,
         )
     ).one_or_none()
 
     if existing_entry:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Payroll entry for week {week_number} and employee {employee_id} already exists.",
+            detail=f"Payroll entry for week {entry_data.week_number} and employee {entry_data.employee_name} already exists.",
         )
-
-    # Calculate total if not provided or incorrect
-    calculated_total = mon + tue + wed + thu + fri
-    if total == 0.0 or abs(total - calculated_total) > 0.01:
-        total = calculated_total
 
     new_entry = PayrollReportEntry(
         parent=payroll_report.parent,
-        week_number=week_number,
-        employee_id=employee_id,
-        employee_name=employee_name,
-        mon=mon,
-        tue=tue,
-        wed=wed,
-        thu=thu,
-        fri=fri,
-        total=total,
-        signature=signature,
+        weekNumber=entry_data.week_number,
+        employeeName=entry_data.employee_name,
+        sun=entry_data.sun,
+        mon=entry_data.mon,
+        tue=entry_data.tue,
+        wed=entry_data.wed,
+        thu=entry_data.thu,
+        fri=entry_data.fri,
+        sat=entry_data.sat,
+        signature=entry_data.signature,
     )
 
     session.add(new_entry)
@@ -467,7 +378,7 @@ async def create_payroll_report_entry(
     return new_entry
 
 
-@router.put("/{school_id}/{year}/{month}/entries/{week_number}/{employee_id}")
+@router.put("/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}")
 async def update_payroll_report_entry(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -475,14 +386,8 @@ async def update_payroll_report_entry(
     year: int,
     month: int,
     week_number: int,
-    employee_id: str,
-    employee_name: str | None = None,
-    mon: float | None = None,
-    tue: float | None = None,
-    wed: float | None = None,
-    thu: float | None = None,
-    fri: float | None = None,
-    signature: str | None = None,
+    employee_name: str,
+    entry_data: PayrollEntryUpdateRequest,
 ) -> PayrollReportEntry:
     """Update an existing payroll report entry for a school for a specific month.
 
@@ -493,14 +398,8 @@ async def update_payroll_report_entry(
         year: The year of the report.
         month: The month of the report.
         week_number: The week number in the month.
-        employee_id: The employee identifier.
-        employee_name: The employee name (optional).
-        mon: Amount received on Monday (optional).
-        tue: Amount received on Tuesday (optional).
-        wed: Amount received on Wednesday (optional).
-        thu: Amount received on Thursday (optional).
-        fri: Amount received on Friday (optional).
-        signature: Signature or reference (optional).
+        employee_name: The employee name.
+        entry_data: The updated entry data.
 
     Returns:
         The updated payroll report entry.
@@ -532,7 +431,7 @@ async def update_payroll_report_entry(
         year,
         month,
         week_number,
-        employee_id,
+        employee_name,
     )
 
     # Find the existing entry
@@ -560,41 +459,34 @@ async def update_payroll_report_entry(
     existing_entry = session.exec(
         select(PayrollReportEntry).where(
             PayrollReportEntry.parent == payroll_report.parent,
-            PayrollReportEntry.week_number == week_number,
-            PayrollReportEntry.employee_id == employee_id,
+            PayrollReportEntry.weekNumber == week_number,
+            PayrollReportEntry.employeeName == employee_name,
         )
     ).one_or_none()
 
     if not existing_entry:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Payroll entry for week {week_number} and employee {employee_id} not found.",
+            detail=f"Payroll entry for week {week_number} and employee {employee_name} not found.",
         )
 
     # Update only the provided fields
-    if employee_name is not None:
-        existing_entry.employee_name = employee_name
-    if mon is not None:
-        existing_entry.mon = mon
-    if tue is not None:
-        existing_entry.tue = tue
-    if wed is not None:
-        existing_entry.wed = wed
-    if thu is not None:
-        existing_entry.thu = thu
-    if fri is not None:
-        existing_entry.fri = fri
-    if signature is not None:
-        existing_entry.signature = signature
-
-    # Recalculate total
-    existing_entry.total = (
-        existing_entry.mon
-        + existing_entry.tue
-        + existing_entry.wed
-        + existing_entry.thu
-        + existing_entry.fri
-    )
+    if entry_data.sun is not None:
+        existing_entry.sun = entry_data.sun
+    if entry_data.mon is not None:
+        existing_entry.mon = entry_data.mon
+    if entry_data.tue is not None:
+        existing_entry.tue = entry_data.tue
+    if entry_data.wed is not None:
+        existing_entry.wed = entry_data.wed
+    if entry_data.thu is not None:
+        existing_entry.thu = entry_data.thu
+    if entry_data.fri is not None:
+        existing_entry.fri = entry_data.fri
+    if entry_data.sat is not None:
+        existing_entry.sat = entry_data.sat
+    if entry_data.signature is not None:
+        existing_entry.signature = entry_data.signature
 
     session.add(existing_entry)
     session.commit()
@@ -602,7 +494,7 @@ async def update_payroll_report_entry(
     return existing_entry
 
 
-@router.delete("/{school_id}/{year}/{month}/entries/{week_number}/{employee_id}")
+@router.delete("/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}")
 async def delete_payroll_report_entry(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
@@ -610,7 +502,7 @@ async def delete_payroll_report_entry(
     year: int,
     month: int,
     week_number: int,
-    employee_id: str,
+    employee_name: str,
 ) -> dict[str, str]:
     """Delete a payroll report entry for a school for a specific month.
 
@@ -621,7 +513,7 @@ async def delete_payroll_report_entry(
         year: The year of the report.
         month: The month of the report.
         week_number: The week number in the month.
-        employee_id: The employee identifier.
+        employee_name: The employee name.
 
     Returns:
         A confirmation message.
@@ -653,7 +545,7 @@ async def delete_payroll_report_entry(
         year,
         month,
         week_number,
-        employee_id,
+        employee_name,
     )
 
     # Find the existing entry
@@ -681,49 +573,45 @@ async def delete_payroll_report_entry(
     existing_entry = session.exec(
         select(PayrollReportEntry).where(
             PayrollReportEntry.parent == payroll_report.parent,
-            PayrollReportEntry.week_number == week_number,
-            PayrollReportEntry.employee_id == employee_id,
+            PayrollReportEntry.weekNumber == week_number,
+            PayrollReportEntry.employeeName == employee_name,
         )
     ).one_or_none()
 
     if not existing_entry:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Payroll entry for week {week_number} and employee {employee_id} not found.",
+            detail=f"Payroll entry for week {week_number} and employee {employee_name} not found.",
         )
 
     session.delete(existing_entry)
     session.commit()
     return {
-        "message": f"Payroll entry for week {week_number} and employee {employee_id} deleted successfully."
+        "message": f"Payroll entry for week {week_number} and employee {employee_name} deleted successfully."
     }
 
 
-@router.post("/{school_id}/{year}/{month}/noted-by")
-async def create_payroll_report_noted_by(
+@router.put("/{school_id}/{year}/{month}")
+async def update_payroll_report(
     token: logged_in_dep,
     session: Annotated[Session, Depends(get_db_session)],
     school_id: int,
     year: int,
     month: int,
-    name: str,
-    position: str,
-    date: datetime.date | None = None,
-) -> PayrollReportNotedBy:
-    """Create a new payroll report noted-by entry for a school for a specific month.
+    update_data: PayrollReportUpdateRequest,
+) -> PayrollReport:
+    """Update payroll report metadata for a school for a specific month.
 
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
-        school_id: The ID of the school to create the noted-by entry for.
+        school_id: The ID of the school to update the report for.
         year: The year of the report.
         month: The month of the report.
-        name: The name of the person noting the report.
-        position: The position of the person noting the report.
-        date: The date when the report was noted (optional).
+        update_data: The fields to update.
 
     Returns:
-        The created payroll report noted-by entry.
+        The updated payroll report.
 
     Raises:
         HTTPException: If the user is not found, lacks permission, or the report is not found.
@@ -742,123 +630,17 @@ async def create_payroll_report_noted_by(
     if not await verify_user_permission(required_permission, session, token):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to create payroll report noted-by entries.",
+            detail="You do not have permission to update payroll reports.",
         )
 
     logger.debug(
-        "user `%s` creating payroll report noted-by entry for school %s for %s-%s with name %s.",
+        "user `%s` updating payroll report metadata for school %s for %s-%s.",
         token.id,
         school_id,
         year,
         month,
-        name,
     )
 
-    # Ensure the payroll report exists
-    try:
-        selected_monthly_report = session.exec(
-            select(MonthlyReport).where(
-                MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-                MonthlyReport.submittedBySchool == school_id,
-            )
-        ).one()
-
-    except NoResultFound as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Monthly report not found.",
-        ) from e
-
-    payroll_report = selected_monthly_report.payroll_report
-    if payroll_report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payroll report not found. Create the payroll report first.",
-        )
-
-    # Check if noted-by entry already exists for this person
-    existing_noted_by = session.exec(
-        select(PayrollReportNotedBy).where(
-            PayrollReportNotedBy.parent == payroll_report.parent,
-            PayrollReportNotedBy.name == name,
-        )
-    ).one_or_none()
-
-    if existing_noted_by:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Noted-by entry for {name} already exists.",
-        )
-
-    new_noted_by = PayrollReportNotedBy(
-        parent=payroll_report.parent,
-        name=name,
-        position=position,
-        date=date,
-    )
-
-    session.add(new_noted_by)
-    session.commit()
-    session.refresh(new_noted_by)
-    return new_noted_by
-
-
-@router.put("/{school_id}/{year}/{month}/noted-by/{name}")
-async def update_payroll_report_noted_by(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-    name: str,
-    position: str | None = None,
-    date: datetime.date | None = None,
-) -> PayrollReportNotedBy:
-    """Update an existing payroll report noted-by entry for a school for a specific month.
-
-    Args:
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-        school_id: The ID of the school to update the noted-by entry for.
-        year: The year of the report.
-        month: The month of the report.
-        name: The name of the person noting the report.
-        position: The position of the person noting the report (optional).
-        date: The date when the report was noted (optional).
-
-    Returns:
-        The updated payroll report noted-by entry.
-
-    Raises:
-        HTTPException: If the user is not found, lacks permission, or the entry is not found.
-    """
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:write" if user.schoolId == school_id else "reports:global:write"
-    )
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update payroll report noted-by entries.",
-        )
-
-    logger.debug(
-        "user `%s` updating payroll report noted-by entry for school %s for %s-%s with name %s.",
-        token.id,
-        school_id,
-        year,
-        month,
-        name,
-    )
-
-    # Find the existing noted-by entry
     try:
         selected_monthly_report = session.exec(
             select(MonthlyReport).where(
@@ -878,122 +660,25 @@ async def update_payroll_report_noted_by(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Payroll report not found.",
-        )
-
-    existing_noted_by = session.exec(
-        select(PayrollReportNotedBy).where(
-            PayrollReportNotedBy.parent == payroll_report.parent,
-            PayrollReportNotedBy.name == name,
-        )
-    ).one_or_none()
-
-    if not existing_noted_by:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Noted-by entry for {name} not found.",
         )
 
     # Update only the provided fields
-    if position is not None:
-        existing_noted_by.position = position
-    if date is not None:
-        existing_noted_by.date = date
-
-    session.add(existing_noted_by)
-    session.commit()
-    session.refresh(existing_noted_by)
-    return existing_noted_by
-
-
-@router.delete("/{school_id}/{year}/{month}/noted-by/{name}")
-async def delete_payroll_report_noted_by(
-    token: logged_in_dep,
-    session: Annotated[Session, Depends(get_db_session)],
-    school_id: int,
-    year: int,
-    month: int,
-    name: str,
-) -> dict[str, str]:
-    """Delete a payroll report noted-by entry for a school for a specific month.
-
-    Args:
-        token: The decoded JWT token of the logged-in user.
-        session: The database session.
-        school_id: The ID of the school to delete the noted-by entry for.
-        year: The year of the report.
-        month: The month of the report.
-        name: The name of the person noting the report.
-
-    Returns:
-        A confirmation message.
-
-    Raises:
-        HTTPException: If the user is not found, lacks permission, or the entry is not found.
-    """
-
-    user = await get_user(token.id, session, by_id=True)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found.",
-        )
-
-    required_permission = (
-        "reports:local:write" if user.schoolId == school_id else "reports:global:write"
-    )
-    if not await verify_user_permission(required_permission, session, token):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to delete payroll report noted-by entries.",
-        )
-
-    logger.debug(
-        "user `%s` deleting payroll report noted-by entry for school %s for %s-%s with name %s.",
-        token.id,
-        school_id,
-        year,
-        month,
-        name,
-    )
-
-    # Find the existing noted-by entry
-    try:
-        selected_monthly_report = session.exec(
-            select(MonthlyReport).where(
-                MonthlyReport.id == datetime.date(year=year, month=month, day=1),
-                MonthlyReport.submittedBySchool == school_id,
+    if update_data.prepared_by is not None:
+        if (
+            not update_data.prepared_by.strip()
+        ):  # Validation: preparedBy cannot be empty
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="preparedBy cannot be empty.",
             )
-        ).one()
+        payroll_report.preparedBy = update_data.prepared_by
+    if update_data.noted_by is not None:
+        payroll_report.notedBy = update_data.noted_by
 
-    except NoResultFound as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Monthly report not found.",
-        ) from e
-
-    payroll_report = selected_monthly_report.payroll_report
-    if payroll_report is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Payroll report not found.",
-        )
-
-    existing_noted_by = session.exec(
-        select(PayrollReportNotedBy).where(
-            PayrollReportNotedBy.parent == payroll_report.parent,
-            PayrollReportNotedBy.name == name,
-        )
-    ).one_or_none()
-
-    if not existing_noted_by:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Noted-by entry for {name} not found.",
-        )
-
-    session.delete(existing_noted_by)
+    session.add(payroll_report)
     session.commit()
-    return {"message": f"Noted-by entry for {name} deleted successfully."}
+    session.refresh(payroll_report)
+    return payroll_report
 
 
 @router.delete("/{school_id}/{year}/{month}")
@@ -1065,6 +750,7 @@ async def delete_school_payroll_report(
             detail="Payroll report not found.",
         )
 
+    # Reason: Deleting the payroll report will cascade delete all entries due to foreign key constraints
     session.delete(payroll_report)
     session.commit()
     return {"message": "Payroll report deleted successfully."}
