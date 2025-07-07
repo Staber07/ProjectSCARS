@@ -312,17 +312,27 @@ async def create_school_payroll_report(
             reportStatus=ReportStatus.DRAFT,
             preparedBy=user.id,
         )
+        session.add(selected_monthly_report)
 
-    new_payroll_report = PayrollReport(
-        parent=selected_monthly_report.id,
-    )
+    # Check if payroll report already exists for this monthly report
+    existing_payroll_report = session.exec(
+        select(PayrollReport).where(PayrollReport.parent == selected_monthly_report.id)
+    ).one_or_none()
 
-    session.add(selected_monthly_report)
-    session.add(new_payroll_report)
-    session.commit()
-    session.refresh(selected_monthly_report)
-    session.refresh(new_payroll_report)
-    return new_payroll_report
+    if existing_payroll_report is None:
+        new_payroll_report = PayrollReport(
+            parent=selected_monthly_report.id,
+        )
+        session.add(new_payroll_report)
+        session.commit()
+        session.refresh(selected_monthly_report)
+        session.refresh(new_payroll_report)
+        return new_payroll_report
+    else:
+        # Return the existing payroll report
+        session.commit()  # Still commit in case monthly report was created
+        session.refresh(selected_monthly_report)
+        return existing_payroll_report
 
 
 @router.post("/{school_id}/{year}/{month}/entries")
