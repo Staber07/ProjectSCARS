@@ -1,6 +1,10 @@
 import datetime
+from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
+
+if TYPE_CHECKING:
+    from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
 
 class PayrollReport(SQLModel, table=True):
@@ -16,6 +20,8 @@ class PayrollReport(SQLModel, table=True):
         back_populates="parent_report"
     )
     entries: list["PayrollReportEntry"] = Relationship(back_populates="parent_report")
+
+    parent_report: "MonthlyReport" = Relationship(back_populates="payroll_report")
 
 
 class PayrollReportNotedBy(SQLModel, table=True):
@@ -44,11 +50,13 @@ class PayrollReportEntry(SQLModel, table=True):
     week_number: int = Field(primary_key=True, description="Week number in the month")
     employee_id: str = Field(primary_key=True, description="Employee identifier")
     employee_name: str
+    sun: float = Field(default=0.0, description="Amount received on Sunday")
     mon: float = Field(default=0.0, description="Amount received on Monday")
     tue: float = Field(default=0.0, description="Amount received on Tuesday")
     wed: float = Field(default=0.0, description="Amount received on Wednesday")
     thu: float = Field(default=0.0, description="Amount received on Thursday")
     fri: float = Field(default=0.0, description="Amount received on Friday")
+    sat: float = Field(default=0.0, description="Amount received on Saturday")
     total: float = Field(default=0.0, description="Total amount received for the week")
     signature: str | None = Field(default=None, description="Signature or reference")
 
