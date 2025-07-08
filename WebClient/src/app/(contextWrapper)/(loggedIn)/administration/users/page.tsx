@@ -353,6 +353,79 @@ export default function UsersPage(): JSX.Element {
         setOpenBulkSchoolModal(true);
     };
 
+    // Handle bulk force update info toggle for selected users
+    const handleBulkForceUpdateToggle = async (action: "enable" | "disable") => {
+        const selectedUsers = Array.from(selected).map((idx) => users[idx]);
+        const enableForceUpdate = action === "enable";
+
+        try {
+            // Update all selected users with the new forceUpdateInfo status
+            await Promise.all(
+                selectedUsers.map(async (user) => {
+                    const result = await updateUserEndpointV1UsersPatch({
+                        body: {
+                            id: user.id,
+                            forceUpdateInfo: enableForceUpdate,
+                        },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (result.error) {
+                        throw new Error(
+                            `Failed to update user: ${result.response.status} ${result.response.statusText}`
+                        );
+                    }
+
+                    return result.data;
+                })
+            );
+
+            // Update local state to reflect changes in both users and allUsers arrays
+            const updatedUsers = [...users];
+            Array.from(selected).forEach((idx) => {
+                updatedUsers[idx] = {
+                    ...updatedUsers[idx],
+                    forceUpdateInfo: enableForceUpdate,
+                };
+            });
+            setUsers(updatedUsers);
+
+            // Also update the allUsers array to maintain consistency
+            const updatedAllUsers = [...allUsers];
+            Array.from(selected).forEach((idx) => {
+                const userToUpdate = users[idx];
+                const allUsersIndex = updatedAllUsers.findIndex((u) => u.id === userToUpdate.id);
+                if (allUsersIndex !== -1) {
+                    updatedAllUsers[allUsersIndex] = {
+                        ...updatedAllUsers[allUsersIndex],
+                        forceUpdateInfo: enableForceUpdate,
+                    };
+                }
+            });
+            setAllUsers(updatedAllUsers);
+
+            // Clear selection
+            setSelected(new Set());
+
+            notifications.show({
+                title: "Success",
+                message: `Successfully ${enableForceUpdate ? "enabled" : "disabled"} Force Update Info for ${
+                    selectedUsers.length
+                } user(s)`,
+                color: "green",
+                icon: enableForceUpdate ? <IconCheck /> : <IconX />,
+            });
+        } catch (error) {
+            console.error("Bulk force update toggle error:", error);
+            notifications.show({
+                title: "Error",
+                message: `Failed to ${enableForceUpdate ? "enable" : "disable"} Force Update Info for users`,
+                color: "red",
+                icon: <IconUserExclamation />,
+            });
+        }
+    };
+
     const toggleSelected = (index: number) => {
         const updated = new Set(selected);
         if (updated.has(index)) updated.delete(index);
@@ -607,6 +680,19 @@ export default function UsersPage(): JSX.Element {
                                                     onClick={handleOpenBulkSchoolModal}
                                                 >
                                                     Assign School
+                                                </Menu.Item>
+                                                <Menu.Divider />
+                                                <Menu.Item
+                                                    leftSection={<IconCheck size={14} />}
+                                                    onClick={() => handleBulkForceUpdateToggle("enable")}
+                                                >
+                                                    Enable Force Update Info
+                                                </Menu.Item>
+                                                <Menu.Item
+                                                    leftSection={<IconX size={14} />}
+                                                    onClick={() => handleBulkForceUpdateToggle("disable")}
+                                                >
+                                                    Disable Force Update Info
                                                 </Menu.Item>
                                             </Menu.Dropdown>
                                         </Menu>
