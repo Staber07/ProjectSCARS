@@ -61,6 +61,16 @@ export type BodyUpdateUserAvatarEndpointV1UsersAvatarPatch = {
 };
 
 /**
+ * Body_update_user_signature_endpoint_v1_users_signature_patch
+ */
+export type BodyUpdateUserSignatureEndpointV1UsersSignaturePatch = {
+    /**
+     * Img
+     */
+    img: Blob | File;
+};
+
+/**
  * ConfigUpdateRequest
  * Request model for updating configuration.
  */
@@ -1887,6 +1897,92 @@ export type UpdateUserAvatarEndpointV1UsersAvatarPatchResponses = {
 };
 
 export type UpdateUserAvatarEndpointV1UsersAvatarPatchResponse = UpdateUserAvatarEndpointV1UsersAvatarPatchResponses[keyof UpdateUserAvatarEndpointV1UsersAvatarPatchResponses];
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteError = DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors[keyof DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors];
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Fn
+         */
+        fn: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetError = GetUserSignatureEndpointV1UsersSignatureGetErrors[keyof GetUserSignatureEndpointV1UsersSignatureGetErrors];
+
+export type GetUserSignatureEndpointV1UsersSignatureGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchData = {
+    body: BodyUpdateUserSignatureEndpointV1UsersSignaturePatch;
+    path?: never;
+    query: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchError = UpdateUserSignatureEndpointV1UsersSignaturePatchErrors[keyof UpdateUserSignatureEndpointV1UsersSignaturePatchErrors];
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponse = UpdateUserSignatureEndpointV1UsersSignaturePatchResponses[keyof UpdateUserSignatureEndpointV1UsersSignaturePatchResponses];
 
 export type CreateSchoolEndpointV1SchoolsCreatePostData = {
     body: SchoolCreate;
