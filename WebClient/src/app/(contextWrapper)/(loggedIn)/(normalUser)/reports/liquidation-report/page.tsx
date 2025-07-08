@@ -5,7 +5,7 @@ import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, useCallback } from "react";
+import { Suspense, useState } from "react";
 import dayjs from "dayjs";
 import {
     ActionIcon,
@@ -30,16 +30,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput, DateInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
 import { IconCalendar, IconPlus, IconTrash, IconUpload, IconX, IconHistory } from "@tabler/icons-react";
-import { useUser } from "@/lib/providers/user";
-import {
-    getLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGet,
-    createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch,
-    LiquidationReportResponse,
-    LiquidationReportCreateRequest,
-    LiquidationReportEntryData,
-} from "@/lib/api/csclient";
 
 const report_type = {
     operating_expenses: "Operating Expenses",
@@ -64,9 +55,8 @@ const RECEIPT_FIELDS_REQUIRED = [
 
 const defaultUnitOptions = ["pcs", "packs", "boxes", "kg", "liters", "gallons", "bottles"];
 
-// Map frontend expense details to backend API format
 interface ExpenseDetails {
-    id: string; // Use string ID for frontend tracking
+    id: Date;
     date: Date;
     particulars: string;
     receiptNumber?: string;
@@ -75,41 +65,16 @@ interface ExpenseDetails {
     unitPrice: number;
 }
 
-// Helper function to convert ExpenseDetails to LiquidationReportEntryData
-const convertToEntryData = (item: ExpenseDetails): LiquidationReportEntryData => ({
-    date:
-        item.date instanceof Date && !isNaN(item.date.getTime())
-            ? item.date.toISOString().split("T")[0]
-            : new Date().toISOString().split("T")[0], // Convert to YYYY-MM-DD format with fallback
-    particulars: item.particulars,
-    receiptNumber: item.receiptNumber || null,
-    quantity: item.quantity || null,
-    unit: item.unit || null,
-    unitPrice: item.unitPrice,
-});
-
-// Helper function to convert LiquidationReportEntryData to ExpenseDetails
-const convertFromEntryData = (item: LiquidationReportEntryData): ExpenseDetails => ({
-    id: `${item.date}-${item.particulars}-${Math.random()}`, // Generate unique ID
-    date: new Date(item.date),
-    particulars: item.particulars,
-    receiptNumber: item.receiptNumber || undefined,
-    quantity: item.quantity || undefined,
-    unit: item.unit || undefined,
-    unitPrice: item.unitPrice,
-});
-
 function LiquidationReportContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const category = searchParams.get("category");
-    const { userInfo } = useUser();
 
     const [reportPeriod, setReportPeriod] = useState<Date | null>(new Date());
     const [unitOptions, setUnitOptions] = useState<string[]>(defaultUnitOptions);
     const [expenseItems, setExpenseItems] = useState<ExpenseDetails[]>([
         {
-            id: `initial-${Date.now()}`,
+            id: new Date(),
             date: new Date(),
             particulars: "",
             receiptNumber: RECEIPT_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
@@ -123,61 +88,9 @@ function LiquidationReportContent() {
     const [previewFile, setPreviewFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [opened, { open, close }] = useDisclosure(false);
-    const [loading, setLoading] = useState<boolean>(false);
-    const [existingReport, setExistingReport] = useState<LiquidationReportResponse | null>(null);
 
     const hasQtyUnit = QTY_FIELDS_REQUIRED.includes(category || "");
     const hasReceiptVoucher = RECEIPT_FIELDS_REQUIRED.includes(category || "");
-
-    const loadExistingReport = useCallback(async () => {
-        if (!reportPeriod || !category || !userInfo?.schoolId) return;
-
-        try {
-            setLoading(true);
-            const year = reportPeriod.getFullYear();
-            const month = reportPeriod.getMonth() + 1;
-
-            const response = await getLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGet({
-                path: {
-                    school_id: userInfo.schoolId,
-                    year,
-                    month,
-                    category,
-                },
-            });
-
-            if (response.data) {
-                setExistingReport(response.data);
-                if (response.data.entries && response.data.entries.length > 0) {
-                    setExpenseItems(response.data.entries.map(convertFromEntryData));
-                }
-            }
-        } catch (error) {
-            console.warn("No existing report found or error loading report:", error);
-            // Reset to default state if no report exists
-            setExistingReport(null);
-            setExpenseItems([
-                {
-                    id: `default-${Date.now()}`,
-                    date: new Date(),
-                    particulars: "",
-                    receiptNumber: hasReceiptVoucher ? "" : undefined,
-                    quantity: hasQtyUnit ? 1 : undefined,
-                    unit: hasQtyUnit ? "" : undefined,
-                    unitPrice: 0,
-                },
-            ]);
-        } finally {
-            setLoading(false);
-        }
-    }, [reportPeriod, category, userInfo?.schoolId, hasReceiptVoucher, hasQtyUnit]);
-
-    // Load existing report data when component mounts or period changes
-    useEffect(() => {
-        if (reportPeriod && category && userInfo?.schoolId) {
-            loadExistingReport();
-        }
-    }, [reportPeriod, category, userInfo?.schoolId, loadExistingReport]);
 
     const handleClose = () => {
         router.push("/reports");
@@ -185,7 +98,7 @@ function LiquidationReportContent() {
 
     const addNewItem = () => {
         const newItem: ExpenseDetails = {
-            id: `new-${Date.now()}-${Math.random()}`,
+            id: new Date(),
             date: new Date(),
             particulars: "",
             receiptNumber: hasReceiptVoucher ? "" : undefined,
@@ -196,13 +109,13 @@ function LiquidationReportContent() {
         setExpenseItems([...expenseItems, newItem]);
     };
 
-    const removeItem = (id: string) => {
+    const removeItem = (id: Date) => {
         if (expenseItems.length > 1) {
             setExpenseItems(expenseItems.filter((item) => item.id !== id));
         }
     };
 
-    const updateItem = (id: string, field: keyof ExpenseDetails, value: string | number | Date) => {
+    const updateItem = (id: Date, field: keyof ExpenseDetails, value: string | number | Date) => {
         setExpenseItems(
             expenseItems.map((item) => {
                 if (item.id === id) {
@@ -270,99 +183,12 @@ function LiquidationReportContent() {
         }
     };
 
-    const handleSubmitReport = async () => {
-        if (!reportPeriod || !category || !userInfo?.schoolId) {
-            console.error("Missing required data for submission");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const year = reportPeriod.getFullYear();
-            const month = reportPeriod.getMonth() + 1;
-
-            const reportData: LiquidationReportCreateRequest = {
-                notedBy: existingReport?.notedBy || null,
-                preparedBy: userInfo.id,
-                teacherInCharge: userInfo.id,
-                entries: expenseItems.map(convertToEntryData),
-                certifiedBy: existingReport?.certifiedBy || [],
-            };
-
-            await createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
-                path: {
-                    school_id: userInfo.schoolId,
-                    year,
-                    month,
-                    category,
-                },
-                body: reportData,
-            });
-
-            console.log("Report submitted successfully");
-            notifications.show({
-                title: "Success",
-                message: "Liquidation report submitted successfully!",
-                color: "green",
-            });
-            router.push("/reports");
-        } catch (error) {
-            console.error("Failed to submit report:", error);
-            notifications.show({
-                title: "Error",
-                message: "Failed to submit report. Please try again.",
-                color: "red",
-            });
-        } finally {
-            setLoading(false);
-        }
+    const handleSubmitReport = () => {
+        console.log("Submitting liquidation report...");
     };
 
-    const handleSaveDraft = async () => {
-        if (!reportPeriod || !category || !userInfo?.schoolId) {
-            console.error("Missing required data for draft save");
-            return;
-        }
-
-        try {
-            setLoading(true);
-            const year = reportPeriod.getFullYear();
-            const month = reportPeriod.getMonth() + 1;
-
-            const reportData: LiquidationReportCreateRequest = {
-                notedBy: existingReport?.notedBy || null,
-                preparedBy: userInfo.id,
-                teacherInCharge: userInfo.id,
-                entries: expenseItems.map(convertToEntryData),
-                certifiedBy: existingReport?.certifiedBy || [],
-            };
-
-            await createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
-                path: {
-                    school_id: userInfo.schoolId,
-                    year,
-                    month,
-                    category,
-                },
-                body: reportData,
-            });
-
-            console.log("Draft saved successfully");
-            notifications.show({
-                title: "Success",
-                message: "Draft saved successfully!",
-                color: "blue",
-            });
-        } catch (error) {
-            console.error("Failed to save draft:", error);
-            notifications.show({
-                title: "Error",
-                message: "Failed to save draft. Please try again.",
-                color: "red",
-            });
-        } finally {
-            setLoading(false);
-        }
+    const handleSaveDraft = () => {
+        console.log("Saving draft liquidation report...");
     };
 
     const handlePreview = () => {
@@ -460,7 +286,7 @@ function LiquidationReportContent() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {expenseItems.map((item) => (
-                                        <Table.Tr key={item.id}>
+                                        <Table.Tr key={item.id.toISOString()}>
                                             <Table.Td>
                                                 <DateInput
                                                     className="w-full"
@@ -661,7 +487,7 @@ function LiquidationReportContent() {
 
                 {/* Action Buttons */}
                 <Group justify="flex-end" gap="md">
-                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100" disabled={loading}>
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
                         Cancel
                     </Button>
                     <SplitButton
@@ -669,14 +495,9 @@ function LiquidationReportContent() {
                         onSaveDraft={handleSaveDraft}
                         onPreview={handlePreview}
                         className="bg-blue-600 hover:bg-blue-700"
-                        disabled={
-                            loading ||
-                            !reportPeriod ||
-                            !userInfo?.schoolId ||
-                            expenseItems.some((item) => !item.date || !item.particulars)
-                        }
+                        disabled={!reportPeriod || expenseItems.some((item) => !item.date || !item.particulars)}
                     >
-                        {loading ? "Saving..." : "Submit Report"}
+                        Submit Report
                     </SplitButton>
                 </Group>
 
