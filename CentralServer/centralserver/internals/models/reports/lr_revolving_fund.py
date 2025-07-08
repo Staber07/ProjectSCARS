@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.reports.report_status import ReportStatus
+
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -18,6 +20,10 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
     notedBy: str = Field(foreign_key="users.id")
     preparedBy: str = Field(foreign_key="users.id")
     teacherInCharge: str = Field(foreign_key="users.id")
+    reportStatus: ReportStatus = Field(
+        default=ReportStatus.DRAFT,
+        description="The status of the report.",
+    )
 
     entries: list["RevolvingFundEntry"] = Relationship(back_populates="parent_report")
     certified_by: list["RevolvingFundCertifiedBy"] = Relationship(

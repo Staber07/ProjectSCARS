@@ -595,6 +595,10 @@ export type PayrollReport = {
      * Notedby
      */
     notedBy: string | null;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
 };
 
 /**

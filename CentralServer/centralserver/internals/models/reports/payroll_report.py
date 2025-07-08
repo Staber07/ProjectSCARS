@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.reports.report_status import ReportStatus
+
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -20,6 +22,10 @@ class PayrollReport(SQLModel, table=True):
         foreign_key="users.id", description="The user who prepared the report."
     )
     notedBy: str | None = Field(foreign_key="users.id")
+    reportStatus: ReportStatus = Field(
+        default=ReportStatus.DRAFT,
+        description="The status of the report.",
+    )
 
     entries: list["PayrollReportEntry"] = Relationship(back_populates="parent_report")
     parent_report: "MonthlyReport" = Relationship(back_populates="payroll_report")

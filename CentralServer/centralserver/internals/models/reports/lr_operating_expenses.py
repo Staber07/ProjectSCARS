@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 
 from sqlmodel import Field, Relationship, SQLModel
 
+from centralserver.internals.models.reports.report_status import ReportStatus
+
 if TYPE_CHECKING:
     from centralserver.internals.models.reports.monthly_report import MonthlyReport
 
@@ -21,6 +23,10 @@ class LiquidationReportOperatingExpenses(SQLModel, table=True):
     teacherInCharge: str = Field(foreign_key="users.id")
     preparedBy: str = Field(foreign_key="users.id")
     notedBy: str = Field(foreign_key="users.id")
+    reportStatus: ReportStatus = Field(
+        default=ReportStatus.DRAFT,
+        description="The status of the report.",
+    )
 
     parent_report: "MonthlyReport" = Relationship(
         back_populates="operating_expenses_report"

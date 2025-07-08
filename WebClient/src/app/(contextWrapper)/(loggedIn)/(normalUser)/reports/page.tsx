@@ -1,10 +1,14 @@
 "use client";
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
-import { GetLocalMonthlyReports } from "@/lib/api/report";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { MonthlyReport, ReportStatus, School } from "@/lib/api/csclient";
+import {
+    MonthlyReport,
+    ReportStatus,
+    School,
+    getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
+} from "@/lib/api/csclient";
 import {
     ActionIcon,
     Alert,
@@ -61,8 +65,12 @@ export default function ReportsPage() {
             try {
                 if (userCtx.userInfo?.schoolId) {
                     setUserAssignedToSchool(true);
-                    const reports = await GetLocalMonthlyReports(userCtx.userInfo.schoolId, 0, 10);
-                    setReportSubmissions(reports);
+                    const { data: reports } = await getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet({
+                        path: { school_id: userCtx.userInfo.schoolId },
+                        query: { offset: 0, limit: 10 },
+                    });
+                    console.debug("Fetched reports:", reports);
+                    setReportSubmissions(reports || []);
                 } else {
                     setUserAssignedToSchool(false);
                     console.warn("No schoolId found in user context");
