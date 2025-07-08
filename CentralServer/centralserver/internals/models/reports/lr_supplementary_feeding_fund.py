@@ -15,8 +15,8 @@ class LiquidationReportSupplementaryFeedingFund(SQLModel, table=True):
     parent: datetime.date = Field(
         primary_key=True, index=True, foreign_key="monthlyReports.id"
     )
-    notedby: str = Field(foreign_key="users.id")
-    preparedby: str = Field(foreign_key="users.id")
+    notedBy: str = Field(foreign_key="users.id")
+    preparedBy: str = Field(foreign_key="users.id")
     teacherInCharge: str = Field(foreign_key="users.id")
 
     entries: list["SupplementaryFeedingFundEntry"] = Relationship(

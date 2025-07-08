@@ -16,7 +16,7 @@ class LiquidationReportHEFund(SQLModel, table=True):
     certified_by: list["LiquidationReportHEFundCertifiedBy"] = Relationship(
         back_populates="parent_report"
     )
-    notedby: str = Field(foreign_key="users.id")
+    notedBy: str = Field(foreign_key="users.id")
     preparedBy: str = Field(foreign_key="users.id")
     teacherInCharge: str = Field(foreign_key="users.id")
 
