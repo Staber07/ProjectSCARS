@@ -8,10 +8,12 @@ import {
     ActionIcon,
     Alert,
     Badge,
+    Box,
     Button,
     Card,
     Flex,
     Group,
+    // Image,
     Modal,
     NumberInput,
     Paper,
@@ -45,11 +47,11 @@ function SalesandPurchasesContent() {
     const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
     const [originalEntries, setOriginalEntries] = useState<DailyEntry[]>([]);
     const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
     const [modalOpened, setModalOpened] = useState(false);
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -651,6 +653,91 @@ function SalesandPurchasesContent() {
                     </Button>
                     <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
                 </Group>
+
+                {/* Signature Cards */}
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
+                    {/* Prepared By */}
+                    <Card withBorder p="md">
+                        <Stack gap="sm" align="center">
+                            <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                                Prepared by
+                            </Text>
+                            <Box
+                                w={200}
+                                h={80}
+                                style={{
+                                    border: "1px solid #dee2e6",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#f8f9fa",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
+                                <Text size="xs" c="dimmed">
+                                    Signature
+                                </Text>
+                            </Box>
+                            <div style={{ textAlign: "center" }}>
+                                <Text fw={600} size="sm">
+                                    NAME
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Position
+                                </Text>
+                            </div>
+                        </Stack>
+                    </Card>
+
+                    {/* Noted By */}
+                    <Card withBorder p="md" style={{ position: "relative" }}>
+                        <Badge
+                            size="sm"
+                            color="orange"
+                            variant="light"
+                            style={{
+                                position: "absolute",
+                                top: "12px",
+                                right: "12px",
+                            }}
+                        >
+                            Status
+                        </Badge>
+                        <Stack gap="sm" align="center">
+                            <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                                Noted by
+                            </Text>
+                            <Box
+                                w={200}
+                                h={80}
+                                style={{
+                                    border: "1px solid #dee2e6",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#f8f9fa",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
+                                <Text size="xs" c="dimmed">
+                                    Signature
+                                </Text>
+                            </Box>
+                            <div style={{ textAlign: "center" }}>
+                                <Text fw={600} size="sm">
+                                    NAME
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Position
+                                </Text>
+                            </div>
+                        </Stack>
+                    </Card>
+                </SimpleGrid>
 
                 {/* Edit Modal */}
                 <Modal
