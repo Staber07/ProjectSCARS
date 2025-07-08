@@ -202,6 +202,64 @@ async def update_user_avatar(
     return UserPublic.model_validate(selected_user)
 
 
+async def update_user_signature(
+    target_user: str, img: UploadFile | None, session: Session
+) -> UserPublic:
+    """Update the user's e-signature in the database.
+
+    Args:
+        target_user: The user to update.
+        img: The new e-signature image.
+        session: The database session to use.
+
+    Returns:
+        The updated user object.
+    """
+
+    selected_user = session.get(User, target_user)
+
+    if not selected_user:  # Check if user exists
+        logger.warning("Failed to update user: %s (user not found)", target_user)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    object_store_manager = await get_object_store_handler(app_config.object_store)
+    if img is None:
+        logger.debug("Deleting e-signature for user: %s", target_user)
+        if selected_user.signatureUrn is None:
+            logger.warning("No e-signature to delete for user: %s", target_user)
+            raise ValueError("No e-signature to delete.")
+
+        await object_store_manager.delete(
+            BucketNames.ESIGNATURES, selected_user.signatureUrn
+        )
+        selected_user.signatureUrn = None
+
+    else:
+        processed_img = await validate_and_process_image(await img.read())
+        if selected_user.signatureUrn is not None:
+            logger.debug("Deleting old e-signature for user: %s", target_user)
+            await object_store_manager.delete(
+                BucketNames.ESIGNATURES, selected_user.signatureUrn
+            )
+
+        logger.debug("Updating e-signature for user: %s", target_user)
+        bucket_object = await object_store_manager.put(
+            BucketNames.ESIGNATURES, selected_user.id, processed_img
+        )
+
+        selected_user.signatureUrn = bucket_object.fn
+
+    selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
+
+    session.commit()
+    session.refresh(selected_user)
+    logger.info("User info for `%s` updated.", selected_user.username)
+    return UserPublic.model_validate(selected_user)
+
+
 async def update_user_info(
     target_user: UserUpdate, token: DecodedJWTToken, session: Session
 ) -> UserPublic:
@@ -676,3 +734,8 @@ async def remove_user_info(
 async def get_user_avatar(fn: str) -> BucketObject | None:
     handler = await get_object_store_handler(app_config.object_store)
     return await handler.get(BucketNames.AVATARS, fn)
+
+
+async def get_user_signature(fn: str) -> BucketObject | None:
+    handler = await get_object_store_handler(app_config.object_store)
+    return await handler.get(BucketNames.ESIGNATURES, fn)
