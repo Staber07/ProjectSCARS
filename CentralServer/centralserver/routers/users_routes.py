@@ -471,10 +471,17 @@ async def delete_user_signature_endpoint(
         session: The session to the database.
     """
 
-    if not await verify_user_permission("users:global:modify", session, token):
+    updating_self = user_id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify", session, token
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update user profiles.",
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update other user profiles."
+            ),
         )
 
     logger.debug("user %s is deleting user e-signature of %s...", token.id, user_id)
