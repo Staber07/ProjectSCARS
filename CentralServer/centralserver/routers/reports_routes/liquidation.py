@@ -1,6 +1,6 @@
 # pylint: disable=C0302
 import datetime
-from typing import Annotated, Any, Union, Dict
+from typing import Annotated, Any, Dict, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
