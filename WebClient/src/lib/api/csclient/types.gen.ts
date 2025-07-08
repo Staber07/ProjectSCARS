@@ -177,6 +177,103 @@ export type JwtToken = {
 };
 
 /**
+ * LiquidationReportCreateRequest
+ * Request model for creating/updating liquidation reports.
+ */
+export type LiquidationReportCreateRequest = {
+    /**
+     * Notedby
+     */
+    notedBy?: string | null;
+    /**
+     * Preparedby
+     */
+    preparedBy?: string | null;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge?: string | null;
+    /**
+     * Entries
+     */
+    entries?: Array<LiquidationReportEntryData>;
+    /**
+     * Certifiedby
+     */
+    certifiedBy?: Array<string>;
+};
+
+/**
+ * LiquidationReportEntryData
+ * Data for a liquidation report entry.
+ */
+export type LiquidationReportEntryData = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Particulars
+     */
+    particulars: string;
+    /**
+     * Receiptnumber
+     */
+    receiptNumber?: string | null;
+    /**
+     * Quantity
+     */
+    quantity?: number | null;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+    /**
+     * Unitprice
+     */
+    unitPrice: number;
+};
+
+/**
+ * LiquidationReportResponse
+ * Response model for liquidation reports.
+ */
+export type LiquidationReportResponse = {
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy?: string | null;
+    /**
+     * Preparedby
+     */
+    preparedBy?: string | null;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge?: string | null;
+    /**
+     * Entries
+     */
+    entries?: Array<LiquidationReportEntryData>;
+    /**
+     * Certifiedby
+     */
+    certifiedBy?: Array<string>;
+    /**
+     * Totalamount
+     */
+    totalAmount?: number;
+};
+
+/**
  * MonthlyReport
  * A model representing a monthly report in the system.
  *
@@ -3279,6 +3376,240 @@ export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeek
 };
 
 export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponse = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses];
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteError = DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors[keyof DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors];
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetError = GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors[keyof GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors];
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LiquidationReportResponse;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponse = GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses[keyof GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses];
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchData = {
+    body: LiquidationReportCreateRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchError = CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors[keyof CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors];
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: LiquidationReportResponse;
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponse = CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses[keyof CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses];
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/entries';
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetError = GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors[keyof GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors];
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses = {
+    /**
+     * Response Get Liquidation Report Entries V1 Reports Liquidation  School Id   Year   Month   Category  Entries Get
+     * Successful Response
+     */
+    200: Array<LiquidationReportEntryData>;
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponse = GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses[keyof GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses];
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutData = {
+    /**
+     * Entries
+     */
+    body: Array<LiquidationReportEntryData>;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/entries';
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutError = UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors[keyof UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors];
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses = {
+    /**
+     * Response Update Liquidation Report Entries V1 Reports Liquidation  School Id   Year   Month   Category  Entries Put
+     * Successful Response
+     */
+    200: Array<LiquidationReportEntryData>;
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponse = UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses[keyof UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses];
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/reports/liquidation/categories';
+};
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses = {
+    /**
+     * Response Get Liquidation Categories V1 Reports Liquidation Categories Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: {
+            [key: string]: string | boolean;
+        };
+    };
+};
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponse = GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses[keyof GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;
