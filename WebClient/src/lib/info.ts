@@ -66,3 +66,8 @@ export const userAvatarConfig = {
     MAX_FILE_SIZE_MB: 2,
     ALLOWED_FILE_TYPES: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
 };
+
+export const userSignatureConfig = {
+    MAX_FILE_SIZE_MB: 1,
+    ALLOWED_FILE_TYPES: ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+};
