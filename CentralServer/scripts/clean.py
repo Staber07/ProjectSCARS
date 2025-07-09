@@ -184,6 +184,7 @@ def main() -> int:
             "centralserver-avatars",
             "centralserver-reports",
             "centralserver-school-logos",
+            "centralserver-attachments",
             "centralserver-esignatures",
         }
         for bucket in buckets:
