@@ -1294,9 +1294,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setOtpEnabled(false);
                                 }
                             } catch (error) {
+                                console.error(error instanceof Error ? error.message : error);
                                 notifications.show({
                                     title: "Error",
-                                    message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                    message: "An unknown error occurred.",
                                     color: "red",
                                     icon: <IconX />,
                                 });
@@ -1408,9 +1409,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setShowOTPModal(false);
                                     setShowRecoveryCodeModal(true);
                                 } catch (error) {
+                                    console.error(error instanceof Error ? error.message : error);
                                     notifications.show({
                                         title: "Error Enabling Two-Step Verification",
-                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                        message: "An unknown error occurred.",
                                         color: "red",
                                         icon: <IconX />,
                                     });
