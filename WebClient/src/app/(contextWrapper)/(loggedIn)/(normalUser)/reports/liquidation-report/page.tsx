@@ -984,24 +984,21 @@ function LiquidationReportContent() {
                     </Card>
 
                     {/* Noted By */}
-                    <Card withBorder p="md" style={{ position: "relative" }}>
-                        <Badge
-                            size="sm"
-                            color={selectedNotedByUser ? "green" : "orange"}
-                            variant="light"
-                            style={{
-                                position: "absolute",
-                                top: "12px",
-                                right: "12px",
-                            }}
-                        >
-                            {selectedNotedByUser ? "Selected" : "Not Selected"}
-                        </Badge>
+                    <Card withBorder p="md">
                         <Stack gap="sm" align="center">
-                            <Group justify="space-between" w="100%">
-                                <Text size="sm" c="dimmed" fw={500}>
-                                    Noted by
-                                </Text>
+                            <Group justify="space-between" w="100%" align="center">
+                                <Group gap="xs" align="center">
+                                    <Text size="sm" c="dimmed" fw={500}>
+                                        Noted by
+                                    </Text>
+                                    <Badge
+                                        size="sm"
+                                        color={selectedNotedByUser ? "green" : "orange"}
+                                        variant="light"
+                                    >
+                                        {selectedNotedByUser ? "Selected" : "Not Selected"}
+                                    </Badge>
+                                </Group>
                                 {selectedNotedByUser ? (
                                     <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
                                         Clear
