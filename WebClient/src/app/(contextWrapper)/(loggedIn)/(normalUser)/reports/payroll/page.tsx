@@ -2,6 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
 import {
     ActionIcon,
     Badge,
@@ -42,7 +43,7 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -1138,6 +1139,8 @@ function PayrollPageContent() {
                                 setSignatureModalOpened(false);
                                 setCurrentSigningEmployee(null);
                             }}
+                            width={400}
+                            height={150}
                         />
                     </div>
                 </Stack>
@@ -1151,135 +1154,5 @@ export default function PayrollPage(): React.ReactElement {
         <Suspense fallback={<LoadingComponent message="Please wait..." />}>
             <PayrollPageContent />
         </Suspense>
-    );
-}
-
-interface SignatureCanvasProps {
-    onSave: (signatureData: string) => void;
-    onCancel: () => void;
-}
-
-function SignatureCanvas({ onSave, onCancel }: SignatureCanvasProps) {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isDrawing, setIsDrawing] = useState(false);
-    const [hasDrawn, setHasDrawn] = useState(false);
-
-    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.beginPath();
-            ctx.moveTo(x, y);
-            setIsDrawing(true);
-        }
-    };
-
-    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing) return;
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.lineTo(x, y);
-            ctx.stroke();
-            setHasDrawn(true);
-        }
-    };
-
-    const stopDrawing = () => {
-        setIsDrawing(false);
-    };
-
-    const clearCanvas = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            setHasDrawn(false);
-        }
-    };
-
-    const saveSignature = () => {
-        const canvas = canvasRef.current;
-        if (!canvas || !hasDrawn) return;
-
-        const signatureData = canvas.toDataURL("image/png");
-        onSave(signatureData);
-    };
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const ctx = canvas.getContext("2d");
-        if (ctx) {
-            ctx.strokeStyle = "#000";
-            ctx.lineWidth = 2;
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
-        }
-    }, []);
-
-    return (
-        <Stack gap="md">
-            <Box
-                style={{
-                    border: "2px dashed #dee2e6",
-                    borderRadius: "8px",
-                    padding: "8px",
-                    backgroundColor: "#f8f9fa",
-                }}
-            >
-                <canvas
-                    ref={canvasRef}
-                    width={400}
-                    height={150}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    style={{
-                        cursor: "crosshair",
-                        display: "block",
-                        backgroundColor: "white",
-                        borderRadius: "4px",
-                        width: "100%",
-                    }}
-                />
-            </Box>
-
-            <Group justify="space-between">
-                <Button
-                    variant="outline"
-                    onClick={clearCanvas}
-                    disabled={!hasDrawn}
-                    leftSection={<IconTrash size={16} />}
-                >
-                    Clear
-                </Button>
-                <Group gap="sm">
-                    <Button variant="outline" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button onClick={saveSignature} disabled={!hasDrawn} className="bg-green-600 hover:bg-green-700">
-                        Confirm
-                    </Button>
-                </Group>
-            </Group>
-        </Stack>
     );
 }

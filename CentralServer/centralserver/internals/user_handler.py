@@ -9,6 +9,7 @@ from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
     validate_and_process_image,
+    validate_and_process_signature,
 )
 from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
@@ -238,7 +239,7 @@ async def update_user_signature(
         selected_user.signatureUrn = None
 
     else:
-        processed_img = await validate_and_process_image(await img.read())
+        processed_img = await validate_and_process_signature(await img.read())
         if selected_user.signatureUrn is not None:
             logger.debug("Deleting old e-signature for user: %s", target_user)
             await object_store_manager.delete(
