@@ -2,6 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
 import {
     deleteUserAvatarEndpointV1UsersAvatarDelete,
     deleteUserInfoEndpointV1UsersDelete,
@@ -136,6 +137,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
     const [availableSchools, setAvailableSchools] = useState<string[]>([]);
     const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+    const [showSignatureDrawModal, setShowSignatureDrawModal] = useState(false);
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
         google: false,
         // TODO: OAuth adapters below are not implemented yet.
@@ -291,6 +293,32 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             }
             return URL.createObjectURL(file); // Create a new URL for the selected file
         });
+    };
+
+    const handleDrawSignature = () => {
+        setShowSignatureDrawModal(true);
+    };
+
+    const handleSaveDrawnSignature = (signatureData: string) => {
+        // Convert data URL to blob
+        const [header, base64Data] = signatureData.split(",");
+        const mimeType = header.match(/:(.*?);/)?.[1] || "image/png";
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: mimeType });
+        const file = new File([blob], "signature.png", { type: "image/png" });
+
+        // Use existing signature change handler
+        handleChangeSignature(file);
+        setShowSignatureDrawModal(false);
+    };
+
+    const handleCancelDrawSignature = () => {
+        setShowSignatureDrawModal(false);
     };
     const handleSave = async (values: EditProfileValues) => {
         buttonStateHandler.open();
@@ -1051,6 +1079,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                         </Button>
                                     )}
                                 </FileButton>
+                                <Button variant="outline" size="sm" onClick={handleDrawSignature}>
+                                    Draw Signature
+                                </Button>
                                 {editUserSignatureUrl && (
                                     <Button
                                         variant="outline"
@@ -1071,7 +1102,8 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             </Stack>
                         </Group>
                         <Text size="xs" c="dimmed">
-                            Upload your electronic signature. Max file size: 1MB. Formats: JPG, PNG, WEBP.
+                            Upload your electronic signature or draw it directly. Max file size: 1MB. Formats: JPG, PNG,
+                            WEBP.
                         </Text>
                     </Stack>
                 </Flex>
@@ -1721,6 +1753,28 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     />
                 </Stack>
             </Paper>
+
+            {/* Signature Drawing Modal */}
+            <Modal
+                opened={showSignatureDrawModal}
+                onClose={handleCancelDrawSignature}
+                title={
+                    <Group gap="sm">
+                        <IconScribble size={20} />
+                        <Text fw={500}>Draw Your Signature</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    <Text size="sm" c="dimmed">
+                        Draw your signature in the canvas below. Use your mouse or touch to create your signature.
+                    </Text>
+                    <SignatureCanvas onSave={handleSaveDrawnSignature} onCancel={handleCancelDrawSignature} />
+                </Stack>
+            </Modal>
+
             <ChangeEmailComponent
                 modalOpen={showChangeEmailModal}
                 setModalOpen={setShowChangeEmailModal}
