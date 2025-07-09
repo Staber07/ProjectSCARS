@@ -761,7 +761,11 @@ function PayrollPageContent() {
                         <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
                             <Text fw={700}>Total Amount Received:</Text>
                             <Text fw={700} size="lg">
-                                ₱{calculateTotalAmountReceived().toFixed(2)}
+                                ₱
+                                {calculateTotalAmountReceived().toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
                             </Text>
                         </Group>
                     </Card>
