@@ -26,8 +26,8 @@
             "cwd": "${workspaceFolder}/WebClient",
             "runtimeExecutable": "npm",
             "runtimeArgs": ["run", "dev"],
-            "console": "integratedTerminal",
-            "envFile": "${workspaceFolder}/WebClient/.env"
+            "envFile": "${workspaceFolder}/WebClient/.env",
+            "console": "integratedTerminal"
         }
     ]
 }
