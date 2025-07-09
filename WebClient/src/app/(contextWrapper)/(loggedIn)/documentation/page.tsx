@@ -3,9 +3,8 @@
 import classes from "@/app/(contextWrapper)/(loggedIn)/documentation/DocumentationPage.module.css";
 import { ProgramTitleCenter } from "@/components/ProgramTitleCenter";
 import { useAuth } from "@/lib/providers/auth";
-import { Anchor, Container, Divider, List, TableOfContents, Text, Title } from "@mantine/core";
+import { Container, Divider, TableOfContents, Text, Title } from "@mantine/core";
 import { useAnimation } from "motion/react";
-import Link from "next/link";
 
 export default function DocumentationPage() {
     const logoControls = useAnimation();

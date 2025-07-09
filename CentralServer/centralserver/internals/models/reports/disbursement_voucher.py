@@ -82,8 +82,8 @@ class DisbursementVoucherEntry(SQLModel, table=True):
     )
     # to be edited for specific inputs based on the report requirements
     date: datetime.datetime
-    receipt: str
-    particulars: str
+    receipt: str | None
+    particulars: str = Field(primary_key=True)
     unit: str
     quantity: float
     unitPrice: float
