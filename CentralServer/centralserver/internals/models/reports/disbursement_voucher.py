@@ -49,13 +49,13 @@ class DisbursementVoucher(SQLModel, table=True):
     )
 
     certified_by: list["DisbursementVoucherCertifiedBy"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     entries: list["DisbursementVoucherEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     accounting_entries: list["DisbursementVoucherAccountingEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     parent_report: "MonthlyReport" = Relationship(
         back_populates="disbursement_voucher_report"

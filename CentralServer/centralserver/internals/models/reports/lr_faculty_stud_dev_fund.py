@@ -26,10 +26,10 @@ class LiquidationReportFacultyAndStudentDevFund(SQLModel, table=True):
     )
 
     audited_by: list["FacultyAndStudentDevFundAuditedBy"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     entries: list["FacultyAndStudentDevFundEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     parent_report: "MonthlyReport" = Relationship(
         back_populates="faculty_and_student_dev_fund_report"
@@ -44,7 +44,7 @@ class FacultyAndStudentDevFundAuditedBy(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportFacultyAndStudentDevFund.parent",
     )
-    user: str = Field(foreign_key="users.id")
+    user: str = Field(primary_key=True, foreign_key="users.id")
 
     parent_report: LiquidationReportFacultyAndStudentDevFund = Relationship(
         back_populates="audited_by"
@@ -59,8 +59,15 @@ class FacultyAndStudentDevFundEntry(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportFacultyAndStudentDevFund.parent",
     )
-    date: datetime.datetime
-    receipt: str
+    date: datetime.datetime = Field(
+        primary_key=True,
+        index=True,
+        description="The date of the expense entry.",
+    )
+    receipt: str = Field(
+        primary_key=True,
+        description="The receipt number/identifier for this expense entry.",
+    )
     particulars: str
     unit: str
     quantity: float

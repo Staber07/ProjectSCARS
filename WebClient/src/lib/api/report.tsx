@@ -1,10 +1,12 @@
-import ky from "ky";
-
-import { DailyFinancialReport, DailyFinancialReportEntry, MonthlyReport } from "@/lib/api/csclient";
-import { Connections } from "@/lib/info";
-import { GetAccessTokenHeader } from "@/lib/utils/token";
-
-const endpoint = `${Connections.CentralServer.endpoint}/api/v1`;
+import * as csclient from "@/lib/api/csclient";
+import {
+    DailyFinancialReport,
+    DailyFinancialReportEntry,
+    LiquidationReportCreateRequest,
+    LiquidationReportEntryData,
+    LiquidationReportResponse,
+    MonthlyReport,
+} from "@/lib/api/csclient";
 
 export async function GetLocalMonthlyReports(
     schoolId: number,
@@ -12,19 +14,18 @@ export async function GetLocalMonthlyReports(
     limit: number
 ): Promise<MonthlyReport[]> {
     console.debug(`GetLocalMonthlyReports: schoolId=${schoolId}, offset=${offset}, limit=${limit}`);
-    const centralServerResponse = await ky.get(`${endpoint}/reports/monthly/${schoolId}`, {
-        searchParams: { offset, limit },
-        headers: { Authorization: GetAccessTokenHeader() },
+
+    const response = await csclient.getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet({
+        path: { school_id: schoolId },
+        query: { offset, limit },
     });
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get local monthly reports: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+    if (!response.data) {
+        console.warn(`No monthly reports found for schoolId=${schoolId}`);
+        return [];
     }
 
-    const data: MonthlyReport[] = await centralServerResponse.json();
-    return data;
+    return response.data;
 }
 
 export async function GetDailySalesAndPurchasesReport(
@@ -32,25 +33,26 @@ export async function GetDailySalesAndPurchasesReport(
     year: number,
     month: number
 ): Promise<DailyFinancialReport | null> {
-    console.debug(`GetDailySalesAndPurchases: schoolId=${schoolId}, month=${month}`);
-    const centralServerResponse = await ky.get(`${endpoint}/reports/daily/${schoolId}/${year}/${month}`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-    });
+    console.debug(`GetDailySalesAndPurchases: schoolId=${schoolId}, year=${year}, month=${month}`);
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get daily sales and purchases: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
-    }
+    try {
+        const response = await csclient.getSchoolDailyReportV1ReportsDailySchoolIdYearMonthGet({
+            path: { school_id: schoolId, year, month },
+        });
 
-    const data: DailyFinancialReport | null = await centralServerResponse.json();
-    if (!data) {
-        console.warn(
-            `No daily sales and purchases report found for schoolId=${schoolId}, year=${year}, month=${month}`
-        );
-        return null;
+        if (!response.data) {
+            console.warn(
+                `No daily sales and purchases report found for schoolId=${schoolId}, year=${year}, month=${month}`
+            );
+            return null;
+        }
+        return response.data;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("404")) {
+            return null;
+        }
+        throw error;
     }
-    return data;
 }
 
 export async function GetDailySalesAndPurchasesReportEntries(
@@ -58,19 +60,20 @@ export async function GetDailySalesAndPurchasesReportEntries(
     year: number,
     month: number
 ): Promise<DailyFinancialReportEntry[]> {
-    console.debug(`GetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, month=${month}`);
-    const centralServerResponse = await ky.get(`${endpoint}/reports/daily/${schoolId}/${year}/${month}/entries`, {
-        headers: { Authorization: GetAccessTokenHeader() },
-    });
+    console.debug(`GetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, year=${year}, month=${month}`);
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to get daily sales and purchases entries: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+    try {
+        const response = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+            path: { school_id: schoolId, year, month },
+        });
+
+        return response.data || [];
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("404")) {
+            return [];
+        }
+        throw error;
     }
-
-    const data: DailyFinancialReportEntry[] = await centralServerResponse.json();
-    return data;
 }
 
 export async function SetDailySalesAndPurchasesReport(
@@ -79,20 +82,18 @@ export async function SetDailySalesAndPurchasesReport(
     month: number,
     report: DailyFinancialReport
 ): Promise<DailyFinancialReport> {
-    console.debug(`SetDailySalesAndPurchasesReport: schoolId=${schoolId}, month=${month}`);
-    const centralServerResponse = await ky.patch(`${endpoint}/reports/daily/${schoolId}/${year}/${month}`, {
-        json: report,
-        headers: { Authorization: GetAccessTokenHeader() },
+    console.debug(`SetDailySalesAndPurchasesReport: schoolId=${schoolId}, year=${year}, month=${month}`);
+
+    const response = await csclient.createSchoolDailyReportV1ReportsDailySchoolIdYearMonthPatch({
+        path: { school_id: schoolId, year, month },
+        query: { noted_by: report.notedBy },
     });
 
-    if (!centralServerResponse.ok) {
-        const errorMessage = `Failed to set daily sales and purchases report: ${centralServerResponse.status} ${centralServerResponse.statusText}`;
-        console.error(errorMessage);
-        throw new Error(errorMessage);
+    if (!response.data) {
+        throw new Error("Failed to set daily sales and purchases report");
     }
 
-    const data: DailyFinancialReport = await centralServerResponse.json();
-    return data;
+    return response.data;
 }
 
 export async function SetDailySalesAndPurchasesReportEntries(
@@ -101,26 +102,110 @@ export async function SetDailySalesAndPurchasesReportEntries(
     month: number,
     entries: DailyFinancialReportEntry[]
 ): Promise<void> {
-    console.debug(`SetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, month=${month}`);
+    console.debug(`SetDailySalesAndPurchasesReportEntries: schoolId=${schoolId}, year=${year}, month=${month}`);
 
-    // For each entry, send a PATCH request to update the entry for the given day
+    // For each entry, send a PUT request to update the entry for the given day
     await Promise.all(
         entries.map(async (entry: DailyFinancialReportEntry) => {
-            // Assuming entry has 'parent' as Date and 'sales', 'purchases' as numbers
-            const response = await ky.patch(`${endpoint}/reports/daily/${schoolId}/${year}/${month}/entry`, {
-                searchParams: {
-                    day: entry.day,
-                    sales: entry.sales,
-                    purchases: entry.purchases,
-                },
-                headers: { Authorization: GetAccessTokenHeader() },
+            await csclient.updateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPut({
+                path: { school_id: schoolId, year, month, day: entry.day },
+                query: { sales: entry.sales, purchases: entry.purchases },
             });
-
-            if (!response.ok) {
-                const errorMessage = `Failed to set daily sales and purchases entry for day ${entry.day}: ${response.status} ${response.statusText}`;
-                console.error(errorMessage);
-                throw new Error(errorMessage);
-            }
         })
     );
+}
+
+// Liquidation Report API Functions
+
+export async function GetLiquidationReport(
+    schoolId: number,
+    year: number,
+    month: number,
+    category: string
+): Promise<LiquidationReportResponse | null> {
+    console.debug(`GetLiquidationReport: schoolId=${schoolId}, year=${year}, month=${month}, category=${category}`);
+
+    try {
+        const response = await csclient.getLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGet({
+            path: { school_id: schoolId, year, month, category },
+        });
+
+        return response.data || null;
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("404")) {
+            // Report doesn't exist yet
+            return null;
+        }
+        throw error;
+    }
+}
+
+export async function GetLiquidationReportEntries(
+    schoolId: number,
+    year: number,
+    month: number,
+    category: string
+): Promise<LiquidationReportEntryData[]> {
+    console.debug(
+        `GetLiquidationReportEntries: schoolId=${schoolId}, year=${year}, month=${month}, category=${category}`
+    );
+
+    try {
+        const response =
+            await csclient.getLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGet({
+                path: { school_id: schoolId, year, month, category },
+            });
+
+        return response.data || [];
+    } catch (error) {
+        if (error instanceof Error && error.message.includes("404")) {
+            // No entries exist yet
+            return [];
+        }
+        throw error;
+    }
+}
+
+export async function CreateOrUpdateLiquidationReport(
+    schoolId: number,
+    year: number,
+    month: number,
+    category: string,
+    reportData: LiquidationReportCreateRequest
+): Promise<LiquidationReportResponse> {
+    console.debug(
+        `CreateOrUpdateLiquidationReport: schoolId=${schoolId}, year=${year}, month=${month}, category=${category}`
+    );
+
+    const response = await csclient.createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
+        path: { school_id: schoolId, year, month, category },
+        body: reportData,
+    });
+
+    if (!response.data) {
+        throw new Error("Failed to create/update liquidation report");
+    }
+
+    return response.data;
+}
+
+export async function DeleteLiquidationReport(
+    schoolId: number,
+    year: number,
+    month: number,
+    category: string
+): Promise<void> {
+    console.debug(`DeleteLiquidationReport: schoolId=${schoolId}, year=${year}, month=${month}, category=${category}`);
+
+    await csclient.deleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDelete({
+        path: { school_id: schoolId, year, month, category },
+    });
+}
+
+export async function GetLiquidationCategories(): Promise<Record<string, Record<string, string | boolean>>> {
+    console.debug("GetLiquidationCategories");
+
+    const response = await csclient.getLiquidationCategoriesV1ReportsLiquidationCategoriesGet();
+
+    return response.data || {};
 }

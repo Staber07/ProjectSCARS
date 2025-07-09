@@ -27,7 +27,7 @@ class LiquidationReportHEFund(SQLModel, table=True):
     )
 
     entries: list["LiquidationReportHEFundEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     parent_report: "MonthlyReport" = Relationship(back_populates="he_fund_report")
 
@@ -42,7 +42,7 @@ class LiquidationReportHEFundCertifiedBy(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportHEFund.parent",
     )
-    user: str = Field(foreign_key="users.id")
+    user: str = Field(primary_key=True, foreign_key="users.id")
 
     parent_report: LiquidationReportHEFund = Relationship(back_populates="certified_by")
 
@@ -55,8 +55,15 @@ class LiquidationReportHEFundEntry(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportHEFund.parent",
     )
-    date: datetime.datetime
-    receipt: str
+    date: datetime.datetime = Field(
+        primary_key=True,
+        index=True,
+        description="The date of the expense entry.",
+    )
+    receipt: str = Field(
+        primary_key=True,
+        description="The receipt number/identifier for this expense entry.",
+    )
     particulars: str
     unit: str
     quantity: float

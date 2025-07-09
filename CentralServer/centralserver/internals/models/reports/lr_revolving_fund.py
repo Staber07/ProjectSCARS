@@ -25,9 +25,11 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
         description="The status of the report.",
     )
 
-    entries: list["RevolvingFundEntry"] = Relationship(back_populates="parent_report")
+    entries: list["RevolvingFundEntry"] = Relationship(
+        back_populates="parent_report", cascade_delete=True
+    )
     certified_by: list["RevolvingFundCertifiedBy"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     parent_report: "MonthlyReport" = Relationship(
         back_populates="revolving_fund_report"
@@ -44,7 +46,7 @@ class RevolvingFundCertifiedBy(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportRevolvingFund.parent",
     )
-    user: str = Field(foreign_key="users.id")
+    user: str = Field(primary_key=True, foreign_key="users.id")
 
     parent_report: LiquidationReportRevolvingFund = Relationship(
         back_populates="certified_by"
@@ -59,8 +61,15 @@ class RevolvingFundEntry(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportRevolvingFund.parent",
     )
-    date: datetime.datetime
-    receipt: str
+    date: datetime.datetime = Field(
+        primary_key=True,
+        index=True,
+        description="The date of the expense entry.",
+    )
+    receipt: str = Field(
+        primary_key=True,
+        description="The receipt number/identifier for this expense entry.",
+    )
     particulars: str
     unit: str
     quantity: float

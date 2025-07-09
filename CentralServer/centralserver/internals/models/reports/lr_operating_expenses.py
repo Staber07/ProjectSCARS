@@ -32,10 +32,10 @@ class LiquidationReportOperatingExpenses(SQLModel, table=True):
         back_populates="operating_expenses_report"
     )
     certified_by: list["OperatingExpensesCertifiedBy"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     entries: list["OperatingExpenseEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
 
 
@@ -49,7 +49,7 @@ class OperatingExpensesCertifiedBy(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportOperatingExpenses.parent",
     )
-    user: str = Field(foreign_key="users.id")
+    user: str = Field(primary_key=True, foreign_key="users.id")
 
     parent_report: "LiquidationReportOperatingExpenses" = Relationship(
         back_populates="certified_by"
@@ -66,8 +66,15 @@ class OperatingExpenseEntry(SQLModel, table=True):
         index=True,
         foreign_key="liquidationReportOperatingExpenses.parent",
     )
-    date: datetime.datetime
-    particulars: str
+    date: datetime.datetime = Field(
+        primary_key=True,
+        index=True,
+        description="The date of the expense entry.",
+    )
+    particulars: str = Field(
+        primary_key=True,
+        description="The description/name of the expense item (e.g., LPG, Rice, Water).",
+    )
     unit: str  # currency (PHP), weight (kg), etc.
     quantity: float  # NOTE: This is float because it could be a (for example) weight
     unit_price: float

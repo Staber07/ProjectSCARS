@@ -1057,6 +1057,41 @@ export type UserPublic = {
 };
 
 /**
+ * UserSimple
+ * A simplified model representing essential user information for reports and signatures.
+ */
+export type UserSimple = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Namefirst
+     */
+    nameFirst: string | null;
+    /**
+     * Namemiddle
+     */
+    nameMiddle: string | null;
+    /**
+     * Namelast
+     */
+    nameLast: string | null;
+    /**
+     * Position
+     */
+    position: string | null;
+    /**
+     * Avatarurn
+     */
+    avatarUrn: string | null;
+    /**
+     * Signatureurn
+     */
+    signatureUrn: string | null;
+};
+
+/**
  * UserUpdate
  * A model used when updating user information.
  */
@@ -1987,6 +2022,37 @@ export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponses = {
 };
 
 export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponse = UpdateUserSignatureEndpointV1UsersSignaturePatchResponses[keyof UpdateUserSignatureEndpointV1UsersSignaturePatchResponses];
+
+export type GetUsersSimpleEndpointV1UsersSimpleGetData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * School Id
+         */
+        school_id?: number | null;
+    };
+    url: '/v1/users/simple';
+};
+
+export type GetUsersSimpleEndpointV1UsersSimpleGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUsersSimpleEndpointV1UsersSimpleGetError = GetUsersSimpleEndpointV1UsersSimpleGetErrors[keyof GetUsersSimpleEndpointV1UsersSimpleGetErrors];
+
+export type GetUsersSimpleEndpointV1UsersSimpleGetResponses = {
+    /**
+     * Response Get Users Simple Endpoint V1 Users Simple Get
+     * Successful Response
+     */
+    200: Array<UserSimple>;
+};
+
+export type GetUsersSimpleEndpointV1UsersSimpleGetResponse = GetUsersSimpleEndpointV1UsersSimpleGetResponses[keyof GetUsersSimpleEndpointV1UsersSimpleGetResponses];
 
 export type CreateSchoolEndpointV1SchoolsCreatePostData = {
     body: SchoolCreate;

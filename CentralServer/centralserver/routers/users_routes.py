@@ -14,7 +14,13 @@ from centralserver.internals.auth_handler import (
 from centralserver.internals.db_handler import get_db_session
 from centralserver.internals.logger import LoggerFactory
 from centralserver.internals.models.token import DecodedJWTToken
-from centralserver.internals.models.user import User, UserDelete, UserPublic, UserUpdate
+from centralserver.internals.models.user import (
+    User,
+    UserDelete,
+    UserPublic,
+    UserSimple,
+    UserUpdate,
+)
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
@@ -289,7 +295,11 @@ async def get_user_signature_endpoint(
         )
 
     if not await verify_user_permission(
-        "users:self:read" if user.avatarUrn == fn else "users:global:read",
+        "users:self:read" if user.signatureUrn == fn else "users:global:read",
+        session,
+        token,
+    ) and not await verify_user_permission(
+        "users:global:simple",
         session,
         token,
     ):
@@ -297,7 +307,7 @@ async def get_user_signature_endpoint(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
                 "You do not have permission to view your profile."
-                if user.avatarUrn == fn
+                if user.signatureUrn == fn
                 else "You do not have permission to view other users' information."
             ),
         )
@@ -307,14 +317,14 @@ async def get_user_signature_endpoint(
         if bucket_object is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Avatar not found.",
+                detail="Signature not found.",
             )
 
     except S3Error as e:
-        logger.error("Error fetching user avatar: %s", e)
+        logger.error("Error fetching user signature: %s", e)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Avatar not found.",
+            detail="Signature not found.",
         ) from e
 
     return StreamingResponse(BytesIO(bucket_object.obj), media_type="image/*")
@@ -494,3 +504,60 @@ async def delete_user_signature_endpoint(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User does not have an e-signature set.",
         ) from e
+
+
+@router.get("/simple", response_model=list[UserSimple])
+async def get_users_simple_endpoint(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int | None = None,
+) -> list[UserSimple]:
+    """Get simplified user information for use in reports and signature selection.
+
+    Returns only essential fields: first name, middle name, last name, user ID,
+    signatureUrn, avatarUrn, and position. If school_id is provided, only returns
+    users from that school. Otherwise, returns users from the same school as the
+    requesting user.
+
+    Args:
+        token: The access token of the logged-in user.
+        session: The session to the database.
+        school_id: Optional school ID to filter users. If not provided, uses the
+                  requesting user's school.
+
+    Returns:
+        A list of simplified user information.
+    """
+
+    if not await verify_user_permission("users:global:simple", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view users list.",
+        )
+
+    # Get the requesting user to determine their school if no school_id provided
+    requesting_user = session.get(User, token.id)
+    if not requesting_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Requesting user not found.",
+        )
+
+    # Use provided school_id or fall back to requesting user's school
+    target_school_id = school_id if school_id is not None else requesting_user.schoolId
+
+    logger.debug(
+        "user %s fetching simplified user info for school %s",
+        token.id,
+        target_school_id,
+    )
+
+    # Build query based on whether we're filtering by school
+    query = select(User).where(User.deactivated == False)  # pylint: disable=C0121
+
+    if target_school_id is not None:
+        query = query.where(User.schoolId == target_school_id)
+
+    users = session.exec(query).all()
+
+    return [UserSimple.model_validate(user) for user in users]
