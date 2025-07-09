@@ -30,7 +30,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput, DateInput } from "@mantine/dates";
 import { useDisclosure } from "@mantine/hooks";
-import { IconCalendar, IconPlus, IconTrash, IconUpload, IconX, IconHistory } from "@tabler/icons-react";
+import { IconCalendar, IconFileText, IconPlus, IconTrash, IconUpload, IconX, IconHistory } from "@tabler/icons-react";
 
 const report_type = {
     operating_expenses: "Operating Expenses",
@@ -486,20 +486,36 @@ function LiquidationReportContent() {
                 </Card>
 
                 {/* Action Buttons */}
-                <Group justify="flex-end" gap="md">
-                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
-                        Cancel
-                    </Button>
-                    <SplitButton
-                        onSubmit={handleSubmitReport}
-                        onSaveDraft={handleSaveDraft}
-                        onPreview={handlePreview}
-                        className="bg-blue-600 hover:bg-blue-700"
-                        disabled={!reportPeriod || expenseItems.some((item) => !item.date || !item.particulars)}
-                    >
-                        Submit Report
-                    </SplitButton>
-                </Group>
+                <Stack gap="md">
+                    {/* Disbursement Voucher Button */}
+                    <Group justify="flex-end">
+                        <Button
+                            leftSection={<IconFileText size={16} />}
+                            variant="light"
+                            onClick={() => router.push(`/reports/disbursement-voucher?category=${category}`)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                            style={{ width: "270px" }}
+                        >
+                            Create Disbursement Voucher
+                        </Button>
+                    </Group>
+
+                    {/* Main Action Buttons */}
+                    <Group justify="flex-end" gap="md">
+                        <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                            Cancel
+                        </Button>
+                        <SplitButton
+                            onSubmit={handleSubmitReport}
+                            onSaveDraft={handleSaveDraft}
+                            onPreview={handlePreview}
+                            className="bg-blue-600 hover:bg-blue-700"
+                            disabled={!reportPeriod || expenseItems.some((item) => !item.date || !item.particulars)}
+                        >
+                            Submit Report
+                        </SplitButton>
+                    </Group>
+                </Stack>
 
                 <Modal opened={opened} onClose={handleClosePreview} title={previewFile?.name} size="lg" centered>
                     {previewUrl && previewFile?.type.startsWith("image/") && (

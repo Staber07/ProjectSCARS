@@ -1,12 +1,18 @@
 "use client";
 
-import { Button, TextInput, Textarea, Select, Group, Paper, Title, Divider } from "@mantine/core";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ActionIcon, Button, Flex, Group, Paper, Select, Textarea, TextInput, Title } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import ky from "ky";
 
 export default function DisbursementVoucherPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const category = searchParams.get("category");
+
     const form = useForm({
         initialValues: {
             dv_no: "",
@@ -35,6 +41,14 @@ export default function DisbursementVoucherPage() {
             particulars: (value) => (!value ? "Particulars are required" : null),
         },
     });
+
+    const handleClose = () => {
+        if (category) {
+            router.push(`/reports/liquidation-report?category=${category}`);
+        } else {
+            router.push("/reports");
+        }
+    };
 
     const handleSubmit = async (values: typeof form.values) => {
         try {
@@ -73,12 +87,20 @@ export default function DisbursementVoucherPage() {
     return (
         <div className="p-4 max-w-6xl mx-auto">
             <Paper shadow="sm" p="md" withBorder>
-                <Title order={2} className="mb-4">
-                    Disbursement Voucher
-                </Title>
-                <Divider className="mb-4" />
+                <Flex justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
+                    <Title order={2}>Disbursement Voucher</Title>
+                    <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="lg"
+                        onClick={handleClose}
+                        className="hover:bg-gray-100"
+                    >
+                        <IconX size={20} />
+                    </ActionIcon>
+                </Flex>
 
-                <form onSubmit={form.onSubmit(handleSubmit)}>
+                <form onSubmit={form.onSubmit(handleSubmit)} style={{ marginTop: "12px" }}>
                     <Paper shadow="xs" p="md" withBorder className="mb-4">
                         <Title order={4} className="mb-4">
                             Basic Information
@@ -139,6 +161,9 @@ export default function DisbursementVoucherPage() {
                     </Paper>
 
                     <Group justify="flex-end" mt="xl">
+                        <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                            Cancel
+                        </Button>
                         <Button type="submit" size="md">
                             Submit Voucher
                         </Button>
