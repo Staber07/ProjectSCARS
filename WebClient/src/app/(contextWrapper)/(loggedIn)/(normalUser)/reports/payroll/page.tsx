@@ -5,15 +5,18 @@ import { SplitButton } from "@/components/SplitButton/SplitButton";
 import {
     ActionIcon,
     Badge,
+    Box,
     Button,
     Card,
     Divider,
     Flex,
     Group,
+    Image,
     Modal,
     NumberInput,
     Paper,
     ScrollArea,
+    SimpleGrid,
     Stack,
     Table,
     Text,
@@ -39,7 +42,7 @@ import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useRef } from "react";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -68,6 +71,11 @@ interface WeekPeriod {
     isCompleted: boolean;
 }
 
+interface EmployeeSignature {
+    employeeId: string;
+    signatureData: string;
+}
+
 function PayrollPageContent() {
     const router = useRouter();
 
@@ -88,6 +96,10 @@ function PayrollPageContent() {
     const [customRateModalOpened, setCustomRateModalOpened] = useState(false);
     const [customRateEmployee, setCustomRateEmployee] = useState<{ employeeId: string; date: Date } | null>(null);
     const [customRateValue, setCustomRateValue] = useState<number>(0);
+
+    const [employeeSignatures, setEmployeeSignatures] = useState<EmployeeSignature[]>([]);
+    const [signatureModalOpened, setSignatureModalOpened] = useState(false);
+    const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -335,6 +347,32 @@ function PayrollPageContent() {
         }, 0);
     };
 
+    const openSignatureModal = (employeeId: string) => {
+        setCurrentSigningEmployee(employeeId);
+        setSignatureModalOpened(true);
+    };
+
+    const saveEmployeeSignature = (signatureData: string) => {
+        if (currentSigningEmployee) {
+            const newSignature: EmployeeSignature = {
+                employeeId: currentSigningEmployee,
+                signatureData,
+            };
+
+            setEmployeeSignatures((prev) => [
+                ...prev.filter((sig) => sig.employeeId !== currentSigningEmployee),
+                newSignature,
+            ]);
+
+            setSignatureModalOpened(false);
+            setCurrentSigningEmployee(null);
+        }
+    };
+
+    const getEmployeeSignature = (employeeId: string) => {
+        return employeeSignatures.find((sig) => sig.employeeId === employeeId);
+    };
+
     const handleSubmitReport = () => {
         // TODO: Implement submit report functionality
         console.log("Submitting payroll report");
@@ -524,7 +562,10 @@ function PayrollPageContent() {
                                                   (total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!),
                                                   0
                                               )
-                                              .toFixed(2)
+                                              .toLocaleString("en-US", {
+                                                  minimumFractionDigits: 2,
+                                                  maximumFractionDigits: 2,
+                                              })
                                         : "0.00"}
                                 </Text>
                             </Text>
@@ -608,7 +649,14 @@ function PayrollPageContent() {
                                             })}
                                             <Table.Td className="text-center">
                                                 <Text fw={500}>
-                                                    ₱{calculateWeeklyTotal(employee.id, selectedWeek.id).toFixed(2)}
+                                                    ₱
+                                                    {calculateWeeklyTotal(employee.id, selectedWeek.id).toLocaleString(
+                                                        "en-US",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        }
+                                                    )}
                                                 </Text>
                                             </Table.Td>
                                         </Table.Tr>
@@ -619,48 +667,107 @@ function PayrollPageContent() {
                     </Card>
                 )}
 
-                {/* Monthly Summary */}
+                {/* Monthly Summary with Signatures */}
                 {employees.length > 0 && weekPeriods.length > 0 && (
                     <Card withBorder>
-                        <Text fw={500} ta="center">
+                        <Text fw={500}>
                             MONTH OF{" "}
                             {selectedMonth ? dayjs(selectedMonth).format("MMMM, YYYY").toUpperCase() : "SELECT MONTH"}
                         </Text>
                         <Divider my="md" />
-                        <Group justify="space-between" align="center" mb="md">
-                            <Text fw={500}>NAME</Text>
-                            <Text fw={500}>TOTAL AMOUNT RECEIVED</Text>
+
+                        <ScrollArea>
+                            <Table striped highlightOnHover style={{ minWidth: "800px" }}>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th style={{ width: "50px" }}>#</Table.Th>
+                                        <Table.Th style={{ width: "250px" }}>Name</Table.Th>
+                                        <Table.Th style={{ width: "200px" }}>Total Amount Received</Table.Th>
+                                        <Table.Th style={{ width: "50px" }}>Signature</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {employees.map((employee, index) => {
+                                        const signature = getEmployeeSignature(employee.id);
+                                        return (
+                                            <Table.Tr key={employee.id}>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500}>
+                                                        {index + 1}.
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500} className="uppercase">
+                                                        {employee.name}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500}>
+                                                        ₱
+                                                        {calculateMonthlyTotal(employee.id).toLocaleString("en-US", {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <div className="flex items-center gap-2">
+                                                        {signature ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Box
+                                                                    w={120}
+                                                                    h={40}
+                                                                    style={{
+                                                                        border: "1px solid #dee2e6",
+                                                                        borderRadius: "4px",
+                                                                        backgroundColor: "#f8f9fa",
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        overflow: "hidden",
+                                                                    }}
+                                                                >
+                                                                    <Image
+                                                                        src={signature.signatureData}
+                                                                        alt="Employee signature"
+                                                                        style={{
+                                                                            maxWidth: "100%",
+                                                                            maxHeight: "100%",
+                                                                            objectFit: "contain",
+                                                                        }}
+                                                                    />
+                                                                </Box>
+                                                            </div>
+                                                        ) : (
+                                                            <Button
+                                                                size="xs"
+                                                                variant="outline"
+                                                                onClick={() => openSignatureModal(employee.id)}
+                                                                leftSection={<IconEdit size={14} />}
+                                                            >
+                                                                Sign
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </ScrollArea>
+
+                        <Divider my="md" />
+                        <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
+                            <Text fw={700}>Total Amount Received:</Text>
+                            <Text fw={700} size="lg">
+                                ₱
+                                {calculateTotalAmountReceived().toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </Text>
                         </Group>
-
-                        <div className="space-y-1">
-                            {employees.map((employee, index) => (
-                                <Group
-                                    key={employee.id}
-                                    justify="space-between"
-                                    className="border-b border-gray-200 py-2"
-                                >
-                                    <Group gap="sm">
-                                        <Text size="sm" className="w-8">
-                                            {index + 1}.
-                                        </Text>
-                                        <Text size="sm" fw={500} className="uppercase">
-                                            {employee.name}
-                                        </Text>
-                                    </Group>
-                                    <Text size="sm" fw={500}>
-                                        ₱{calculateMonthlyTotal(employee.id).toFixed(2)}
-                                    </Text>
-                                </Group>
-                            ))}
-
-                            <Divider my="md" />
-                            <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
-                                <Text fw={700}>Total Amount Received:</Text>
-                                <Text fw={700} size="lg">
-                                    ₱{calculateTotalAmountReceived().toFixed(2)}
-                                </Text>
-                            </Group>
-                        </div>
                     </Card>
                 )}
 
@@ -680,6 +787,91 @@ function PayrollPageContent() {
                     </SplitButton>
                 </Group>
             </Stack>
+
+            {/* Signature Cards */}
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
+                {/* Prepared By */}
+                <Card withBorder p="md">
+                    <Stack gap="sm" align="center">
+                        <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                            Prepared by
+                        </Text>
+                        <Box
+                            w={200}
+                            h={80}
+                            style={{
+                                border: "1px solid #dee2e6",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f8f9fa",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
+                        </Box>
+                        <div style={{ textAlign: "center" }}>
+                            <Text fw={600} size="sm">
+                                NAME
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Position
+                            </Text>
+                        </div>
+                    </Stack>
+                </Card>
+
+                {/* Noted By */}
+                <Card withBorder p="md" style={{ position: "relative" }}>
+                    <Badge
+                        size="sm"
+                        color="orange"
+                        variant="light"
+                        style={{
+                            position: "absolute",
+                            top: "12px",
+                            right: "12px",
+                        }}
+                    >
+                        Status
+                    </Badge>
+                    <Stack gap="sm" align="center">
+                        <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                            Noted by
+                        </Text>
+                        <Box
+                            w={200}
+                            h={80}
+                            style={{
+                                border: "1px solid #dee2e6",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f8f9fa",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
+                        </Box>
+                        <div style={{ textAlign: "center" }}>
+                            <Text fw={600} size="sm">
+                                NAME
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Position
+                            </Text>
+                        </div>
+                    </Stack>
+                </Card>
+            </SimpleGrid>
 
             {/* Employee Management Modal */}
             <Modal
@@ -909,6 +1101,47 @@ function PayrollPageContent() {
                     </Group>
                 </Stack>
             </Modal>
+
+            {/* Employee Signature Modal */}
+            <Modal
+                opened={signatureModalOpened}
+                onClose={() => {
+                    setSignatureModalOpened(false);
+                    setCurrentSigningEmployee(null);
+                }}
+                title={
+                    <Group gap="sm">
+                        <IconEdit size={20} />
+                        <Text fw={500}>Employee Signature</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    {currentSigningEmployee && (
+                        <div>
+                            <Text size="sm" c="dimmed">
+                                Employee
+                            </Text>
+                            <Text fw={500}>{employees.find((emp) => emp.id === currentSigningEmployee)?.name}</Text>
+                        </div>
+                    )}
+
+                    <div>
+                        <Text size="sm" fw={500} mb="sm">
+                            Please sign below to acknowledge payment:
+                        </Text>
+                        <SignatureCanvas
+                            onSave={saveEmployeeSignature}
+                            onCancel={() => {
+                                setSignatureModalOpened(false);
+                                setCurrentSigningEmployee(null);
+                            }}
+                        />
+                    </div>
+                </Stack>
+            </Modal>
         </div>
     );
 }
@@ -918,5 +1151,135 @@ export default function PayrollPage(): React.ReactElement {
         <Suspense fallback={<LoadingComponent message="Please wait..." />}>
             <PayrollPageContent />
         </Suspense>
+    );
+}
+
+interface SignatureCanvasProps {
+    onSave: (signatureData: string) => void;
+    onCancel: () => void;
+}
+
+function SignatureCanvas({ onSave, onCancel }: SignatureCanvasProps) {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [isDrawing, setIsDrawing] = useState(false);
+    const [hasDrawn, setHasDrawn] = useState(false);
+
+    const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            setIsDrawing(true);
+        }
+    };
+
+    const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
+        if (!isDrawing) return;
+
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            setHasDrawn(true);
+        }
+    };
+
+    const stopDrawing = () => {
+        setIsDrawing(false);
+    };
+
+    const clearCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            setHasDrawn(false);
+        }
+    };
+
+    const saveSignature = () => {
+        const canvas = canvasRef.current;
+        if (!canvas || !hasDrawn) return;
+
+        const signatureData = canvas.toDataURL("image/png");
+        onSave(signatureData);
+    };
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+        }
+    }, []);
+
+    return (
+        <Stack gap="md">
+            <Box
+                style={{
+                    border: "2px dashed #dee2e6",
+                    borderRadius: "8px",
+                    padding: "8px",
+                    backgroundColor: "#f8f9fa",
+                }}
+            >
+                <canvas
+                    ref={canvasRef}
+                    width={400}
+                    height={150}
+                    onMouseDown={startDrawing}
+                    onMouseMove={draw}
+                    onMouseUp={stopDrawing}
+                    onMouseLeave={stopDrawing}
+                    style={{
+                        cursor: "crosshair",
+                        display: "block",
+                        backgroundColor: "white",
+                        borderRadius: "4px",
+                        width: "100%",
+                    }}
+                />
+            </Box>
+
+            <Group justify="space-between">
+                <Button
+                    variant="outline"
+                    onClick={clearCanvas}
+                    disabled={!hasDrawn}
+                    leftSection={<IconTrash size={16} />}
+                >
+                    Clear
+                </Button>
+                <Group gap="sm">
+                    <Button variant="outline" onClick={onCancel}>
+                        Cancel
+                    </Button>
+                    <Button onClick={saveSignature} disabled={!hasDrawn} className="bg-green-600 hover:bg-green-700">
+                        Confirm
+                    </Button>
+                </Group>
+            </Group>
+        </Stack>
     );
 }
