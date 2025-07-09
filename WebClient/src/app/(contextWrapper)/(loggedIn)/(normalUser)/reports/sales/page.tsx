@@ -506,7 +506,7 @@ function SalesandPurchasesContent() {
             });
             // Find deleted entries (in originalEntries but not in dailyEntries)
             const deletedEntries = originalEntries.filter((e) => !dailyEntries.some((d) => d.day === e.day));
-            
+
             // Bulk create new entries
             if (newEntries.length > 0) {
                 await csclient.createBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPost({
@@ -902,11 +902,7 @@ function SalesandPurchasesContent() {
                                     <Text size="sm" c="dimmed" fw={500}>
                                         Noted by
                                     </Text>
-                                    <Badge
-                                        size="sm"
-                                        color={selectedNotedByUser ? "green" : "orange"}
-                                        variant="light"
-                                    >
+                                    <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
                                         {selectedNotedByUser ? "Selected" : "Not Selected"}
                                     </Badge>
                                 </Group>
@@ -949,10 +945,9 @@ function SalesandPurchasesContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {selectedNotedByUser 
+                                    {selectedNotedByUser
                                         ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim()
-                                        : "N/A"
-                                    }
+                                        : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}
@@ -1097,7 +1092,6 @@ function SalesandPurchasesContent() {
                         </Button>
                     </Group>
                 </Modal>
-
             </Stack>
         </div>
     );

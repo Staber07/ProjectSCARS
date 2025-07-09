@@ -161,6 +161,7 @@ class LiquidationReportResponse(BaseModel):
 
     category: str
     parent: datetime.date
+    reportStatus: str | None = None
     notedBy: str | None = None
     preparedBy: str | None = None
     teacherInCharge: str | None = None
@@ -220,6 +221,7 @@ def _convert_to_response(
         return LiquidationReportResponse(
             category=category,
             parent=datetime.date.today(),
+            reportStatus=None,
             entries=[],
             certifiedBy=[],
             totalAmount=0.0,
@@ -267,10 +269,12 @@ def _convert_to_response(
     noted_by = _get_field_value(report, "notedBy", "notedby")
     prepared_by = _get_field_value(report, "preparedBy", "preparedby")
     teacher_in_charge = _get_field_value(report, "teacherInCharge")
+    report_status = _get_field_value(report, "reportStatus")
 
     return LiquidationReportResponse(
         category=category,
         parent=report.parent,
+        reportStatus=report_status,
         notedBy=noted_by,
         preparedBy=prepared_by,
         teacherInCharge=teacher_in_charge,

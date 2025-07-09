@@ -262,6 +262,10 @@ export type LiquidationReportResponse = {
      */
     parent: string;
     /**
+     * Reportstatus
+     */
+    reportStatus?: string | null;
+    /**
      * Notedby
      */
     notedBy?: string | null;

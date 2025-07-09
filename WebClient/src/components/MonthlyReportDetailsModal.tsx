@@ -21,12 +21,18 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
 
+interface LiquidationReportData {
+    reportStatus?: string;
+    category?: string;
+    [key: string]: unknown;
+}
+
 interface LinkedReport {
     id: string;
     name: string;
     type: "daily" | "payroll" | "liquidation";
     category?: string;
-    status: ReportStatus;
+    status: ReportStatus | "not-created";
     icon: React.ElementType;
     route: string;
 }
@@ -39,14 +45,14 @@ interface MonthlyReportDetailsModalProps {
 }
 
 const liquidationCategories = [
-    { key: "operating-expenses", name: "Operating Expenses" },
-    { key: "administrative-expenses", name: "Administrative Expenses" },
-    { key: "clinic-fund", name: "Clinic Fund" },
-    { key: "supplementary-feeding-fund", name: "Supplementary Feeding Fund" },
-    { key: "he-fund", name: "HE Fund" },
-    { key: "faculty-student-development-fund", name: "Faculty & Student Development Fund" },
-    { key: "school-operation-fund", name: "School Operation Fund" },
-    { key: "revolving-fund", name: "Revolving Fund" },
+    { key: "operating_expenses", name: "Operating Expenses" },
+    { key: "administrative_expenses", name: "Administrative Expenses" },
+    { key: "clinic_fund", name: "Clinic Fund" },
+    { key: "supplementary_feeding_fund", name: "Supplementary Feeding Fund" },
+    { key: "he_fund", name: "HE Fund" },
+    { key: "faculty_stud_dev_fund", name: "Faculty & Student Development Fund" },
+    { key: "school_operations_fund", name: "School Operations Fund" },
+    { key: "revolving_fund", name: "Revolving Fund" },
 ];
 
 export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }: MonthlyReportDetailsModalProps) {
@@ -54,7 +60,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
     const [linkedReports, setLinkedReports] = useState<LinkedReport[]>([]);
     const [loading, setLoading] = useState(false);
 
-    const getStatusColor = (status: ReportStatus) => {
+    const getStatusColor = (status: ReportStatus | "not-created") => {
         switch (status) {
             case "approved":
                 return "green";
@@ -65,6 +71,8 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
             case "rejected":
                 return "red";
             case "archived":
+                return "gray";
+            case "not-created":
                 return "gray";
             default:
                 return "gray";
@@ -85,7 +93,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
             const year = dayjs(report.id).format("YYYY");
             const month = dayjs(report.id).format("MM");
 
-            // Fetch Daily Financial Report
+            // Always add Daily Financial Report entry
             try {
                 const { data: dailyReport } = await getSchoolDailyReportV1ReportsDailySchoolIdYearMonthGet({
                     path: {
@@ -95,21 +103,28 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                     },
                 });
 
-                if (dailyReport) {
-                    reports.push({
-                        id: `daily-${year}-${month}`,
-                        name: `Daily Sales & Purchases Report - ${formatReportPeriod(report.id)}`,
-                        type: "daily",
-                        status: dailyReport.reportStatus || "draft",
-                        icon: IconCash,
-                        route: `/reports/sales/${year}/${month}`,
-                    });
-                }
+                reports.push({
+                    id: `daily-${year}-${month}`,
+                    name: `Daily Sales & Purchases Report - ${formatReportPeriod(report.id)}`,
+                    type: "daily",
+                    status: dailyReport?.reportStatus || "not-created",
+                    icon: IconCash,
+                    route: `/reports/sales/${year}/${month}`,
+                });
             } catch (error) {
                 console.warn("Daily report not found or error fetching:", error);
+                // Add as not created
+                reports.push({
+                    id: `daily-${year}-${month}`,
+                    name: `Daily Sales & Purchases Report - ${formatReportPeriod(report.id)}`,
+                    type: "daily",
+                    status: "not-created",
+                    icon: IconCash,
+                    route: `/reports/sales/${year}/${month}`,
+                });
             }
 
-            // Fetch Payroll Report
+            // Always add Payroll Report entry
             try {
                 const { data: payrollReport } = await getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet({
                     path: {
@@ -119,21 +134,28 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                     },
                 });
 
-                if (payrollReport) {
-                    reports.push({
-                        id: `payroll-${year}-${month}`,
-                        name: `Payroll Report - ${formatReportPeriod(report.id)}`,
-                        type: "payroll",
-                        status: payrollReport.reportStatus || "draft",
-                        icon: IconUsers,
-                        route: `/reports/payroll/${year}/${month}`,
-                    });
-                }
+                reports.push({
+                    id: `payroll-${year}-${month}`,
+                    name: `Payroll Report - ${formatReportPeriod(report.id)}`,
+                    type: "payroll",
+                    status: payrollReport?.reportStatus || "not-created",
+                    icon: IconUsers,
+                    route: `/reports/payroll/${year}/${month}`,
+                });
             } catch (error) {
                 console.warn("Payroll report not found or error fetching:", error);
+                // Add as not created
+                reports.push({
+                    id: `payroll-${year}-${month}`,
+                    name: `Payroll Report - ${formatReportPeriod(report.id)}`,
+                    type: "payroll",
+                    status: "not-created",
+                    icon: IconUsers,
+                    route: `/reports/payroll/${year}/${month}`,
+                });
             }
 
-            // Fetch Liquidation Reports for each category
+            // Always add all Liquidation Report categories
             for (const category of liquidationCategories) {
                 try {
                     const { data: liquidationReport } =
@@ -146,19 +168,44 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                             },
                         });
 
-                    if (liquidationReport) {
+                    // Check if the report actually exists (has data)
+                    if (liquidationReport && Object.keys(liquidationReport).length > 0) {
+                        const reportStatus =
+                            ((liquidationReport as LiquidationReportData)?.reportStatus as ReportStatus) ||
+                            "not-created";
                         reports.push({
                             id: `liquidation-${category.key}-${year}-${month}`,
                             name: `${category.name} Liquidation Report - ${formatReportPeriod(report.id)}`,
                             type: "liquidation",
                             category: category.key,
-                            status: "draft", // Default status since API doesn't return reportStatus
+                            status: reportStatus,
+                            icon: IconReceipt,
+                            route: `/reports/liquidation/${category.key}/${year}/${month}`,
+                        });
+                    } else {
+                        // API succeeded but returned empty/null data - report doesn't exist
+                        reports.push({
+                            id: `liquidation-${category.key}-${year}-${month}`,
+                            name: `${category.name} Liquidation Report - ${formatReportPeriod(report.id)}`,
+                            type: "liquidation",
+                            category: category.key,
+                            status: "not-created",
                             icon: IconReceipt,
                             route: `/reports/liquidation/${category.key}/${year}/${month}`,
                         });
                     }
                 } catch (error) {
+                    // If we get a 404 or any error, the report doesn't exist
                     console.warn(`Liquidation report for ${category.key} not found or error fetching:`, error);
+                    reports.push({
+                        id: `liquidation-${category.key}-${year}-${month}`,
+                        name: `${category.name} Liquidation Report - ${formatReportPeriod(report.id)}`,
+                        type: "liquidation",
+                        category: category.key,
+                        status: "not-created",
+                        icon: IconReceipt,
+                        route: `/reports/liquidation/${category.key}/${year}/${month}`,
+                    });
                 }
             }
 
@@ -281,15 +328,26 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                                                     variant="light"
                                                     size="sm"
                                                 >
-                                                    {linkedReport.status || "Draft"}
+                                                    {linkedReport.status === "not-created"
+                                                        ? "Not Created"
+                                                        : linkedReport.status || "Draft"}
                                                 </Badge>
                                             </Table.Td>
                                             <Table.Td>
                                                 <ActionIcon
                                                     variant="subtle"
-                                                    color="blue"
+                                                    color={linkedReport.status === "not-created" ? "gray" : "blue"}
                                                     onClick={() => handleOpenReport(linkedReport.route)}
-                                                    aria-label={`Open ${linkedReport.name}`}
+                                                    aria-label={
+                                                        linkedReport.status === "not-created"
+                                                            ? `Create ${linkedReport.name}`
+                                                            : `Open ${linkedReport.name}`
+                                                    }
+                                                    title={
+                                                        linkedReport.status === "not-created"
+                                                            ? "Click to create this report"
+                                                            : "Click to open this report"
+                                                    }
                                                 >
                                                     <IconExternalLink size={16} />
                                                 </ActionIcon>

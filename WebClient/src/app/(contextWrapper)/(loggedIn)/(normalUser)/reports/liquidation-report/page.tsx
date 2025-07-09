@@ -991,11 +991,7 @@ function LiquidationReportContent() {
                                     <Text size="sm" c="dimmed" fw={500}>
                                         Noted by
                                     </Text>
-                                    <Badge
-                                        size="sm"
-                                        color={selectedNotedByUser ? "green" : "orange"}
-                                        variant="light"
-                                    >
+                                    <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
                                         {selectedNotedByUser ? "Selected" : "Not Selected"}
                                     </Badge>
                                 </Group>

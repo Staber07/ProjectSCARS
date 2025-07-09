@@ -242,7 +242,7 @@ async def create_school_daily_report(
             DailyFinancialReport.parent == selected_monthly_report.id
         )
     ).one_or_none()
-    
+
     if existing_daily_report:
         # Update existing daily report
         existing_daily_report.notedBy = noted_by
