@@ -66,11 +66,8 @@ class SchoolOperationFundEntry(SQLModel, table=True):
         index=True,
         description="The date of the expense entry.",
     )
-    receipt: str = Field(
-        primary_key=True,
-        description="The receipt number/identifier for this expense entry.",
-    )
-    particulars: str
+    receipt: str | None
+    particulars: str = Field(primary_key=True)
     unit: str
     quantity: float
     unitPrice: float

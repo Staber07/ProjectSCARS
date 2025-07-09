@@ -65,11 +65,8 @@ class LiquidationReportClinicFundEntry(SQLModel, table=True):
         index=True,
         description="The date of the expense entry.",
     )
-    receiptNumber: str = Field(
-        primary_key=True,
-        description="The receipt number for this expense entry.",
-    )
-    particulars: str
+    receiptNumber: str | None
+    particulars: str = Field(primary_key=True)
     unit: str
     quantity: float
     unitPrice: float
