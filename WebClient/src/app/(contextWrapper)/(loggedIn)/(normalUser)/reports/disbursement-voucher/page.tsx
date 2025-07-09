@@ -1,14 +1,16 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ActionIcon, Button, Flex, Group, Paper, Select, Textarea, TextInput, Title } from "@mantine/core";
-import { IconX } from "@tabler/icons-react";
 import { DateInput } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
+import { IconX } from "@tabler/icons-react";
 import ky from "ky";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function DisbursementVoucherPage() {
+function DisbursementVoucherContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const category = searchParams.get("category");
@@ -171,5 +173,13 @@ export default function DisbursementVoucherPage() {
                 </form>
             </Paper>
         </div>
+    );
+}
+
+export default function DisbursementVoucherPage() {
+    return (
+        <Suspense fallback={<LoadingComponent />}>
+            <DisbursementVoucherContent />
+        </Suspense>
     );
 }
