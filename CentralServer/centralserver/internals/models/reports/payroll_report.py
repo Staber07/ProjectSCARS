@@ -27,7 +27,9 @@ class PayrollReport(SQLModel, table=True):
         description="The status of the report.",
     )
 
-    entries: list["PayrollReportEntry"] = Relationship(back_populates="parent_report")
+    entries: list["PayrollReportEntry"] = Relationship(
+        back_populates="parent_report", cascade_delete=True
+    )
     parent_report: "MonthlyReport" = Relationship(back_populates="payroll_report")
 
 

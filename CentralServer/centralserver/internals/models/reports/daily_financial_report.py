@@ -33,7 +33,7 @@ class DailyFinancialReport(SQLModel, table=True):
         back_populates="daily_financial_report"
     )
     entries: list["DailyFinancialReportEntry"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
 
 

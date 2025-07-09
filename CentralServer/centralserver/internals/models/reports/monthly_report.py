@@ -112,40 +112,42 @@ class MonthlyReport(SQLModel, table=True):
     )
 
     audited_by: list["MonthlyReportAuditedBy"] = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
 
     daily_financial_report: DailyFinancialReport | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     operating_expenses_report: LiquidationReportOperatingExpenses | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     administrative_expenses_report: LiquidationReportAdministrativeExpenses | None = (
-        Relationship(back_populates="parent_report")
+        Relationship(back_populates="parent_report", cascade_delete=True)
     )
     clinic_fund_report: LiquidationReportClinicFund | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     supplementary_feeding_fund_report: (
         LiquidationReportSupplementaryFeedingFund | None
-    ) = Relationship(back_populates="parent_report")
+    ) = Relationship(back_populates="parent_report", cascade_delete=True)
     he_fund_report: LiquidationReportHEFund | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     faculty_and_student_dev_fund_report: (
         LiquidationReportFacultyAndStudentDevFund | None
-    ) = Relationship(back_populates="parent_report")
+    ) = Relationship(back_populates="parent_report", cascade_delete=True)
     school_operation_fund_report: LiquidationReportSchoolOperationFund | None = (
-        Relationship(back_populates="parent_report")
+        Relationship(back_populates="parent_report", cascade_delete=True)
     )
     revolving_fund_report: LiquidationReportRevolvingFund | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
     disbursement_voucher_report: DisbursementVoucher | None = Relationship(
-        back_populates="parent_report"
+        back_populates="parent_report", cascade_delete=True
     )
-    payroll_report: PayrollReport | None = Relationship(back_populates="parent_report")
+    payroll_report: PayrollReport | None = Relationship(
+        back_populates="parent_report", cascade_delete=True
+    )
 
 
 class MonthlyReportAuditedBy(SQLModel, table=True):

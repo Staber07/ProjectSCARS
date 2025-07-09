@@ -1,6 +1,7 @@
 "use client";
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
+import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -8,6 +9,7 @@ import {
     ReportStatus,
     School,
     getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
+    deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
 } from "@/lib/api/csclient";
 import {
     ActionIcon,
@@ -56,6 +58,8 @@ export default function ReportsPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
+    const [detailsModalOpened, setDetailsModalOpened] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
     const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
 
@@ -133,6 +137,59 @@ export default function ReportsPage() {
         console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
     };
 
+    const handleOpenReportDetails = useCallback((report: MonthlyReport) => {
+        setSelectedReport(report);
+        setDetailsModalOpened(true);
+    }, []);
+
+    const handleCloseDetailsModal = useCallback(() => {
+        setDetailsModalOpened(false);
+        setSelectedReport(null);
+    }, []);
+
+    const handleDeleteReport = useCallback(
+        async (reportId: string) => {
+            try {
+                if (!userCtx.userInfo?.schoolId) {
+                    notifications.show({
+                        title: "Error",
+                        message: "You must be assigned to a school to delete reports.",
+                        color: "red",
+                    });
+                    return;
+                }
+
+                const year = parseInt(dayjs(reportId).format("YYYY"));
+                const month = parseInt(dayjs(reportId).format("MM"));
+
+                await deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year,
+                        month,
+                    },
+                });
+
+                // Remove from local state
+                setReportSubmissions((prev) => prev.filter((r) => r.id !== reportId));
+
+                notifications.show({
+                    title: "Success",
+                    message: "Monthly report and all related reports have been deleted successfully.",
+                    color: "green",
+                });
+            } catch (error) {
+                console.error("Failed to delete report:", error);
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to delete the report. Please try again.",
+                    color: "red",
+                });
+            }
+        },
+        [userCtx.userInfo?.schoolId]
+    );
+
     const handleNavigateToPayroll = () => {
         router.push("/reports/payroll");
     };
@@ -200,7 +257,7 @@ export default function ReportsPage() {
                             />
                         </Table.Td>
                         <Table.Td>
-                            <div>
+                            <div style={{ cursor: "pointer" }} onClick={() => handleOpenReportDetails(report)}>
                                 <Text fw={500} size="sm">
                                     {report.name}
                                 </Text>
@@ -240,11 +297,20 @@ export default function ReportsPage() {
                                     </ActionIcon>
                                 </Menu.Target>
                                 <Menu.Dropdown>
-                                    <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconEye size={14} />}
+                                        onClick={() => handleOpenReportDetails(report)}
+                                    >
+                                        View
+                                    </Menu.Item>
                                     <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
                                     <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
                                     <Menu.Divider />
-                                    <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                                    <Menu.Item
+                                        color="red"
+                                        leftSection={<IconTrash size={14} />}
+                                        onClick={() => handleDeleteReport(report.id)}
+                                    >
                                         Delete
                                     </Menu.Item>
                                 </Menu.Dropdown>
@@ -253,7 +319,14 @@ export default function ReportsPage() {
                     </Table.Tr>
                 );
             }),
-        [filteredReports, selectedReports, parsedSubmittedBySchools, handleSelectReport]
+        [
+            filteredReports,
+            selectedReports,
+            parsedSubmittedBySchools,
+            handleSelectReport,
+            handleDeleteReport,
+            handleOpenReportDetails,
+        ]
     );
 
     return (
@@ -417,6 +490,14 @@ export default function ReportsPage() {
                 opened={liquidationModalOpened}
                 onClose={() => setLiquidationModalOpened(false)}
                 onSelect={handleCreateLiquidationReport}
+            />
+
+            {/* Monthly Report Details Modal */}
+            <MonthlyReportDetailsModal
+                opened={detailsModalOpened}
+                onClose={handleCloseDetailsModal}
+                report={selectedReport}
+                onDelete={handleDeleteReport}
             />
         </Stack>
     );
