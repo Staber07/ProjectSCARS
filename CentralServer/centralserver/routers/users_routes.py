@@ -18,9 +18,11 @@ from centralserver.internals.models.user import User, UserDelete, UserPublic, Us
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
     get_user_avatar,
+    get_user_signature,
     remove_user_info,
     update_user_avatar,
     update_user_info,
+    update_user_signature,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -263,6 +265,61 @@ async def update_user_endpoint(
     )
 
 
+@router.get("/signature", response_class=StreamingResponse)
+async def get_user_signature_endpoint(
+    fn: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> StreamingResponse:
+    """Get the user's e-signature.
+
+    Args:
+        fn: The name of the user's e-signature.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        The user's e-signature.
+    """
+
+    user = await get_user(token.id, session=session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found."
+        )
+
+    if not await verify_user_permission(
+        "users:self:read" if user.avatarUrn == fn else "users:global:read",
+        session,
+        token,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You do not have permission to view your profile."
+                if user.avatarUrn == fn
+                else "You do not have permission to view other users' information."
+            ),
+        )
+
+    try:
+        bucket_object = await get_user_signature(fn)
+        if bucket_object is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found.",
+            )
+
+    except S3Error as e:
+        logger.error("Error fetching user avatar: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Avatar not found.",
+        ) from e
+
+    return StreamingResponse(BytesIO(bucket_object.obj), media_type="image/*")
+
+
 @router.delete("/")
 async def delete_user_info_endpoint(
     user_info: UserDelete,
@@ -359,4 +416,81 @@ async def delete_user_avatar_endpoint(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User does not have an avatar set.",
+        ) from e
+
+
+@router.patch("/signature", response_model=UserPublic)
+async def update_user_signature_endpoint(
+    user_id: str,
+    img: UploadFile,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> UserPublic:
+    """Update a user's e-signature.
+
+    Args:
+        user_id: The ID of the user to update.
+        img: The new e-signature image.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        The updated user information.
+    """
+
+    updating_self = user_id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify",
+        session,
+        token,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update other user profiles."
+            ),
+        )
+
+    logger.debug("user %s is updating user profile of %s...", token.id, user_id)
+    return await update_user_signature(user_id, img, session)
+
+
+@router.delete("/signature")
+async def delete_user_signature_endpoint(
+    user_id: str,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+):
+    """Delete a user's e-signature.
+
+    Args:
+        user_id: The ID of the user to update.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+    """
+
+    updating_self = user_id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify", session, token
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update other user profiles."
+            ),
+        )
+
+    logger.debug("user %s is deleting user e-signature of %s...", token.id, user_id)
+    try:
+        return await update_user_signature(user_id, None, session)
+
+    except ValueError as e:
+        logger.warning("Error deleting user e-signature: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User does not have an e-signature set.",
         ) from e

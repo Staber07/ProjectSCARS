@@ -1,8 +1,10 @@
 import { defineConfig } from "@hey-api/openapi-ts";
 
+import "dotenv/config";
+
 export default defineConfig({
     input: {
-        path: `${process.env.CENTRAL_SERVER_ENDPOINT}/openapi.json`,
+        path: `${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/openapi.json`,
         pagination: { keywords: ["limit", "offset"] },
         // watch: true,
     },

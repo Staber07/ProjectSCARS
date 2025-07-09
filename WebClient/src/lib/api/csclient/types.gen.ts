@@ -61,6 +61,16 @@ export type BodyUpdateUserAvatarEndpointV1UsersAvatarPatch = {
 };
 
 /**
+ * Body_update_user_signature_endpoint_v1_users_signature_patch
+ */
+export type BodyUpdateUserSignatureEndpointV1UsersSignaturePatch = {
+    /**
+     * Img
+     */
+    img: Blob | File;
+};
+
+/**
  * ConfigUpdateRequest
  * Request model for updating configuration.
  */
@@ -174,6 +184,103 @@ export type JwtToken = {
      * Token Type
      */
     token_type: string;
+};
+
+/**
+ * LiquidationReportCreateRequest
+ * Request model for creating/updating liquidation reports.
+ */
+export type LiquidationReportCreateRequest = {
+    /**
+     * Notedby
+     */
+    notedBy?: string | null;
+    /**
+     * Preparedby
+     */
+    preparedBy?: string | null;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge?: string | null;
+    /**
+     * Entries
+     */
+    entries?: Array<LiquidationReportEntryData>;
+    /**
+     * Certifiedby
+     */
+    certifiedBy?: Array<string>;
+};
+
+/**
+ * LiquidationReportEntryData
+ * Data for a liquidation report entry.
+ */
+export type LiquidationReportEntryData = {
+    /**
+     * Date
+     */
+    date: string;
+    /**
+     * Particulars
+     */
+    particulars: string;
+    /**
+     * Receiptnumber
+     */
+    receiptNumber?: string | null;
+    /**
+     * Quantity
+     */
+    quantity?: number | null;
+    /**
+     * Unit
+     */
+    unit?: string | null;
+    /**
+     * Unitprice
+     */
+    unitPrice: number;
+};
+
+/**
+ * LiquidationReportResponse
+ * Response model for liquidation reports.
+ */
+export type LiquidationReportResponse = {
+    /**
+     * Category
+     */
+    category: string;
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy?: string | null;
+    /**
+     * Preparedby
+     */
+    preparedBy?: string | null;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge?: string | null;
+    /**
+     * Entries
+     */
+    entries?: Array<LiquidationReportEntryData>;
+    /**
+     * Certifiedby
+     */
+    certifiedBy?: Array<string>;
+    /**
+     * Totalamount
+     */
+    totalAmount?: number;
 };
 
 /**
@@ -382,6 +489,192 @@ export type OtpVerificationToken = {
      * Nonce
      */
     nonce: string;
+};
+
+/**
+ * PayrollEntryRequest
+ * Request model for creating payroll entry data.
+ */
+export type PayrollEntryRequest = {
+    /**
+     * Week Number
+     */
+    week_number: number;
+    /**
+     * Employee Name
+     */
+    employee_name: string;
+    /**
+     * Sun
+     */
+    sun?: number;
+    /**
+     * Mon
+     */
+    mon?: number;
+    /**
+     * Tue
+     */
+    tue?: number;
+    /**
+     * Wed
+     */
+    wed?: number;
+    /**
+     * Thu
+     */
+    thu?: number;
+    /**
+     * Fri
+     */
+    fri?: number;
+    /**
+     * Sat
+     */
+    sat?: number;
+    /**
+     * Signature
+     */
+    signature?: string | null;
+};
+
+/**
+ * PayrollEntryUpdateRequest
+ * Request model for updating specific fields in a payroll entry.
+ */
+export type PayrollEntryUpdateRequest = {
+    /**
+     * Sun
+     */
+    sun?: number | null;
+    /**
+     * Mon
+     */
+    mon?: number | null;
+    /**
+     * Tue
+     */
+    tue?: number | null;
+    /**
+     * Wed
+     */
+    wed?: number | null;
+    /**
+     * Thu
+     */
+    thu?: number | null;
+    /**
+     * Fri
+     */
+    fri?: number | null;
+    /**
+     * Sat
+     */
+    sat?: number | null;
+    /**
+     * Signature
+     */
+    signature?: string | null;
+};
+
+/**
+ * PayrollReport
+ * A model representing the monthly payroll report.
+ */
+export type PayrollReport = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Preparedby
+     * The user who prepared the report.
+     */
+    preparedBy: string;
+    /**
+     * Notedby
+     */
+    notedBy: string | null;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * PayrollReportEntry
+ * A model representing an entry in the payroll report for a week.
+ */
+export type PayrollReportEntry = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Weeknumber
+     * Week number in the month
+     */
+    weekNumber: number;
+    /**
+     * Employeename
+     * Name of the employee
+     */
+    employeeName: string;
+    /**
+     * Sun
+     * Amount received on Sunday
+     */
+    sun?: number;
+    /**
+     * Mon
+     * Amount received on Monday
+     */
+    mon?: number;
+    /**
+     * Tue
+     * Amount received on Tuesday
+     */
+    tue?: number;
+    /**
+     * Wed
+     * Amount received on Wednesday
+     */
+    wed?: number;
+    /**
+     * Thu
+     * Amount received on Thursday
+     */
+    thu?: number;
+    /**
+     * Fri
+     * Amount received on Friday
+     */
+    fri?: number;
+    /**
+     * Sat
+     * Amount received on Saturday
+     */
+    sat?: number;
+    /**
+     * Signature
+     * Signature or reference attachments for the entry
+     */
+    signature?: string | null;
+};
+
+/**
+ * PayrollReportUpdateRequest
+ * Request model for updating payroll report metadata.
+ */
+export type PayrollReportUpdateRequest = {
+    /**
+     * Prepared By
+     */
+    prepared_by?: string | null;
+    /**
+     * Noted By
+     */
+    noted_by?: string | null;
 };
 
 /**
@@ -1609,6 +1902,92 @@ export type UpdateUserAvatarEndpointV1UsersAvatarPatchResponses = {
 
 export type UpdateUserAvatarEndpointV1UsersAvatarPatchResponse = UpdateUserAvatarEndpointV1UsersAvatarPatchResponses[keyof UpdateUserAvatarEndpointV1UsersAvatarPatchResponses];
 
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteError = DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors[keyof DeleteUserSignatureEndpointV1UsersSignatureDeleteErrors];
+
+export type DeleteUserSignatureEndpointV1UsersSignatureDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetData = {
+    body?: never;
+    path?: never;
+    query: {
+        /**
+         * Fn
+         */
+        fn: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetUserSignatureEndpointV1UsersSignatureGetError = GetUserSignatureEndpointV1UsersSignatureGetErrors[keyof GetUserSignatureEndpointV1UsersSignatureGetErrors];
+
+export type GetUserSignatureEndpointV1UsersSignatureGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchData = {
+    body: BodyUpdateUserSignatureEndpointV1UsersSignaturePatch;
+    path?: never;
+    query: {
+        /**
+         * User Id
+         */
+        user_id: string;
+    };
+    url: '/v1/users/signature';
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchError = UpdateUserSignatureEndpointV1UsersSignaturePatchErrors[keyof UpdateUserSignatureEndpointV1UsersSignaturePatchErrors];
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: UserPublic;
+};
+
+export type UpdateUserSignatureEndpointV1UsersSignaturePatchResponse = UpdateUserSignatureEndpointV1UsersSignaturePatchResponses[keyof UpdateUserSignatureEndpointV1UsersSignaturePatchResponses];
+
 export type CreateSchoolEndpointV1SchoolsCreatePostData = {
     body: SchoolCreate;
     path?: never;
@@ -2765,6 +3144,572 @@ export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSumma
 };
 
 export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponse = GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses[keyof GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses];
+
+export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}';
+};
+
+export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteError = DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteErrors[keyof DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteErrors];
+
+export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteResponses = {
+    /**
+     * Response Delete School Payroll Report V1 Reports Payroll  School Id   Year   Month  Delete
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteResponse = DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteResponses[keyof DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteResponses];
+
+export type GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}';
+};
+
+export type GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetError = GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetErrors[keyof GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetErrors];
+
+export type GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReport;
+};
+
+export type GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetResponse = GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetResponses[keyof GetSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGetResponses];
+
+export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: {
+        /**
+         * Noted By
+         */
+        noted_by?: string | null;
+    };
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}';
+};
+
+export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchError = CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchErrors[keyof CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchErrors];
+
+export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReport;
+};
+
+export type CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponse = CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponses[keyof CreateSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatchResponses];
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutData = {
+    body: PayrollReportUpdateRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}';
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutError = UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors[keyof UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutErrors];
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReport;
+};
+
+export type UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponse = UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses[keyof UpdatePayrollReportV1ReportsPayrollSchoolIdYearMonthPutResponses];
+
+export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries';
+};
+
+export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetError = GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetErrors[keyof GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetErrors];
+
+export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponses = {
+    /**
+     * Response Get School Payroll Report Entries V1 Reports Payroll  School Id   Year   Month  Entries Get
+     * Successful Response
+     */
+    200: Array<PayrollReportEntry>;
+};
+
+export type GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponse = GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponses[keyof GetSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGetResponses];
+
+export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostData = {
+    body: PayrollEntryRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries';
+};
+
+export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostError = CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostErrors[keyof CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostErrors];
+
+export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReportEntry;
+};
+
+export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponse = CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses[keyof CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses];
+
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Week Number
+         */
+        week_number: number;
+        /**
+         * Employee Name
+         */
+        employee_name: string;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}';
+};
+
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteError = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteErrors];
+
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses = {
+    /**
+     * Response Delete Payroll Report Entry V1 Reports Payroll  School Id   Year   Month  Entries  Week Number   Employee Name  Delete
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponse = DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses[keyof DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteResponses];
+
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutData = {
+    body: PayrollEntryUpdateRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Week Number
+         */
+        week_number: number;
+        /**
+         * Employee Name
+         */
+        employee_name: string;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}';
+};
+
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutError = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutErrors];
+
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReportEntry;
+};
+
+export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponse = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses];
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteError = DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors[keyof DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteErrors];
+
+export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetError = GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors[keyof GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetErrors];
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses = {
+    /**
+     * Successful Response
+     */
+    200: LiquidationReportResponse;
+};
+
+export type GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponse = GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses[keyof GetLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryGetResponses];
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchData = {
+    body: LiquidationReportCreateRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}';
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchError = CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors[keyof CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchErrors];
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: LiquidationReportResponse;
+};
+
+export type CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponse = CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses[keyof CreateOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatchResponses];
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/entries';
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetError = GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors[keyof GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetErrors];
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses = {
+    /**
+     * Response Get Liquidation Report Entries V1 Reports Liquidation  School Id   Year   Month   Category  Entries Get
+     * Successful Response
+     */
+    200: Array<LiquidationReportEntryData>;
+};
+
+export type GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponse = GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses[keyof GetLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesGetResponses];
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutData = {
+    /**
+     * Entries
+     */
+    body: Array<LiquidationReportEntryData>;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/entries';
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutError = UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors[keyof UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutErrors];
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses = {
+    /**
+     * Response Update Liquidation Report Entries V1 Reports Liquidation  School Id   Year   Month   Category  Entries Put
+     * Successful Response
+     */
+    200: Array<LiquidationReportEntryData>;
+};
+
+export type UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponse = UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses[keyof UpdateLiquidationReportEntriesV1ReportsLiquidationSchoolIdYearMonthCategoryEntriesPutResponses];
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/reports/liquidation/categories';
+};
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses = {
+    /**
+     * Response Get Liquidation Categories V1 Reports Liquidation Categories Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: {
+            [key: string]: string | boolean;
+        };
+    };
+};
+
+export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponse = GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses[keyof GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;

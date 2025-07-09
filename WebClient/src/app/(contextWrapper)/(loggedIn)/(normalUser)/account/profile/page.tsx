@@ -5,18 +5,21 @@ import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailCom
 import {
     deleteUserAvatarEndpointV1UsersAvatarDelete,
     deleteUserInfoEndpointV1UsersDelete,
+    deleteUserSignatureEndpointV1UsersSignatureDelete,
     disableMfaOtpV1AuthMfaOtpDisablePost,
     generateMfaOtpV1AuthMfaOtpGeneratePost,
     getAllRolesV1AuthRolesGet,
     getOauthConfigV1AuthConfigOauthGet,
     getUserAvatarEndpointV1UsersAvatarGet,
     getUserProfileEndpointV1UsersMeGet,
+    getUserSignatureEndpointV1UsersSignatureGet,
     oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet,
     OtpToken,
     requestVerificationEmailV1AuthEmailRequestPost,
     Role,
     updateUserAvatarEndpointV1UsersAvatarPatch,
     updateUserEndpointV1UsersPatch,
+    updateUserSignatureEndpointV1UsersSignaturePatch,
     UserDelete,
     UserPublic,
     UserUpdate,
@@ -24,7 +27,7 @@ import {
     verifyMfaOtpV1AuthMfaOtpVerifyPost,
 } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { LocalStorage, userAvatarConfig } from "@/lib/info";
+import { LocalStorage, userAvatarConfig, userSignatureConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { UserPreferences } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
@@ -67,6 +70,7 @@ import {
     IconMailOff,
     IconMailOpened,
     IconPencilCheck,
+    IconScribble,
     IconSendOff,
     IconTrash,
     IconUserExclamation,
@@ -125,6 +129,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(userAvatarUrl);
     const [avatarRemoved, setAvatarRemoved] = useState(false);
+    const [currentSignatureUrn, setCurrentSignatureUrn] = useState<string | null>(null);
+    const [editUserSignature, setEditUserSignature] = useState<File | null>(null);
+    const [editUserSignatureUrl, setEditUserSignatureUrl] = useState<string | null>(null);
+    const [signatureRemoved, setSignatureRemoved] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
     const [availableSchools, setAvailableSchools] = useState<string[]>([]);
     const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
@@ -174,6 +182,35 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         }
     };
 
+    const fetchUserSignature = async (signatureUrn: string): Promise<string | undefined> => {
+        try {
+            const result = await getUserSignatureEndpointV1UsersSignatureGet({
+                query: { fn: signatureUrn },
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to fetch signature: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            const blob = result.data as Blob;
+            const url = URL.createObjectURL(blob);
+            if (signatureUrn && !currentSignatureUrn) URL.revokeObjectURL(signatureUrn);
+            setCurrentSignatureUrn(signatureUrn);
+            return url;
+        } catch (error) {
+            console.error("Failed to fetch user signature:", error);
+            notifications.show({
+                id: "fetch-user-signature-error",
+                title: "Error",
+                message: "Failed to fetch user signature.",
+                color: "red",
+                icon: <IconScribble />,
+            });
+            return undefined;
+        }
+    };
+
     const handlePreferenceChange = (key: keyof UserPreferences, value: string | boolean | null) => {
         setUserPreferences((prev) => ({ ...prev, [key]: value }));
         notifications.show({
@@ -213,6 +250,43 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         setEditUserAvatar(file);
         setEditUserAvatarUrl((prevUrl) => {
             if (prevUrl && !currentAvatarUrn) {
+                URL.revokeObjectURL(prevUrl); // Clean up previous URL
+            }
+            return URL.createObjectURL(file); // Create a new URL for the selected file
+        });
+    };
+
+    const handleChangeSignature = async (file: File | null) => {
+        if (file === null) {
+            console.debug("No file selected, skipping upload...");
+            return;
+        }
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > userSignatureConfig.MAX_FILE_SIZE_MB) {
+            notifications.show({
+                id: "signature-file-too-large",
+                title: "File Too Large",
+                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 1 MB limit.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return;
+        }
+        if (!userSignatureConfig.ALLOWED_FILE_TYPES.includes(file.type)) {
+            notifications.show({
+                id: "signature-invalid-file-type",
+                title: "Invalid File Type",
+                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return;
+        }
+
+        setSignatureRemoved(false);
+        setEditUserSignature(file);
+        setEditUserSignatureUrl((prevUrl) => {
+            if (prevUrl && !currentSignatureUrn) {
                 URL.revokeObjectURL(prevUrl); // Clean up previous URL
             }
             return URL.createObjectURL(file); // Create a new URL for the selected file
@@ -397,9 +471,105 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 setEditUserAvatarUrl(null);
             }
 
+            // Handle signature removal
+            if (signatureRemoved && currentSignatureUrn) {
+                try {
+                    console.debug("Removing signature...");
+                    const deleteResult = await deleteUserSignatureEndpointV1UsersSignatureDelete({
+                        query: { user_id: values.id },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (deleteResult.error) {
+                        throw new Error(
+                            `Failed to remove signature: ${deleteResult.response.status} ${deleteResult.response.statusText}`
+                        );
+                    }
+
+                    console.debug("Signature removed successfully.");
+                    notifications.show({
+                        id: "signature-remove-success",
+                        title: "Success",
+                        message: "E-signature removed successfully.",
+                        color: "green",
+                        icon: <IconPencilCheck />,
+                    });
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to remove signature.";
+                        console.error("Signature removal failed:", detail);
+                        notifications.show({
+                            id: "signature-remove-error",
+                            title: "E-signature Removal Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
+
+            // Handle signature upload
+            if (editUserSignature) {
+                try {
+                    console.debug("Uploading signature...");
+                    const uploadResult = await updateUserSignatureEndpointV1UsersSignaturePatch({
+                        query: { user_id: values.id },
+                        body: { img: editUserSignature },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (uploadResult.error) {
+                        throw new Error(
+                            `Failed to upload signature: ${uploadResult.response.status} ${uploadResult.response.statusText}`
+                        );
+                    }
+
+                    updatedUser = uploadResult.data as UserPublic;
+                    if (updatedUser.signatureUrn) {
+                        const newSignatureUrl = await fetchUserSignature(updatedUser.signatureUrn);
+                        if (newSignatureUrl) {
+                            setEditUserSignatureUrl(newSignatureUrl);
+                        }
+                        console.debug("Signature uploaded successfully.");
+                        notifications.show({
+                            id: "signature-upload-success",
+                            title: "Success",
+                            message: "E-signature uploaded successfully.",
+                            color: "green",
+                            icon: <IconPencilCheck />,
+                        });
+                    }
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to upload signature.";
+                        console.error("Signature upload failed:", detail);
+                        notifications.show({
+                            id: "signature-upload-error",
+                            title: "E-signature Upload Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
+
+            // Update signature URL if needed
+            if (updatedUser.signatureUrn && updatedUser.signatureUrn.trim() !== "" && !signatureRemoved) {
+                const newSignatureUrl = await fetchUserSignature(updatedUser.signatureUrn);
+                if (newSignatureUrl) {
+                    setEditUserSignatureUrl(newSignatureUrl);
+                }
+            } else if (signatureRemoved) {
+                setEditUserSignatureUrl(null);
+            }
+
             // Reset temporary states after successful save
             setEditUserAvatar(null);
             setAvatarRemoved(false);
+            setEditUserSignature(null);
+            setSignatureRemoved(false);
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 403")) {
                 const detail = error.message || "Failed to update user information.";
@@ -439,6 +609,16 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     useEffect(() => {
         if (userInfo) {
             setOtpEnabled(userInfo.otpVerified);
+
+            // Initialize signature URL if user has a signature
+            if (userInfo.signatureUrn && userInfo.signatureUrn.trim() !== "") {
+                fetchUserSignature(userInfo.signatureUrn).then((url) => {
+                    if (url) {
+                        setEditUserSignatureUrl(url);
+                    }
+                });
+            }
+
             const new_values = {
                 id: userInfo.id,
                 username: userInfo.username || "",
@@ -813,6 +993,88 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         />
                     </Tooltip>
                 </Group>
+                <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%" mt="lg">
+                    <Stack gap={10}>
+                        <Text fw={500} size="sm">
+                            Electronic Signature
+                        </Text>
+                        <Group align="center" gap={15}>
+                            {editUserSignatureUrl ? (
+                                <Box
+                                    style={{
+                                        border: "1px solid #e0e0e0",
+                                        borderRadius: "8px",
+                                        padding: "8px",
+                                        backgroundColor: "white",
+                                        maxWidth: "200px",
+                                        maxHeight: "80px",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <Image
+                                        src={editUserSignatureUrl}
+                                        alt="User signature"
+                                        width={200}
+                                        height={80}
+                                        style={{
+                                            objectFit: "contain",
+                                            width: "100%",
+                                            height: "auto",
+                                            maxHeight: "80px",
+                                        }}
+                                    />
+                                </Box>
+                            ) : (
+                                <Box
+                                    style={{
+                                        border: "2px dashed #e0e0e0",
+                                        borderRadius: "8px",
+                                        padding: "20px",
+                                        backgroundColor: "#f9f9f9",
+                                        width: "200px",
+                                        height: "80px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        No signature uploaded
+                                    </Text>
+                                </Box>
+                            )}
+                            <Stack gap={5}>
+                                <FileButton onChange={handleChangeSignature} accept="image/png,image/jpeg">
+                                    {(props) => (
+                                        <Button variant="outline" size="sm" {...props}>
+                                            {editUserSignatureUrl ? "Change Signature" : "Upload Signature"}
+                                        </Button>
+                                    )}
+                                </FileButton>
+                                {editUserSignatureUrl && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        color="red"
+                                        onClick={() => {
+                                            setSignatureRemoved(true);
+                                            setEditUserSignature(null);
+                                            if (editUserSignatureUrl && !currentSignatureUrn) {
+                                                URL.revokeObjectURL(editUserSignatureUrl);
+                                            }
+                                            setEditUserSignatureUrl(null);
+                                        }}
+                                    >
+                                        Remove Signature
+                                    </Button>
+                                )}
+                            </Stack>
+                        </Group>
+                        <Text size="xs" c="dimmed">
+                            Upload your electronic signature. Max file size: 1MB. Formats: JPG, PNG, WEBP.
+                        </Text>
+                    </Stack>
+                </Flex>
                 <Title order={4} mb="sm" mt="lg">
                     Account Security
                 </Title>

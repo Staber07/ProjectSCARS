@@ -8,13 +8,14 @@ import {
     ActionIcon,
     Alert,
     Badge,
+    Box,
     Button,
     Card,
     Flex,
     Group,
+    // Image,
     Modal,
     NumberInput,
-    Paper,
     SimpleGrid,
     Stack,
     Table,
@@ -45,11 +46,11 @@ function SalesandPurchasesContent() {
     const [dailyEntries, setDailyEntries] = useState<DailyEntry[]>([]);
     const [originalEntries, setOriginalEntries] = useState<DailyEntry[]>([]);
     const [editingEntry, setEditingEntry] = useState<DailyEntry | null>(null);
+    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
     const [modalOpened, setModalOpened] = useState(false);
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
-    const [entryToDelete, setEntryToDelete] = useState<DailyEntry | null>(null);
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -102,6 +103,7 @@ function SalesandPurchasesContent() {
             if (!dateObj.isSame(currentMonth, "month")) {
                 setCurrentMonth(date);
             }
+            setSelectedDate(date);
             const selectedDay = dateObj.date();
             const selectedMonth = dateObj.format("YYYY-MM");
             const existingEntry = dailyEntries.find((e) => {
@@ -434,7 +436,7 @@ function SalesandPurchasesContent() {
                                     size="xs"
                                     variant="light"
                                     onClick={() => {
-                                        const entryDate = dayjs(entry.date).toDate();
+                                        const entryDate = dayjs(entry.date).date(entry.day).toDate();
                                         setCurrentMonth(entryDate);
                                         setSelectedDate(entryDate);
                                         setEditingEntry(entry);
@@ -652,6 +654,91 @@ function SalesandPurchasesContent() {
                     <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
                 </Group>
 
+                {/* Signature Cards */}
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
+                    {/* Prepared By */}
+                    <Card withBorder p="md">
+                        <Stack gap="sm" align="center">
+                            <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                                Prepared by
+                            </Text>
+                            <Box
+                                w={200}
+                                h={80}
+                                style={{
+                                    border: "1px solid #dee2e6",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#f8f9fa",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
+                                <Text size="xs" c="dimmed">
+                                    Signature
+                                </Text>
+                            </Box>
+                            <div style={{ textAlign: "center" }}>
+                                <Text fw={600} size="sm">
+                                    NAME
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Position
+                                </Text>
+                            </div>
+                        </Stack>
+                    </Card>
+
+                    {/* Noted By */}
+                    <Card withBorder p="md" style={{ position: "relative" }}>
+                        <Badge
+                            size="sm"
+                            color="orange"
+                            variant="light"
+                            style={{
+                                position: "absolute",
+                                top: "12px",
+                                right: "12px",
+                            }}
+                        >
+                            Status
+                        </Badge>
+                        <Stack gap="sm" align="center">
+                            <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                                Noted by
+                            </Text>
+                            <Box
+                                w={200}
+                                h={80}
+                                style={{
+                                    border: "1px solid #dee2e6",
+                                    borderRadius: "8px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    backgroundColor: "#f8f9fa",
+                                    overflow: "hidden",
+                                }}
+                            >
+                                {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
+                                <Text size="xs" c="dimmed">
+                                    Signature
+                                </Text>
+                            </Box>
+                            <div style={{ textAlign: "center" }}>
+                                <Text fw={600} size="sm">
+                                    NAME
+                                </Text>
+                                <Text size="xs" c="dimmed">
+                                    Position
+                                </Text>
+                            </div>
+                        </Stack>
+                    </Card>
+                </SimpleGrid>
+
                 {/* Edit Modal */}
                 <Modal
                     opened={modalOpened}
@@ -662,38 +749,44 @@ function SalesandPurchasesContent() {
                             : "Edit Entry"
                     }
                     centered
+                    size="md"
+                    padding="xl"
                 >
-                    <Stack>
-                        <NumberInput
-                            label="Sales"
-                            placeholder="Enter sales amount"
-                            value={modalSales}
-                            onChange={(value) => setModalSales(Number(value) || 0)}
-                            min={0}
-                            decimalScale={2}
-                            fixedDecimalScale
-                            thousandSeparator=","
-                            prefix="₱"
-                        />
-                        <NumberInput
-                            label="Purchases"
-                            placeholder="Enter purchases amount"
-                            value={modalPurchases}
-                            onChange={(value) => setModalPurchases(Number(value) || 0)}
-                            min={0}
-                            decimalScale={2}
-                            fixedDecimalScale
-                            thousandSeparator=","
-                            prefix="₱"
-                        />
-                        <Paper p="sm" className="bg-gray-50">
-                            <Text size="sm" c="dimmed">
-                                Net Income: ₱
-                                {(modalSales - modalPurchases).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </Text>
-                        </Paper>
-                        <Group justify="end">
-                            <Button variant="subtle" onClick={() => setModalOpened(false)}>
+                    <Stack gap="lg">
+                        <Stack gap="md">
+                            <NumberInput
+                                label="Sales"
+                                placeholder="Enter sales amount"
+                                value={modalSales === 0 ? "" : modalSales}
+                                onChange={(value) => setModalSales(Number(value) || 0)}
+                                onFocus={(event) => event.target.select()}
+                                min={0}
+                                decimalScale={2}
+                                fixedDecimalScale
+                                thousandSeparator=","
+                                prefix="₱"
+                                size="md"
+                            />
+                            <NumberInput
+                                label="Purchases"
+                                placeholder="Enter purchases amount"
+                                value={modalPurchases === 0 ? "" : modalPurchases}
+                                onChange={(value) => setModalPurchases(Number(value) || 0)}
+                                onFocus={(event) => event.target.select()}
+                                min={0}
+                                decimalScale={2}
+                                fixedDecimalScale
+                                thousandSeparator=","
+                                prefix="₱"
+                                size="md"
+                            />
+                        </Stack>
+                        <Text size="sm" c="dimmed">
+                            Net Income: ₱
+                            {(modalSales - modalPurchases).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </Text>
+                        <Group justify="end" gap="sm" mt="md">
+                            <Button variant="subtle" onClick={() => setModalOpened(false)} color="gray" size="md">
                                 Cancel
                             </Button>
                             <Button onClick={handleSaveEntry}>Save Entry</Button>
