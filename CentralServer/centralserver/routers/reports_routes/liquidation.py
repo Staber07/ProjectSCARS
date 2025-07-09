@@ -88,7 +88,7 @@ LIQUIDATION_CATEGORIES: Dict[str, Dict[str, Any]] = {
         "certified_model": SupplementaryFeedingFundCertifiedBy,
         "name": "Supplementary Feeding Fund",
         "has_receipt": True,
-        "has_qty_unit": True,
+        "has_qty_unit": False,
     },
     "clinic_fund": {
         "model": LiquidationReportClinicFund,
@@ -96,7 +96,7 @@ LIQUIDATION_CATEGORIES: Dict[str, Dict[str, Any]] = {
         "certified_model": LiquidationReportClinicFundCertifiedBy,
         "name": "Clinic Fund",
         "has_receipt": True,
-        "has_qty_unit": True,
+        "has_qty_unit": False,
     },
     "faculty_stud_dev_fund": {
         "model": LiquidationReportFacultyAndStudentDevFund,
@@ -142,7 +142,8 @@ class LiquidationReportEntryData(BaseModel):
     receiptNumber: str | None = None
     quantity: float | None = None
     unit: str | None = None
-    unitPrice: float
+    unitPrice: float | None = None  # For reports with quantity/unit
+    amount: float | None = None  # For reports without quantity/unit
 
 
 class LiquidationReportCreateRequest(BaseModel):
@@ -191,9 +192,15 @@ def _calculate_total_amount(entries: list[Any], has_qty_unit: bool) -> float:
     total = 0.0
     for entry in entries:
         if has_qty_unit and hasattr(entry, "quantity") and entry.quantity:
-            total += entry.quantity * entry.unitPrice
+            # For entries with quantity and unit price
+            unit_price = getattr(entry, "unitPrice", 0.0) or getattr(
+                entry, "amount", 0.0
+            )
+            total += entry.quantity * unit_price
         else:
-            total += entry.unitPrice
+            # For entries with direct amount or unit price
+            amount = getattr(entry, "amount", None) or getattr(entry, "unitPrice", 0.0)
+            total += amount
     return total
 
 
@@ -224,8 +231,15 @@ def _convert_to_response(
         entry_data = LiquidationReportEntryData(
             date=entry.date,
             particulars=entry.particulars,
-            unitPrice=_get_field_value(entry, "unitPrice", "unit_price", default=0.0),
         )
+
+        # Set amount or unitPrice based on the entry type
+        if hasattr(entry, "amount"):
+            entry_data.amount = entry.amount
+        else:
+            entry_data.unitPrice = _get_field_value(
+                entry, "unitPrice", "unit_price", default=0.0
+            )
 
         # Add receipt number if applicable
         receipt_num = _get_field_value(entry, "receiptNumber", "receipt")
@@ -543,14 +557,23 @@ async def create_or_update_liquidation_report(
             if hasattr(entry_model, "__name__")
             else str(entry_model)
         )
+
+        # Handle amount vs unitPrice based on model type
         if (
+            "SupplementaryFeedingFund" in entry_model_name
+            or "ClinicFund" in entry_model_name
+        ):
+            # Use amount field for supplementary feeding fund and clinic fund
+            amount_value = entry_data.amount or entry_data.unitPrice or 0.0
+            entry_dict["amount"] = amount_value
+        elif (
             "OperatingExpense" in entry_model_name
             or "AdministrativeExpense" in entry_model_name
             or "HEFund" in entry_model_name
         ):
-            entry_dict["unit_price"] = entry_data.unitPrice
+            entry_dict["unit_price"] = entry_data.unitPrice or entry_data.amount or 0.0
         else:
-            entry_dict["unitPrice"] = entry_data.unitPrice
+            entry_dict["unitPrice"] = entry_data.unitPrice or entry_data.amount or 0.0
 
         entry = entry_model(**entry_dict)
         session.add(entry)
@@ -689,14 +712,23 @@ async def update_liquidation_report_entries(
             if hasattr(entry_model, "__name__")
             else str(entry_model)
         )
+
+        # Handle amount vs unitPrice based on model type
         if (
+            "SupplementaryFeedingFund" in entry_model_name
+            or "ClinicFund" in entry_model_name
+        ):
+            # Use amount field for supplementary feeding fund and clinic fund
+            amount_value = entry_data.amount or entry_data.unitPrice or 0.0
+            entry_dict["amount"] = amount_value
+        elif (
             "OperatingExpense" in entry_model_name
             or "AdministrativeExpense" in entry_model_name
             or "HEFund" in entry_model_name
         ):
-            entry_dict["unit_price"] = entry_data.unitPrice
+            entry_dict["unit_price"] = entry_data.unitPrice or entry_data.amount or 0.0
         else:
-            entry_dict["unitPrice"] = entry_data.unitPrice
+            entry_dict["unitPrice"] = entry_data.unitPrice or entry_data.amount or 0.0
 
         entry = entry_model(**entry_dict)
         session.add(entry)

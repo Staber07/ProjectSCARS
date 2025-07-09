@@ -234,20 +234,34 @@ async def create_school_daily_report(
             preparedBy=user.id,
             notedBy=noted_by,
         )
+        session.add(selected_monthly_report)
 
-    new_daily_report = DailyFinancialReport(
-        parent=selected_monthly_report.id,
-        reportStatus=ReportStatus.DRAFT,
-        preparedBy=user.id,
-        notedBy=noted_by,
-    )
-
-    session.add(selected_monthly_report)
-    session.add(new_daily_report)
-    session.commit()
-    session.refresh(selected_monthly_report)
-    session.refresh(new_daily_report)
-    return new_daily_report
+    # Check if daily report already exists
+    existing_daily_report = session.exec(
+        select(DailyFinancialReport).where(
+            DailyFinancialReport.parent == selected_monthly_report.id
+        )
+    ).one_or_none()
+    
+    if existing_daily_report:
+        # Update existing daily report
+        existing_daily_report.notedBy = noted_by
+        session.add(existing_daily_report)
+        session.commit()
+        session.refresh(existing_daily_report)
+        return existing_daily_report
+    else:
+        # Create new daily report
+        new_daily_report = DailyFinancialReport(
+            parent=selected_monthly_report.id,
+            reportStatus=ReportStatus.DRAFT,
+            preparedBy=user.id,
+            notedBy=noted_by,
+        )
+        session.add(new_daily_report)
+        session.commit()
+        session.refresh(new_daily_report)
+        return new_daily_report
 
 
 @router.patch("/{school_id}/{year}/{month}/entries/{day}")

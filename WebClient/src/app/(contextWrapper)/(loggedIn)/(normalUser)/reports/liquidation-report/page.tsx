@@ -80,6 +80,9 @@ const RECEIPT_FIELDS_REQUIRED = [
     "revolving_fund",
 ];
 
+// Fields that only require amount (no quantity/unit)
+const AMOUNT_ONLY_FIELDS = ["supplementary_feeding_fund", "clinic_fund"];
+
 const defaultUnitOptions = ["pcs", "packs", "boxes", "kg", "liters", "gallons", "bottles"];
 
 interface ExpenseDetails {
@@ -168,6 +171,7 @@ function LiquidationReportContent() {
 
                     // Load entries
                     if (report.entries && report.entries.length > 0) {
+                        const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                         const loadedItems: ExpenseDetails[] = report.entries.map((entry, index) => ({
                             id: new Date(Date.now() + index), // Generate unique IDs
                             date: new Date(entry.date),
@@ -175,7 +179,8 @@ function LiquidationReportContent() {
                             receiptNumber: entry.receiptNumber || undefined,
                             quantity: entry.quantity || undefined,
                             unit: entry.unit || undefined,
-                            unitPrice: entry.unitPrice,
+                            // Use amount field for amount-only categories, unitPrice for others
+                            unitPrice: isAmountOnly ? entry.amount || 0 : entry.unitPrice || 0,
                         }));
                         setExpenseItems(loadedItems);
 
@@ -512,14 +517,20 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
-            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => ({
-                date: dayjs(item.date).format("YYYY-MM-DD"),
-                particulars: item.particulars,
-                receiptNumber: item.receiptNumber || null,
-                quantity: item.quantity || null,
-                unit: item.unit || null,
-                unitPrice: item.unitPrice,
-            }));
+            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
+                const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
+                return {
+                    date: dayjs(item.date).format("YYYY-MM-DD"),
+                    particulars: item.particulars,
+                    receiptNumber: item.receiptNumber || null,
+                    quantity: item.quantity || null,
+                    unit: item.unit || null,
+                    // Use amount field for amount-only categories, unitPrice for others
+                    ...(isAmountOnly
+                        ? { amount: item.unitPrice, unitPrice: null }
+                        : { unitPrice: item.unitPrice, amount: null }),
+                };
+            });
 
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
@@ -577,14 +588,20 @@ function LiquidationReportContent() {
             // Prepare the entries data (even if some fields are empty for draft)
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
-                .map((item) => ({
-                    date: dayjs(item.date).format("YYYY-MM-DD"),
-                    particulars: item.particulars || "",
-                    receiptNumber: item.receiptNumber || null,
-                    quantity: item.quantity || null,
-                    unit: item.unit || null,
-                    unitPrice: item.unitPrice,
-                }));
+                .map((item) => {
+                    const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
+                    return {
+                        date: dayjs(item.date).format("YYYY-MM-DD"),
+                        particulars: item.particulars || "",
+                        receiptNumber: item.receiptNumber || null,
+                        quantity: item.quantity || null,
+                        unit: item.unit || null,
+                        // Use amount field for amount-only categories, unitPrice for others
+                        ...(isAmountOnly
+                            ? { amount: item.unitPrice, unitPrice: null }
+                            : { unitPrice: item.unitPrice, amount: null }),
+                    };
+                });
 
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {

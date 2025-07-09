@@ -241,7 +241,11 @@ export type LiquidationReportEntryData = {
     /**
      * Unitprice
      */
-    unitPrice: number;
+    unitPrice?: number | null;
+    /**
+     * Amount
+     */
+    amount?: number | null;
 };
 
 /**
