@@ -16,7 +16,6 @@ import {
     // Image,
     Modal,
     NumberInput,
-    Paper,
     SimpleGrid,
     Stack,
     Table,
@@ -104,6 +103,7 @@ function SalesandPurchasesContent() {
             if (!dateObj.isSame(currentMonth, "month")) {
                 setCurrentMonth(date);
             }
+            setSelectedDate(date);
             const selectedDay = dateObj.date();
             const selectedMonth = dateObj.format("YYYY-MM");
             const existingEntry = dailyEntries.find((e) => {
@@ -436,7 +436,7 @@ function SalesandPurchasesContent() {
                                     size="xs"
                                     variant="light"
                                     onClick={() => {
-                                        const entryDate = dayjs(entry.date).toDate();
+                                        const entryDate = dayjs(entry.date).date(entry.day).toDate();
                                         setCurrentMonth(entryDate);
                                         setSelectedDate(entryDate);
                                         setEditingEntry(entry);
@@ -749,38 +749,44 @@ function SalesandPurchasesContent() {
                             : "Edit Entry"
                     }
                     centered
+                    size="md"
+                    padding="xl"
                 >
-                    <Stack>
-                        <NumberInput
-                            label="Sales"
-                            placeholder="Enter sales amount"
-                            value={modalSales}
-                            onChange={(value) => setModalSales(Number(value) || 0)}
-                            min={0}
-                            decimalScale={2}
-                            fixedDecimalScale
-                            thousandSeparator=","
-                            prefix="₱"
-                        />
-                        <NumberInput
-                            label="Purchases"
-                            placeholder="Enter purchases amount"
-                            value={modalPurchases}
-                            onChange={(value) => setModalPurchases(Number(value) || 0)}
-                            min={0}
-                            decimalScale={2}
-                            fixedDecimalScale
-                            thousandSeparator=","
-                            prefix="₱"
-                        />
-                        <Paper p="sm" className="bg-gray-50">
-                            <Text size="sm" c="dimmed">
-                                Net Income: ₱
-                                {(modalSales - modalPurchases).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </Text>
-                        </Paper>
-                        <Group justify="end">
-                            <Button variant="subtle" onClick={() => setModalOpened(false)}>
+                    <Stack gap="lg">
+                        <Stack gap="md">
+                            <NumberInput
+                                label="Sales"
+                                placeholder="Enter sales amount"
+                                value={modalSales === 0 ? "" : modalSales}
+                                onChange={(value) => setModalSales(Number(value) || 0)}
+                                onFocus={(event) => event.target.select()}
+                                min={0}
+                                decimalScale={2}
+                                fixedDecimalScale
+                                thousandSeparator=","
+                                prefix="₱"
+                                size="md"
+                            />
+                            <NumberInput
+                                label="Purchases"
+                                placeholder="Enter purchases amount"
+                                value={modalPurchases === 0 ? "" : modalPurchases}
+                                onChange={(value) => setModalPurchases(Number(value) || 0)}
+                                onFocus={(event) => event.target.select()}
+                                min={0}
+                                decimalScale={2}
+                                fixedDecimalScale
+                                thousandSeparator=","
+                                prefix="₱"
+                                size="md"
+                            />
+                        </Stack>
+                        <Text size="sm" c="dimmed">
+                            Net Income: ₱
+                            {(modalSales - modalPurchases).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </Text>
+                        <Group justify="end" gap="sm" mt="md">
+                            <Button variant="subtle" onClick={() => setModalOpened(false)} color="gray" size="md">
                                 Cancel
                             </Button>
                             <Button onClick={handleSaveEntry}>Save Entry</Button>
