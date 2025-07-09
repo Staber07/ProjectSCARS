@@ -256,9 +256,10 @@ function SalesandPurchasesContent() {
             if (err instanceof Error && err.message.includes("404")) {
                 return;
             }
+            console.error(err instanceof Error ? err.message : err);
             notifications.show({
                 title: "Error",
-                message: err instanceof Error ? err.message : "Failed to delete entry.",
+                message: "Failed to delete entry.",
                 color: "red",
             });
         }
@@ -381,9 +382,10 @@ function SalesandPurchasesContent() {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
             }
+            console.error(err instanceof Error ? err.message : err);
             notifications.show({
                 title: "Error",
-                message: err instanceof Error ? err.message : "Failed to submit entries.",
+                message: "Failed to submit entries.",
                 color: "red",
             });
         }
