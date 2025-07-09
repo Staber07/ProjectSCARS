@@ -83,10 +83,11 @@ function ResetPasswordContent(): React.ReactElement {
             });
 
             if (result.error) {
+                console.error(result.response.status, result.response.statusText);
                 notifications.show({
                     id: "reset-password-failure",
                     title: "Password reset failed",
-                    message: `Failed to reset password: ${result.response.status} ${result.response.statusText}`,
+                    message: `Failed to reset password`,
                     color: "red",
                     icon: <IconX />,
                 });
