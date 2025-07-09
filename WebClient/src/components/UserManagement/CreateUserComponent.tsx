@@ -106,6 +106,7 @@ export function CreateUserComponent({
                 form.reset();
                 if (onUserCreate) onUserCreate(updatedUser);
             } catch (err) {
+                console.error(err instanceof Error ? err.message : "Failed to create user");
                 notifications.show({
                     id: "create-user-error",
                     title: "Error",
