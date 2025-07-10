@@ -4,9 +4,6 @@ import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent
 import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
-import { ReceiptAttachmentUploader } from "@/components/Reports/ReceiptAttachmentUploader";
-import * as csclient from "@/lib/api/csclient";
-import { useUser } from "@/lib/providers/user";
 import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import {
     ActionIcon,
@@ -109,9 +106,6 @@ function PayrollPageContent() {
 
     // Report status state
     const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
-
-    // Receipt attachment state management
-    const [receiptAttachmentUrns, setReceiptAttachmentUrns] = useState<string[]>([]);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -388,13 +382,11 @@ function PayrollPageContent() {
     const handleSubmitReport = () => {
         // TODO: Implement submit report functionality
         console.log("Submitting payroll report");
-        console.log("Receipt attachment URNs:", receiptAttachmentUrns);
     };
 
     const handleSaveDraft = () => {
         // TODO: Implement save draft functionality
         console.log("Saving draft payroll report");
-        console.log("Receipt attachment URNs:", receiptAttachmentUrns);
     };
 
     const handlePreview = () => {
@@ -815,27 +807,6 @@ function PayrollPageContent() {
                     </SplitButton>
                 </Group>
             </Stack>
-
-            {/* Receipt Attachments Section */}
-            <Card withBorder p="md" mt="xl">
-                <Stack gap="md">
-                    <Text fw={500}>Receipt Attachments</Text>
-                    <Text size="sm" c="dimmed">
-                        Upload receipt images to support your payroll entries
-                    </Text>
-                    <ReceiptAttachmentUploader
-                        attachments={[]}
-                        onAttachmentsChange={(attachments) => {
-                            // Convert attachments to URNs and store them
-                            const urns = attachments.map((att) => att.file_urn);
-                            setReceiptAttachmentUrns(urns);
-                        }}
-                        initialAttachmentUrns={receiptAttachmentUrns}
-                        maxFiles={10}
-                        disabled={false}
-                    />
-                </Stack>
-            </Card>
 
             {/* Signature Cards */}
             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
