@@ -13,7 +13,6 @@ import {
     Box,
     Button,
     Card,
-    Checkbox,
     Flex,
     Group,
     Image,
@@ -67,9 +66,8 @@ function SalesandPurchasesContent() {
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
     const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
 
-    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
-    const [approvalConfirmed, setApprovalConfirmed] = useState(false);
-    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
+    // Report status state
+    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -162,6 +160,40 @@ function SalesandPurchasesContent() {
                 }
             };
 
+            /**
+             * Load existing daily report to restore signature information
+             * Reason: If a report was previously submitted with signatures, restore them
+             */
+            const loadExistingReport = async () => {
+                if (!userCtx.userInfo?.schoolId) return;
+
+                try {
+                    const response = await csclient.getSchoolDailyReportV1ReportsDailySchoolIdYearMonthGet({
+                        path: {
+                            school_id: userCtx.userInfo.schoolId,
+                            year: currentMonth.getFullYear(),
+                            month: currentMonth.getMonth() + 1,
+                        },
+                    });
+
+                    if (response.data) {
+                        const report = response.data;
+                        // Load signature information from existing report
+                        // notedBy field contains the user ID, not the name
+                        if (report.notedBy) {
+                            setNotedBy(report.notedBy);
+                        }
+                        // Load report status
+                        if (report.reportStatus) {
+                            setCurrentReportStatus(report.reportStatus as ReportStatus);
+                        }
+                    }
+                } catch {
+                    // If report doesn't exist (404), that's fine - we'll create a new one
+                    console.log("No existing daily report found, starting fresh");
+                }
+            };
+
             // Set prepared by to current user
             const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
             setPreparedBy(currentUserName);
@@ -177,105 +209,91 @@ function SalesandPurchasesContent() {
                     console.error("Failed to load user signature:", error);
                 }
             }
-          
-            // Load school users for noted by selection
-            await loadSchoolUsers();
+
+            // Load school users and existing report
+            await Promise.all([loadSchoolUsers(), loadExistingReport()]);
         };
 
         initializeSignatures();
-    }, [userCtx.userInfo]);
+    }, [userCtx.userInfo, currentMonth]);
 
-    // Effect to match loaded notedBy name with actual user and load their signature
+    // Load noted by signature when school users are loaded and notedBy is set
     useEffect(() => {
         const loadNotedBySignature = async () => {
-            // If we have a notedBy name from a loaded report but no selected user yet
-            if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
-                // Try to find the user by matching their name
-                const matchingUser = schoolUsers.find((user) => {
-                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-                    return userName === notedBy;
-                });
+            // Only proceed if we have all necessary data
+            if (!notedBy || !schoolUsers.length || selectedNotedByUser) return;
 
-                if (matchingUser) {
-                    setSelectedNotedByUser(matchingUser);
+            // Find the user in schoolUsers that matches the saved notedBy ID
+            const matchingUser = schoolUsers.find((user) => user.id === notedBy);
 
-                    // Load the user's signature if available
-                    if (matchingUser.signatureUrn) {
-                        try {
-                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                query: { fn: matchingUser.signatureUrn },
-                            });
+            if (matchingUser) {
+                setSelectedNotedByUser(matchingUser);
 
-                            if (response.data) {
-                                const signatureUrl = URL.createObjectURL(response.data as Blob);
-                                setNotedBySignatureUrl(signatureUrl);
-                            }
-                        } catch (error) {
-                            console.error("Failed to load noted by user signature:", error);
+                // Load the user's signature if available
+                if (matchingUser.signatureUrn) {
+                    try {
+                        const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                            query: { fn: matchingUser.signatureUrn },
+                        });
+
+                        if (response.data) {
+                            const signatureUrl = URL.createObjectURL(response.data as Blob);
+                            setNotedBySignatureUrl(signatureUrl);
                         }
+                    } catch (error) {
+                        console.error("Failed to load noted by user signature:", error);
                     }
                 }
             }
         };
 
         loadNotedBySignature();
-    }, [notedBy, selectedNotedByUser, schoolUsers]);
+    }, [notedBy, schoolUsers, selectedNotedByUser]);
 
     const handleClose = () => {
         router.push("/reports");
     };
 
+    /**
+     * Handle selection of a user for the "noted by" field
+     * Reason: Load the selected user's signature and update the report data
+     */
     const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-        setNotedBy(userName);
+        setNotedBy(user.id); // Store the user ID instead of name
         setSelectedNotedByUser(user);
 
-        setApprovalConfirmed(false);
-        setApprovalCheckbox(false);
-        setNotedBySignatureUrl(null);
+        // Load the selected user's signature if available
+        if (user.signatureUrn) {
+            try {
+                const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                    query: { fn: user.signatureUrn },
+                });
+
+                if (response.data) {
+                    const signatureUrl = URL.createObjectURL(response.data as Blob);
+                    setNotedBySignatureUrl(signatureUrl);
+                }
+            } catch (error) {
+                console.error("Failed to load noted by user signature:", error);
+            }
+        } else {
+            setNotedBySignatureUrl(null);
+        }
 
         setUserSelectModalOpened(false);
     };
 
-    const openApprovalModal = () => {
-        setApprovalCheckbox(false);
-        setApprovalModalOpened(true);
-    };
-
+    /**
+     * Clear the noted by user selection
+     * Reason: Allow user to remove the noted by selection and signature
+     */
     const handleClearNotedBy = () => {
         setNotedBy(null);
         setSelectedNotedByUser(null);
-        setApprovalConfirmed(false);
-        setApprovalCheckbox(false);
         if (notedBySignatureUrl) {
             URL.revokeObjectURL(notedBySignatureUrl);
             setNotedBySignatureUrl(null);
         }
-    };
-
-    const handleApprovalConfirm = async () => {
-        if (!approvalCheckbox || !selectedNotedByUser?.signatureUrn) return;
-
-        try {
-            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                query: { fn: selectedNotedByUser.signatureUrn },
-            });
-
-            if (response.data) {
-                const signatureUrl = URL.createObjectURL(response.data as Blob);
-                setNotedBySignatureUrl(signatureUrl);
-                setApprovalConfirmed(true);
-            }
-        } catch (error) {
-            console.error("Failed to load noted by user signature:", error);
-            notifications.show({
-                title: "Error",
-                message: "Failed to load signature.",
-                color: "red",
-            });
-        }
-
-        setApprovalModalOpened(false);
     };
 
     const handleDateSelect = useCallback(
@@ -845,6 +863,14 @@ function SalesandPurchasesContent() {
                     </Card>
                 </SimpleGrid>
 
+                {/* Action Buttons */}
+                <Group justify="flex-end" gap="md">
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                        Cancel
+                    </Button>
+                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
+                </Group>
+
                 {/* Signature Cards */}
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
                     {/* Prepared By */}
@@ -882,7 +908,7 @@ function SalesandPurchasesContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {preparedBy || "NAME"}
+                                    {preparedBy || "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {userCtx.userInfo?.position || "Position"}
@@ -891,26 +917,18 @@ function SalesandPurchasesContent() {
                         </Stack>
                     </Card>
 
-                    {/* Noted by */}
-                    <Card withBorder p="md" style={{ position: "relative" }}>
-                        <Badge
-                            size="sm"
-                            color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
-                            variant="light"
-                            style={{
-                                position: "absolute",
-                                top: "12px",
-                                right: "12px",
-                            }}
-                        >
-                            {approvalConfirmed ? "Approved" : selectedNotedByUser ? "Pending Approval" : "Not Selected"}
-                        </Badge>
-
+                    {/* Noted By */}
+                    <Card withBorder p="md">
                         <Stack gap="sm" align="center">
-                            <Group justify="space-between" w="100%">
-                                <Text size="sm" c="dimmed" fw={500}>
-                                    Noted by
-                                </Text>
+                            <Group justify="space-between" w="100%" align="center">
+                                <Group gap="xs" align="center">
+                                    <Text size="sm" c="dimmed" fw={500}>
+                                        Noted by
+                                    </Text>
+                                    <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
+                                        {selectedNotedByUser ? "Selected" : "Not Selected"}
+                                    </Badge>
+                                </Group>
                                 {selectedNotedByUser ? (
                                     <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
                                         Clear
@@ -934,7 +952,7 @@ function SalesandPurchasesContent() {
                                     overflow: "hidden",
                                 }}
                             >
-                                {notedBySignatureUrl && approvalConfirmed ? (
+                                {notedBySignatureUrl ? (
                                     <Image
                                         src={notedBySignatureUrl}
                                         alt="Noted by signature"
@@ -943,45 +961,24 @@ function SalesandPurchasesContent() {
                                         h="100%"
                                     />
                                 ) : (
-                                    <Stack align="center" gap="xs">
-                                        <Text size="xs" c="dimmed">
-                                            {selectedNotedByUser ? "Awaiting Approval" : "Signature"}
-                                        </Text>
-                                    </Stack>
+                                    <Text size="xs" c="dimmed">
+                                        Signature
+                                    </Text>
                                 )}
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {notedBy || "NAME"}
+                                    {selectedNotedByUser
+                                        ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim()
+                                        : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}
                                 </Text>
-                                {selectedNotedByUser && !approvalConfirmed && (
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        color="blue"
-                                        onClick={openApprovalModal}
-                                        disabled={!selectedNotedByUser.signatureUrn}
-                                        mt="xs"
-                                        mb="xs"
-                                    >
-                                        Approve Report
-                                    </Button>
-                                )}
                             </div>
                         </Stack>
                     </Card>
                 </SimpleGrid>
-
-                {/* Action Buttons */}
-                <Group justify="flex-end" gap="md">
-                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
-                        Cancel
-                    </Button>
-                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
-                </Group>
 
                 {/* User Selection Modal for "Noted By" */}
                 <Modal
@@ -1034,53 +1031,6 @@ function SalesandPurchasesContent() {
                         <Group justify="flex-end" mt="md">
                             <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
                                 Cancel
-                            </Button>
-                        </Group>
-                    </Stack>
-                </Modal>
-
-                {/* Approval Confirmation Modal */}
-                <Modal
-                    opened={approvalModalOpened}
-                    onClose={() => setApprovalModalOpened(false)}
-                    title="Confirm Report Approval"
-                    centered
-                    size="md"
-                >
-                    <Stack gap="md">
-                        <Alert
-                            variant="light"
-                            color="blue"
-                            title="Important Notice"
-                            icon={<IconAlertCircle size={16} />}
-                        >
-                            You are about to approve this financial report as{" "}
-                            <strong>
-                                {selectedNotedByUser?.nameFirst} {selectedNotedByUser?.nameLast}
-                            </strong>
-                            . This action will apply your digital signature to the document.
-                        </Alert>
-
-                        <Text size="sm">By approving this report, you confirm that:</Text>
-
-                        <Stack gap="xs" pl="md">
-                            <Text size="sm">• You have reviewed all entries and data</Text>
-                            <Text size="sm">• The information is accurate and complete</Text>
-                            <Text size="sm">• You authorize the use of the digital signature</Text>
-                        </Stack>
-
-                        <Checkbox
-                            label="I confirm that I have the authority to approve this report and apply the digital signature"
-                            checked={approvalCheckbox}
-                            onChange={(event) => setApprovalCheckbox(event.currentTarget.checked)}
-                        />
-
-                        <Group justify="flex-end" gap="sm">
-                            <Button variant="outline" onClick={() => setApprovalModalOpened(false)}>
-                                Cancel
-                            </Button>
-                            <Button onClick={handleApprovalConfirm} disabled={!approvalCheckbox} color="green">
-                                Approve & Sign
                             </Button>
                         </Group>
                     </Stack>
