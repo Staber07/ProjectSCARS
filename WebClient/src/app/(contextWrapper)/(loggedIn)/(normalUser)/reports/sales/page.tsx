@@ -11,9 +11,10 @@ import {
     Box,
     Button,
     Card,
+    Checkbox,
     Flex,
     Group,
-    // Image,
+    Image,
     Modal,
     NumberInput,
     SimpleGrid,
@@ -51,6 +52,22 @@ function SalesandPurchasesContent() {
     const [modalSales, setModalSales] = useState<number>(0);
     const [modalPurchases, setModalPurchases] = useState<number>(0);
     const [deleteModalOpened, setDeleteModalOpened] = useState(false);
+
+    // Signature state management
+    // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
+    const [preparedBy, setPreparedBy] = useState<string | null>(null);
+    const [notedBy, setNotedBy] = useState<string | null>(null);
+    const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
+    const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
+
+    // User selection state for "noted by" field
+    const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
+    const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
+    const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
+
+    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
+    const [approvalConfirmed, setApprovalConfirmed] = useState(false);
+    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -91,8 +108,170 @@ function SalesandPurchasesContent() {
         fetchEntries();
     }, [currentMonth, userCtx.userInfo?.schoolId]);
 
+    // Initialize signature data and load school users
+    useEffect(() => {
+        const initializeSignatures = async () => {
+            if (!userCtx.userInfo) return;
+
+            /**
+             * Fetch user signature from the server using their signatureUrn
+             * Reason: Convert stored signature URN to displayable blob URL
+             */
+            const fetchUserSignature = async (signatureUrn: string): Promise<string | null> => {
+                try {
+                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                        query: { fn: signatureUrn },
+                    });
+
+                    // Response data is already a blob, create object URL for display
+                    if (response.data) {
+                        return URL.createObjectURL(response.data as Blob);
+                    }
+                    return null;
+                } catch (error) {
+                    console.error("Failed to fetch user signature:", error);
+                    return null;
+                }
+            };
+
+            /**
+             * Load users from the same school for "noted by" selection
+             * Using the simplified user endpoint to avoid permission errors
+             * Reason: Allow selection of any user from the same school for report approval
+             */
+            const loadSchoolUsers = async () => {
+                if (!userCtx.userInfo?.schoolId) return;
+
+                try {
+                    const response = await csclient.getUsersSimpleEndpointV1UsersSimpleGet();
+
+                    if (response.data) {
+                        // Note: The simple endpoint already filters users to the current user's school
+                        // so we don't need to filter by schoolId here
+                        setSchoolUsers(response.data);
+                    }
+                } catch (error) {
+                    console.error("Failed to load school users:", error);
+                    notifications.show({
+                        title: "Error",
+                        message: "Failed to load users from your school.",
+                        color: "red",
+                    });
+                }
+            };
+
+            // Set prepared by to current user
+            const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+            setPreparedBy(currentUserName);
+
+            // Load current user's signature if available
+            if (userCtx.userInfo.signatureUrn) {
+                try {
+                    const signatureUrl = await fetchUserSignature(userCtx.userInfo.signatureUrn);
+                    if (signatureUrl) {
+                        setPreparedBySignatureUrl(signatureUrl);
+                    }
+                } catch (error) {
+                    console.error("Failed to load user signature:", error);
+                }
+            }
+
+            // Load school users for noted by selection
+            await loadSchoolUsers();
+        };
+
+        initializeSignatures();
+    }, [userCtx.userInfo]);
+
+    // Effect to match loaded notedBy name with actual user and load their signature
+    useEffect(() => {
+        const loadNotedBySignature = async () => {
+            // If we have a notedBy name from a loaded report but no selected user yet
+            if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
+                // Try to find the user by matching their name
+                const matchingUser = schoolUsers.find((user) => {
+                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
+                    return userName === notedBy;
+                });
+
+                if (matchingUser) {
+                    setSelectedNotedByUser(matchingUser);
+
+                    // Load the user's signature if available
+                    if (matchingUser.signatureUrn) {
+                        try {
+                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                query: { fn: matchingUser.signatureUrn },
+                            });
+
+                            if (response.data) {
+                                const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                setNotedBySignatureUrl(signatureUrl);
+                            }
+                        } catch (error) {
+                            console.error("Failed to load noted by user signature:", error);
+                        }
+                    }
+                }
+            }
+        };
+
+        loadNotedBySignature();
+    }, [notedBy, selectedNotedByUser, schoolUsers]);
+
     const handleClose = () => {
         router.push("/reports");
+    };
+
+    const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
+        const userName = `${user.nameFirst} ${user.nameLast}`.trim();
+        setNotedBy(userName);
+        setSelectedNotedByUser(user);
+
+        setApprovalConfirmed(false);
+        setApprovalCheckbox(false);
+        setNotedBySignatureUrl(null);
+
+        setUserSelectModalOpened(false);
+    };
+
+    const openApprovalModal = () => {
+        setApprovalCheckbox(false);
+        setApprovalModalOpened(true);
+    };
+
+    const handleClearNotedBy = () => {
+        setNotedBy(null);
+        setSelectedNotedByUser(null);
+        if (notedBySignatureUrl) {
+            URL.revokeObjectURL(notedBySignatureUrl);
+            setNotedBySignatureUrl(null);
+        }
+    };
+
+    const handleApprovalConfirm = async () => {
+        if (!approvalCheckbox || !selectedNotedByUser?.signatureUrn) return;
+
+        try {
+            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                query: { fn: selectedNotedByUser.signatureUrn },
+            });
+
+            if (response.data) {
+                const signatureUrl = URL.createObjectURL(response.data as Blob);
+                setNotedBySignatureUrl(signatureUrl);
+                setApprovalConfirmed(true);
+            }
+        } catch (error) {
+            console.error("Failed to load noted by user signature:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to load signature.",
+                color: "red",
+            });
+        }
+
+        setApprovalModalOpened(false);
     };
 
     const handleDateSelect = useCallback(
@@ -648,14 +827,6 @@ function SalesandPurchasesContent() {
                     </Card>
                 </SimpleGrid>
 
-                {/* Action Buttons */}
-                <Group justify="flex-end" gap="md">
-                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
-                        Cancel
-                    </Button>
-                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
-                </Group>
-
                 {/* Signature Cards */}
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
                     {/* Prepared By */}
@@ -677,27 +848,36 @@ function SalesandPurchasesContent() {
                                     overflow: "hidden",
                                 }}
                             >
-                                {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
-                                <Text size="xs" c="dimmed">
-                                    Signature
-                                </Text>
+                                {preparedBySignatureUrl ? (
+                                    <Image
+                                        src={preparedBySignatureUrl}
+                                        alt="Prepared by signature"
+                                        fit="contain"
+                                        w="100%"
+                                        h="100%"
+                                    />
+                                ) : (
+                                    <Text size="xs" c="dimmed">
+                                        Signature
+                                    </Text>
+                                )}
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    NAME
+                                    {preparedBy || "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
-                                    Position
+                                    {userCtx.userInfo?.position || "Position"}
                                 </Text>
                             </div>
                         </Stack>
                     </Card>
 
-                    {/* Noted By */}
+                    {/* Noted by */}
                     <Card withBorder p="md" style={{ position: "relative" }}>
                         <Badge
                             size="sm"
-                            color="orange"
+                            color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
                             variant="light"
                             style={{
                                 position: "absolute",
@@ -705,12 +885,24 @@ function SalesandPurchasesContent() {
                                 right: "12px",
                             }}
                         >
-                            Status
+                            {approvalConfirmed ? "Approved" : selectedNotedByUser ? "Pending Approval" : "Not Selected"}
                         </Badge>
+
                         <Stack gap="sm" align="center">
-                            <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
-                                Noted by
-                            </Text>
+                            <Group justify="space-between" w="100%">
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Noted by
+                                </Text>
+                                {selectedNotedByUser ? (
+                                    <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
+                                        Clear
+                                    </Button>
+                                ) : (
+                                    <Button size="xs" variant="light" onClick={() => setUserSelectModalOpened(true)}>
+                                        Select User
+                                    </Button>
+                                )}
+                            </Group>
                             <Box
                                 w={200}
                                 h={80}
@@ -724,22 +916,157 @@ function SalesandPurchasesContent() {
                                     overflow: "hidden",
                                 }}
                             >
-                                {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
-                                <Text size="xs" c="dimmed">
-                                    Signature
-                                </Text>
+                                {notedBySignatureUrl && approvalConfirmed ? (
+                                    <Image
+                                        src={notedBySignatureUrl}
+                                        alt="Noted by signature"
+                                        fit="contain"
+                                        w="100%"
+                                        h="100%"
+                                    />
+                                ) : (
+                                    <Stack align="center" gap="xs">
+                                        <Text size="xs" c="dimmed">
+                                            {selectedNotedByUser ? "Awaiting Approval" : "Signature"}
+                                        </Text>
+                                    </Stack>
+                                )}
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    NAME
+                                    {notedBy || "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
-                                    Position
+                                    {selectedNotedByUser?.position || "Position"}
                                 </Text>
+                                {selectedNotedByUser && !approvalConfirmed && (
+                                    <Button
+                                        size="xs"
+                                        variant="light"
+                                        color="blue"
+                                        onClick={openApprovalModal}
+                                        disabled={!selectedNotedByUser.signatureUrn}
+                                        mt="xs"
+                                        mb="xs"
+                                    >
+                                        Approve Report
+                                    </Button>
+                                )}
                             </div>
                         </Stack>
                     </Card>
                 </SimpleGrid>
+
+                {/* Action Buttons */}
+                <Group justify="flex-end" gap="md">
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                        Cancel
+                    </Button>
+                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
+                </Group>
+
+                {/* User Selection Modal for "Noted By" */}
+                <Modal
+                    opened={userSelectModalOpened}
+                    onClose={() => setUserSelectModalOpened(false)}
+                    title="Select User for 'Noted By'"
+                    size="md"
+                    centered
+                >
+                    <Stack gap="md">
+                        <Text size="sm" c="dimmed">
+                            Select a user from your school to be noted by on this report:
+                        </Text>
+
+                        {schoolUsers.length === 0 ? (
+                            <Text c="dimmed" ta="center">
+                                No users found from your school.
+                            </Text>
+                        ) : (
+                            <Stack gap="xs">
+                                {schoolUsers.map((user) => (
+                                    <Card
+                                        key={user.id}
+                                        p="sm"
+                                        withBorder
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => handleNotedByUserSelect(user)}
+                                        className="hover:bg-gray-50"
+                                    >
+                                        <Group justify="space-between">
+                                            <div>
+                                                <Text fw={500}>
+                                                    {user.nameFirst} {user.nameLast}
+                                                </Text>
+                                                <Text size="sm" c="dimmed">
+                                                    {user.position || "No position specified"}
+                                                </Text>
+                                            </div>
+                                            {user.signatureUrn && (
+                                                <Badge size="sm" color="green" variant="light">
+                                                    Has Signature
+                                                </Badge>
+                                            )}
+                                        </Group>
+                                    </Card>
+                                ))}
+                            </Stack>
+                        )}
+
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
+                                Cancel
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
+
+                {/* Approval Confirmation Modal */}
+                <Modal
+                    opened={approvalModalOpened}
+                    onClose={() => setApprovalModalOpened(false)}
+                    title="Confirm Report Approval"
+                    centered
+                    size="md"
+                >
+                    <Stack gap="md">
+                        <Alert
+                            variant="light"
+                            color="blue"
+                            title="Important Notice"
+                            icon={<IconAlertCircle size={16} />}
+                        >
+                            You are about to approve this financial report as{" "}
+                            <strong>
+                                {selectedNotedByUser?.nameFirst} {selectedNotedByUser?.nameLast}
+                            </strong>
+                            . This action will apply your digital signature to the document.
+                        </Alert>
+
+                        <Text size="sm">By approving this report, you confirm that:</Text>
+
+                        <Stack gap="xs" pl="md">
+                            <Text size="sm">• You have reviewed all entries and data</Text>
+                            <Text size="sm">• The information is accurate and complete</Text>
+                            <Text size="sm">• You authorize the use of the digital signature</Text>
+                        </Stack>
+
+                        <Checkbox
+                            label="I confirm that I have the authority to approve this report and apply the digital signature"
+                            checked={approvalCheckbox}
+                            onChange={(event) => setApprovalCheckbox(event.currentTarget.checked)}
+                        />
+
+                        <Group justify="flex-end" gap="sm">
+                            <Button variant="outline" onClick={() => setApprovalModalOpened(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={handleApprovalConfirm} disabled={!approvalCheckbox} color="green">
+                                Approve & Sign
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
 
                 {/* Edit Modal */}
                 <Modal
