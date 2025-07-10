@@ -1,131 +1,463 @@
 "use client";
 
-import { Box, Card, Divider, Group, ScrollArea, SimpleGrid, Text, Title } from "@mantine/core";
-import { IconBook, IconBuilding, IconCertificate, IconSchool, IconUser, IconUsers } from "@tabler/icons-react";
-import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { BarChart, LineChart } from "@mantine/charts";
+import { Card, Divider, Grid, Group, Paper, SimpleGrid, Text, Title, Alert, Loader } from "@mantine/core";
+import {
+    IconArrowDownRight,
+    IconArrowUpRight,
+    IconCoin,
+    IconDiscount2,
+    IconReceipt2,
+    IconUserPlus,
+    IconAlertCircle,
+} from "@tabler/icons-react";
 
-const sampleData = [
-    {
-        school: "School A",
-        sales: 120000,
-        purchases: 70000,
-        netIncome: 30000,
-        operationalCosts: 15000,
-        administrationCosts: 5000,
-        otherExpenses: 10000,
-    },
-    {
-        school: "School B",
-        sales: 95000,
-        purchases: 60000,
-        netIncome: 20000,
-        operationalCosts: 12000,
-        administrationCosts: 4000,
-        otherExpenses: 8000,
-    },
-    {
-        school: "School C",
-        sales: 80000,
-        purchases: 45000,
-        netIncome: 18000,
-        operationalCosts: 10000,
-        administrationCosts: 3500,
-        otherExpenses: 6500,
-    },
-    {
-        school: "School D",
-        sales: 110000,
-        purchases: 65000,
-        netIncome: 25000,
-        operationalCosts: 14000,
-        administrationCosts: 4500,
-        otherExpenses: 9500,
-    },
-];
+import classes from "./Stats.module.css";
 
-export default function SchoolStatisticsPage() {
-    // Since the new sampleData only has financial fields, update the statistics accordingly
-    const totalSchools = sampleData.length;
-    const totalSales = sampleData.reduce((sum, s) => sum + s.sales, 0);
-    const totalPurchases = sampleData.reduce((sum, s) => sum + s.purchases, 0);
-    const totalNetIncome = sampleData.reduce((sum, s) => sum + s.netIncome, 0);
-    const avgOperationalCosts = (
-        sampleData.reduce((sum, s) => sum + s.operationalCosts, 0) / sampleData.length
-    ).toFixed(2);
-    const avgAdministrationCosts = (
-        sampleData.reduce((sum, s) => sum + s.administrationCosts, 0) / sampleData.length
-    ).toFixed(2);
-    const avgOtherExpenses = (sampleData.reduce((sum, s) => sum + s.otherExpenses, 0) / sampleData.length).toFixed(2);
+import { getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet, School } from "@/lib/api/csclient";
+import { useUser } from "@/lib/providers/user";
+import { GetSchoolInfo } from "@/lib/api/school";
+import { useCallback, useEffect, useState } from "react";
+import dayjs from "dayjs";
+import { notifications } from "@mantine/notifications";
+
+const icons = {
+    user: IconUserPlus,
+    discount: IconDiscount2,
+    receipt: IconReceipt2,
+    coin: IconCoin,
+};
+
+interface FinancialStats {
+    netSales: number;
+    totalPurchases: number;
+    netIncome: number;
+    prevNetSales: number;
+    prevTotalPurchases: number;
+    prevNetIncome: number;
+    monthlySalesData: Array<{ month: string; sales: number }>;
+    monthlyPurchasesData: Array<{ month: string; purchases: number }>;
+    monthlyNetIncomeData: Array<{ month: string; net: number }>;
+}
+
+export default function StatisticsPage() {
+    const { userInfo } = useUser();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [statsData, setStatsData] = useState<FinancialStats | null>(null);
+    const [schoolInfo, setSchoolInfo] = useState<School | null>(null);
+
+    const fetchFinancialData = useCallback(async () => {
+        if (!userInfo?.schoolId) {
+            setLoading(false);
+            setError("You are not assigned to a school. Please contact your administrator.");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            setError(null);
+
+            // Get school info
+            const school = await GetSchoolInfo(userInfo.schoolId);
+            setSchoolInfo(school);
+
+            // Get current year and month
+            const currentDate = dayjs();
+            const currentYear = currentDate.year();
+            const currentMonth = currentDate.month() + 1; // dayjs months are 0-indexed
+            const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+            const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+            // Fetch current month summary
+            const currentSummaryResponse =
+                await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
+                    path: {
+                        school_id: userInfo.schoolId,
+                        year: currentYear,
+                        month: currentMonth,
+                    },
+                });
+
+            // Fetch previous month summary for comparison
+            let prevSummaryResponse;
+            try {
+                prevSummaryResponse = await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
+                    path: {
+                        school_id: userInfo.schoolId,
+                        year: prevYear,
+                        month: prevMonth,
+                    },
+                });
+            } catch {
+                // Previous month data may not exist
+                prevSummaryResponse = { data: { total_sales: 0, total_purchases: 0, net_income: 0 } };
+            }
+
+            // Get monthly data for charts (last 12 months)
+            const monthlyData = [];
+            for (let i = 11; i >= 0; i--) {
+                const targetDate = currentDate.subtract(i, "month");
+                const year = targetDate.year();
+                const month = targetDate.month() + 1;
+
+                try {
+                    const monthSummary =
+                        await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
+                            path: {
+                                school_id: userInfo.schoolId,
+                                year,
+                                month,
+                            },
+                        });
+
+                    if (monthSummary.data) {
+                        const sales =
+                            typeof monthSummary.data.total_sales === "number" ? monthSummary.data.total_sales : 0;
+                        const purchases =
+                            typeof monthSummary.data.total_purchases === "number"
+                                ? monthSummary.data.total_purchases
+                                : 0;
+
+                        monthlyData.push({
+                            date: targetDate.format("MMM YYYY"),
+                            sales,
+                            purchases,
+                            net: sales - purchases,
+                        });
+                    }
+                } catch {
+                    // Month data may not exist, add zero values
+                    monthlyData.push({
+                        date: targetDate.format("MMM YYYY"),
+                        sales: 0,
+                        purchases: 0,
+                        net: 0,
+                    });
+                }
+            }
+
+            const currentSales =
+                typeof currentSummaryResponse.data?.total_sales === "number"
+                    ? currentSummaryResponse.data.total_sales
+                    : 0;
+            const currentPurchases =
+                typeof currentSummaryResponse.data?.total_purchases === "number"
+                    ? currentSummaryResponse.data.total_purchases
+                    : 0;
+            const currentNetIncome =
+                typeof currentSummaryResponse.data?.net_income === "number"
+                    ? currentSummaryResponse.data.net_income
+                    : 0;
+
+            const prevSales =
+                typeof prevSummaryResponse.data?.total_sales === "number" ? prevSummaryResponse.data.total_sales : 0;
+            const prevPurchases =
+                typeof prevSummaryResponse.data?.total_purchases === "number"
+                    ? prevSummaryResponse.data.total_purchases
+                    : 0;
+            const prevNetIncome =
+                typeof prevSummaryResponse.data?.net_income === "number" ? prevSummaryResponse.data.net_income : 0;
+
+            setStatsData({
+                netSales: currentSales,
+                totalPurchases: currentPurchases,
+                netIncome: currentNetIncome,
+                prevNetSales: prevSales,
+                prevTotalPurchases: prevPurchases,
+                prevNetIncome: prevNetIncome,
+                monthlySalesData: monthlyData.map((d) => ({ month: d.date, sales: d.sales })),
+                monthlyPurchasesData: monthlyData.map((d) => ({ month: d.date, purchases: d.purchases })),
+                monthlyNetIncomeData: monthlyData.map((d) => ({ month: d.date, net: d.net })),
+            });
+        } catch (err) {
+            console.error("Error fetching financial data:", err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to load financial data";
+            setError(errorMessage);
+            notifications.show({
+                title: "Error",
+                message: "Failed to load financial statistics",
+                color: "red",
+                icon: <IconAlertCircle size={16} />,
+            });
+        } finally {
+            setLoading(false);
+        }
+    }, [userInfo?.schoolId]);
+
+    useEffect(() => {
+        fetchFinancialData();
+    }, [fetchFinancialData]);
+
+    if (loading) {
+        return (
+            <div className={classes.root}>
+                <Group justify="center" style={{ minHeight: 200 }}>
+                    <Loader size="lg" />
+                    <Text>Loading financial statistics...</Text>
+                </Group>
+            </div>
+        );
+    }
+
+    if (error || !statsData) {
+        return (
+            <div className={classes.root}>
+                <Alert
+                    icon={<IconAlertCircle size={16} />}
+                    title="Error Loading Data"
+                    color="red"
+                    style={{ margin: "2rem 0" }}
+                >
+                    {error || "No financial data available"}
+                </Alert>
+            </div>
+        );
+    }
+
+    // Calculate percentage changes
+    const calculateChange = (current: number, previous: number) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return Math.round(((current - previous) / previous) * 100);
+    };
+
+    const salesChange = calculateChange(statsData.netSales, statsData.prevNetSales);
+    const purchasesChange = calculateChange(statsData.totalPurchases, statsData.prevTotalPurchases);
+    const netIncomeChange = calculateChange(statsData.netIncome, statsData.prevNetIncome);
+    const grossProfitChange = calculateChange(
+        statsData.netSales - statsData.totalPurchases,
+        statsData.prevNetSales - statsData.prevTotalPurchases
+    );
+
+    const TopStats = [
+        {
+            title: "Net Sales",
+            icon: "receipt" as const,
+            value: `₱${statsData.netSales.toLocaleString()}`,
+            diff: salesChange,
+        },
+        {
+            title: "Gross Profit",
+            icon: "coin" as const,
+            value: `₱${(statsData.netSales - statsData.totalPurchases).toLocaleString()}`,
+            diff: grossProfitChange,
+        },
+        {
+            title: "Total Purchases",
+            icon: "discount" as const,
+            value: `₱${statsData.totalPurchases.toLocaleString()}`,
+            diff: purchasesChange,
+        },
+        {
+            title: "Net Income",
+            icon: "user" as const,
+            value: `₱${statsData.netIncome.toLocaleString()}`,
+            diff: netIncomeChange,
+        },
+    ];
+
+    const stats = TopStats.map((stat) => {
+        const Icon = icons[stat.icon];
+        const DiffIcon = stat.diff > 0 ? IconArrowUpRight : IconArrowDownRight;
+
+        return (
+            <Paper withBorder p="md" radius="md" key={stat.title}>
+                <Group justify="space-between">
+                    <Text size="xs" c="dimmed" className={classes.title}>
+                        {stat.title}
+                    </Text>
+                    <Icon className={classes.icon} size={22} stroke={1.5} />
+                </Group>
+                <Group align="flex-end" gap="xs" mt={25}>
+                    <Text className={classes.value}>{stat.value}</Text>
+                    <Text c={stat.diff > 0 ? "teal" : "red"} fz="sm" fw={500} className={classes.diff}>
+                        <span>{stat.diff}%</span>
+                        <DiffIcon size={16} stroke={1.5} />
+                    </Text>
+                </Group>
+                <Text fz="xs" c="dimmed" mt={7}>
+                    Compared to previous month
+                </Text>
+            </Paper>
+        );
+    });
+
+    // Prepare chart data
+    const combinedSalesData = statsData.monthlySalesData.map((item, index) => ({
+        month: item.month,
+        sales: item.sales,
+        purchases: statsData.monthlyPurchasesData[index]?.purchases || 0,
+        gross: item.sales - (statsData.monthlyPurchasesData[index]?.purchases || 0),
+    }));
+
+    const profitMarginData = statsData.monthlySalesData.map((item, index) => {
+        const purchases = statsData.monthlyPurchasesData[index]?.purchases || 0;
+        const margin = item.sales > 0 ? ((item.sales - purchases) / item.sales) * 100 : 0;
+        return {
+            month: item.month,
+            margin: Math.round(margin * 100) / 100,
+        };
+    });
+
+    const costToSalesData = statsData.monthlySalesData.map((item, index) => {
+        const purchases = statsData.monthlyPurchasesData[index]?.purchases || 0;
+        const ratio = item.sales > 0 ? (purchases / item.sales) * 100 : 0;
+        return {
+            month: item.month,
+            ratio: Math.round(ratio * 100) / 100,
+        };
+    });
 
     return (
-        <Box p="lg">
-            <Group justify="space-between" mb="lg">
-                <Title order={3}>School Financial Statistics</Title>
-            </Group>
+        <div className={classes.root}>
+            {schoolInfo && (
+                <Title order={2} mb="lg">
+                    Financial Statistics - {schoolInfo.name}
+                </Title>
+            )}
 
-            <Divider my="md" />
+            <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>{stats}</SimpleGrid>
 
-            <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="lg" mb="lg">
-                <Card withBorder>
-                    <Group>
-                        <IconSchool />
-                        <Text fw={700}>Total Schools: {totalSchools}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconBook />
-                        <Text fw={700}>Total Sales: {totalSales.toLocaleString()}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconBook />
-                        <Text fw={700}>Total Purchases: {totalPurchases.toLocaleString()}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconCertificate />
-                        <Text fw={700}>Total Net Income: {totalNetIncome.toLocaleString()}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconBuilding />
-                        <Text fw={700}>Avg Operational Costs: {avgOperationalCosts}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconUser />
-                        <Text fw={700}>Avg Administration Costs: {avgAdministrationCosts}</Text>
-                    </Group>
-                </Card>
-                <Card withBorder>
-                    <Group>
-                        <IconUsers />
-                        <Text fw={700}>Avg Other Expenses: {avgOtherExpenses}</Text>
-                    </Group>
-                </Card>
-            </SimpleGrid>
+            <Divider my="lg" label="Core Financial Statistics" labelPosition="center" />
 
-            <ScrollArea h={400}>
-                <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={sampleData} layout="vertical" margin={{ top: 10, right: 30, left: 40, bottom: 10 }}>
-                        <XAxis type="number" />
-                        <YAxis type="category" dataKey="school" width={100} />
-                        <Tooltip />
-                        <Legend />
-                        <Bar dataKey="sales" fill="#8884d8" name="Sales" />
-                        <Bar dataKey="purchases" fill="#82ca9d" name="Purchases" />
-                        <Bar dataKey="netIncome" fill="#ffc658" name="Net Income" />
-                        <Bar dataKey="operationalCosts" fill="#ff8042" name="Operational Costs" />
-                        <Bar dataKey="administrationCosts" fill="#8dd1e1" name="Administration Costs" />
-                        <Bar dataKey="otherExpenses" fill="#a4de6c" name="Other Expenses" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ScrollArea>
-        </Box>
+            <Grid gutter="md">
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Card withBorder p="lg">
+                        <Title order={4}>Monthly Net Sales</Title>
+                        <LineChart
+                            h={300}
+                            data={statsData.monthlySalesData}
+                            dataKey="month"
+                            series={[{ name: "sales", color: "indigo.6" }]}
+                            curveType="linear"
+                            withTooltip
+                            valueFormatter={(value) => `₱${value.toLocaleString()}`}
+                        />
+                    </Card>
+                </Grid.Col>
+
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Card withBorder p="lg">
+                        <Title order={4}>Monthly Net Income</Title>
+                        <LineChart
+                            h={300}
+                            data={statsData.monthlyNetIncomeData}
+                            dataKey="month"
+                            series={[{ name: "net", color: "green.6" }]}
+                            curveType="linear"
+                            withTooltip
+                            valueFormatter={(value) => `₱${value.toLocaleString()}`}
+                        />
+                    </Card>
+                </Grid.Col>
+
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Card withBorder p="lg">
+                        <Title order={4}>Sales vs Purchases</Title>
+                        <BarChart
+                            h={300}
+                            data={combinedSalesData}
+                            dataKey="month"
+                            series={[
+                                { name: "purchases", color: "red.6" },
+                                { name: "sales", color: "green.6" },
+                            ]}
+                            withTooltip
+                            withLegend
+                            valueFormatter={(value) => `₱${value.toLocaleString()}`}
+                        />
+                    </Card>
+                </Grid.Col>
+
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                    <Card withBorder p="lg">
+                        <Title order={4}>Monthly Gross Profit</Title>
+                        <LineChart
+                            h={300}
+                            data={combinedSalesData}
+                            dataKey="month"
+                            series={[{ name: "gross", color: "blue.6" }]}
+                            curveType="linear"
+                            withTooltip
+                            valueFormatter={(value) => `₱${value.toLocaleString()}`}
+                        />
+                    </Card>
+                </Grid.Col>
+            </Grid>
+
+            <Divider my="lg" label="Performance & Efficiency Metrics" labelPosition="center" />
+
+            <Grid gutter="md">
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card withBorder p="lg">
+                        <Title order={5}>Profit Margin Over Time (%)</Title>
+                        <LineChart
+                            h={250}
+                            data={profitMarginData}
+                            dataKey="month"
+                            series={[{ name: "margin", color: "teal.6" }]}
+                            curveType="linear"
+                            withTooltip
+                            valueFormatter={(value) => `${value}%`}
+                        />
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card withBorder p="lg">
+                        <Title order={5}>Cost-to-Sales Ratio (%)</Title>
+                        <LineChart
+                            h={250}
+                            data={costToSalesData}
+                            dataKey="month"
+                            series={[{ name: "ratio", color: "orange.6" }]}
+                            curveType="linear"
+                            withTooltip
+                            valueFormatter={(value) => `${value}%`}
+                        />
+                    </Card>
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                    <Card withBorder p="lg">
+                        <Title order={5}>Monthly Summary</Title>
+                        <div style={{ padding: "1rem 0" }}>
+                            <Text size="sm" c="dimmed">
+                                Current Month Summary
+                            </Text>
+                            <Text fw={600}>Sales: ₱{statsData.netSales.toLocaleString()}</Text>
+                            <Text fw={600}>Purchases: ₱{statsData.totalPurchases.toLocaleString()}</Text>
+                            <Text fw={600} c={statsData.netIncome >= 0 ? "green" : "red"}>
+                                Net Income: ₱{statsData.netIncome.toLocaleString()}
+                            </Text>
+                        </div>
+                    </Card>
+                </Grid.Col>
+            </Grid>
+
+            {statsData.monthlySalesData.length > 0 && (
+                <>
+                    <Divider my="lg" label="Comparative Views" labelPosition="center" />
+                    <Grid gutter="md">
+                        <Grid.Col span={12}>
+                            <Card withBorder p="lg">
+                                <Title order={4}>12-Month Financial Overview</Title>
+                                <BarChart
+                                    h={400}
+                                    data={combinedSalesData}
+                                    dataKey="month"
+                                    series={[
+                                        { name: "sales", color: "blue.6" },
+                                        { name: "purchases", color: "red.6" },
+                                        { name: "gross", color: "green.6" },
+                                    ]}
+                                    withTooltip
+                                    withLegend
+                                    valueFormatter={(value) => `₱${value.toLocaleString()}`}
+                                />
+                            </Card>
+                        </Grid.Col>
+                    </Grid>
+                </>
+            )}
+        </div>
     );
 }
