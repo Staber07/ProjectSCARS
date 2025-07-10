@@ -25,6 +25,7 @@ import {
     IconPhoto,
     IconFileTypePdf,
     IconFiles,
+    IconDownload,
 } from "@tabler/icons-react";
 import {
     uploadAttachmentEndpointV1ReportsAttachmentsUploadPost,
@@ -32,6 +33,7 @@ import {
     deleteAttachmentEndpointV1ReportsAttachmentsFileUrnDelete,
 } from "@/lib/api/csclient";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
+import { Connections } from "@/lib/info";
 
 interface ReportAttachment {
     file_urn: string;
@@ -114,7 +116,7 @@ export function ReportAttachmentManager({
                 filename: metadata.filename,
                 file_size: metadata.file_size,
                 file_type: metadata.file_type,
-                upload_url: `/api/v1/reports/attachments/${metadata.file_urn}`,
+                upload_url: `${Connections.CentralServer.endpoint}/v1/reports/attachments/${metadata.file_urn}`,
             }));
 
             onAttachmentsChange(loadedAttachments);
@@ -203,7 +205,7 @@ export function ReportAttachmentManager({
                         filename: result.data.filename,
                         file_size: result.data.file_size,
                         file_type: result.data.file_type,
-                        upload_url: `/api/v1/reports/attachments/${result.data.file_urn}`,
+                        upload_url: `${Connections.CentralServer.endpoint}/v1/reports/attachments/${result.data.file_urn}`,
                     };
 
                     uploadedAttachments.push(newAttachment);
@@ -303,15 +305,67 @@ export function ReportAttachmentManager({
             setPreviewAttachment(attachment);
 
             if (isImageFile(attachment.file_type)) {
-                // For images, use the direct URL
-                setPreviewUrl(attachment.upload_url || `/api/v1/reports/attachments/${attachment.file_urn}`);
+                // For images, fetch and create a blob URL
+                const apiUrl = `${Connections.CentralServer.endpoint}/v1/reports/attachments/${attachment.file_urn}`;
+
+                // Create a fetch request with authentication header
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        Authorization: GetAccessTokenHeader(),
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load preview: ${response.status} ${response.statusText}`);
+                }
+
+                // Get the file blob and create a local URL
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                setPreviewUrl(url);
                 openPreview();
             } else if (isPdfFile(attachment.file_type)) {
-                // For PDFs, open in new tab
-                window.open(attachment.upload_url || `/api/v1/reports/attachments/${attachment.file_urn}`, "_blank");
+                // For PDFs, open in new tab with proper authentication
+                const apiUrl = `${Connections.CentralServer.endpoint}/v1/reports/attachments/${attachment.file_urn}`;
+                // We need to handle this specially to pass auth token to the new window
+                const w = window.open("about:blank", "_blank");
+                if (w) {
+                    setTimeout(() => {
+                        // Create a form to post the auth token
+                        const form = w.document.createElement("form");
+                        form.method = "GET";
+                        form.action = apiUrl;
+
+                        // Add auth header script
+                        const script = w.document.createElement("script");
+                        script.textContent = `
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', '${apiUrl}', true);
+                            xhr.setRequestHeader('Authorization', '${GetAccessTokenHeader()}');
+                            xhr.responseType = 'blob';
+                            xhr.onload = function() {
+                                if (this.status === 200) {
+                                    const blob = new Blob([this.response], {type: '${attachment.file_type}'});
+                                    const url = URL.createObjectURL(blob);
+                                    document.location = url;
+                                }
+                            };
+                            xhr.send();
+                        `;
+                        w.document.body.appendChild(script);
+                    }, 100);
+                } else {
+                    // Fallback if popup is blocked
+                    notifications.show({
+                        id: "popup-blocked",
+                        title: "Popup Blocked",
+                        message: "Please allow popups to preview PDF files.",
+                        color: "orange",
+                    });
+                }
             } else {
                 // For other files, trigger download
-                window.open(attachment.upload_url || `/api/v1/reports/attachments/${attachment.file_urn}`, "_blank");
+                downloadAttachment(attachment);
             }
         } catch (error) {
             console.error("Failed to preview attachment:", error);
@@ -337,6 +391,61 @@ export function ReportAttachmentManager({
             setPreviewUrl("");
         }
         setPreviewAttachment(null);
+    };
+
+    /**
+     * Download an attachment file
+     */
+    const downloadAttachment = async (attachment: ReportAttachment) => {
+        try {
+            // Construct the API URL with authentication
+            const apiUrl = `${Connections.CentralServer.endpoint}/v1/reports/attachments/${attachment.file_urn}`;
+
+            // Create a fetch request with authentication header
+            const response = await fetch(apiUrl, {
+                headers: {
+                    Authorization: GetAccessTokenHeader(),
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to download attachment: ${response.status} ${response.statusText}`);
+            }
+
+            // Get the file blob
+            const blob = await response.blob();
+
+            // Create a temporary URL for the blob
+            const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary link element
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = attachment.filename;
+            document.body.appendChild(link);
+
+            // Trigger the download
+            link.click();
+
+            // Clean up
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            notifications.show({
+                id: "download-success",
+                title: "Download Started",
+                message: `Downloading ${attachment.filename}`,
+                color: "green",
+            });
+        } catch (error) {
+            console.error("Failed to download attachment:", error);
+            notifications.show({
+                id: "download-error",
+                title: "Download Failed",
+                message: "Could not download the attachment. Please try again.",
+                color: "red",
+            });
+        }
     };
 
     /**
@@ -469,19 +578,20 @@ export function ReportAttachmentManager({
                                 <Group justify="space-between" align="center">
                                     <Group gap="sm" style={{ flex: 1 }}>
                                         {/* File Preview/Icon */}
-                                        {isImageFile(attachment.file_type) && attachment.upload_url ? (
-                                            <Image
-                                                src={attachment.upload_url}
-                                                alt={attachment.filename}
-                                                width={40}
-                                                height={40}
-                                                fit="cover"
-                                                radius="sm"
-                                                onError={(e) => {
-                                                    // Fallback to icon if image fails to load
-                                                    e.currentTarget.style.display = "none";
+                                        {isImageFile(attachment.file_type) ? (
+                                            <div
+                                                style={{
+                                                    width: 40,
+                                                    height: 40,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    backgroundColor: "var(--mantine-color-blue-0)",
+                                                    borderRadius: "var(--mantine-radius-sm)",
                                                 }}
-                                            />
+                                            >
+                                                <IconPhoto size={20} color="var(--mantine-color-blue-5)" />
+                                            </div>
                                         ) : (
                                             <div
                                                 style={{
@@ -528,6 +638,16 @@ export function ReportAttachmentManager({
                                                 onClick={() => previewAttachmentFile(attachment)}
                                             >
                                                 <IconEye size={16} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                        <Tooltip label="Download">
+                                            <ActionIcon
+                                                size="sm"
+                                                variant="subtle"
+                                                color="blue"
+                                                onClick={() => downloadAttachment(attachment)}
+                                            >
+                                                <IconDownload size={16} />
                                             </ActionIcon>
                                         </Tooltip>
                                         <Tooltip label="Remove">
