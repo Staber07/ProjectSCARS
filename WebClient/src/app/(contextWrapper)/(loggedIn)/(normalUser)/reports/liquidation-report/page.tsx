@@ -23,10 +23,8 @@
 
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import * as csclient from "@/lib/api/csclient";
-import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -135,9 +133,6 @@ function LiquidationReportContent() {
     const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
     const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
-
-    // Report status state
-    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
 
     const hasQtyUnit = QTY_FIELDS_REQUIRED.includes(category || "");
     const hasReceiptVoucher = RECEIPT_FIELDS_REQUIRED.includes(category || "");
@@ -680,34 +675,19 @@ function LiquidationReportContent() {
                                 {report_type[category as keyof typeof report_type] || "Report Category Not Found"}
                             </Title>
                             <Text size="sm" c="dimmed">
-                                Create and manage expense liquidation for {dayjs(reportPeriod).format("MMMM YYYY")}
+                                Create and manage expense liquidation
                             </Text>
                         </div>
                     </Group>
-                    <Group gap="md">
-                        {userCtx.userInfo?.schoolId && reportPeriod && category && (
-                            <ReportStatusManager
-                                currentStatus={currentReportStatus}
-                                reportType="liquidation"
-                                schoolId={userCtx.userInfo.schoolId}
-                                year={reportPeriod.getFullYear()}
-                                month={reportPeriod.getMonth() + 1}
-                                category={category}
-                                onStatusChanged={(newStatus) => {
-                                    setCurrentReportStatus(newStatus);
-                                }}
-                            />
-                        )}
-                        <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            size="lg"
-                            onClick={handleClose}
-                            className="hover:bg-gray-100"
-                        >
-                            <IconX size={20} />
-                        </ActionIcon>
-                    </Group>
+                    <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        size="lg"
+                        onClick={handleClose}
+                        className="hover:bg-gray-100"
+                    >
+                        <IconX size={20} />
+                    </ActionIcon>
                 </Flex>
                 {/* Month Selection */}
                 <Card withBorder>
@@ -1004,17 +984,24 @@ function LiquidationReportContent() {
                     </Card>
 
                     {/* Noted By */}
-                    <Card withBorder p="md">
+                    <Card withBorder p="md" style={{ position: "relative" }}>
+                        <Badge
+                            size="sm"
+                            color={selectedNotedByUser ? "green" : "orange"}
+                            variant="light"
+                            style={{
+                                position: "absolute",
+                                top: "12px",
+                                right: "12px",
+                            }}
+                        >
+                            {selectedNotedByUser ? "Selected" : "Not Selected"}
+                        </Badge>
                         <Stack gap="sm" align="center">
-                            <Group justify="space-between" w="100%" align="center">
-                                <Group gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" fw={500}>
-                                        Noted by
-                                    </Text>
-                                    <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
-                                        {selectedNotedByUser ? "Selected" : "Not Selected"}
-                                    </Badge>
-                                </Group>
+                            <Group justify="space-between" w="100%">
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Noted by
+                                </Text>
                                 {selectedNotedByUser ? (
                                     <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
                                         Clear
