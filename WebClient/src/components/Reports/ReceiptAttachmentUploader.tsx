@@ -12,8 +12,8 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconTrash, IconUpload, IconFile, IconEye } from "@tabler/icons-react";
 import { 
-    uploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPost,
-    getAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPost
+    uploadAttachmentEndpointV1ReportsAttachmentsUploadPost,
+    getAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPost
 } from "@/lib/api/csclient";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
 
@@ -47,7 +47,7 @@ export function ReceiptAttachmentUploader({
 
         setLoading(true);
         try {
-            const result = await getAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPost({
+            const result = await getAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPost({
                 headers: {
                     Authorization: GetAccessTokenHeader(),
                 },
@@ -102,7 +102,7 @@ export function ReceiptAttachmentUploader({
 
         setUploading(true);
         try {
-            const result = await uploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPost({
+            const result = await uploadAttachmentEndpointV1ReportsAttachmentsUploadPost({
                 headers: {
                     Authorization: GetAccessTokenHeader(),
                 },

@@ -22,7 +22,7 @@ from centralserver.internals.models.token import DecodedJWTToken
 logger = LoggerFactory().get_logger(__name__)
 
 router = APIRouter(
-    prefix="/reports/attachments",
+    prefix="/attachments",
     tags=["reports", "attachments"],
 )
 
@@ -48,10 +48,10 @@ async def upload_attachment_endpoint(
         AttachmentUploadResponse with file details.
     """
     logger.debug("User %s is uploading report attachment: %s", token.id, file.filename)
-    
+
     # TODO: Add permission checking based on user role and report access
     # For now, we'll allow any authenticated user to upload attachments
-    
+
     return await upload_report_attachment(file, session, description)
 
 
@@ -72,23 +72,26 @@ async def get_attachment_endpoint(
         StreamingResponse with the attachment file.
     """
     logger.debug("User %s is retrieving report attachment: %s", token.id, file_urn)
-    
+
     # TODO: Add permission checking based on user role and report access
     # For now, we'll allow any authenticated user to retrieve attachments
-    
+
     try:
-        file_content, filename, content_type = await get_report_attachment(file_urn, session)
-        
+        file_content, filename, content_type = await get_report_attachment(
+            file_urn, session
+        )
+
         # Return as streaming response
         from io import BytesIO
+
         file_stream = BytesIO(file_content)
-        
+
         return StreamingResponse(
             file_stream,
             media_type=content_type,
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
         )
-        
+
     except Exception as e:
         logger.error("Failed to retrieve attachment %s: %s", file_urn, str(e))
         raise HTTPException(
@@ -114,12 +117,12 @@ async def delete_attachment_endpoint(
         Success message.
     """
     logger.debug("User %s is deleting report attachment: %s", token.id, file_urn)
-    
+
     # TODO: Add permission checking based on user role and report access
     # For now, we'll allow any authenticated user to delete attachments
-    
+
     await delete_report_attachment(file_urn, session)
-    
+
     return {"message": "Attachment deleted successfully"}
 
 
@@ -139,11 +142,13 @@ async def get_attachments_metadata_endpoint(
     Returns:
         List of metadata dictionaries for the requested attachments.
     """
-    logger.debug("User %s is retrieving metadata for report attachments: %s", token.id, file_urns)
-    
+    logger.debug(
+        "User %s is retrieving metadata for report attachments: %s", token.id, file_urns
+    )
+
     # TODO: Add permission checking based on user role and report access
     # For now, we'll allow any authenticated user to retrieve attachment metadata
-    
+
     metadata_list = []
     for file_urn in file_urns:
         try:
@@ -156,8 +161,10 @@ async def get_attachments_metadata_endpoint(
             )
             metadata_list.append(metadata_response)
         except Exception as e:
-            logger.error("Failed to retrieve metadata for attachment %s: %s", file_urn, str(e))
+            logger.error(
+                "Failed to retrieve metadata for attachment %s: %s", file_urn, str(e)
+            )
             # Skip attachments that can't be found rather than including error entries
             continue
-    
+
     return metadata_list

@@ -138,6 +138,36 @@ async def validate_and_process_signature(contents: bytes) -> bytes:
     return await validate_and_process_image(contents, is_signature=True)
 
 
+async def validate_attachment_file(contents: bytes, filename: str) -> bytes:
+    """Validate a general file attachment.
+
+    Accepts any file type but validates file size limits.
+
+    Args:
+        contents: The raw bytes of the file.
+        filename: The filename for context in error messages.
+
+    Returns:
+        The original file bytes (no processing needed for general files).
+
+    Raises:
+        ValueError: If the file exceeds the size limit.
+    """
+    # Use a more generous file size limit for attachments (e.g., 10MB instead of 2MB for images)
+    max_attachment_size = 10 * 1024 * 1024  # 10MB
+
+    if len(contents) > max_attachment_size:
+        size_mb = len(contents) / (1024 * 1024)
+        max_size_mb = max_attachment_size / (1024 * 1024)
+        raise ValueError(
+            f"File '{filename}' size {size_mb:.2f} MB exceeds the {max_size_mb:.2f} MB size limit."
+        )
+
+    # For general attachments, we don't need to process the file, just return as-is
+    logger.debug("File '%s' validated successfully. Size: %d bytes", filename, len(contents))
+    return contents
+
+
 class ObjectStoreAdapter(ABC):
     """Superclass for object store adapter configuration."""
 
