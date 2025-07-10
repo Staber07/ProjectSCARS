@@ -2,7 +2,7 @@ import datetime
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session, func, select
+from sqlmodel import Session, select
 
 from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
@@ -546,14 +546,12 @@ async def update_user_info(
             #     session.exec(select(User).where(User.roleId == 1)).all()
             # )
             # if superintendent_quantity == 1:
-            if (
+            admin_count = len(
                 session.exec(
-                    select(func.count(User.id)).where(  # type: ignore
-                        User.roleId == DEFAULT_ROLES[0].id
-                    )
-                ).one()
-                <= 1
-            ):
+                    select(User).where(User.roleId == DEFAULT_ROLES[0].id)
+                ).all()
+            )
+            if admin_count <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot change the role of the last admin user.",
@@ -604,14 +602,12 @@ async def update_user_info(
         if selected_user.roleId == DEFAULT_ROLES[0].id:
             # Make sure that there is at least one superintendent user in the database
             # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
-            if (
+            admin_count = len(
                 session.exec(
-                    select(func.count(User.id)).where(  # type: ignore
-                        User.roleId == DEFAULT_ROLES[0].id
-                    )
-                ).one()
-                <= 1
-            ):
+                    select(User).where(User.roleId == DEFAULT_ROLES[0].id)
+                ).all()
+            )
+            if admin_count <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot set deactivated status of the last admin user.",
@@ -671,6 +667,18 @@ async def update_user_info(
 
     session.commit()
     session.refresh(selected_user)
+
+    # Send notification if user was updated by someone else
+    if not updating_self:
+        await push_notification(
+            owner_id=selected_user.id,
+            title="Profile Updated",
+            content="Your profile information has been updated by an administrator. You may need to refresh your session to see the changes.",
+            important=True,
+            notification_type=NotificationType.INFO,
+            session=session,
+        )
+
     if email_changed:
         await push_notification(
             owner_id=selected_user.id,

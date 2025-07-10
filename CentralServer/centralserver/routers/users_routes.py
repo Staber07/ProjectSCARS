@@ -561,3 +561,35 @@ async def get_users_simple_endpoint(
     users = session.exec(query).all()
 
     return [UserSimple.model_validate(user) for user in users]
+
+
+@router.get("/me/last-modified")
+async def get_user_last_modified_endpoint(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Get the last modified timestamp of the logged-in user's profile.
+
+    Args:
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        A dictionary containing the last modified timestamp.
+    """
+
+    if not await verify_user_permission("users:self:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view your profile.",
+        )
+
+    logger.debug("Fetching user last modified timestamp for user ID: %s", token.id)
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    return {"lastModified": user.lastModified.isoformat()}

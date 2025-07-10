@@ -3,6 +3,7 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import { UserSyncButton } from "@/components/UserSyncButton";
 import {
     deleteUserAvatarEndpointV1UsersAvatarDelete,
     deleteUserInfoEndpointV1UsersDelete,
@@ -806,9 +807,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     return (
         <Box mx="auto" p="lg">
-            <Title order={3} mb="sm">
-                Profile
-            </Title>
+            <Flex justify="space-between" align="center" mb="sm">
+                <Title order={3}>Profile</Title>
+                <UserSyncButton size="compact-sm" />
+            </Flex>
             <Divider mb="lg" />
             <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
                 <Group gap={20}>
