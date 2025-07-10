@@ -24,6 +24,7 @@
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { ReceiptAttachmentUploader } from "@/components/Reports/ReceiptAttachmentUploader";
 import * as csclient from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -122,6 +123,9 @@ function LiquidationReportContent() {
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Receipt attachment state management
+    const [receiptAttachmentUrns, setReceiptAttachmentUrns] = useState<string[]>([]);
+
     // Signature state management
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
     const [preparedBy, setPreparedBy] = useState<string | null>(null);
@@ -184,9 +188,25 @@ function LiquidationReportContent() {
                         }));
                         setExpenseItems(loadedItems);
 
+                        // Load receipt attachments if available
+                        const allAttachmentUrns: string[] = [];
+                        report.entries.forEach((entry) => {
+                            if (entry.receipt_attachment_urns) {
+                                try {
+                                    const urns = JSON.parse(entry.receipt_attachment_urns);
+                                    if (Array.isArray(urns)) {
+                                        allAttachmentUrns.push(...urns);
+                                    }
+                                } catch (error) {
+                                    console.error("Failed to parse receipt attachment URNs:", error);
+                                }
+                            }
+                        });
+                        setReceiptAttachmentUrns(allAttachmentUrns);
+
                         notifications.show({
                             title: "Report Loaded",
-                            message: `Loaded existing report with ${loadedItems.length} items.`,
+                            message: `Loaded existing report with ${loadedItems.length} items${allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""}.`,
                             color: "blue",
                         });
                     }
@@ -517,6 +537,7 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
+            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
             const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
                 const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                 return {
@@ -529,6 +550,7 @@ function LiquidationReportContent() {
                     ...(isAmountOnly
                         ? { amount: item.unitPrice, unitPrice: null }
                         : { unitPrice: item.unitPrice, amount: null }),
+                    receipt_attachment_urns: receiptUrnString,
                 };
             });
 
@@ -586,6 +608,7 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data (even if some fields are empty for draft)
+            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
                 .map((item) => {
@@ -600,6 +623,7 @@ function LiquidationReportContent() {
                         ...(isAmountOnly
                             ? { amount: item.unitPrice, unitPrice: null }
                             : { unitPrice: item.unitPrice, amount: null }),
+                        receipt_attachment_urns: receiptUrnString,
                     };
                 });
 
@@ -842,6 +866,27 @@ function LiquidationReportContent() {
                             </Text>
                         </div>
                     </Group>
+                </Card>
+
+                {/* Receipt Attachments Section */}
+                <Card withBorder>
+                    <Stack gap="md">
+                        <Text fw={500}>Receipt Attachments</Text>
+                        <Text size="sm" c="dimmed">
+                            Upload receipt images to support your expense entries
+                        </Text>
+                        <ReceiptAttachmentUploader
+                            attachments={[]}
+                            onAttachmentsChange={(attachments) => {
+                                // Convert attachments to URNs and store them
+                                const urns = attachments.map(att => att.file_urn);
+                                setReceiptAttachmentUrns(urns);
+                            }}
+                            initialAttachmentUrns={receiptAttachmentUrns}
+                            maxFiles={10}
+                            disabled={isSubmitting}
+                        />
+                    </Stack>
                 </Card>
 
                 {/* Notes Section */}

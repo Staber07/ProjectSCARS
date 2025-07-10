@@ -3,7 +3,7 @@ import datetime
 from typing import Annotated, Any, Dict, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
@@ -150,6 +150,10 @@ class LiquidationReportEntryData(BaseModel):
     unit: str | None = None
     unitPrice: float | None = None  # For reports with quantity/unit
     amount: float | None = None  # For reports without quantity/unit
+    receipt_attachment_urns: str | None = Field(
+        default=None,
+        description="JSON string containing list of receipt attachment URNs",
+    )
 
 
 class LiquidationReportCreateRequest(BaseModel):
@@ -262,6 +266,11 @@ def _convert_to_response(
         unit = _get_field_value(entry, "unit")
         if unit is not None:
             entry_data.unit = unit
+
+        # Add receipt attachment URNs if available
+        receipt_attachment_urns = _get_field_value(entry, "receipt_attachment_urns")
+        if receipt_attachment_urns is not None:
+            entry_data.receipt_attachment_urns = receipt_attachment_urns
 
         entries.append(entry_data)
 
@@ -536,6 +545,10 @@ async def create_or_update_liquidation_report(
             "date": entry_data.date,
             "particulars": entry_data.particulars,
         }
+
+        # Add receipt attachment URNs if available
+        if hasattr(entry_data, "receipt_attachment_urns") and entry_data.receipt_attachment_urns:
+            entry_dict["receipt_attachment_urns"] = entry_data.receipt_attachment_urns
 
         # Handle receipt number field variations based on model type
         if entry_data.receiptNumber:
