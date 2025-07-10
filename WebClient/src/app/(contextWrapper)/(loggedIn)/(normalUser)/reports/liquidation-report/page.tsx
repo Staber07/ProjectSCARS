@@ -211,7 +211,9 @@ function LiquidationReportContent() {
 
                         notifications.show({
                             title: "Report Loaded",
-                            message: `Loaded existing report with ${loadedItems.length} items${allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""}.`,
+                            message: `Loaded existing report with ${loadedItems.length} items${
+                                allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""
+                            }.`,
                             color: "blue",
                         });
                     }
@@ -886,27 +888,6 @@ function LiquidationReportContent() {
                             </Text>
                         </div>
                     </Group>
-                </Card>
-
-                {/* Receipt Attachments Section */}
-                <Card withBorder>
-                    <Stack gap="md">
-                        <Text fw={500}>Receipt Attachments</Text>
-                        <Text size="sm" c="dimmed">
-                            Upload receipt images to support your expense entries
-                        </Text>
-                        <ReceiptAttachmentUploader
-                            attachments={[]}
-                            onAttachmentsChange={(attachments) => {
-                                // Convert attachments to URNs and store them
-                                const urns = attachments.map(att => att.file_urn);
-                                setReceiptAttachmentUrns(urns);
-                            }}
-                            initialAttachmentUrns={receiptAttachmentUrns}
-                            maxFiles={10}
-                            disabled={isSubmitting}
-                        />
-                    </Stack>
                 </Card>
 
                 {/* Notes Section */}
