@@ -283,3 +283,10 @@ class UserPasswordResetRequest(SQLModel):
 
     new_password: str
     recovery_token: str
+
+
+class UserPasswordChange(SQLModel):
+    """A model used for changing a user's password with current password validation."""
+
+    current_password: str
+    new_password: str
