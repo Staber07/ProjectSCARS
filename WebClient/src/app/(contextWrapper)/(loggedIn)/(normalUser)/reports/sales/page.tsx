@@ -56,6 +56,7 @@ function SalesandPurchasesContent() {
     // Signature state management
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
     const [preparedBy, setPreparedBy] = useState<string | null>(null);
+    const [preparedByPosition, setPreparedByPosition] = useState<string | null>(null);
     const [notedBy, setNotedBy] = useState<string | null>(null);
     const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
     const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
@@ -108,31 +109,143 @@ function SalesandPurchasesContent() {
         fetchEntries();
     }, [currentMonth, userCtx.userInfo?.schoolId]);
 
+    // Load daily report data after school users are loaded
+    useEffect(() => {
+        const loadDailyReportData = async () => {
+            if (!userCtx.userInfo?.schoolId || schoolUsers.length === 0) return;
+
+            try {
+                const reportRes = await csclient.getSchoolDailyReportV1ReportsDailySchoolIdYearMonthGet({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year: currentMonth.getFullYear(),
+                        month: currentMonth.getMonth() + 1,
+                    },
+                });
+
+                if (reportRes?.data) {
+                    const report = reportRes.data as csclient.DailyFinancialReport;
+                    // Set the prepared by from the report (get user name from user ID)
+                    if (report.preparedBy) {
+                        // Find the user in schoolUsers to get their name
+                        const preparedByUser = schoolUsers.find((user) => user.id === report.preparedBy);
+                        if (preparedByUser) {
+                            const preparedByName = `${preparedByUser.nameFirst} ${preparedByUser.nameLast}`.trim();
+                            setPreparedBy(preparedByName);
+                            setPreparedByPosition(preparedByUser.position || null);
+                            // Load the preparedBy user's signature
+                            if (preparedByUser.signatureUrn) {
+                                try {
+                                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                        query: { fn: preparedByUser.signatureUrn },
+                                    });
+                                    if (response.data) {
+                                        const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                        setPreparedBySignatureUrl(signatureUrl);
+                                    }
+                                } catch (error) {
+                                    console.error("Failed to load prepared by user signature:", error);
+                                }
+                            }
+                        } else {
+                            // If user not found in schoolUsers, try to get from current user if it's the same
+                            if (report.preparedBy === userCtx.userInfo?.id) {
+                                const currentUserName =
+                                    `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+                                setPreparedBy(currentUserName);
+                                setPreparedByPosition(userCtx.userInfo.position || null);
+                                // Load current user's signature for preparedBy
+                                if (userCtx.userInfo.signatureUrn) {
+                                    try {
+                                        const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                            query: { fn: userCtx.userInfo.signatureUrn },
+                                        });
+                                        if (response.data) {
+                                            const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                            setPreparedBySignatureUrl(signatureUrl);
+                                        }
+                                    } catch (error) {
+                                        console.error("Failed to load current user signature for preparedBy:", error);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // Set the noted by from the report (get user name from user ID)
+                    if (report.notedBy) {
+                        // Find the user in schoolUsers to get their name
+                        const notedByUser = schoolUsers.find((user) => user.id === report.notedBy);
+                        if (notedByUser) {
+                            const notedByName = `${notedByUser.nameFirst} ${notedByUser.nameLast}`.trim();
+                            setNotedBy(notedByName);
+                            setSelectedNotedByUser(notedByUser);
+                            // Load the notedBy user's signature if they have approved the report
+                            if (notedByUser.signatureUrn) {
+                                try {
+                                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                        query: { fn: notedByUser.signatureUrn },
+                                    });
+                                    if (response.data) {
+                                        const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                        setNotedBySignatureUrl(signatureUrl);
+                                        setApprovalConfirmed(true); // Mark as approved since we loaded their signature
+                                    }
+                                } catch (error) {
+                                    console.error("Failed to load noted by user signature:", error);
+                                }
+                            }
+                        } else {
+                            // If user not found in schoolUsers, try to get from current user if it's the same
+                            if (report.notedBy === userCtx.userInfo?.id) {
+                                const currentUserName =
+                                    `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+                                setNotedBy(currentUserName);
+                                // Find current user in schoolUsers to set as selectedNotedByUser
+                                const currentUser = schoolUsers.find((user) => user.id === userCtx.userInfo?.id);
+                                if (currentUser) {
+                                    setSelectedNotedByUser(currentUser);
+                                    // Load current user's signature for notedBy if available
+                                    if (currentUser.signatureUrn) {
+                                        try {
+                                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                                query: { fn: currentUser.signatureUrn },
+                                            });
+                                            if (response.data) {
+                                                const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                                setNotedBySignatureUrl(signatureUrl);
+                                                setApprovalConfirmed(true); // Mark as approved since we loaded their signature
+                                            }
+                                        } catch (error) {
+                                            console.error("Failed to load current user signature for notedBy:", error);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch {
+                // If report doesn't exist yet, that's fine - we'll create it later
+                console.debug("Daily report not found, will create new one");
+            }
+        };
+
+        loadDailyReportData();
+    }, [
+        currentMonth,
+        userCtx.userInfo?.schoolId,
+        schoolUsers,
+        userCtx.userInfo?.id,
+        userCtx.userInfo?.nameFirst,
+        userCtx.userInfo?.nameLast,
+        userCtx.userInfo?.signatureUrn,
+        userCtx.userInfo?.position,
+    ]);
+
     // Initialize signature data and load school users
     useEffect(() => {
         const initializeSignatures = async () => {
             if (!userCtx.userInfo) return;
-
-            /**
-             * Fetch user signature from the server using their signatureUrn
-             * Reason: Convert stored signature URN to displayable blob URL
-             */
-            const fetchUserSignature = async (signatureUrn: string): Promise<string | null> => {
-                try {
-                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                        query: { fn: signatureUrn },
-                    });
-
-                    // Response data is already a blob, create object URL for display
-                    if (response.data) {
-                        return URL.createObjectURL(response.data as Blob);
-                    }
-                    return null;
-                } catch (error) {
-                    console.error("Failed to fetch user signature:", error);
-                    return null;
-                }
-            };
 
             /**
              * Load users from the same school for "noted by" selection
@@ -160,28 +273,45 @@ function SalesandPurchasesContent() {
                 }
             };
 
-            // Set prepared by to current user
-            const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
-            setPreparedBy(currentUserName);
-
-            // Load current user's signature if available
-            if (userCtx.userInfo.signatureUrn) {
-                try {
-                    const signatureUrl = await fetchUserSignature(userCtx.userInfo.signatureUrn);
-                    if (signatureUrl) {
-                        setPreparedBySignatureUrl(signatureUrl);
-                    }
-                } catch (error) {
-                    console.error("Failed to load user signature:", error);
-                }
-            }
-
             // Load school users for noted by selection
             await loadSchoolUsers();
         };
 
         initializeSignatures();
     }, [userCtx.userInfo]);
+
+    // Initialize prepared by for new reports only
+    useEffect(() => {
+        const initializePreparedBy = async () => {
+            if (!userCtx.userInfo) return;
+
+            // Only set prepared by to current user if it hasn't been set yet (i.e., for new reports)
+            if (!preparedBy && !preparedBySignatureUrl) {
+                const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+                setPreparedBy(currentUserName);
+                setPreparedByPosition(userCtx.userInfo.position || null);
+                
+                // Load current user's signature for preparedBy only if preparedBy is not set yet
+                if (userCtx.userInfo.signatureUrn) {
+                    try {
+                        const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                            query: { fn: userCtx.userInfo.signatureUrn },
+                        });
+
+                        // Response data is already a blob, create object URL for display
+                        if (response.data) {
+                            const signatureUrl = URL.createObjectURL(response.data as Blob);
+                            setPreparedBySignatureUrl(signatureUrl);
+                        }
+                    } catch (error) {
+                        console.error("Failed to load user signature:", error);
+                    }
+                }
+            }
+        };
+
+        initializePreparedBy();
+    }, [userCtx.userInfo, preparedBy, preparedBySignatureUrl]);
 
     // Effect to match loaded notedBy name with actual user and load their signature
     useEffect(() => {
@@ -495,6 +625,7 @@ function SalesandPurchasesContent() {
             });
             // Find deleted entries (in originalEntries but not in dailyEntries)
             const deletedEntries = originalEntries.filter((e) => !dailyEntries.some((d) => d.day === e.day));
+
             // Bulk create new entries
             if (newEntries.length > 0) {
                 await csclient.createBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPost({
@@ -510,6 +641,7 @@ function SalesandPurchasesContent() {
                     })),
                 });
             }
+
             // Update changed entries
             for (const entry of updatedEntries) {
                 await csclient.updateDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayPut({
@@ -525,6 +657,7 @@ function SalesandPurchasesContent() {
                     },
                 });
             }
+
             // Delete removed entries
             for (const entry of deletedEntries) {
                 await csclient.deleteDailySalesAndPurchasesEntryV1ReportsDailySchoolIdYearMonthEntriesDayDelete({
@@ -536,11 +669,28 @@ function SalesandPurchasesContent() {
                     },
                 });
             }
+
+            // Create or update the daily financial report with proper preparedBy and notedBy
+            // preparedBy should be the current logged-in user ID
+            // notedBy should be the selected user ID (if any)
+            const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+            await csclient.createSchoolDailyReportV1ReportsDailySchoolIdYearMonthPatch({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year: currentMonth.getFullYear(),
+                    month: currentMonth.getMonth() + 1,
+                },
+                query: {
+                    noted_by: selectedNotedByUser?.id || null,
+                },
+            });
+
             notifications.show({
                 title: "Submission",
                 message: "Your entries have been submitted successfully.",
                 color: "green",
             });
+
             // Refresh data after submit
             const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
                 path: {
@@ -559,6 +709,25 @@ function SalesandPurchasesContent() {
             }));
             setDailyEntries(mapped);
             setOriginalEntries(mapped);
+
+            // Update the preparedBy to current user since this is a new submission
+            setPreparedBy(currentUserName);
+            setPreparedByPosition(userCtx.userInfo.position || null);
+            
+            // Update the preparedBy signature to current user's signature
+            if (userCtx.userInfo.signatureUrn) {
+                try {
+                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                        query: { fn: userCtx.userInfo.signatureUrn },
+                    });
+                    if (response.data) {
+                        const signatureUrl = URL.createObjectURL(response.data as Blob);
+                        setPreparedBySignatureUrl(signatureUrl);
+                    }
+                } catch (error) {
+                    console.error("Failed to load current user signature for preparedBy:", error);
+                }
+            }
         } catch (err: unknown) {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
@@ -869,7 +1038,7 @@ function SalesandPurchasesContent() {
                                     {preparedBy || "NAME"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
-                                    {userCtx.userInfo?.position || "Position"}
+                                    {preparedByPosition || "Position"}
                                 </Text>
                             </div>
                         </Stack>
@@ -888,7 +1057,11 @@ function SalesandPurchasesContent() {
                                         color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
                                         variant="light"
                                     >
-                                        {approvalConfirmed ? "Approved" : selectedNotedByUser ? "Pending Approval" : "Not Selected"}
+                                        {approvalConfirmed
+                                            ? "Approved"
+                                            : selectedNotedByUser
+                                            ? "Pending Approval"
+                                            : "Not Selected"}
                                     </Badge>
                                 </Group>
                                 {selectedNotedByUser ? (
@@ -937,19 +1110,21 @@ function SalesandPurchasesContent() {
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}
                                 </Text>
-                                {selectedNotedByUser && !approvalConfirmed && (
-                                    <Button
-                                        size="xs"
-                                        variant="light"
-                                        color="blue"
-                                        onClick={openApprovalModal}
-                                        disabled={!selectedNotedByUser.signatureUrn}
-                                        mt="xs"
-                                        mb="xs"
-                                    >
-                                        Approve Report
-                                    </Button>
-                                )}
+                                {selectedNotedByUser &&
+                                    !approvalConfirmed &&
+                                    selectedNotedByUser.id === userCtx.userInfo?.id && (
+                                        <Button
+                                            size="xs"
+                                            variant="light"
+                                            color="blue"
+                                            onClick={openApprovalModal}
+                                            disabled={!selectedNotedByUser.signatureUrn}
+                                            mt="xs"
+                                            mb="xs"
+                                        >
+                                            Approve Report
+                                        </Button>
+                                    )}
                             </div>
                         </Stack>
                     </Card>
