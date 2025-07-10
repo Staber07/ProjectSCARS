@@ -159,8 +159,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 if (!/(?=.*\d)/.test(value)) return "Password must contain at least one digit";
                 return null;
             },
-            confirmPassword: (value, values) =>
-                value !== values.newPassword ? "Passwords do not match" : null,
+            confirmPassword: (value, values) => (value !== values.newPassword ? "Passwords do not match" : null),
         },
     });
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
@@ -659,16 +658,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         }
     };
 
-    const handlePasswordChange = async (values: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
+    const handlePasswordChange = async (values: {
+        currentPassword: string;
+        newPassword: string;
+        confirmPassword: string;
+    }) => {
         try {
             passwordStateHandler.open();
-            
+
             // Call the new password change endpoint
             const response = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/users/me/password`, {
-                method: 'PATCH',
+                method: "PATCH",
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': GetAccessTokenHeader(),
+                    "Content-Type": "application/json",
+                    Authorization: GetAccessTokenHeader(),
                 },
                 body: JSON.stringify({
                     current_password: values.currentPassword,
@@ -678,7 +681,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.detail || `Failed to update password: ${response.status} ${response.statusText}`);
+                throw new Error(
+                    errorData.detail || `Failed to update password: ${response.status} ${response.statusText}`
+                );
             }
 
             const result = await response.json();
@@ -695,7 +700,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             changePasswordForm.reset();
             setNewPassword("");
             modalHandler.close();
-
         } catch (error) {
             console.error("Password update error:", error);
             notifications.show({
@@ -1847,23 +1851,23 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             />
 
             {/* Password change modal - moved outside the main form */}
-            <Modal 
-                opened={opened} 
+            <Modal
+                opened={opened}
                 onClose={() => {
                     changePasswordForm.reset();
                     setNewPassword("");
                     modalHandler.close();
-                }} 
-                title="Update Password" 
+                }}
+                title="Update Password"
                 centered
             >
                 <form onSubmit={changePasswordForm.onSubmit(handlePasswordChange)}>
                     <Stack>
-                        <TextInput 
-                            label="Current Password" 
-                            placeholder="Enter your current password" 
-                            type="password" 
-                            required 
+                        <TextInput
+                            label="Current Password"
+                            placeholder="Enter your current password"
+                            type="password"
+                            required
                             key={changePasswordForm.key("currentPassword")}
                             {...changePasswordForm.getInputProps("currentPassword")}
                         />
@@ -1898,9 +1902,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             {...changePasswordForm.getInputProps("confirmPassword")}
                         />
 
-                        <Button 
-                            variant="filled" 
-                            color="blue" 
+                        <Button
+                            variant="filled"
+                            color="blue"
                             type="submit"
                             loading={passwordLoading}
                             leftSection={<IconKey size={16} />}

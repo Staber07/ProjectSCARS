@@ -876,25 +876,21 @@ function SalesandPurchasesContent() {
                     </Card>
 
                     {/* Noted by */}
-                    <Card withBorder p="md" style={{ position: "relative" }}>
-                        <Badge
-                            size="sm"
-                            color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
-                            variant="light"
-                            style={{
-                                position: "absolute",
-                                top: "12px",
-                                right: "12px",
-                            }}
-                        >
-                            {approvalConfirmed ? "Approved" : selectedNotedByUser ? "Pending Approval" : "Not Selected"}
-                        </Badge>
-
+                    <Card withBorder p="md">
                         <Stack gap="sm" align="center">
                             <Group justify="space-between" w="100%">
-                                <Text size="sm" c="dimmed" fw={500}>
-                                    Noted by
-                                </Text>
+                                <Group gap="sm">
+                                    <Text size="sm" c="dimmed" fw={500}>
+                                        Noted by
+                                    </Text>
+                                    <Badge
+                                        size="sm"
+                                        color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
+                                        variant="light"
+                                    >
+                                        {approvalConfirmed ? "Approved" : selectedNotedByUser ? "Pending Approval" : "Not Selected"}
+                                    </Badge>
+                                </Group>
                                 {selectedNotedByUser ? (
                                     <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
                                         Clear

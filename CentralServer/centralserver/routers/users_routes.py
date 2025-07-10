@@ -632,14 +632,18 @@ async def change_user_password_endpoint(
 
     # Verify current password
     if not crypt_ctx.verify(password_change.current_password, user.password):
-        logger.warning("Failed password change for user %s: invalid current password", token.id)
+        logger.warning(
+            "Failed password change for user %s: invalid current password", token.id
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Current password is incorrect.",
         )
 
     # Validate new password
-    password_is_valid, password_err = await validate_password(password_change.new_password)
+    password_is_valid, password_err = await validate_password(
+        password_change.new_password
+    )
     if not password_is_valid:
         logger.warning("Failed password change for user %s: %s", token.id, password_err)
         raise HTTPException(
@@ -650,9 +654,9 @@ async def change_user_password_endpoint(
     # Update password
     user.password = crypt_ctx.hash(password_change.new_password)
     user.lastModified = datetime.datetime.now(datetime.timezone.utc)
-    
+
     session.commit()
     session.refresh(user)
-    
+
     logger.info("Password changed successfully for user %s", user.username)
     return {"message": "Password changed successfully"}
