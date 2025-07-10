@@ -64,11 +64,9 @@ class SupplementaryFeedingFundEntry(SQLModel, table=True):
         index=True,
         description="The date of the expense entry.",
     )
-    receipt: str | None
-    particulars: str = Field(primary_key=True)
-    unit: str
-    quantity: float
-    unitPrice: float
+    receipt: str | None = Field(description="Receipt or voucher number")
+    particulars: str = Field(primary_key=True, description="Item description")
+    amount: float = Field(description="Total amount for the item")
 
     parent_report: "LiquidationReportSupplementaryFeedingFund" = Relationship(
         back_populates="entries"

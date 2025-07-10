@@ -78,6 +78,10 @@ class OperatingExpenseEntry(SQLModel, table=True):
     unit: str  # currency (PHP), weight (kg), etc.
     quantity: float  # NOTE: This is float because it could be a (for example) weight
     unit_price: float
+    receipt_attachment_urns: str | None = Field(
+        default=None,
+        description="JSON string containing list of receipt attachment URNs",
+    )
 
     parent_report: "LiquidationReportOperatingExpenses" = Relationship(
         back_populates="entries"

@@ -65,10 +65,8 @@ class LiquidationReportClinicFundEntry(SQLModel, table=True):
         index=True,
         description="The date of the expense entry.",
     )
-    receiptNumber: str | None
-    particulars: str = Field(primary_key=True)
-    unit: str
-    quantity: float
-    unitPrice: float
+    receiptNumber: str | None = Field(description="Receipt or voucher number.")
+    particulars: str = Field(primary_key=True, description="Item description.")
+    amount: float = Field(description="Amount of the expense.")
 
     parent_report: LiquidationReportClinicFund = Relationship(back_populates="entries")

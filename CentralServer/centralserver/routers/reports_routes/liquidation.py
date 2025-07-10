@@ -3,7 +3,7 @@ import datetime
 from typing import Annotated, Any, Dict, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session, select
 
@@ -58,6 +58,12 @@ from centralserver.internals.models.reports.monthly_report import (
     MonthlyReport,
     ReportStatus,
 )
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
+)
+from centralserver.internals.models.reports.report_status_manager import (
+    ReportStatusManager,
+)
 from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
@@ -88,7 +94,7 @@ LIQUIDATION_CATEGORIES: Dict[str, Dict[str, Any]] = {
         "certified_model": SupplementaryFeedingFundCertifiedBy,
         "name": "Supplementary Feeding Fund",
         "has_receipt": True,
-        "has_qty_unit": True,
+        "has_qty_unit": False,
     },
     "clinic_fund": {
         "model": LiquidationReportClinicFund,
@@ -96,7 +102,7 @@ LIQUIDATION_CATEGORIES: Dict[str, Dict[str, Any]] = {
         "certified_model": LiquidationReportClinicFundCertifiedBy,
         "name": "Clinic Fund",
         "has_receipt": True,
-        "has_qty_unit": True,
+        "has_qty_unit": False,
     },
     "faculty_stud_dev_fund": {
         "model": LiquidationReportFacultyAndStudentDevFund,
@@ -142,7 +148,12 @@ class LiquidationReportEntryData(BaseModel):
     receiptNumber: str | None = None
     quantity: float | None = None
     unit: str | None = None
-    unitPrice: float
+    unitPrice: float | None = None  # For reports with quantity/unit
+    amount: float | None = None  # For reports without quantity/unit
+    receipt_attachment_urns: str | None = Field(
+        default=None,
+        description="JSON string containing list of receipt attachment URNs",
+    )
 
 
 class LiquidationReportCreateRequest(BaseModel):
@@ -160,6 +171,7 @@ class LiquidationReportResponse(BaseModel):
 
     category: str
     parent: datetime.date
+    reportStatus: str | None = None
     notedBy: str | None = None
     preparedBy: str | None = None
     teacherInCharge: str | None = None
@@ -191,9 +203,15 @@ def _calculate_total_amount(entries: list[Any], has_qty_unit: bool) -> float:
     total = 0.0
     for entry in entries:
         if has_qty_unit and hasattr(entry, "quantity") and entry.quantity:
-            total += entry.quantity * entry.unitPrice
+            # For entries with quantity and unit price
+            unit_price = getattr(entry, "unitPrice", 0.0) or getattr(
+                entry, "amount", 0.0
+            )
+            total += entry.quantity * unit_price
         else:
-            total += entry.unitPrice
+            # For entries with direct amount or unit price
+            amount = getattr(entry, "amount", None) or getattr(entry, "unitPrice", 0.0)
+            total += amount
     return total
 
 
@@ -213,6 +231,7 @@ def _convert_to_response(
         return LiquidationReportResponse(
             category=category,
             parent=datetime.date.today(),
+            reportStatus=None,
             entries=[],
             certifiedBy=[],
             totalAmount=0.0,
@@ -224,8 +243,15 @@ def _convert_to_response(
         entry_data = LiquidationReportEntryData(
             date=entry.date,
             particulars=entry.particulars,
-            unitPrice=_get_field_value(entry, "unitPrice", "unit_price", default=0.0),
         )
+
+        # Set amount or unitPrice based on the entry type
+        if hasattr(entry, "amount"):
+            entry_data.amount = entry.amount
+        else:
+            entry_data.unitPrice = _get_field_value(
+                entry, "unitPrice", "unit_price", default=0.0
+            )
 
         # Add receipt number if applicable
         receipt_num = _get_field_value(entry, "receiptNumber", "receipt")
@@ -241,6 +267,11 @@ def _convert_to_response(
         if unit is not None:
             entry_data.unit = unit
 
+        # Add receipt attachment URNs if available
+        receipt_attachment_urns = _get_field_value(entry, "receipt_attachment_urns")
+        if receipt_attachment_urns is not None:
+            entry_data.receipt_attachment_urns = receipt_attachment_urns
+
         entries.append(entry_data)
 
     # Get certified by users
@@ -253,10 +284,12 @@ def _convert_to_response(
     noted_by = _get_field_value(report, "notedBy", "notedby")
     prepared_by = _get_field_value(report, "preparedBy", "preparedby")
     teacher_in_charge = _get_field_value(report, "teacherInCharge")
+    report_status = _get_field_value(report, "reportStatus")
 
     return LiquidationReportResponse(
         category=category,
         parent=report.parent,
+        reportStatus=report_status,
         notedBy=noted_by,
         preparedBy=prepared_by,
         teacherInCharge=teacher_in_charge,
@@ -513,6 +546,10 @@ async def create_or_update_liquidation_report(
             "particulars": entry_data.particulars,
         }
 
+        # Add receipt attachment URNs if available
+        if hasattr(entry_data, "receipt_attachment_urns") and entry_data.receipt_attachment_urns:
+            entry_dict["receipt_attachment_urns"] = entry_data.receipt_attachment_urns
+
         # Handle receipt number field variations based on model type
         if entry_data.receiptNumber:
             entry_model_name = (
@@ -543,14 +580,23 @@ async def create_or_update_liquidation_report(
             if hasattr(entry_model, "__name__")
             else str(entry_model)
         )
+
+        # Handle amount vs unitPrice based on model type
         if (
+            "SupplementaryFeedingFund" in entry_model_name
+            or "ClinicFund" in entry_model_name
+        ):
+            # Use amount field for supplementary feeding fund and clinic fund
+            amount_value = entry_data.amount or entry_data.unitPrice or 0.0
+            entry_dict["amount"] = amount_value
+        elif (
             "OperatingExpense" in entry_model_name
             or "AdministrativeExpense" in entry_model_name
             or "HEFund" in entry_model_name
         ):
-            entry_dict["unit_price"] = entry_data.unitPrice
+            entry_dict["unit_price"] = entry_data.unitPrice or entry_data.amount or 0.0
         else:
-            entry_dict["unitPrice"] = entry_data.unitPrice
+            entry_dict["unitPrice"] = entry_data.unitPrice or entry_data.amount or 0.0
 
         entry = entry_model(**entry_dict)
         session.add(entry)
@@ -689,14 +735,23 @@ async def update_liquidation_report_entries(
             if hasattr(entry_model, "__name__")
             else str(entry_model)
         )
+
+        # Handle amount vs unitPrice based on model type
         if (
+            "SupplementaryFeedingFund" in entry_model_name
+            or "ClinicFund" in entry_model_name
+        ):
+            # Use amount field for supplementary feeding fund and clinic fund
+            amount_value = entry_data.amount or entry_data.unitPrice or 0.0
+            entry_dict["amount"] = amount_value
+        elif (
             "OperatingExpense" in entry_model_name
             or "AdministrativeExpense" in entry_model_name
             or "HEFund" in entry_model_name
         ):
-            entry_dict["unit_price"] = entry_data.unitPrice
+            entry_dict["unit_price"] = entry_data.unitPrice or entry_data.amount or 0.0
         else:
-            entry_dict["unitPrice"] = entry_data.unitPrice
+            entry_dict["unitPrice"] = entry_data.unitPrice or entry_data.amount or 0.0
 
         entry = entry_model(**entry_dict)
         session.add(entry)
@@ -791,3 +846,170 @@ async def get_liquidation_categories() -> dict[str, dict[str, Union[str, bool]]]
             "has_qty_unit": config["has_qty_unit"],
         }
     return categories
+
+
+@router.patch("/{school_id}/{year}/{month}/{category}/status")
+async def change_liquidation_report_status(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int,
+    year: int,
+    month: int,
+    category: str,
+    status_change: StatusChangeRequest,
+) -> Union[
+    LiquidationReportOperatingExpenses,
+    LiquidationReportAdministrativeExpenses,
+    LiquidationReportSupplementaryFeedingFund,
+    LiquidationReportClinicFund,
+    LiquidationReportFacultyAndStudentDevFund,
+    LiquidationReportHEFund,
+    LiquidationReportSchoolOperationFund,
+    LiquidationReportRevolvingFund,
+]:
+    """Change the status of a liquidation report based on user role and permissions.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school the report belongs to.
+        year: The year of the report.
+        month: The month of the report.
+        category: The category of liquidation report.
+        status_change: The status change request containing new status and optional comments.
+
+    Returns:
+        The updated liquidation report.
+
+    Raises:
+        HTTPException: If user doesn't have permission, report not found, or invalid transition.
+    """
+
+    user = await get_user(token.id, session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    # Check basic permission to read reports
+    required_permission = (
+        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this report.",
+        )
+
+    # Validate category
+    if category not in LIQUIDATION_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid category: {category}",
+        )
+
+    logger.debug(
+        "user `%s` (role %s) attempting to change status of %s liquidation report for school %s, %s-%s to %s",
+        token.id,
+        user.roleId,
+        category,
+        school_id,
+        year,
+        month,
+        status_change.new_status.value,
+    )
+
+    # Get the monthly report and then the liquidation report
+    # Note: We don't actually need monthly_report here, just checking it exists
+    ReportStatusManager.get_monthly_report(session, school_id, year, month)
+    
+    # Get the specific liquidation report
+    parent_date = datetime.date(year=year, month=month, day=1)
+    category_config = LIQUIDATION_CATEGORIES[category]
+    liquidation_report = _get_liquidation_report(session, category_config, parent_date)
+
+    if liquidation_report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{LIQUIDATION_CATEGORIES[category]['name']} report not found.",
+        )
+
+    # Use the generic status manager to change the status
+    return ReportStatusManager.change_report_status(
+        session=session,
+        user=user,
+        report=liquidation_report,
+        status_change=status_change,
+        report_type="liquidation",
+        school_id=school_id,
+        year=year,
+        month=month,
+        category=category,
+    )
+
+
+@router.get("/{school_id}/{year}/{month}/{category}/valid-transitions")
+async def get_liquidation_valid_status_transitions(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int,
+    year: int,
+    month: int,
+    category: str,
+) -> dict[str, str | list[str]]:
+    """Get the valid status transitions for a liquidation report based on user role.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school the report belongs to.
+        year: The year of the report.
+        month: The month of the report.
+        category: The category of liquidation report.
+
+    Returns:
+        A dictionary containing the current status and valid transitions.
+    """
+
+    user = await get_user(token.id, session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    # Check basic permission to read reports
+    required_permission = (
+        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this report.",
+        )
+
+    # Validate category
+    if category not in LIQUIDATION_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid category: {category}",
+        )
+
+    # Get the monthly report and then the liquidation report
+    # Note: We don't actually need monthly_report here, just checking it exists
+    ReportStatusManager.get_monthly_report(session, school_id, year, month)
+
+    # Get the specific liquidation report
+    parent_date = datetime.date(year=year, month=month, day=1)
+    category_config = LIQUIDATION_CATEGORIES[category]
+    liquidation_report = _get_liquidation_report(session, category_config, parent_date)
+
+    if liquidation_report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{LIQUIDATION_CATEGORIES[category]['name']} report not found.",
+        )
+
+    # Get valid transitions for this user role and current status
+    return ReportStatusManager.get_valid_transitions_response(user, liquidation_report)

@@ -1,0 +1,30 @@
+.root {
+    padding: 1rem;
+}
+
+.title {
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.diff {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.icon {
+    color: var(--mantine-color-gray-6);
+}
+
+@media (max-width: 768px) {
+    .value {
+        font-size: 1.5rem;
+    }
+}

@@ -53,6 +53,10 @@ class PayrollReportEntry(SQLModel, table=True):
     signature: str | None = Field(
         default=None, description="Signature or reference attachments for the entry"
     )
+    receipt_attachment_urns: str | None = Field(
+        default=None,
+        description="JSON string containing list of receipt attachment URNs",
+    )
 
     parent_report: PayrollReport = Relationship(back_populates="entries")
 
