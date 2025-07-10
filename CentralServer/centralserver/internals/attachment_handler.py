@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
-    validate_and_process_image,
+    validate_attachment_file,
 )
 from centralserver.internals.config_handler import app_config
 from centralserver.internals.logger import LoggerFactory
@@ -49,7 +49,7 @@ async def upload_report_attachment(
     try:
         # Read and validate the file
         file_content = await file.read()
-        processed_file = await validate_and_process_image(file_content)
+        processed_file = await validate_attachment_file(file_content, file.filename)
 
         # Get object store manager
         object_store_manager = await get_object_store_handler(app_config.object_store)
