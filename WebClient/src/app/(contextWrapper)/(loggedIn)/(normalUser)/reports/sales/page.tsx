@@ -1,8 +1,10 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import * as csclient from "@/lib/api/csclient";
+import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -56,7 +58,7 @@ function SalesandPurchasesContent() {
     // Signature state management
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
     const [preparedBy, setPreparedBy] = useState<string | null>(null);
-    const [notedBy, setNotedBy] = useState<string | null>(null);
+    const [notedBy, setNotedBy] = useState<string | null>(null); // This will store the user ID, not name
     const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
     const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
 
@@ -175,7 +177,7 @@ function SalesandPurchasesContent() {
                     console.error("Failed to load user signature:", error);
                 }
             }
-
+          
             // Load school users for noted by selection
             await loadSchoolUsers();
         };
@@ -495,6 +497,7 @@ function SalesandPurchasesContent() {
             });
             // Find deleted entries (in originalEntries but not in dailyEntries)
             const deletedEntries = originalEntries.filter((e) => !dailyEntries.some((d) => d.day === e.day));
+
             // Bulk create new entries
             if (newEntries.length > 0) {
                 await csclient.createBulkDailySalesAndPurchasesEntriesV1ReportsDailySchoolIdYearMonthEntriesBulkPost({
@@ -536,29 +539,28 @@ function SalesandPurchasesContent() {
                     },
                 });
             }
-            notifications.show({
-                title: "Submission",
-                message: "Your entries have been submitted successfully.",
-                color: "green",
-            });
-            // Refresh data after submit
-            const res = await csclient.getSchoolDailyReportEntriesV1ReportsDailySchoolIdYearMonthEntriesGet({
+
+            // Create/update the daily report with signature information
+            // This ensures the notedBy information is saved with the report
+            await csclient.createSchoolDailyReportV1ReportsDailySchoolIdYearMonthPatch({
                 path: {
                     school_id: userCtx.userInfo.schoolId,
                     year: currentMonth.getFullYear(),
                     month: currentMonth.getMonth() + 1,
                 },
+                query: {
+                    noted_by: notedBy, // Save the noted by information
+                },
             });
-            const entries = (res?.data || []) as csclient.DailyFinancialReportEntry[];
-            const mapped = entries.map((entry) => ({
-                date: entry.parent,
-                day: entry.day,
-                sales: entry.sales,
-                purchases: entry.purchases,
-                netIncome: entry.sales - entry.purchases,
-            }));
-            setDailyEntries(mapped);
-            setOriginalEntries(mapped);
+
+            notifications.show({
+                title: "Success",
+                message: "Your daily sales report has been submitted successfully.",
+                color: "green",
+            });
+
+            // Redirect to reports page after successful submission
+            router.push("/reports");
         } catch (err: unknown) {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
@@ -666,15 +668,29 @@ function SalesandPurchasesContent() {
                             </Text>
                         </div>
                     </Group>
-                    <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        size="lg"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100"
-                    >
-                        <IconX size={20} />
-                    </ActionIcon>
+                    <Group gap="md">
+                        {userCtx.userInfo?.schoolId && (
+                            <ReportStatusManager
+                                currentStatus={currentReportStatus}
+                                reportType="daily"
+                                schoolId={userCtx.userInfo.schoolId}
+                                year={currentMonth.getFullYear()}
+                                month={currentMonth.getMonth() + 1}
+                                onStatusChanged={(newStatus) => {
+                                    setCurrentReportStatus(newStatus);
+                                }}
+                            />
+                        )}
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            onClick={handleClose}
+                            className="hover:bg-gray-100"
+                        >
+                            <IconX size={20} />
+                        </ActionIcon>
+                    </Group>
                 </Flex>
 
                 {!userCtx.userInfo?.schoolId && (

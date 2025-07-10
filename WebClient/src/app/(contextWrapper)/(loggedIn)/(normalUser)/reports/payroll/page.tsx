@@ -84,7 +84,6 @@ interface EmployeeSignature {
 
 function PayrollPageContent() {
     const router = useRouter();
-    const userCtx = useUser();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
@@ -108,18 +107,6 @@ function PayrollPageContent() {
     const [signatureModalOpened, setSignatureModalOpened] = useState(false);
     const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
 
-    // Report signature state management
-    // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
-    const [preparedBy, setPreparedBy] = useState<string | null>(null);
-    const [notedBy, setNotedBy] = useState<string | null>(null);
-    const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
-    const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
-
-    // User selection state for "noted by" field
-    const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
-    const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
-    const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
-
     // Report status state
     const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
 
@@ -142,75 +129,6 @@ function PayrollPageContent() {
             setAttendanceRecords([]);
         }
     }, [selectedMonth, workingDaysSchedule]);
-
-    // Initialize signature data and load school users
-    useEffect(() => {
-        const initializeSignatures = async () => {
-            if (!userCtx.userInfo) return;
-
-            /**
-             * Fetch user signature from the server using their signatureUrn
-             * Reason: Convert stored signature URN to displayable blob URL
-             */
-            const fetchUserSignature = async (signatureUrn: string): Promise<string | null> => {
-                try {
-                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                        query: { fn: signatureUrn },
-                    });
-
-                    // Response data is already a blob, create object URL for display
-                    if (response.data) {
-                        return URL.createObjectURL(response.data as Blob);
-                    }
-                    return null;
-                } catch (error) {
-                    console.error("Failed to fetch user signature:", error);
-                    return null;
-                }
-            };
-
-            /**
-             * Load users from the same school for "noted by" selection
-             * Using the simplified user endpoint to avoid permission errors
-             * Reason: Allow selection of any user from the same school for report approval
-             */
-            const loadSchoolUsers = async () => {
-                if (!userCtx.userInfo?.schoolId) return;
-
-                try {
-                    const response = await csclient.getUsersSimpleEndpointV1UsersSimpleGet();
-
-                    if (response.data) {
-                        // Note: The simple endpoint already filters users to the current user's school
-                        setSchoolUsers(response.data);
-                    }
-                } catch (error) {
-                    console.error("Failed to load school users:", error);
-                }
-            };
-
-            // Set prepared by to current user
-            const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
-            setPreparedBy(currentUserName);
-
-            // Load current user's signature if available
-            if (userCtx.userInfo.signatureUrn) {
-                try {
-                    const signatureUrl = await fetchUserSignature(userCtx.userInfo.signatureUrn);
-                    if (signatureUrl) {
-                        setPreparedBySignatureUrl(signatureUrl);
-                    }
-                } catch (error) {
-                    console.error("Failed to load user signature:", error);
-                }
-            }
-
-            // Load school users for noted by selection
-            await loadSchoolUsers();
-        };
-
-        initializeSignatures();
-    }, [userCtx.userInfo]);
 
     const generateWeeksForMonth = (monthDate: Date, includedDays: number[] = [1, 2, 3, 4, 5]) => {
         const startOfMonth = dayjs(monthDate).startOf("month");
@@ -465,49 +383,6 @@ function PayrollPageContent() {
 
     const getEmployeeSignature = (employeeId: string) => {
         return employeeSignatures.find((sig) => sig.employeeId === employeeId);
-    };
-
-    /**
-     * Handle selection of a user for the "noted by" field
-     * Reason: Load the selected user's signature and update the report data
-     */
-    const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-        setNotedBy(userName);
-        setSelectedNotedByUser(user);
-
-        // Load the selected user's signature if available
-        if (user.signatureUrn) {
-            try {
-                const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                    query: { fn: user.signatureUrn },
-                });
-
-                if (response.data) {
-                    const signatureUrl = URL.createObjectURL(response.data as Blob);
-                    setNotedBySignatureUrl(signatureUrl);
-                }
-            } catch (error) {
-                console.error("Failed to load noted by user signature:", error);
-            }
-        } else {
-            setNotedBySignatureUrl(null);
-        }
-
-        setUserSelectModalOpened(false);
-    };
-
-    /**
-     * Clear the noted by user selection
-     * Reason: Allow user to remove the noted by selection and signature
-     */
-    const handleClearNotedBy = () => {
-        setNotedBy(null);
-        setSelectedNotedByUser(null);
-        if (notedBySignatureUrl) {
-            URL.revokeObjectURL(notedBySignatureUrl);
-            setNotedBySignatureUrl(null);
-        }
     };
 
     const handleSubmitReport = () => {
@@ -952,7 +827,7 @@ function PayrollPageContent() {
                         attachments={[]}
                         onAttachmentsChange={(attachments) => {
                             // Convert attachments to URNs and store them
-                            const urns = attachments.map(att => att.file_urn);
+                            const urns = attachments.map((att) => att.file_urn);
                             setReceiptAttachmentUrns(urns);
                         }}
                         initialAttachmentUrns={receiptAttachmentUrns}
@@ -983,53 +858,40 @@ function PayrollPageContent() {
                                 overflow: "hidden",
                             }}
                         >
-                            {preparedBySignatureUrl ? (
-                                <Image
-                                    src={preparedBySignatureUrl}
-                                    alt="Prepared by signature"
-                                    fit="contain"
-                                    w="100%"
-                                    h="100%"
-                                />
-                            ) : (
-                                <Text size="xs" c="dimmed">
-                                    Signature
-                                </Text>
-                            )}
+                            {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
                         </Box>
                         <div style={{ textAlign: "center" }}>
                             <Text fw={600} size="sm">
-                                {preparedBy || "N/A"}
+                                NAME
                             </Text>
                             <Text size="xs" c="dimmed">
-                                {userCtx.userInfo?.position || "Position"}
+                                Position
                             </Text>
                         </div>
                     </Stack>
                 </Card>
 
                 {/* Noted By */}
-                <Card withBorder p="md">
+                <Card withBorder p="md" style={{ position: "relative" }}>
+                    <Badge
+                        size="sm"
+                        color="orange"
+                        variant="light"
+                        style={{
+                            position: "absolute",
+                            top: "12px",
+                            right: "12px",
+                        }}
+                    >
+                        Status
+                    </Badge>
                     <Stack gap="sm" align="center">
-                        <Group justify="space-between" w="100%" align="center">
-                            <Group gap="xs" align="center">
-                                <Text size="sm" c="dimmed" fw={500}>
-                                    Noted by
-                                </Text>
-                                <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
-                                    {selectedNotedByUser ? "Selected" : "Not Selected"}
-                                </Badge>
-                            </Group>
-                            {selectedNotedByUser ? (
-                                <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
-                                    Clear
-                                </Button>
-                            ) : (
-                                <Button size="xs" variant="light" onClick={() => setUserSelectModalOpened(true)}>
-                                    Select User
-                                </Button>
-                            )}
-                        </Group>
+                        <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                            Noted by
+                        </Text>
                         <Box
                             w={200}
                             h={80}
@@ -1043,28 +905,17 @@ function PayrollPageContent() {
                                 overflow: "hidden",
                             }}
                         >
-                            {notedBySignatureUrl ? (
-                                <Image
-                                    src={notedBySignatureUrl}
-                                    alt="Noted by signature"
-                                    fit="contain"
-                                    w="100%"
-                                    h="100%"
-                                />
-                            ) : (
-                                <Text size="xs" c="dimmed">
-                                    Signature
-                                </Text>
-                            )}
+                            {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
                         </Box>
                         <div style={{ textAlign: "center" }}>
                             <Text fw={600} size="sm">
-                                {selectedNotedByUser
-                                    ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim()
-                                    : "N/A"}
+                                NAME
                             </Text>
                             <Text size="xs" c="dimmed">
-                                {selectedNotedByUser?.position || "Position"}
+                                Position
                             </Text>
                         </div>
                     </Stack>
@@ -1295,62 +1146,6 @@ function PayrollPageContent() {
                             className="bg-orange-600 hover:bg-orange-700"
                         >
                             Apply
-                        </Button>
-                    </Group>
-                </Stack>
-            </Modal>
-
-            {/* User Selection Modal for "Noted By" */}
-            <Modal
-                opened={userSelectModalOpened}
-                onClose={() => setUserSelectModalOpened(false)}
-                title="Select User for 'Noted By'"
-                size="md"
-                centered
-            >
-                <Stack gap="md">
-                    <Text size="sm" c="dimmed">
-                        Select a user from your school to be noted by on this report:
-                    </Text>
-
-                    {schoolUsers.length === 0 ? (
-                        <Text c="dimmed" ta="center">
-                            No users found from your school.
-                        </Text>
-                    ) : (
-                        <Stack gap="xs">
-                            {schoolUsers.map((user) => (
-                                <Card
-                                    key={user.id}
-                                    p="sm"
-                                    withBorder
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => handleNotedByUserSelect(user)}
-                                    className="hover:bg-gray-50"
-                                >
-                                    <Group justify="space-between">
-                                        <div>
-                                            <Text fw={500}>
-                                                {user.nameFirst} {user.nameLast}
-                                            </Text>
-                                            <Text size="sm" c="dimmed">
-                                                {user.position || "No position specified"}
-                                            </Text>
-                                        </div>
-                                        {user.signatureUrn && (
-                                            <Badge size="sm" color="green" variant="light">
-                                                Has Signature
-                                            </Badge>
-                                        )}
-                                    </Group>
-                                </Card>
-                            ))}
-                        </Stack>
-                    )}
-
-                    <Group justify="flex-end" mt="md">
-                        <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
-                            Cancel
                         </Button>
                     </Group>
                 </Stack>
