@@ -243,6 +243,8 @@ function SalesandPurchasesContent() {
     const handleClearNotedBy = () => {
         setNotedBy(null);
         setSelectedNotedByUser(null);
+        setApprovalConfirmed(false);
+        setApprovalCheckbox(false);
         if (notedBySignatureUrl) {
             URL.revokeObjectURL(notedBySignatureUrl);
             setNotedBySignatureUrl(null);
@@ -864,7 +866,7 @@ function SalesandPurchasesContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {preparedBy || "N/A"}
+                                    {preparedBy || "NAME"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {userCtx.userInfo?.position || "Position"}
@@ -934,7 +936,7 @@ function SalesandPurchasesContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {notedBy || "N/A"}
+                                    {notedBy || "NAME"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}
