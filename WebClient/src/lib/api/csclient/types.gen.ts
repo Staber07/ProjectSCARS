@@ -187,6 +187,64 @@ export type JwtToken = {
 };
 
 /**
+ * LiquidationReportAdministrativeExpenses
+ * A model representing the liquidation (Administrative Expenses) reports.
+ *
+ * Document Name: Liquidation Report > Administrative Expenses
+ */
+export type LiquidationReportAdministrativeExpenses = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * LiquidationReportClinicFund
+ * A model representing the liquidation (Clinic Fund) reports.
+ *
+ * Document Name: Liquidation Report > Clinic Fund
+ */
+export type LiquidationReportClinicFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
  * LiquidationReportCreateRequest
  * Request model for creating/updating liquidation reports.
  */
@@ -249,6 +307,88 @@ export type LiquidationReportEntryData = {
 };
 
 /**
+ * LiquidationReportFacultyAndStudentDevFund
+ * A model representing the liquidation (Faculty and Student Development Fund) reports.
+ */
+export type LiquidationReportFacultyAndStudentDevFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * LiquidationReportHEFund
+ */
+export type LiquidationReportHeFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * LiquidationReportOperatingExpenses
+ * A model representing the liquidation (Operating Expenses) reports.
+ *
+ * Document Name: Liquidation Report > Operating Expenses
+ */
+export type LiquidationReportOperatingExpenses = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
  * LiquidationReportResponse
  * Response model for liquidation reports.
  */
@@ -289,6 +429,87 @@ export type LiquidationReportResponse = {
      * Totalamount
      */
     totalAmount?: number;
+};
+
+/**
+ * LiquidationReportRevolvingFund
+ * A model representing the liquidation (Revolving Fund) reports.
+ */
+export type LiquidationReportRevolvingFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * LiquidationReportSchoolOperationFund
+ * A model representing the liquidation (School Operation Fund) reports.
+ */
+export type LiquidationReportSchoolOperationFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
+};
+
+/**
+ * LiquidationReportSupplementaryFeedingFund
+ * A model representing the liquidation (Supplementary Feeding Fund) reports.
+ */
+export type LiquidationReportSupplementaryFeedingFund = {
+    /**
+     * Parent
+     */
+    parent: string;
+    /**
+     * Notedby
+     */
+    notedBy: string;
+    /**
+     * Preparedby
+     */
+    preparedBy: string;
+    /**
+     * Teacherincharge
+     */
+    teacherInCharge: string;
+    /**
+     * The status of the report.
+     */
+    reportStatus?: ReportStatus;
 };
 
 /**
@@ -855,6 +1076,22 @@ export type SchoolUpdate = {
      * Deactivated
      */
     deactivated?: boolean | null;
+};
+
+/**
+ * StatusChangeRequest
+ * Request model for changing report status.
+ */
+export type StatusChangeRequest = {
+    /**
+     * The new status to set for the report
+     */
+    new_status: ReportStatus;
+    /**
+     * Comments
+     * Optional comments about the status change
+     */
+    comments?: string | null;
 };
 
 /**
@@ -2618,6 +2855,85 @@ export type CreateSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthPatchRespo
 
 export type CreateSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthPatchResponse = CreateSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthPatchResponses[keyof CreateSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthPatchResponses];
 
+export type ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchData = {
+    body: StatusChangeRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/monthly/{school_id}/{year}/{month}/status';
+};
+
+export type ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchError = ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchErrors[keyof ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchErrors];
+
+export type ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: MonthlyReport;
+};
+
+export type ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchResponse = ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchResponses[keyof ChangeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatchResponses];
+
+export type GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/monthly/{school_id}/{year}/{month}/valid-transitions';
+};
+
+export type GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetError = GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetErrors[keyof GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetErrors];
+
+export type GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetResponses = {
+    /**
+     * Response Get Valid Status Transitions V1 Reports Monthly  School Id   Year   Month  Valid Transitions Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: string | Array<string>;
+    };
+};
+
+export type GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetResponse = GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetResponses[keyof GetValidStatusTransitionsV1ReportsMonthlySchoolIdYearMonthValidTransitionsGetResponses];
+
 export type DeleteSchoolDailyReportV1ReportsDailySchoolIdYearMonthDeleteData = {
     body?: never;
     path: {
@@ -3219,6 +3535,85 @@ export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSumma
 
 export type GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponse = GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses[keyof GetDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGetResponses];
 
+export type ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchData = {
+    body: StatusChangeRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/status';
+};
+
+export type ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchError = ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchErrors[keyof ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchErrors];
+
+export type ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: DailyFinancialReport;
+};
+
+export type ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchResponse = ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchResponses[keyof ChangeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatchResponses];
+
+export type GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/daily/{school_id}/{year}/{month}/valid-transitions';
+};
+
+export type GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetError = GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetErrors[keyof GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetErrors];
+
+export type GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetResponses = {
+    /**
+     * Response Get Daily Valid Status Transitions V1 Reports Daily  School Id   Year   Month  Valid Transitions Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: string | Array<string>;
+    };
+};
+
+export type GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetResponse = GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetResponses[keyof GetDailyValidStatusTransitionsV1ReportsDailySchoolIdYearMonthValidTransitionsGetResponses];
+
 export type DeleteSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthDeleteData = {
     body?: never;
     path: {
@@ -3551,6 +3946,85 @@ export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeek
 
 export type UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponse = UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses[keyof UpdatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNamePutResponses];
 
+export type ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchData = {
+    body: StatusChangeRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/status';
+};
+
+export type ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchError = ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchErrors[keyof ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchErrors];
+
+export type ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchResponses = {
+    /**
+     * Successful Response
+     */
+    200: PayrollReport;
+};
+
+export type ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchResponse = ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchResponses[keyof ChangePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatchResponses];
+
+export type GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/valid-transitions';
+};
+
+export type GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetError = GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetErrors[keyof GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetErrors];
+
+export type GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetResponses = {
+    /**
+     * Response Get Payroll Valid Status Transitions V1 Reports Payroll  School Id   Year   Month  Valid Transitions Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: string | Array<string>;
+    };
+};
+
+export type GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetResponse = GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetResponses[keyof GetPayrollValidStatusTransitionsV1ReportsPayrollSchoolIdYearMonthValidTransitionsGetResponses];
+
 export type DeleteLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryDeleteData = {
     body?: never;
     path: {
@@ -3784,6 +4258,94 @@ export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses =
 };
 
 export type GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponse = GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses[keyof GetLiquidationCategoriesV1ReportsLiquidationCategoriesGetResponses];
+
+export type ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchData = {
+    body: StatusChangeRequest;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/status';
+};
+
+export type ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchError = ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchErrors[keyof ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchErrors];
+
+export type ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchResponses = {
+    /**
+     * Response Change Liquidation Report Status V1 Reports Liquidation  School Id   Year   Month   Category  Status Patch
+     * Successful Response
+     */
+    200: LiquidationReportOperatingExpenses | LiquidationReportAdministrativeExpenses | LiquidationReportSupplementaryFeedingFund | LiquidationReportClinicFund | LiquidationReportFacultyAndStudentDevFund | LiquidationReportHeFund | LiquidationReportSchoolOperationFund | LiquidationReportRevolvingFund;
+};
+
+export type ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchResponse = ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchResponses[keyof ChangeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatchResponses];
+
+export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetData = {
+    body?: never;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+        /**
+         * Category
+         */
+        category: string;
+    };
+    query?: never;
+    url: '/v1/reports/liquidation/{school_id}/{year}/{month}/{category}/valid-transitions';
+};
+
+export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetError = GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetErrors[keyof GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetErrors];
+
+export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponses = {
+    /**
+     * Response Get Liquidation Valid Status Transitions V1 Reports Liquidation  School Id   Year   Month   Category  Valid Transitions Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: string | Array<string>;
+    };
+};
+
+export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponse = GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponses[keyof GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;

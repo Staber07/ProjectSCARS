@@ -387,7 +387,7 @@ export default function StatisticsPage() {
                 <Title order={2} mb="lg">
                     Financial Statistics - Administration
                 </Title>
-                
+
                 <Select
                     label="Select School"
                     placeholder="Choose a school to view statistics"
@@ -410,7 +410,7 @@ export default function StatisticsPage() {
                     }}
                     mb="xl"
                 />
-                
+
                 <Alert
                     icon={<IconAlertCircle size={16} />}
                     title="Select a School"
@@ -429,7 +429,7 @@ export default function StatisticsPage() {
                 <Title order={2} mb="lg">
                     Financial Statistics - Administration
                 </Title>
-                
+
                 <Select
                     label="Select School"
                     placeholder="Choose a school to view statistics"
@@ -452,7 +452,7 @@ export default function StatisticsPage() {
                     }}
                     mb="xl"
                 />
-                
+
                 <Group justify="center" style={{ minHeight: 200 }}>
                     <Loader size="lg" />
                     <Text>Loading financial statistics...</Text>

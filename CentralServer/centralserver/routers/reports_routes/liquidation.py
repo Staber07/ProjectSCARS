@@ -58,6 +58,12 @@ from centralserver.internals.models.reports.monthly_report import (
     MonthlyReport,
     ReportStatus,
 )
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
+)
+from centralserver.internals.models.reports.report_status_manager import (
+    ReportStatusManager,
+)
 from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
@@ -827,3 +833,170 @@ async def get_liquidation_categories() -> dict[str, dict[str, Union[str, bool]]]
             "has_qty_unit": config["has_qty_unit"],
         }
     return categories
+
+
+@router.patch("/{school_id}/{year}/{month}/{category}/status")
+async def change_liquidation_report_status(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int,
+    year: int,
+    month: int,
+    category: str,
+    status_change: StatusChangeRequest,
+) -> Union[
+    LiquidationReportOperatingExpenses,
+    LiquidationReportAdministrativeExpenses,
+    LiquidationReportSupplementaryFeedingFund,
+    LiquidationReportClinicFund,
+    LiquidationReportFacultyAndStudentDevFund,
+    LiquidationReportHEFund,
+    LiquidationReportSchoolOperationFund,
+    LiquidationReportRevolvingFund,
+]:
+    """Change the status of a liquidation report based on user role and permissions.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school the report belongs to.
+        year: The year of the report.
+        month: The month of the report.
+        category: The category of liquidation report.
+        status_change: The status change request containing new status and optional comments.
+
+    Returns:
+        The updated liquidation report.
+
+    Raises:
+        HTTPException: If user doesn't have permission, report not found, or invalid transition.
+    """
+
+    user = await get_user(token.id, session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    # Check basic permission to read reports
+    required_permission = (
+        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this report.",
+        )
+
+    # Validate category
+    if category not in LIQUIDATION_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid category: {category}",
+        )
+
+    logger.debug(
+        "user `%s` (role %s) attempting to change status of %s liquidation report for school %s, %s-%s to %s",
+        token.id,
+        user.roleId,
+        category,
+        school_id,
+        year,
+        month,
+        status_change.new_status.value,
+    )
+
+    # Get the monthly report and then the liquidation report
+    # Note: We don't actually need monthly_report here, just checking it exists
+    ReportStatusManager.get_monthly_report(session, school_id, year, month)
+    
+    # Get the specific liquidation report
+    parent_date = datetime.date(year=year, month=month, day=1)
+    category_config = LIQUIDATION_CATEGORIES[category]
+    liquidation_report = _get_liquidation_report(session, category_config, parent_date)
+
+    if liquidation_report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{LIQUIDATION_CATEGORIES[category]['name']} report not found.",
+        )
+
+    # Use the generic status manager to change the status
+    return ReportStatusManager.change_report_status(
+        session=session,
+        user=user,
+        report=liquidation_report,
+        status_change=status_change,
+        report_type="liquidation",
+        school_id=school_id,
+        year=year,
+        month=month,
+        category=category,
+    )
+
+
+@router.get("/{school_id}/{year}/{month}/{category}/valid-transitions")
+async def get_liquidation_valid_status_transitions(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int,
+    year: int,
+    month: int,
+    category: str,
+) -> dict[str, str | list[str]]:
+    """Get the valid status transitions for a liquidation report based on user role.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school the report belongs to.
+        year: The year of the report.
+        month: The month of the report.
+        category: The category of liquidation report.
+
+    Returns:
+        A dictionary containing the current status and valid transitions.
+    """
+
+    user = await get_user(token.id, session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    # Check basic permission to read reports
+    required_permission = (
+        "reports:local:read" if user.schoolId == school_id else "reports:global:read"
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to access this report.",
+        )
+
+    # Validate category
+    if category not in LIQUIDATION_CATEGORIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid category: {category}",
+        )
+
+    # Get the monthly report and then the liquidation report
+    # Note: We don't actually need monthly_report here, just checking it exists
+    ReportStatusManager.get_monthly_report(session, school_id, year, month)
+
+    # Get the specific liquidation report
+    parent_date = datetime.date(year=year, month=month, day=1)
+    category_config = LIQUIDATION_CATEGORIES[category]
+    liquidation_report = _get_liquidation_report(session, category_config, parent_date)
+
+    if liquidation_report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{LIQUIDATION_CATEGORIES[category]['name']} report not found.",
+        )
+
+    # Get valid transitions for this user role and current status
+    return ReportStatusManager.get_valid_transitions_response(user, liquidation_report)

@@ -1,8 +1,10 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import * as csclient from "@/lib/api/csclient";
+import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -63,6 +65,9 @@ function SalesandPurchasesContent() {
     const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
     const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
+
+    // Report status state
+    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -177,6 +182,10 @@ function SalesandPurchasesContent() {
                         // notedBy field contains the user ID, not the name
                         if (report.notedBy) {
                             setNotedBy(report.notedBy);
+                        }
+                        // Load report status
+                        if (report.reportStatus) {
+                            setCurrentReportStatus(report.reportStatus as ReportStatus);
                         }
                     }
                 } catch {
@@ -677,15 +686,29 @@ function SalesandPurchasesContent() {
                             </Text>
                         </div>
                     </Group>
-                    <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        size="lg"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100"
-                    >
-                        <IconX size={20} />
-                    </ActionIcon>
+                    <Group gap="md">
+                        {userCtx.userInfo?.schoolId && (
+                            <ReportStatusManager
+                                currentStatus={currentReportStatus}
+                                reportType="daily"
+                                schoolId={userCtx.userInfo.schoolId}
+                                year={currentMonth.getFullYear()}
+                                month={currentMonth.getMonth() + 1}
+                                onStatusChanged={(newStatus) => {
+                                    setCurrentReportStatus(newStatus);
+                                }}
+                            />
+                        )}
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            onClick={handleClose}
+                            className="hover:bg-gray-100"
+                        >
+                            <IconX size={20} />
+                        </ActionIcon>
+                    </Group>
                 </Flex>
 
                 {!userCtx.userInfo?.schoolId && (

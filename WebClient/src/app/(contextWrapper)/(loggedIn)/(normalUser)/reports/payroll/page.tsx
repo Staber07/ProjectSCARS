@@ -1,8 +1,10 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import {
     ActionIcon,
     Badge,
@@ -101,6 +103,9 @@ function PayrollPageContent() {
     const [employeeSignatures, setEmployeeSignatures] = useState<EmployeeSignature[]>([]);
     const [signatureModalOpened, setSignatureModalOpened] = useState(false);
     const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
+
+    // Report status state
+    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -402,22 +407,36 @@ function PayrollPageContent() {
                         </div>
                         <div>
                             <Title order={2} className="text-gray-800">
-                                Payroll
+                                Payroll for {dayjs(selectedMonth).format("MMMM YYYY")}
                             </Title>
                             <Text size="sm" c="dimmed">
                                 Manage staff payroll
                             </Text>
                         </div>
                     </Group>
-                    <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        size="lg"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100"
-                    >
-                        <IconX size={20} />
-                    </ActionIcon>
+                    <Group gap="md">
+                        {selectedMonth && (
+                            <ReportStatusManager
+                                currentStatus={currentReportStatus}
+                                reportType="payroll"
+                                schoolId={1} // TODO: Get from user context when available
+                                year={selectedMonth.getFullYear()}
+                                month={selectedMonth.getMonth() + 1}
+                                onStatusChanged={(newStatus) => {
+                                    setCurrentReportStatus(newStatus);
+                                }}
+                            />
+                        )}
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            onClick={handleClose}
+                            className="hover:bg-gray-100"
+                        >
+                            <IconX size={20} />
+                        </ActionIcon>
+                    </Group>
                 </Flex>
 
                 {/* Month Selection & Working Days */}
