@@ -117,9 +117,9 @@ export type BodyUpdateUserSignatureEndpointV1UsersSignaturePatch = {
 };
 
 /**
- * Body_upload_attachment_endpoint_v1_reports_reports_attachments_upload_post
+ * Body_upload_attachment_endpoint_v1_reports_attachments_upload_post
  */
-export type BodyUploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPost = {
+export type BodyUploadAttachmentEndpointV1ReportsAttachmentsUploadPost = {
     /**
      * File
      */
@@ -4413,8 +4413,8 @@ export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYear
 
 export type GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponse = GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponses[keyof GetLiquidationValidStatusTransitionsV1ReportsLiquidationSchoolIdYearMonthCategoryValidTransitionsGetResponses];
 
-export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostData = {
-    body: BodyUploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPost;
+export type UploadAttachmentEndpointV1ReportsAttachmentsUploadPostData = {
+    body: BodyUploadAttachmentEndpointV1ReportsAttachmentsUploadPost;
     path?: never;
     query?: {
         /**
@@ -4422,28 +4422,28 @@ export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostData = 
          */
         description?: string | null;
     };
-    url: '/v1/reports/reports/attachments/upload';
+    url: '/v1/reports/attachments/upload';
 };
 
-export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostErrors = {
+export type UploadAttachmentEndpointV1ReportsAttachmentsUploadPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostError = UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostErrors[keyof UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostErrors];
+export type UploadAttachmentEndpointV1ReportsAttachmentsUploadPostError = UploadAttachmentEndpointV1ReportsAttachmentsUploadPostErrors[keyof UploadAttachmentEndpointV1ReportsAttachmentsUploadPostErrors];
 
-export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostResponses = {
+export type UploadAttachmentEndpointV1ReportsAttachmentsUploadPostResponses = {
     /**
      * Successful Response
      */
     200: AttachmentUploadResponse;
 };
 
-export type UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostResponse = UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostResponses[keyof UploadAttachmentEndpointV1ReportsReportsAttachmentsUploadPostResponses];
+export type UploadAttachmentEndpointV1ReportsAttachmentsUploadPostResponse = UploadAttachmentEndpointV1ReportsAttachmentsUploadPostResponses[keyof UploadAttachmentEndpointV1ReportsAttachmentsUploadPostResponses];
 
-export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteData = {
+export type DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteData = {
     body?: never;
     path: {
         /**
@@ -4452,21 +4452,21 @@ export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteData
         file_urn: string;
     };
     query?: never;
-    url: '/v1/reports/reports/attachments/{file_urn}';
+    url: '/v1/reports/attachments/{file_urn}';
 };
 
-export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteErrors = {
+export type DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteError = DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteErrors[keyof DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteErrors];
+export type DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteError = DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteErrors[keyof DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteErrors];
 
-export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteResponses = {
+export type DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteResponses = {
     /**
-     * Response Delete Attachment Endpoint V1 Reports Reports Attachments  File Urn  Delete
+     * Response Delete Attachment Endpoint V1 Reports Attachments  File Urn  Delete
      * Successful Response
      */
     200: {
@@ -4474,9 +4474,9 @@ export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteResp
     };
 };
 
-export type DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteResponse = DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteResponses[keyof DeleteAttachmentEndpointV1ReportsReportsAttachmentsFileUrnDeleteResponses];
+export type DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteResponse = DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteResponses[keyof DeleteAttachmentEndpointV1ReportsAttachmentsFileUrnDeleteResponses];
 
-export type GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetData = {
+export type GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetData = {
     body?: never;
     path: {
         /**
@@ -4485,53 +4485,53 @@ export type GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetData = {
         file_urn: string;
     };
     query?: never;
-    url: '/v1/reports/reports/attachments/{file_urn}';
+    url: '/v1/reports/attachments/{file_urn}';
 };
 
-export type GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetErrors = {
+export type GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetError = GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetErrors[keyof GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetErrors];
+export type GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetError = GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetErrors[keyof GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetErrors];
 
-export type GetAttachmentEndpointV1ReportsReportsAttachmentsFileUrnGetResponses = {
+export type GetAttachmentEndpointV1ReportsAttachmentsFileUrnGetResponses = {
     /**
      * Successful Response
      */
     200: unknown;
 };
 
-export type GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostData = {
+export type GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostData = {
     /**
      * File Urns
      */
     body: Array<string>;
     path?: never;
     query?: never;
-    url: '/v1/reports/reports/attachments/metadata';
+    url: '/v1/reports/attachments/metadata';
 };
 
-export type GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostErrors = {
+export type GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostErrors = {
     /**
      * Validation Error
      */
     422: HttpValidationError;
 };
 
-export type GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostError = GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostErrors[keyof GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostErrors];
+export type GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostError = GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostErrors[keyof GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostErrors];
 
-export type GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostResponses = {
+export type GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostResponses = {
     /**
-     * Response Get Attachments Metadata Endpoint V1 Reports Reports Attachments Metadata Post
+     * Response Get Attachments Metadata Endpoint V1 Reports Attachments Metadata Post
      * Successful Response
      */
     200: Array<AttachmentMetadataResponse>;
 };
 
-export type GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostResponse = GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostResponses[keyof GetAttachmentsMetadataEndpointV1ReportsReportsAttachmentsMetadataPostResponses];
+export type GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostResponse = GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostResponses[keyof GetAttachmentsMetadataEndpointV1ReportsAttachmentsMetadataPostResponses];
 
 export type RootV1HealthcheckGetData = {
     body?: never;

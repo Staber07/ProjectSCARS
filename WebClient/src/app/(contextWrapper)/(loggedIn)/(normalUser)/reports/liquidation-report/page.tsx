@@ -25,7 +25,7 @@ import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
-import { ReceiptAttachmentUploader } from "@/components/Reports/ReceiptAttachmentUploader";
+import { ReportAttachmentManager } from "@/components/Reports/ReportAttachmentManager";
 import * as csclient from "@/lib/api/csclient";
 import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import { useUser } from "@/lib/providers/user";
@@ -36,13 +36,11 @@ import {
     Button,
     Card,
     Divider,
-    FileInput,
     Flex,
     Group,
     Image,
     Modal,
     NumberInput,
-    Paper,
     ScrollArea,
     SimpleGrid,
     Stack,
@@ -51,13 +49,11 @@ import {
     TextInput,
     Textarea,
     Title,
-    Tooltip,
 } from "@mantine/core";
 import { DateInput, MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
-import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconCalendar, IconFileText, IconHistory, IconPlus, IconTrash, IconUpload, IconX } from "@tabler/icons-react";
+import { IconCalendar, IconFileText, IconHistory, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -118,10 +114,13 @@ function LiquidationReportContent() {
         },
     ]);
     const [notes, setNotes] = useState<string>("");
-    const [attachments, setAttachments] = useState<File[]>([]);
-    const [previewFile, setPreviewFile] = useState<File | null>(null);
-    const [previewUrl, setPreviewUrl] = useState<string>("");
-    const [opened, { open, close }] = useDisclosure(false);
+    const [reportAttachments, setReportAttachments] = useState<{
+        file_urn: string;
+        filename: string;
+        file_size: number;
+        file_type: string;
+        upload_url?: string;
+    }[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -459,38 +458,6 @@ function LiquidationReportContent() {
         }
     };
 
-    const handleFileUpload = (files: File[]) => {
-        if (files) {
-            setAttachments([...attachments, ...files]);
-        }
-    };
-
-    const handlePreviewFile = (file: File) => {
-        if (file.type.startsWith("image/")) {
-            const url = URL.createObjectURL(file);
-            setPreviewUrl(url);
-            setPreviewFile(file);
-            open();
-        } else if (file.type === "application/pdf") {
-            // For PDF files, open in new tab
-            const url = URL.createObjectURL(file);
-            window.open(url, "_blank");
-        }
-    };
-
-    const handleClosePreview = () => {
-        close();
-        if (previewUrl) {
-            URL.revokeObjectURL(previewUrl);
-            setPreviewUrl("");
-        }
-        setPreviewFile(null);
-    };
-
-    const removeAttachment = (index: number) => {
-        setAttachments(attachments.filter((_, i) => i !== index));
-    };
-
     const calculateTotalAmount = () => {
         return expenseItems.reduce((sum, item) => {
             if (hasQtyUnit) {
@@ -544,7 +511,13 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
-            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
+            // Combine receipt attachment URNs with general report attachment URNs
+            const allAttachmentUrns = [
+                ...receiptAttachmentUrns,
+                ...reportAttachments.map(att => att.file_urn)
+            ];
+            const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
+            
             const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
                 const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                 return {
@@ -615,7 +588,13 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data (even if some fields are empty for draft)
-            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
+            // Combine receipt attachment URNs with general report attachment URNs
+            const allAttachmentUrns = [
+                ...receiptAttachmentUrns,
+                ...reportAttachments.map(att => att.file_urn)
+            ];
+            const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
+            
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
                 .map((item) => {
@@ -904,84 +883,17 @@ function LiquidationReportContent() {
                     </Stack>
                 </Card>
 
-                {/* File Attachments */}
-                <Card withBorder>
-                    <Stack gap="md">
-                        <Text fw={500}>Attachments</Text>
-                        <FileInput
-                            placeholder="Add attachment"
-                            leftSection={<IconUpload size={18} />}
-                            multiple
-                            accept="image/*,.pdf"
-                            onChange={handleFileUpload}
-                            className="w-full sm:w-96"
-                            size="md"
-                        />
-
-                        {attachments.length > 0 && (
-                            <div>
-                                <Text size="sm" c="dimmed" mb="xs">
-                                    Uploaded files ({attachments.length}):
-                                </Text>
-                                <Stack gap="xs">
-                                    {attachments.map((file, index) => {
-                                        const isImage = file.type.startsWith("image/");
-                                        const isPDF = file.type === "application/pdf";
-                                        const canPreview = isImage || isPDF;
-
-                                        return (
-                                            <Paper
-                                                key={index}
-                                                p="sm"
-                                                withBorder
-                                                className={canPreview ? "hover:bg-gray-50" : ""}
-                                                style={{ cursor: canPreview ? "pointer" : "default" }}
-                                                onClick={canPreview ? () => handlePreviewFile(file) : undefined}
-                                            >
-                                                <Group justify="space-between">
-                                                    <Group gap="sm">
-                                                        <div>
-                                                            <Text size="sm" fw={500}>
-                                                                {file.name}
-                                                            </Text>
-                                                            <Group gap="xs">
-                                                                <Text size="xs" c="dimmed">
-                                                                    {(file.size / 1024).toFixed(1)} KB
-                                                                </Text>
-                                                                {canPreview && (
-                                                                    <Text size="xs" c="gray">
-                                                                        Click to preview
-                                                                    </Text>
-                                                                )}
-                                                            </Group>
-                                                        </div>
-                                                    </Group>
-
-                                                    <Group gap="xs">
-                                                        <Tooltip label="Remove file">
-                                                            <ActionIcon
-                                                                size="sm"
-                                                                color="red"
-                                                                variant="light"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    removeAttachment(index);
-                                                                }}
-                                                                className="hover:bg-red-50"
-                                                            >
-                                                                <IconX size={14} />
-                                                            </ActionIcon>
-                                                        </Tooltip>
-                                                    </Group>
-                                                </Group>
-                                            </Paper>
-                                        );
-                                    })}
-                                </Stack>
-                            </div>
-                        )}
-                    </Stack>
-                </Card>
+                {/* Report Attachments */}
+                <ReportAttachmentManager
+                    attachments={reportAttachments}
+                    onAttachmentsChange={setReportAttachments}
+                    initialAttachmentUrns={receiptAttachmentUrns}
+                    maxFiles={10}
+                    maxFileSize={5 * 1024 * 1024} // 5MB
+                    disabled={isSubmitting}
+                    title="Supporting Documents"
+                    description="Upload receipts, invoices, and other supporting documents for this liquidation report"
+                />
 
                 {/* Signature Cards */}
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
@@ -1187,19 +1099,6 @@ function LiquidationReportContent() {
                             </Button>
                         </Group>
                     </Stack>
-                </Modal>
-
-                <Modal opened={opened} onClose={handleClosePreview} title={previewFile?.name} size="lg" centered>
-                    {previewUrl && previewFile?.type.startsWith("image/") && (
-                        <div className="flex justify-center">
-                            <Image
-                                src={previewUrl}
-                                alt={previewFile.name}
-                                fit="contain"
-                                style={{ maxHeight: "70vh" }}
-                            />
-                        </div>
-                    )}
                 </Modal>
             </Stack>
         </div>
