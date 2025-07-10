@@ -2,6 +2,7 @@
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
+import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -11,10 +12,10 @@ import {
     getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
     deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
 } from "@/lib/api/csclient";
+import type { ReportStatus as StatusType } from "@/lib/api/csclient/types.gen";
 import {
     ActionIcon,
     Alert,
-    Badge,
     Card,
     Checkbox,
     Flex,
@@ -95,23 +96,6 @@ export default function ReportsPage() {
 
         return matchesSearch && matchesStatus;
     });
-
-    const getStatusColor = (status: ReportStatus) => {
-        switch (status) {
-            case "approved":
-                return "green";
-            case "draft":
-                return "blue";
-            case "review":
-                return "yellow";
-            case "rejected":
-                return "red";
-            case "archived":
-                return "gray";
-            default:
-                return "gray";
-        }
-    };
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -269,9 +253,23 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <Badge color={getStatusColor(report.reportStatus || "draft")} variant="filled" size="sm">
-                                {report.reportStatus || "Draft"}
-                            </Badge>
+                            <ReportStatusManager
+                                currentStatus={report.reportStatus as StatusType || "draft"}
+                                reportType="monthly"
+                                schoolId={report.submittedBySchool}
+                                year={dayjs(report.id).year()}
+                                month={dayjs(report.id).month() + 1}
+                                onStatusChanged={(newStatus) => {
+                                    // Update the local state
+                                    setReportSubmissions(prev => 
+                                        prev.map(r => 
+                                            r.id === report.id 
+                                                ? { ...r, reportStatus: newStatus as ReportStatus }
+                                                : r
+                                        )
+                                    );
+                                }}
+                            />
                         </Table.Td>
                         <Table.Td>
                             <div>

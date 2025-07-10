@@ -1,4 +1,5 @@
 from centralserver.internals.models.reports import (
+    attachments,
     daily_financial_report,
     disbursement_voucher,
     lr_administrative_expenses,
@@ -14,6 +15,7 @@ from centralserver.internals.models.reports import (
 )
 
 __all__ = [
+    "attachments",
     "daily_financial_report",
     "disbursement_voucher",
     "lr_administrative_expenses",

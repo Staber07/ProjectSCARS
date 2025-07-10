@@ -69,6 +69,10 @@ class FacultyAndStudentDevFundEntry(SQLModel, table=True):
     unit: str
     quantity: float
     unitPrice: float
+    receipt_attachment_urns: str | None = Field(
+        default=None,
+        description="JSON string containing list of receipt attachment URNs",
+    )
 
     parent_report: "LiquidationReportFacultyAndStudentDevFund" = Relationship(
         back_populates="entries"

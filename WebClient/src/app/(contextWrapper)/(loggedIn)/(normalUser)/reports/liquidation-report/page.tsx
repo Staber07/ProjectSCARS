@@ -24,6 +24,7 @@
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { ReceiptAttachmentUploader } from "@/components/Reports/ReceiptAttachmentUploader";
 import * as csclient from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -80,6 +81,9 @@ const RECEIPT_FIELDS_REQUIRED = [
     "revolving_fund",
 ];
 
+// Fields that only require amount (no quantity/unit)
+const AMOUNT_ONLY_FIELDS = ["supplementary_feeding_fund", "clinic_fund"];
+
 const defaultUnitOptions = ["pcs", "packs", "boxes", "kg", "liters", "gallons", "bottles"];
 
 interface ExpenseDetails {
@@ -118,6 +122,9 @@ function LiquidationReportContent() {
     const [opened, { open, close }] = useDisclosure(false);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Receipt attachment state management
+    const [receiptAttachmentUrns, setReceiptAttachmentUrns] = useState<string[]>([]);
 
     // Signature state management
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
@@ -168,6 +175,7 @@ function LiquidationReportContent() {
 
                     // Load entries
                     if (report.entries && report.entries.length > 0) {
+                        const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                         const loadedItems: ExpenseDetails[] = report.entries.map((entry, index) => ({
                             id: new Date(Date.now() + index), // Generate unique IDs
                             date: new Date(entry.date),
@@ -175,13 +183,30 @@ function LiquidationReportContent() {
                             receiptNumber: entry.receiptNumber || undefined,
                             quantity: entry.quantity || undefined,
                             unit: entry.unit || undefined,
-                            unitPrice: entry.unitPrice,
+                            // Use amount field for amount-only categories, unitPrice for others
+                            unitPrice: isAmountOnly ? entry.amount || 0 : entry.unitPrice || 0,
                         }));
                         setExpenseItems(loadedItems);
 
+                        // Load receipt attachments if available
+                        const allAttachmentUrns: string[] = [];
+                        report.entries.forEach((entry) => {
+                            if (entry.receipt_attachment_urns) {
+                                try {
+                                    const urns = JSON.parse(entry.receipt_attachment_urns);
+                                    if (Array.isArray(urns)) {
+                                        allAttachmentUrns.push(...urns);
+                                    }
+                                } catch (error) {
+                                    console.error("Failed to parse receipt attachment URNs:", error);
+                                }
+                            }
+                        });
+                        setReceiptAttachmentUrns(allAttachmentUrns);
+
                         notifications.show({
                             title: "Report Loaded",
-                            message: `Loaded existing report with ${loadedItems.length} items.`,
+                            message: `Loaded existing report with ${loadedItems.length} items${allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""}.`,
                             color: "blue",
                         });
                     }
@@ -512,14 +537,22 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
-            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => ({
-                date: dayjs(item.date).format("YYYY-MM-DD"),
-                particulars: item.particulars,
-                receiptNumber: item.receiptNumber || null,
-                quantity: item.quantity || null,
-                unit: item.unit || null,
-                unitPrice: item.unitPrice,
-            }));
+            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
+            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
+                const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
+                return {
+                    date: dayjs(item.date).format("YYYY-MM-DD"),
+                    particulars: item.particulars,
+                    receiptNumber: item.receiptNumber || null,
+                    quantity: item.quantity || null,
+                    unit: item.unit || null,
+                    // Use amount field for amount-only categories, unitPrice for others
+                    ...(isAmountOnly
+                        ? { amount: item.unitPrice, unitPrice: null }
+                        : { unitPrice: item.unitPrice, amount: null }),
+                    receipt_attachment_urns: receiptUrnString,
+                };
+            });
 
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
@@ -575,16 +608,24 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data (even if some fields are empty for draft)
+            const receiptUrnString = receiptAttachmentUrns.length > 0 ? JSON.stringify(receiptAttachmentUrns) : null;
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
-                .map((item) => ({
-                    date: dayjs(item.date).format("YYYY-MM-DD"),
-                    particulars: item.particulars || "",
-                    receiptNumber: item.receiptNumber || null,
-                    quantity: item.quantity || null,
-                    unit: item.unit || null,
-                    unitPrice: item.unitPrice,
-                }));
+                .map((item) => {
+                    const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
+                    return {
+                        date: dayjs(item.date).format("YYYY-MM-DD"),
+                        particulars: item.particulars || "",
+                        receiptNumber: item.receiptNumber || null,
+                        quantity: item.quantity || null,
+                        unit: item.unit || null,
+                        // Use amount field for amount-only categories, unitPrice for others
+                        ...(isAmountOnly
+                            ? { amount: item.unitPrice, unitPrice: null }
+                            : { unitPrice: item.unitPrice, amount: null }),
+                        receipt_attachment_urns: receiptUrnString,
+                    };
+                });
 
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
@@ -825,6 +866,27 @@ function LiquidationReportContent() {
                             </Text>
                         </div>
                     </Group>
+                </Card>
+
+                {/* Receipt Attachments Section */}
+                <Card withBorder>
+                    <Stack gap="md">
+                        <Text fw={500}>Receipt Attachments</Text>
+                        <Text size="sm" c="dimmed">
+                            Upload receipt images to support your expense entries
+                        </Text>
+                        <ReceiptAttachmentUploader
+                            attachments={[]}
+                            onAttachmentsChange={(attachments) => {
+                                // Convert attachments to URNs and store them
+                                const urns = attachments.map(att => att.file_urn);
+                                setReceiptAttachmentUrns(urns);
+                            }}
+                            initialAttachmentUrns={receiptAttachmentUrns}
+                            maxFiles={10}
+                            disabled={isSubmitting}
+                        />
+                    </Stack>
                 </Card>
 
                 {/* Notes Section */}
