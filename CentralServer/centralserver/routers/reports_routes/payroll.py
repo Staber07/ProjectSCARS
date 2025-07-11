@@ -384,6 +384,149 @@ async def create_payroll_report_entry(
     return new_entry
 
 
+@router.post("/{school_id}/{year}/{month}/entries/bulk")
+async def create_bulk_payroll_report_entries(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+    school_id: int,
+    year: int,
+    month: int,
+    entries: list[PayrollEntryRequest],
+) -> list[PayrollReportEntry]:
+    """Create multiple payroll report entries at once.
+
+    Args:
+        token: The decoded JWT token of the logged-in user.
+        session: The database session.
+        school_id: The ID of the school to create entries for.
+        year: The year of the report.
+        month: The month of the report.
+        entries: List of payroll entry data.
+
+    Returns:
+        List of created payroll report entries.
+
+    Raises:
+        HTTPException: If the user is not found, lacks permission, or the report is not found.
+    """
+
+    user = await get_user(token.id, session, by_id=True)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found.",
+        )
+
+    required_permission = (
+        "reports:local:write" if user.schoolId == school_id else "reports:global:write"
+    )
+    if not await verify_user_permission(required_permission, session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to create payroll report entries.",
+        )
+
+    if not entries:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No entries provided.",
+        )
+
+    logger.debug(
+        "user `%s` creating bulk payroll report entries for school %s for %s-%s.",
+        token.id,
+        school_id,
+        year,
+        month,
+    )
+
+    # Check if the monthly report exists, create if not
+    monthly_report = session.exec(
+        select(MonthlyReport).where(
+            MonthlyReport.id == datetime.date(year=year, month=month, day=1),
+            MonthlyReport.submittedBySchool == school_id,
+        )
+    ).one_or_none()
+
+    if monthly_report is None:
+        monthly_report = MonthlyReport(
+            id=datetime.date(year=year, month=month, day=1),
+            name=f"Monthly Report for {datetime.date(year=year, month=month, day=1).strftime('%B %Y')}",
+            submittedBySchool=school_id,
+            reportStatus=ReportStatus.DRAFT,
+            preparedBy=user.id,
+        )
+        session.add(monthly_report)
+
+    # Check if the payroll report exists, create if not
+    payroll_report = session.exec(
+        select(PayrollReport).where(
+            PayrollReport.parent == datetime.date(year=year, month=month, day=1),
+        )
+    ).one_or_none()
+
+    if payroll_report is None:
+        payroll_report = PayrollReport(
+            parent=datetime.date(year=year, month=month, day=1),
+            preparedBy=user.id,
+            notedBy=None,
+        )
+        session.add(payroll_report)
+
+    # Check for existing entries
+    existing_entries = session.exec(
+        select(PayrollReportEntry).where(
+            PayrollReportEntry.parent == datetime.date(year=year, month=month, day=1),
+        )
+    ).all()
+
+    existing_entries_set = {
+        (entry.weekNumber, entry.employeeName) for entry in existing_entries
+    }
+
+    # Create new entries, skip existing ones
+    new_entries = []
+    skipped_entries = []
+
+    for entry_data in entries:
+        entry_key = (entry_data.week_number, entry_data.employee_name)
+        if entry_key in existing_entries_set:
+            skipped_entries.append(entry_key)
+            continue
+
+        new_entry = PayrollReportEntry(
+            parent=datetime.date(year=year, month=month, day=1),
+            weekNumber=entry_data.week_number,
+            employeeName=entry_data.employee_name,
+            sun=entry_data.sun,
+            mon=entry_data.mon,
+            tue=entry_data.tue,
+            wed=entry_data.wed,
+            thu=entry_data.thu,
+            fri=entry_data.fri,
+            sat=entry_data.sat,
+            signature=entry_data.signature,
+        )
+        new_entries.append(new_entry)
+        session.add(new_entry)
+
+    session.commit()
+
+    # Refresh all new entries
+    for entry in new_entries:
+        session.refresh(entry)
+
+    if skipped_entries:
+        logger.info(
+            "Skipped %d existing entries for user %s: %s",
+            len(skipped_entries),
+            token.id,
+            skipped_entries,
+        )
+
+    return new_entries
+
+
 @router.put("/{school_id}/{year}/{month}/entries/{week_number}/{employee_name}")
 async def update_payroll_report_entry(
     token: logged_in_dep,
@@ -772,7 +915,7 @@ async def change_payroll_report_status(
     status_change: StatusChangeRequest,
 ) -> PayrollReport:
     """Change the status of a payroll report based on user role and permissions.
-    
+
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
@@ -780,21 +923,21 @@ async def change_payroll_report_status(
         year: The year of the report.
         month: The month of the report.
         status_change: The status change request containing new status and optional comments.
-        
+
     Returns:
         The updated payroll report.
-        
+
     Raises:
         HTTPException: If user doesn't have permission, report not found, or invalid transition.
     """
-    
+
     user = await get_user(token.id, session, by_id=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    
+
     # Check basic permission to read reports
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
@@ -804,7 +947,7 @@ async def change_payroll_report_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this report.",
         )
-    
+
     logger.debug(
         "user `%s` (role %s) attempting to change status of payroll report for school %s, %s-%s to %s",
         token.id,
@@ -814,17 +957,19 @@ async def change_payroll_report_status(
         month,
         status_change.new_status.value,
     )
-    
+
     # Get the monthly report and then the payroll report
-    monthly_report = ReportStatusManager.get_monthly_report(session, school_id, year, month)
-    
+    monthly_report = ReportStatusManager.get_monthly_report(
+        session, school_id, year, month
+    )
+
     payroll_report = monthly_report.payroll_report
     if payroll_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Payroll report not found.",
         )
-    
+
     # Use the generic status manager to change the status
     return ReportStatusManager.change_report_status(
         session=session,
@@ -847,25 +992,25 @@ async def get_payroll_valid_status_transitions(
     month: int,
 ) -> dict[str, str | list[str]]:
     """Get the valid status transitions for a payroll report based on user role.
-    
+
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
         school_id: The ID of the school the report belongs to.
         year: The year of the report.
         month: The month of the report.
-        
+
     Returns:
         A dictionary containing the current status and valid transitions.
     """
-    
+
     user = await get_user(token.id, session, by_id=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    
+
     # Check basic permission to read reports
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
@@ -875,16 +1020,18 @@ async def get_payroll_valid_status_transitions(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this report.",
         )
-    
+
     # Get the monthly report and then the payroll report
-    monthly_report = ReportStatusManager.get_monthly_report(session, school_id, year, month)
-    
+    monthly_report = ReportStatusManager.get_monthly_report(
+        session, school_id, year, month
+    )
+
     payroll_report = monthly_report.payroll_report
     if payroll_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Payroll report not found.",
         )
-    
+
     # Get valid transitions for this user role and current status
     return ReportStatusManager.get_valid_transitions_response(user, payroll_report)

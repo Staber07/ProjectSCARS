@@ -4027,6 +4027,48 @@ export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPost
 
 export type CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponse = CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses[keyof CreatePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesPostResponses];
 
+export type CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostData = {
+    /**
+     * Entries
+     */
+    body: Array<PayrollEntryRequest>;
+    path: {
+        /**
+         * School Id
+         */
+        school_id: number;
+        /**
+         * Year
+         */
+        year: number;
+        /**
+         * Month
+         */
+        month: number;
+    };
+    query?: never;
+    url: '/v1/reports/payroll/{school_id}/{year}/{month}/entries/bulk';
+};
+
+export type CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostError = CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostErrors[keyof CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostErrors];
+
+export type CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostResponses = {
+    /**
+     * Response Create Bulk Payroll Report Entries V1 Reports Payroll  School Id   Year   Month  Entries Bulk Post
+     * Successful Response
+     */
+    200: Array<PayrollReportEntry>;
+};
+
+export type CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostResponse = CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostResponses[keyof CreateBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPostResponses];
+
 export type DeletePayrollReportEntryV1ReportsPayrollSchoolIdYearMonthEntriesWeekNumberEmployeeNameDeleteData = {
     body?: never;
     path: {
