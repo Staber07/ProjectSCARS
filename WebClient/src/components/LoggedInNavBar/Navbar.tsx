@@ -6,6 +6,7 @@ import {
     IconBuilding,
     IconDashboard,
     IconGraph,
+    IconHelp,
     IconLogout,
     IconNotification,
     IconReport,
@@ -194,6 +195,16 @@ export const Navbar: React.FC = () => {
                 <div>{links}</div>
             </div>
             <div className={classes.footer}>
+                <NavLink
+                    href="#"
+                    label="Documentation"
+                    leftSection={<IconHelp className={classes.linkIcon} stroke={1.5} />}
+                    onClick={(event) => {
+                        event.preventDefault();
+                        customLogger.info("User accessed documentation");
+                        router.push("/documentation");
+                    }}
+                />
                 <NavLink
                     href="#"
                     label="Logout"

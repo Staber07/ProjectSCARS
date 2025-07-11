@@ -1,6 +1,9 @@
 import { createTheme, MantineColorsTuple, MantineThemeOverride } from "@mantine/core";
 
-export const defaultColorscheme = "light";
+export const notificationLimit = 5;
+export const notificationAutoClose = 5000;
+
+export const defaultColorscheme = "auto";
 const defaultColors: MantineColorsTuple = [
     "#dffbff",
     "#caf2ff",

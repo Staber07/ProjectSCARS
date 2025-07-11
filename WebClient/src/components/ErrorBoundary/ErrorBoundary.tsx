@@ -21,7 +21,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        customLogger.error("Dashboard Error:", error, errorInfo);
+        customLogger.error("Dashboard Error:", { error, errorInfo });
     }
 
     render() {

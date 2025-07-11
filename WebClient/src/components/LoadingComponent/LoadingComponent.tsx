@@ -1,6 +1,6 @@
 import { customLogger } from "@/lib/api/customLogger";
-import { randomLoadingMessages } from "@/lib/info";
-import { Center, Container, Image, Paper, Stack, Text } from "@mantine/core";
+import { LocalStorage, randomLoadingMessages } from "@/lib/info";
+import { Center, Container, Image, Loader, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 
@@ -14,7 +14,10 @@ type LoadingComponentProps = {
  * @param {LoadingComponentProps} props - The properties for the loading component.
  * @returns {JSX.Element} The loading component.
  */
-export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = null, withBorder = true }) => {
+export const LoadingComponent: React.FC<LoadingComponentProps> = ({
+    message = undefined,
+    withBorder = true,
+}: LoadingComponentProps): JSX.Element => {
     const [loadingMessage, setLoadingMessage] = useState(message);
     customLogger.debug("Returning LoadingComponent", { message });
 
@@ -64,10 +67,14 @@ export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = nu
                             transition={{ duration: 0.5 }}
                         >
                             <Stack align="center" justify="center" gap="xs">
-                                {/* <Loader color="blue" type="bars" /> */}
-                                <Text c="dimmed" ta="center" data-testid="loading-message">
-                                    {loadingMessage}
-                                </Text>
+                                {typeof window !== "undefined" &&
+                                localStorage.getItem(LocalStorage.useBasicLoader) === "true" ? (
+                                    <Loader color="blue" type="bars" />
+                                ) : (
+                                    <Text c="dimmed" ta="center" data-testid="loading-message">
+                                        {loadingMessage}
+                                    </Text>
+                                )}
                             </Stack>
                         </motion.div>
                     </Stack>
