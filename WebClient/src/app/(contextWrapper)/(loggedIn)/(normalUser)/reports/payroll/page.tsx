@@ -1,20 +1,21 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
-import type { ReportStatus } from "@/lib/api/csclient/types.gen";
+import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
     Badge,
     Box,
     Button,
     Card,
+    Checkbox,
     Divider,
     Flex,
     Group,
     Image,
+    Loader,
     Modal,
     NumberInput,
     Paper,
@@ -28,6 +29,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
+import { notifications } from "@mantine/notifications";
 import {
     IconCalendar,
     IconCalendarWeek,
@@ -46,6 +48,13 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import {
+    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
+    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
+    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
+    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
+    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
+} from "@/lib/api/csclient/sdk.gen";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -81,6 +90,7 @@ interface EmployeeSignature {
 
 function PayrollPageContent() {
     const router = useRouter();
+    const userCtx = useUser();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
@@ -104,8 +114,15 @@ function PayrollPageContent() {
     const [signatureModalOpened, setSignatureModalOpened] = useState(false);
     const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
 
-    // Report status state
-    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
+    // Approval state management
+    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
+    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
+
+    // Preview state management
+    const [previewModalOpened, setPreviewModalOpened] = useState(false);
+
+    // Loading state for existing reports
+    const [isLoadingExistingReport, setIsLoadingExistingReport] = useState(false);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -123,6 +140,167 @@ function PayrollPageContent() {
             setAttendanceRecords([]);
         }
     }, [selectedMonth, workingDaysSchedule]);
+
+    // Load existing payroll report when month changes
+    useEffect(() => {
+        const loadExistingPayrollReport = async () => {
+            if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+                return;
+            }
+
+            setIsLoadingExistingReport(true);
+
+            try {
+                const year = selectedMonth.getFullYear();
+                const month = selectedMonth.getMonth() + 1;
+                const schoolId = userCtx.userInfo.schoolId;
+
+                // Try to fetch existing payroll report
+                const reportResponse = await getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                });
+
+                // Try to fetch existing payroll entries
+                const entriesResponse = await getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                });
+
+                if (reportResponse.data && entriesResponse.data) {
+                    // Parse the entries and convert them back to our internal format
+                    const loadedEmployees: Employee[] = [];
+                    const loadedAttendanceRecords: AttendanceRecord[] = [];
+                    const loadedSignatures: EmployeeSignature[] = [];
+
+                    // Group entries by employee name to rebuild our employee list
+                    const employeeMap = new Map<
+                        string,
+                        {
+                            totalPay: number;
+                            daysWorked: number;
+                            signature?: string;
+                        }
+                    >();
+
+                    entriesResponse.data.forEach((entry) => {
+                        const employeeName = entry.employeeName;
+
+                        if (!employeeMap.has(employeeName)) {
+                            employeeMap.set(employeeName, {
+                                totalPay: 0,
+                                daysWorked: 0,
+                                signature: entry.signature || undefined,
+                            });
+                        }
+
+                        const empData = employeeMap.get(employeeName)!;
+
+                        // Calculate daily pay and working days from the entry
+                        const dailyAmounts = [
+                            entry.sun || 0,
+                            entry.mon || 0,
+                            entry.tue || 0,
+                            entry.wed || 0,
+                            entry.thu || 0,
+                            entry.fri || 0,
+                            entry.sat || 0,
+                        ];
+
+                        dailyAmounts.forEach((amount, dayIndex) => {
+                            if (amount > 0) {
+                                empData.totalPay += amount;
+                                empData.daysWorked += 1;
+
+                                // Generate attendance record for this day
+                                const weekNumber = entry.weekNumber;
+                                const weekPeriod = weekPeriods.find((w) => w.id.endsWith(`-week-${weekNumber}`));
+
+                                if (weekPeriod) {
+                                    // Find the corresponding date based on day of week
+                                    const correspondingDate = weekPeriod.workingDays.find(
+                                        (date) => dayjs(date).day() === dayIndex
+                                    );
+
+                                    if (correspondingDate) {
+                                        loadedAttendanceRecords.push({
+                                            employeeId: employeeName, // Using name as ID for now
+                                            date: dayjs(correspondingDate).format("YYYY-MM-DD"),
+                                            isPresent: true,
+                                            customDailyRate: amount,
+                                        });
+                                    }
+                                }
+                            }
+                        });
+
+                        if (entry.signature) {
+                            empData.signature = entry.signature;
+                        }
+                    });
+
+                    // Convert employee map to employee array
+                    employeeMap.forEach((data, employeeName) => {
+                        const averageRate = data.daysWorked > 0 ? data.totalPay / data.daysWorked : 0;
+
+                        loadedEmployees.push({
+                            id: employeeName, // Using name as ID
+                            name: employeeName,
+                            defaultDailyRate: Math.round(averageRate), // Estimate default rate
+                        });
+
+                        if (data.signature) {
+                            loadedSignatures.push({
+                                employeeId: employeeName,
+                                signatureData: data.signature,
+                            });
+                        }
+                    });
+
+                    // Update state with loaded data
+                    setEmployees(loadedEmployees);
+                    setAttendanceRecords(loadedAttendanceRecords);
+                    setEmployeeSignatures(loadedSignatures);
+
+                    notifications.show({
+                        title: "Report Loaded",
+                        message: `Existing payroll report for ${dayjs(selectedMonth).format(
+                            "MMMM YYYY"
+                        )} has been loaded.`,
+                        color: "blue",
+                        icon: <IconCheck size={18} />,
+                    });
+                }
+            } catch (error) {
+                // If 404, it means no existing report - this is fine
+                if ((error as { status?: number })?.status !== 404) {
+                    console.error("Error loading existing payroll report:", error);
+                    notifications.show({
+                        title: "Notice",
+                        message: "No existing payroll report found for this month. Starting with a blank report.",
+                        color: "yellow",
+                    });
+                }
+                // Clear data for fresh start
+                setEmployees([]);
+                setAttendanceRecords([]);
+                setEmployeeSignatures([]);
+            } finally {
+                setIsLoadingExistingReport(false);
+            }
+        };
+
+        // Only load if we have both month and user info, and week periods are generated
+        if (selectedMonth && userCtx.userInfo?.schoolId && weekPeriods.length > 0) {
+            loadExistingPayrollReport();
+        }
+    }, [selectedMonth, userCtx.userInfo?.schoolId, weekPeriods]);
 
     const generateWeeksForMonth = (monthDate: Date, includedDays: number[] = [1, 2, 3, 4, 5]) => {
         const startOfMonth = dayjs(monthDate).startOf("month");
@@ -379,19 +557,317 @@ function PayrollPageContent() {
         return employeeSignatures.find((sig) => sig.employeeId === employeeId);
     };
 
-    const handleSubmitReport = () => {
-        // TODO: Implement submit report functionality
-        console.log("Submitting payroll report");
+    const handleSubmitReport = async () => {
+        if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "Please select a month and ensure you are logged in.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+            return;
+        }
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // First, create or ensure the payroll report exists
+            await createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                query: {
+                    noted_by: userCtx.userInfo.id, // Set the current user as the one who noted it
+                },
+            });
+
+            // Convert our data to the format expected by the API
+            const payrollEntries = [];
+            for (const employee of employees) {
+                for (const week of weekPeriods) {
+                    const weekNumber = parseInt(week.id.split("-week-")[1]);
+
+                    // Calculate daily amounts for each day of the week
+                    const weeklyAmounts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+
+                    for (const workDay of week.workingDays) {
+                        const dayOfWeek = dayjs(workDay).day(); // 0 = Sunday, 1 = Monday, etc.
+                        const record = attendanceRecords.find(
+                            (r) => r.employeeId === employee.id && r.date === dayjs(workDay).format("YYYY-MM-DD")
+                        );
+
+                        if (record?.isPresent) {
+                            const amount = record.customDailyRate || employee.defaultDailyRate;
+
+                            switch (dayOfWeek) {
+                                case 0:
+                                    weeklyAmounts.sun = amount;
+                                    break;
+                                case 1:
+                                    weeklyAmounts.mon = amount;
+                                    break;
+                                case 2:
+                                    weeklyAmounts.tue = amount;
+                                    break;
+                                case 3:
+                                    weeklyAmounts.wed = amount;
+                                    break;
+                                case 4:
+                                    weeklyAmounts.thu = amount;
+                                    break;
+                                case 5:
+                                    weeklyAmounts.fri = amount;
+                                    break;
+                                case 6:
+                                    weeklyAmounts.sat = amount;
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Get employee signature if available
+                    const signature = employeeSignatures.find((sig) => sig.employeeId === employee.id);
+
+                    payrollEntries.push({
+                        week_number: weekNumber,
+                        employee_name: employee.name,
+                        sun: weeklyAmounts.sun,
+                        mon: weeklyAmounts.mon,
+                        tue: weeklyAmounts.tue,
+                        wed: weeklyAmounts.wed,
+                        thu: weeklyAmounts.thu,
+                        fri: weeklyAmounts.fri,
+                        sat: weeklyAmounts.sat,
+                        signature: signature?.signatureData || null,
+                    });
+                }
+            }
+
+            // Create bulk payroll entries
+            if (payrollEntries.length > 0) {
+                await createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                    body: payrollEntries,
+                });
+            }
+
+            // // Change status to submitted
+            // await changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch({
+            //     path: {
+            //         school_id: schoolId,
+            //         year: year,
+            //         month: month,
+            //     },
+            //     body: {
+            //         new_status: "review",
+            //         comments: "Payroll report submitted from web client",
+            //     },
+            // });
+
+            notifications.show({
+                title: "Success",
+                message: "Payroll report has been successfully submitted for review.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+
+            // Redirect back to reports page
+            router.push("/reports");
+        } catch (error) {
+            console.error("Error submitting payroll report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to submit the payroll report. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
     };
 
-    const handleSaveDraft = () => {
-        // TODO: Implement save draft functionality
-        console.log("Saving draft payroll report");
+    const handleSaveDraft = async () => {
+        if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "Please select a month and ensure you are logged in.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+            return;
+        }
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // First, create or ensure the payroll report exists
+            await createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                query: {
+                    noted_by: userCtx.userInfo.id,
+                },
+            });
+
+            // Convert our data to the format expected by the API
+            const payrollEntries = [];
+            for (const employee of employees) {
+                for (const week of weekPeriods) {
+                    const weekNumber = parseInt(week.id.split("-week-")[1]);
+
+                    // Calculate daily amounts for each day of the week
+                    const weeklyAmounts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+
+                    for (const workDay of week.workingDays) {
+                        const dayOfWeek = dayjs(workDay).day();
+                        const record = attendanceRecords.find(
+                            (r) => r.employeeId === employee.id && r.date === dayjs(workDay).format("YYYY-MM-DD")
+                        );
+
+                        if (record?.isPresent) {
+                            const amount = record.customDailyRate || employee.defaultDailyRate;
+
+                            switch (dayOfWeek) {
+                                case 0:
+                                    weeklyAmounts.sun = amount;
+                                    break;
+                                case 1:
+                                    weeklyAmounts.mon = amount;
+                                    break;
+                                case 2:
+                                    weeklyAmounts.tue = amount;
+                                    break;
+                                case 3:
+                                    weeklyAmounts.wed = amount;
+                                    break;
+                                case 4:
+                                    weeklyAmounts.thu = amount;
+                                    break;
+                                case 5:
+                                    weeklyAmounts.fri = amount;
+                                    break;
+                                case 6:
+                                    weeklyAmounts.sat = amount;
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Get employee signature if available
+                    const signature = employeeSignatures.find((sig) => sig.employeeId === employee.id);
+
+                    payrollEntries.push({
+                        week_number: weekNumber,
+                        employee_name: employee.name,
+                        sun: weeklyAmounts.sun,
+                        mon: weeklyAmounts.mon,
+                        tue: weeklyAmounts.tue,
+                        wed: weeklyAmounts.wed,
+                        thu: weeklyAmounts.thu,
+                        fri: weeklyAmounts.fri,
+                        sat: weeklyAmounts.sat,
+                        signature: signature?.signatureData || null,
+                    });
+                }
+            }
+
+            // Create bulk payroll entries
+            if (payrollEntries.length > 0) {
+                await createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                    body: payrollEntries,
+                });
+            }
+
+            notifications.show({
+                title: "Success",
+                message: "Payroll report draft has been saved successfully.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+        } catch (error) {
+            console.error("Error saving draft:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to save the draft. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    };
+
+    // Helper functions for preview calculations
+    const calculatePayrollSummary = () => {
+        const totalEmployees = employees.length;
+        const totalWorkingDays = weekPeriods.reduce((sum, week) => sum + week.workingDays.length, 0);
+
+        let totalPayroll = 0;
+        let totalAttendance = 0;
+
+        employees.forEach((employee) => {
+            const employeeRecords = attendanceRecords.filter((record) => record.employeeId === employee.id);
+            const daysWorked = employeeRecords.filter((record) => record.isPresent).length;
+            totalAttendance += daysWorked;
+
+            employeeRecords.forEach((record) => {
+                if (record.isPresent) {
+                    const rate = record.customDailyRate || employee.defaultDailyRate;
+                    totalPayroll += rate;
+                }
+            });
+        });
+
+        return {
+            totalEmployees,
+            totalWorkingDays,
+            totalPayroll,
+            totalAttendance,
+        };
+    };
+
+    const calculateEmployeeSummary = (employeeId: string) => {
+        const employee = employees.find((e) => e.id === employeeId);
+        if (!employee) return { daysWorked: 0, averageRate: 0, totalSalary: 0 };
+
+        const employeeRecords = attendanceRecords.filter((record) => record.employeeId === employeeId);
+        const presentRecords = employeeRecords.filter((record) => record.isPresent);
+
+        const daysWorked = presentRecords.length;
+        let totalSalary = 0;
+        let totalRates = 0;
+
+        presentRecords.forEach((record) => {
+            const rate = record.customDailyRate || employee.defaultDailyRate;
+            totalSalary += rate;
+            totalRates += rate;
+        });
+
+        const averageRate = daysWorked > 0 ? totalRates / daysWorked : 0;
+
+        return {
+            daysWorked,
+            averageRate,
+            totalSalary,
+        };
     };
 
     const handlePreview = () => {
-        // TODO: Implement preview functionality
-        console.log("Previewing payroll report");
+        setPreviewModalOpened(true);
     };
 
     const selectedWeek = weekPeriods.find((w) => w.id === selectedWeekId);
@@ -411,22 +887,11 @@ function PayrollPageContent() {
                             </Title>
                             <Text size="sm" c="dimmed">
                                 Manage staff payroll
+                                {isLoadingExistingReport && " • Loading existing data..."}
                             </Text>
                         </div>
                     </Group>
                     <Group gap="md">
-                        {selectedMonth && (
-                            <ReportStatusManager
-                                currentStatus={currentReportStatus}
-                                reportType="payroll"
-                                schoolId={1} // TODO: Get from user context when available
-                                year={selectedMonth.getFullYear()}
-                                month={selectedMonth.getMonth() + 1}
-                                onStatusChanged={(newStatus) => {
-                                    setCurrentReportStatus(newStatus);
-                                }}
-                            />
-                        )}
                         <ActionIcon
                             variant="subtle"
                             color="gray"
@@ -438,6 +903,18 @@ function PayrollPageContent() {
                         </ActionIcon>
                     </Group>
                 </Flex>
+
+                {/* Loading indicator */}
+                {isLoadingExistingReport && (
+                    <Card withBorder>
+                        <Group gap="md" justify="center" p="md">
+                            <Loader size="sm" />
+                            <Text size="sm" c="dimmed">
+                                Loading existing payroll data for {dayjs(selectedMonth).format("MMMM YYYY")}...
+                            </Text>
+                        </Group>
+                    </Card>
+                )}
 
                 {/* Month Selection & Working Days */}
                 <Card withBorder>
@@ -889,6 +1366,18 @@ function PayrollPageContent() {
                                 Position
                             </Text>
                         </div>
+                        {/* Approval Button for Principals */}
+                        {userCtx.userInfo?.position === "principal" && (
+                            <Button
+                                size="sm"
+                                color="green"
+                                onClick={() => setApprovalModalOpened(true)}
+                                leftSection={<IconCheck size={16} />}
+                                mt="sm"
+                            >
+                                Approve Report
+                            </Button>
+                        )}
                     </Stack>
                 </Card>
             </SimpleGrid>
@@ -1164,8 +1653,212 @@ function PayrollPageContent() {
                     </div>
                 </Stack>
             </Modal>
+
+            {/* Approval Modal */}
+            <Modal
+                opened={approvalModalOpened}
+                onClose={() => {
+                    setApprovalModalOpened(false);
+                    setApprovalCheckbox(false);
+                }}
+                title={
+                    <Group gap="sm">
+                        <IconCheck size={20} />
+                        <Text fw={500}>Approve Payroll Report</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    <Text size="sm">
+                        Are you sure you want to approve this payroll report? This action cannot be undone.
+                    </Text>
+
+                    <Checkbox
+                        checked={approvalCheckbox}
+                        onChange={(event) => setApprovalCheckbox(event.currentTarget.checked)}
+                        label="I confirm that I have reviewed this report and approve it for submission."
+                    />
+
+                    <Group justify="flex-end" gap="sm">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setApprovalModalOpened(false);
+                                setApprovalCheckbox(false);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="green"
+                            onClick={handleApproveReport}
+                            disabled={!approvalCheckbox}
+                            leftSection={<IconCheck size={16} />}
+                        >
+                            Approve Report
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            {/* Preview Modal */}
+            <Modal
+                opened={previewModalOpened}
+                onClose={() => setPreviewModalOpened(false)}
+                title={
+                    <Group gap="sm">
+                        <IconReceipt2 size={20} />
+                        <Text fw={500}>Payroll Report Preview</Text>
+                    </Group>
+                }
+                centered
+                size="xl"
+            >
+                <ScrollArea.Autosize mah={600}>
+                    <Stack gap="md">
+                        {/* Report Header */}
+                        <Paper withBorder p="md">
+                            <Group justify="space-between">
+                                <div>
+                                    <Text fw={500} size="lg">
+                                        Payroll Report for{" "}
+                                        {selectedMonth ? dayjs(selectedMonth).format("MMMM YYYY") : "No month selected"}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        School: {userCtx.userInfo?.schoolId || "Unknown School"}
+                                    </Text>
+                                </div>
+                                <Badge color="blue" size="lg">
+                                    {calculatePayrollSummary().totalEmployees} Employees
+                                </Badge>
+                            </Group>
+                        </Paper>
+
+                        {/* Summary Stats */}
+                        <SimpleGrid cols={3} spacing="md">
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    ₱{calculatePayrollSummary().totalPayroll.toLocaleString()}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Total Payroll
+                                </Text>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    {calculatePayrollSummary().totalWorkingDays}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Working Days
+                                </Text>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    {calculatePayrollSummary().totalAttendance}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Total Attendance
+                                </Text>
+                            </Paper>
+                        </SimpleGrid>
+
+                        {/* Employee Details */}
+                        <Paper withBorder p="md">
+                            <Text fw={500} mb="md">
+                                Employee Summary
+                            </Text>
+                            <Table>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Employee</Table.Th>
+                                        <Table.Th>Days Worked</Table.Th>
+                                        <Table.Th>Average Daily Rate</Table.Th>
+                                        <Table.Th>Total Salary</Table.Th>
+                                        <Table.Th>Signature</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {employees.map((employee) => {
+                                        const summary = calculateEmployeeSummary(employee.id);
+                                        const signature = employeeSignatures.find((s) => s.employeeId === employee.id);
+                                        return (
+                                            <Table.Tr key={employee.id}>
+                                                <Table.Td>{employee.name}</Table.Td>
+                                                <Table.Td>{summary.daysWorked}</Table.Td>
+                                                <Table.Td>₱{summary.averageRate.toLocaleString()}</Table.Td>
+                                                <Table.Td>₱{summary.totalSalary.toLocaleString()}</Table.Td>
+                                                <Table.Td>
+                                                    {signature ? (
+                                                        <Badge color="green" size="sm">
+                                                            Signed
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge color="red" size="sm">
+                                                            Not Signed
+                                                        </Badge>
+                                                    )}
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </Paper>
+
+                        {/* Action Buttons */}
+                        <Group justify="flex-end" gap="sm">
+                            <Button variant="outline" onClick={() => setPreviewModalOpened(false)}>
+                                Close
+                            </Button>
+                        </Group>
+                    </Stack>
+                </ScrollArea.Autosize>
+            </Modal>
         </div>
     );
+
+    async function handleApproveReport() {
+        if (!approvalCheckbox || !selectedMonth || !userCtx.userInfo?.schoolId) return;
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // Change status to approved
+            await changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                body: {
+                    new_status: "approved",
+                    comments: "Payroll report approved by principal",
+                },
+            });
+
+            notifications.show({
+                title: "Report Approved",
+                message: "The payroll report has been successfully approved.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+
+            setApprovalModalOpened(false);
+            setApprovalCheckbox(false);
+        } catch (error) {
+            console.error("Error approving report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to approve the report. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    }
 }
 
 export default function PayrollPage(): React.ReactElement {

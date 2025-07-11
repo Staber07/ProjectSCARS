@@ -2,17 +2,14 @@
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
-import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import {
     MonthlyReport,
-    ReportStatus,
     School,
     getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
     deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
 } from "@/lib/api/csclient";
-import type { ReportStatus as StatusType } from "@/lib/api/csclient/types.gen";
 import {
     ActionIcon,
     Alert,
@@ -253,23 +250,16 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <ReportStatusManager
-                                currentStatus={report.reportStatus as StatusType || "draft"}
-                                reportType="monthly"
-                                schoolId={report.submittedBySchool}
-                                year={dayjs(report.id).year()}
-                                month={dayjs(report.id).month() + 1}
-                                onStatusChanged={(newStatus) => {
-                                    // Update the local state
-                                    setReportSubmissions(prev => 
-                                        prev.map(r => 
-                                            r.id === report.id 
-                                                ? { ...r, reportStatus: newStatus as ReportStatus }
-                                                : r
-                                        )
-                                    );
-                                }}
-                            />
+                            <Text 
+                                size="sm" 
+                                c={report.reportStatus === "received" ? "green" : 
+                                   report.reportStatus === "review" ? "orange" : 
+                                   report.reportStatus === "rejected" ? "red" : "dimmed"}
+                                fw={500}
+                                tt="capitalize"
+                            >
+                                {report.reportStatus || "Draft"}
+                            </Text>
                         </Table.Td>
                         <Table.Td>
                             <div>

@@ -27,6 +27,10 @@ class LiquidationReportClinicFund(SQLModel, table=True):
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
+    memo: str | None = Field(
+        default=None,
+        description="Optional memo/notes for the liquidation report.",
+    )
 
     parent_report: "MonthlyReport" = Relationship(back_populates="clinic_fund_report")
     certified_by: list["LiquidationReportClinicFundCertifiedBy"] = Relationship(

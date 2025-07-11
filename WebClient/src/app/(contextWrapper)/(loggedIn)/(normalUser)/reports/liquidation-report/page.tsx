@@ -23,11 +23,9 @@
 
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { ReportAttachmentManager } from "@/components/Reports/ReportAttachmentManager";
 import * as csclient from "@/lib/api/csclient";
-import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -35,6 +33,7 @@ import {
     Box,
     Button,
     Card,
+    Checkbox,
     Divider,
     Flex,
     Group,
@@ -139,8 +138,10 @@ function LiquidationReportContent() {
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
     const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
 
-    // Report status state
-    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
+    // Approval state management
+    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
+    const [approvalConfirmed, setApprovalConfirmed] = useState(false);
+    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
 
     const hasQtyUnit = QTY_FIELDS_REQUIRED.includes(category || "");
     const hasReceiptVoucher = RECEIPT_FIELDS_REQUIRED.includes(category || "");
@@ -175,6 +176,11 @@ function LiquidationReportContent() {
                         setNotedBy(report.notedBy);
                         // Store the noted by name so we can match it with a user later
                         // The signature will be loaded in the effect after school users are loaded
+                    }
+
+                    // Load memo field
+                    if (report.memo) {
+                        setNotes(report.memo);
                     }
 
                     // Load entries
@@ -316,7 +322,7 @@ function LiquidationReportContent() {
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
 
-                    // Load the user's signature if available
+                    // Load the user's signature if available and mark as approved
                     if (matchingUser.signatureUrn) {
                         try {
                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
@@ -326,6 +332,7 @@ function LiquidationReportContent() {
                             if (response.data) {
                                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                                 setNotedBySignatureUrl(signatureUrl);
+                                setApprovalConfirmed(true); // Mark as approved since we loaded their signature
                             }
                         } catch (error) {
                             console.error("Failed to load noted by user signature:", error);
@@ -386,24 +393,10 @@ function LiquidationReportContent() {
         setNotedBy(userName);
         setSelectedNotedByUser(user);
 
-        // Load the selected user's signature if available
-        if (user.signatureUrn) {
-            try {
-                // Use the fetchUserSignature function from within the effect
-                const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                    query: { fn: user.signatureUrn },
-                });
-
-                if (response.data) {
-                    const signatureUrl = URL.createObjectURL(response.data as Blob);
-                    setNotedBySignatureUrl(signatureUrl);
-                }
-            } catch (error) {
-                console.error("Failed to load noted by user signature:", error);
-            }
-        } else {
-            setNotedBySignatureUrl(null);
-        }
+        // Reset approval state when changing the noted by user
+        setApprovalConfirmed(false);
+        setApprovalCheckbox(false);
+        setNotedBySignatureUrl(null);
 
         setUserSelectModalOpened(false);
     };
@@ -415,10 +408,42 @@ function LiquidationReportContent() {
     const handleClearNotedBy = () => {
         setNotedBy(null);
         setSelectedNotedByUser(null);
+        setApprovalConfirmed(false);
+        setApprovalCheckbox(false);
         if (notedBySignatureUrl) {
             URL.revokeObjectURL(notedBySignatureUrl);
             setNotedBySignatureUrl(null);
         }
+    };
+
+    const openApprovalModal = () => {
+        setApprovalCheckbox(false);
+        setApprovalModalOpened(true);
+    };
+
+    const handleApprovalConfirm = async () => {
+        if (!approvalCheckbox || !selectedNotedByUser?.signatureUrn) return;
+
+        try {
+            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                query: { fn: selectedNotedByUser.signatureUrn },
+            });
+
+            if (response.data) {
+                const signatureUrl = URL.createObjectURL(response.data as Blob);
+                setNotedBySignatureUrl(signatureUrl);
+                setApprovalConfirmed(true);
+            }
+        } catch (error) {
+            console.error("Failed to load noted by user signature:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to load signature.",
+                color: "red",
+            });
+        }
+
+        setApprovalModalOpened(false);
     };
 
     const addNewItem = () => {
@@ -541,6 +566,7 @@ function LiquidationReportContent() {
                 preparedBy: preparedBy || null, // Use current user name
                 teacherInCharge: userCtx.userInfo.id, // Can be set later
                 certifiedBy: [], // Can be set later
+                memo: notes || null, // Add memo field
             };
 
             await csclient.createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
@@ -620,6 +646,7 @@ function LiquidationReportContent() {
                 preparedBy: preparedBy || null, // Use current user name
                 teacherInCharge: userCtx.userInfo.id,
                 certifiedBy: [],
+                memo: notes || null, // Add memo field
             };
 
             await csclient.createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
@@ -671,6 +698,30 @@ function LiquidationReportContent() {
         return <LoadingComponent message="Loading liquidation report..." />;
     }
 
+    // Check if category is valid
+    if (!category || !report_type[category as keyof typeof report_type]) {
+        return (
+            <div className="max-w-7xl mx-auto p-4 sm:p-6">
+                <Stack gap="lg" align="center">
+                    <div className="p-4 bg-red-50 rounded-lg">
+                        <IconHistory size={48} className="text-red-500" />
+                    </div>
+                    <div className="text-center">
+                        <Title order={2} className="text-red-600">
+                            Invalid Report Category
+                        </Title>
+                        <Text size="sm" c="dimmed" mb="lg">
+                            The report category is missing or invalid.
+                        </Text>
+                        <Button onClick={() => router.push("/reports")} variant="outline">
+                            Back to Reports
+                        </Button>
+                    </div>
+                </Stack>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
@@ -690,19 +741,6 @@ function LiquidationReportContent() {
                         </div>
                     </Group>
                     <Group gap="md">
-                        {userCtx.userInfo?.schoolId && reportPeriod && category && (
-                            <ReportStatusManager
-                                currentStatus={currentReportStatus}
-                                reportType="liquidation"
-                                schoolId={userCtx.userInfo.schoolId}
-                                year={reportPeriod.getFullYear()}
-                                month={reportPeriod.getMonth() + 1}
-                                category={category}
-                                onStatusChanged={(newStatus) => {
-                                    setCurrentReportStatus(newStatus);
-                                }}
-                            />
-                        )}
                         <ActionIcon
                             variant="subtle"
                             color="gray"
@@ -998,6 +1036,26 @@ function LiquidationReportContent() {
                                     {selectedNotedByUser?.position || "Position"}
                                 </Text>
                             </div>
+                            {/* Approval Section */}
+                            {selectedNotedByUser && (
+                                <div style={{ textAlign: "center", marginTop: "8px" }}>
+                                    {approvalConfirmed ? (
+                                        <Badge color="green" variant="light">
+                                            Approved
+                                        </Badge>
+                                    ) : (
+                                        <Button
+                                            size="xs"
+                                            variant="light"
+                                            color="blue"
+                                            onClick={openApprovalModal}
+                                            disabled={!selectedNotedByUser.signatureUrn}
+                                        >
+                                            Approve Report
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </Stack>
                     </Card>
                 </SimpleGrid>
@@ -1096,6 +1154,45 @@ function LiquidationReportContent() {
                         <Group justify="flex-end" mt="md">
                             <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
                                 Cancel
+                            </Button>
+                        </Group>
+                    </Stack>
+                </Modal>
+
+                {/* Approval Modal */}
+                <Modal
+                    opened={approvalModalOpened}
+                    onClose={() => setApprovalModalOpened(false)}
+                    title="Confirm Report Approval"
+                    centered
+                    size="md"
+                >
+                    <Stack gap="md">
+                        <Text size="sm">
+                            Are you sure you want to approve this liquidation report as{" "}
+                            <strong>{selectedNotedByUser?.nameFirst} {selectedNotedByUser?.nameLast}</strong>?
+                        </Text>
+
+                        <Text size="sm" c="dimmed">
+                            This action will add your signature to the report and mark it as approved.
+                        </Text>
+
+                        <Checkbox
+                            label="I confirm that I have reviewed this report and approve it"
+                            checked={approvalCheckbox}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setApprovalCheckbox(event.currentTarget.checked)}
+                        />
+
+                        <Group justify="flex-end" mt="md">
+                            <Button variant="outline" onClick={() => setApprovalModalOpened(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={handleApprovalConfirm}
+                                disabled={!approvalCheckbox}
+                                color="green"
+                            >
+                                Confirm Approval
                             </Button>
                         </Group>
                     </Stack>

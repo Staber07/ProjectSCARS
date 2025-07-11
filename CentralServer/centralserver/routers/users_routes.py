@@ -1,3 +1,4 @@
+import datetime
 from io import BytesIO
 from typing import Annotated
 
@@ -7,6 +8,7 @@ from minio.error import S3Error
 from sqlmodel import Session, func, select
 
 from centralserver.internals.auth_handler import (
+    crypt_ctx,
     get_user,
     verify_access_token,
     verify_user_permission,
@@ -20,6 +22,7 @@ from centralserver.internals.models.user import (
     UserPublic,
     UserSimple,
     UserUpdate,
+    UserPasswordChange,
 )
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
@@ -29,6 +32,7 @@ from centralserver.internals.user_handler import (
     update_user_avatar,
     update_user_info,
     update_user_signature,
+    validate_password,
 )
 
 logger = LoggerFactory().get_logger(__name__)
@@ -561,3 +565,98 @@ async def get_users_simple_endpoint(
     users = session.exec(query).all()
 
     return [UserSimple.model_validate(user) for user in users]
+
+
+@router.get("/me/last-modified")
+async def get_user_last_modified_endpoint(
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Get the last modified timestamp of the logged-in user's profile.
+
+    Args:
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        A dictionary containing the last modified timestamp.
+    """
+
+    if not await verify_user_permission("users:self:read", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view your profile.",
+        )
+
+    logger.debug("Fetching user last modified timestamp for user ID: %s", token.id)
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    return {"lastModified": user.lastModified.isoformat()}
+
+
+@router.patch("/me/password")
+async def change_user_password_endpoint(
+    password_change: UserPasswordChange,
+    token: logged_in_dep,
+    session: Annotated[Session, Depends(get_db_session)],
+) -> dict[str, str]:
+    """Change the logged-in user's password with current password validation.
+
+    Args:
+        password_change: The password change request with current and new passwords.
+        token: The access token of the logged-in user.
+        session: The session to the database.
+
+    Returns:
+        A success message.
+    """
+
+    if not await verify_user_permission("users:self:modify:password", session, token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to change your password.",
+        )
+
+    logger.debug("Changing password for user ID: %s", token.id)
+    user = session.get(User, token.id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    # Verify current password
+    if not crypt_ctx.verify(password_change.current_password, user.password):
+        logger.warning(
+            "Failed password change for user %s: invalid current password", token.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    # Validate new password
+    password_is_valid, password_err = await validate_password(
+        password_change.new_password
+    )
+    if not password_is_valid:
+        logger.warning("Failed password change for user %s: %s", token.id, password_err)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid new password: {password_err}",
+        )
+
+    # Update password
+    user.password = crypt_ctx.hash(password_change.new_password)
+    user.lastModified = datetime.datetime.now(datetime.timezone.utc)
+
+    session.commit()
+    session.refresh(user)
+
+    logger.info("Password changed successfully for user %s", user.username)
+    return {"message": "Password changed successfully"}

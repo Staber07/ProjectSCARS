@@ -24,6 +24,10 @@ class LiquidationReportFacultyAndStudentDevFund(SQLModel, table=True):
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
+    memo: str | None = Field(
+        default=None,
+        description="Optional memo/notes for the liquidation report.",
+    )
 
     audited_by: list["FacultyAndStudentDevFundAuditedBy"] = Relationship(
         back_populates="parent_report", cascade_delete=True
@@ -66,8 +70,8 @@ class FacultyAndStudentDevFundEntry(SQLModel, table=True):
     )
     receipt: str | None
     particulars: str = Field(primary_key=True)
-    unit: str
-    quantity: float
+    unit: str | None = Field(default=None)
+    quantity: float | None = Field(default=None)
     unitPrice: float
     receipt_attachment_urns: str | None = Field(
         default=None,
