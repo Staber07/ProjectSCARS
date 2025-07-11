@@ -55,6 +55,7 @@ import {
     getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
     getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
 } from "@/lib/api/csclient/sdk.gen";
+import { customLogger } from "@/lib/api/customLogger";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -280,7 +281,7 @@ function PayrollPageContent() {
             } catch (error) {
                 // If 404, it means no existing report - this is fine
                 if ((error as { status?: number })?.status !== 404) {
-                    console.error("Error loading existing payroll report:", error);
+                    customLogger.error("Error loading existing payroll report:", error);
                     notifications.show({
                         title: "Notice",
                         message: "No existing payroll report found for this month. Starting with a blank report.",
@@ -682,7 +683,7 @@ function PayrollPageContent() {
             // Redirect back to reports page
             router.push("/reports");
         } catch (error) {
-            console.error("Error submitting payroll report:", error);
+            customLogger.error("Error submitting payroll report:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to submit the payroll report. Please try again.",
@@ -801,7 +802,7 @@ function PayrollPageContent() {
                 icon: <IconCheck size={18} />,
             });
         } catch (error) {
-            console.error("Error saving draft:", error);
+            customLogger.error("Error saving draft:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to save the draft. Please try again.",
@@ -1850,7 +1851,7 @@ function PayrollPageContent() {
             setApprovalModalOpened(false);
             setApprovalCheckbox(false);
         } catch (error) {
-            console.error("Error approving report:", error);
+            customLogger.error("Error approving report:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to approve the report. Please try again.",

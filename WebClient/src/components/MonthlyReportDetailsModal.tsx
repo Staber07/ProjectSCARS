@@ -20,6 +20,7 @@ import {
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { customLogger } from "@/lib/api/customLogger";
 
 interface LiquidationReportData {
     reportStatus?: string;
@@ -112,7 +113,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                     route: `/reports/sales`,
                 });
             } catch (error) {
-                console.warn("Daily report not found or error fetching:", error);
+                customLogger.warn("Daily report not found or error fetching:", error);
                 // Add as not created
                 reports.push({
                     id: `daily-${year}-${month}`,
@@ -143,7 +144,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                     route: `/reports/payroll`,
                 });
             } catch (error) {
-                console.warn("Payroll report not found or error fetching:", error);
+                customLogger.warn("Payroll report not found or error fetching:", error);
                 // Add as not created
                 reports.push({
                     id: `payroll-${year}-${month}`,
@@ -196,7 +197,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                     }
                 } catch (error) {
                     // If we get a 404 or any error, the report doesn't exist
-                    console.warn(`Liquidation report for ${category.key} not found or error fetching:`, error);
+                    customLogger.warn(`Liquidation report for ${category.key} not found or error fetching:`, error);
                     reports.push({
                         id: `liquidation-${category.key}-${year}-${month}`,
                         name: `${category.name} Liquidation Report - ${formatReportPeriod(report.id)}`,
@@ -211,7 +212,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
 
             setLinkedReports(reports);
         } catch (error) {
-            console.error("Error fetching linked reports:", error);
+            customLogger.error("Error fetching linked reports:", error);
         } finally {
             setLoading(false);
         }

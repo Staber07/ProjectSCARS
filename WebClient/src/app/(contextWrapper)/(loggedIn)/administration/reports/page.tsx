@@ -19,6 +19,7 @@ import {
     TextInput,
 } from "@mantine/core";
 import { IconDots, IconDownload, IconEye, IconFilter, IconPencil, IconSearch, IconTrash } from "@tabler/icons-react";
+import { customLogger } from "@/lib/api/customLogger";
 
 // Sample Report Submission Data
 const reportSubmissions = [
@@ -79,7 +80,7 @@ const reportSubmissions = [
 ];
 
 export default function ReportsPage() {
-    console.debug("Rendering ReportsPage");
+    customLogger.debug("Rendering ReportsPage");
 
     // const router = useRouter();
 
@@ -140,7 +141,7 @@ export default function ReportsPage() {
     // };
 
     // const handleCreateLiquidationReport = (category: string, path: string) => {
-    //     console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
+    //     customLogger.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
     // };
 
     // const handleNavigateToPayroll = () => {

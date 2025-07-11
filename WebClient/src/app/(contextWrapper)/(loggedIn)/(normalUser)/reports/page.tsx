@@ -44,9 +44,10 @@ import {
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { customLogger } from "@/lib/api/customLogger";
 
 export default function ReportsPage() {
-    console.debug("Rendering ReportsPage");
+    customLogger.debug("Rendering ReportsPage");
 
     const router = useRouter();
     const userCtx = useUser();
@@ -71,14 +72,14 @@ export default function ReportsPage() {
                         path: { school_id: userCtx.userInfo.schoolId },
                         query: { offset: 0, limit: 10 },
                     });
-                    console.debug("Fetched reports:", reports);
+                    customLogger.debug("Fetched reports:", reports);
                     setReportSubmissions(reports || []);
                 } else {
                     setUserAssignedToSchool(false);
-                    console.warn("No schoolId found in user context");
+                    customLogger.warn("No schoolId found in user context");
                 }
             } catch (error) {
-                console.error("Failed to fetch reports:", error);
+                customLogger.error("Failed to fetch reports:", error);
             }
         };
 
@@ -115,7 +116,7 @@ export default function ReportsPage() {
     };
 
     const handleCreateLiquidationReport = (category: string, path: string) => {
-        console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
+        customLogger.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
     };
 
     const handleOpenReportDetails = useCallback((report: MonthlyReport) => {
@@ -160,7 +161,7 @@ export default function ReportsPage() {
                     color: "green",
                 });
             } catch (error) {
-                console.error("Failed to delete report:", error);
+                customLogger.error("Failed to delete report:", error);
                 notifications.show({
                     title: "Error",
                     message: "Failed to delete the report. Please try again.",
@@ -208,7 +209,7 @@ export default function ReportsPage() {
             }));
             return school;
         } catch (error) {
-            console.error("Failed to fetch school info:", error);
+            customLogger.error("Failed to fetch school info:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to fetch school information for report submission.",
@@ -250,11 +251,17 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <Text 
-                                size="sm" 
-                                c={report.reportStatus === "received" ? "green" : 
-                                   report.reportStatus === "review" ? "orange" : 
-                                   report.reportStatus === "rejected" ? "red" : "dimmed"}
+                            <Text
+                                size="sm"
+                                c={
+                                    report.reportStatus === "received"
+                                        ? "green"
+                                        : report.reportStatus === "review"
+                                        ? "orange"
+                                        : report.reportStatus === "rejected"
+                                        ? "red"
+                                        : "dimmed"
+                                }
                                 fw={500}
                                 tt="capitalize"
                             >

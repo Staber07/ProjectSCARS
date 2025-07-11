@@ -20,6 +20,7 @@ import { GetSchoolInfo } from "@/lib/api/school";
 import { useCallback, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { notifications } from "@mantine/notifications";
+import { customLogger } from "@/lib/api/customLogger";
 
 const icons = {
     user: IconUserPlus,
@@ -171,7 +172,7 @@ export default function StatisticsPage() {
                 monthlyNetIncomeData: monthlyData.map((d) => ({ month: d.date, net: d.net })),
             });
         } catch (err) {
-            console.error("Error fetching financial data:", err);
+            customLogger.error("Error fetching financial data:", err);
             const errorMessage = err instanceof Error ? err.message : "Failed to load financial data";
             setError(errorMessage);
             notifications.show({

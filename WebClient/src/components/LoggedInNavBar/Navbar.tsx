@@ -22,6 +22,7 @@ import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { JSX, useEffect, useState } from "react";
 
 import classes from "./Navbar.module.css";
+import { customLogger } from "@/lib/api/customLogger";
 
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
@@ -45,10 +46,10 @@ export const Navbar: React.FC = () => {
             }
 
             const quantity = result.data as number;
-            console.debug("Fetched notifications quantity:", quantity);
+            customLogger.debug("Fetched notifications quantity:", quantity);
             setNotificationsQuantity(quantity);
         } catch (error) {
-            console.error("Failed to fetch notifications quantity:", error);
+            customLogger.error("Failed to fetch notifications quantity:", error);
             setNotificationsQuantity(0);
         }
     };
@@ -160,7 +161,7 @@ export const Navbar: React.FC = () => {
                                 onClick={(event) => {
                                     if (!permissionGranted) {
                                         event.preventDefault();
-                                        console.warn(`User does not have permission for ${item.label}`);
+                                        customLogger.warn(`User does not have permission for ${item.label}`);
                                         return;
                                     }
                                 }}
@@ -172,7 +173,7 @@ export const Navbar: React.FC = () => {
         });
     }, [notificationsQuantity, pathname, userCtx.userPermissions, userCtx.userInfo?.roleId]);
 
-    console.debug("Returning Navbar");
+    customLogger.debug("Returning Navbar");
     return (
         <nav className={classes.navbar}>
             <div className={classes.navbarMain}>
@@ -200,7 +201,7 @@ export const Navbar: React.FC = () => {
                     onClick={(event) => {
                         event.preventDefault();
                         logout();
-                        console.info("User logged out");
+                        customLogger.info("User logged out");
                         notifications.show({
                             id: "logged-out",
                             title: "Logged Out",

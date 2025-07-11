@@ -3,6 +3,7 @@
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import * as csclient from "@/lib/api/csclient";
+import { customLogger } from "@/lib/api/customLogger";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -144,7 +145,7 @@ function SalesandPurchasesContent() {
                                         setPreparedBySignatureUrl(signatureUrl);
                                     }
                                 } catch (error) {
-                                    console.error("Failed to load prepared by user signature:", error);
+                                    customLogger.error("Failed to load prepared by user signature:", error);
                                 }
                             }
                         } else {
@@ -165,7 +166,10 @@ function SalesandPurchasesContent() {
                                             setPreparedBySignatureUrl(signatureUrl);
                                         }
                                     } catch (error) {
-                                        console.error("Failed to load current user signature for preparedBy:", error);
+                                        customLogger.error(
+                                            "Failed to load current user signature for preparedBy:",
+                                            error
+                                        );
                                     }
                                 }
                             }
@@ -191,7 +195,7 @@ function SalesandPurchasesContent() {
                                         setApprovalConfirmed(true); // Mark as approved since we loaded their signature
                                     }
                                 } catch (error) {
-                                    console.error("Failed to load noted by user signature:", error);
+                                    customLogger.error("Failed to load noted by user signature:", error);
                                 }
                             }
                         } else {
@@ -218,7 +222,10 @@ function SalesandPurchasesContent() {
                                                 setApprovalConfirmed(true); // Mark as approved since we loaded their signature
                                             }
                                         } catch (error) {
-                                            console.error("Failed to load current user signature for notedBy:", error);
+                                            customLogger.error(
+                                                "Failed to load current user signature for notedBy:",
+                                                error
+                                            );
                                         }
                                     }
                                 }
@@ -228,7 +235,7 @@ function SalesandPurchasesContent() {
                 }
             } catch {
                 // If report doesn't exist yet, that's fine - we'll create it later
-                console.debug("Daily report not found, will create new one");
+                customLogger.debug("Daily report not found, will create new one");
             }
         };
 
@@ -266,7 +273,7 @@ function SalesandPurchasesContent() {
                         setSchoolUsers(response.data);
                     }
                 } catch (error) {
-                    console.error("Failed to load school users:", error);
+                    customLogger.error("Failed to load school users:", error);
                     notifications.show({
                         title: "Error",
                         message: "Failed to load users from your school.",
@@ -306,7 +313,7 @@ function SalesandPurchasesContent() {
                             setPreparedBySignatureUrl(signatureUrl);
                         }
                     } catch (error) {
-                        console.error("Failed to load user signature:", error);
+                        customLogger.error("Failed to load user signature:", error);
                     }
                 }
             }
@@ -341,7 +348,7 @@ function SalesandPurchasesContent() {
                                 setNotedBySignatureUrl(signatureUrl);
                             }
                         } catch (error) {
-                            console.error("Failed to load noted by user signature:", error);
+                            customLogger.error("Failed to load noted by user signature:", error);
                         }
                     }
                 }
@@ -397,7 +404,7 @@ function SalesandPurchasesContent() {
                 setApprovalConfirmed(true);
             }
         } catch (error) {
-            console.error("Failed to load noted by user signature:", error);
+            customLogger.error("Failed to load noted by user signature:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to load signature.",
@@ -569,7 +576,7 @@ function SalesandPurchasesContent() {
             if (err instanceof Error && err.message.includes("404")) {
                 return;
             }
-            console.error(err instanceof Error ? err.message : err);
+            customLogger.error(err instanceof Error ? err.message : err);
             notifications.show({
                 title: "Error",
                 message: "Failed to delete entry.",
@@ -727,14 +734,14 @@ function SalesandPurchasesContent() {
                         setPreparedBySignatureUrl(signatureUrl);
                     }
                 } catch (error) {
-                    console.error("Failed to load current user signature for preparedBy:", error);
+                    customLogger.error("Failed to load current user signature for preparedBy:", error);
                 }
             }
         } catch (err: unknown) {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
             }
-            console.error(err instanceof Error ? err.message : err);
+            customLogger.error(err instanceof Error ? err.message : err);
             notifications.show({
                 title: "Error",
                 message: "Failed to submit entries.",

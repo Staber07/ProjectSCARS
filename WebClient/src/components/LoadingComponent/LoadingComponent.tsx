@@ -1,3 +1,4 @@
+import { customLogger } from "@/lib/api/customLogger";
 import { randomLoadingMessages } from "@/lib/info";
 import { Center, Container, Image, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
@@ -15,12 +16,12 @@ type LoadingComponentProps = {
  */
 export const LoadingComponent: React.FC<LoadingComponentProps> = ({ message = null, withBorder = true }) => {
     const [loadingMessage, setLoadingMessage] = useState(message);
-    console.debug("Returning LoadingComponent", { message });
+    customLogger.debug("Returning LoadingComponent", { message });
 
     useEffect(() => {
         if (!message) {
             setLoadingMessage(randomLoadingMessages[Math.floor(Math.random() * randomLoadingMessages.length)]);
-            console.debug("Random message: ", message);
+            customLogger.debug("Random message: ", message);
         }
     }, [message]);
     return (

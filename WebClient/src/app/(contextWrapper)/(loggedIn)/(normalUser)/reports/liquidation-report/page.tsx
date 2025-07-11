@@ -56,6 +56,7 @@ import { IconCalendar, IconFileText, IconHistory, IconPlus, IconTrash, IconX } f
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { customLogger } from "@/lib/api/customLogger";
 
 const report_type = {
     operating_expenses: "Operating Expenses",
@@ -113,13 +114,15 @@ function LiquidationReportContent() {
         },
     ]);
     const [notes, setNotes] = useState<string>("");
-    const [reportAttachments, setReportAttachments] = useState<{
-        file_urn: string;
-        filename: string;
-        file_size: number;
-        file_type: string;
-        upload_url?: string;
-    }[]>([]);
+    const [reportAttachments, setReportAttachments] = useState<
+        {
+            file_urn: string;
+            filename: string;
+            file_size: number;
+            file_type: string;
+            upload_url?: string;
+        }[]
+    >([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -208,7 +211,7 @@ function LiquidationReportContent() {
                                         allAttachmentUrns.push(...urns);
                                     }
                                 } catch (error) {
-                                    console.error("Failed to parse receipt attachment URNs:", error);
+                                    customLogger.error("Failed to parse receipt attachment URNs:", error);
                                 }
                             }
                         });
@@ -225,7 +228,7 @@ function LiquidationReportContent() {
                 }
             } catch {
                 // If report doesn't exist (404), that's fine - we'll create a new one
-                console.log("No existing report found, starting fresh");
+                customLogger.log("No existing report found, starting fresh");
             }
             setIsLoading(false);
         };
@@ -254,7 +257,7 @@ function LiquidationReportContent() {
                     }
                     return null;
                 } catch (error) {
-                    console.error("Failed to fetch user signature:", error);
+                    customLogger.error("Failed to fetch user signature:", error);
                     return null;
                 }
             };
@@ -276,7 +279,7 @@ function LiquidationReportContent() {
                         setSchoolUsers(response.data);
                     }
                 } catch (error) {
-                    console.error("Failed to load school users:", error);
+                    customLogger.error("Failed to load school users:", error);
                     notifications.show({
                         title: "Error",
                         message: "Failed to load users from your school.",
@@ -297,7 +300,7 @@ function LiquidationReportContent() {
                         setPreparedBySignatureUrl(signatureUrl);
                     }
                 } catch (error) {
-                    console.error("Failed to load user signature:", error);
+                    customLogger.error("Failed to load user signature:", error);
                 }
             }
 
@@ -335,7 +338,7 @@ function LiquidationReportContent() {
                                 setApprovalConfirmed(true); // Mark as approved since we loaded their signature
                             }
                         } catch (error) {
-                            console.error("Failed to load noted by user signature:", error);
+                            customLogger.error("Failed to load noted by user signature:", error);
                         }
                     }
                 }
@@ -435,7 +438,7 @@ function LiquidationReportContent() {
                 setApprovalConfirmed(true);
             }
         } catch (error) {
-            console.error("Failed to load noted by user signature:", error);
+            customLogger.error("Failed to load noted by user signature:", error);
             notifications.show({
                 title: "Error",
                 message: "Failed to load signature.",
@@ -537,12 +540,9 @@ function LiquidationReportContent() {
 
             // Prepare the entries data
             // Combine receipt attachment URNs with general report attachment URNs
-            const allAttachmentUrns = [
-                ...receiptAttachmentUrns,
-                ...reportAttachments.map(att => att.file_urn)
-            ];
+            const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
-            
+
             const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
                 const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                 return {
@@ -615,12 +615,9 @@ function LiquidationReportContent() {
 
             // Prepare the entries data (even if some fields are empty for draft)
             // Combine receipt attachment URNs with general report attachment URNs
-            const allAttachmentUrns = [
-                ...receiptAttachmentUrns,
-                ...reportAttachments.map(att => att.file_urn)
-            ];
+            const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
-            
+
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
                 .map((item) => {
@@ -1170,7 +1167,10 @@ function LiquidationReportContent() {
                     <Stack gap="md">
                         <Text size="sm">
                             Are you sure you want to approve this liquidation report as{" "}
-                            <strong>{selectedNotedByUser?.nameFirst} {selectedNotedByUser?.nameLast}</strong>?
+                            <strong>
+                                {selectedNotedByUser?.nameFirst} {selectedNotedByUser?.nameLast}
+                            </strong>
+                            ?
                         </Text>
 
                         <Text size="sm" c="dimmed">
@@ -1180,18 +1180,16 @@ function LiquidationReportContent() {
                         <Checkbox
                             label="I confirm that I have reviewed this report and approve it"
                             checked={approvalCheckbox}
-                            onChange={(event: React.ChangeEvent<HTMLInputElement>) => setApprovalCheckbox(event.currentTarget.checked)}
+                            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                                setApprovalCheckbox(event.currentTarget.checked)
+                            }
                         />
 
                         <Group justify="flex-end" mt="md">
                             <Button variant="outline" onClick={() => setApprovalModalOpened(false)}>
                                 Cancel
                             </Button>
-                            <Button
-                                onClick={handleApprovalConfirm}
-                                disabled={!approvalCheckbox}
-                                color="green"
-                            >
+                            <Button onClick={handleApprovalConfirm} disabled={!approvalCheckbox} color="green">
                                 Confirm Approval
                             </Button>
                         </Group>
