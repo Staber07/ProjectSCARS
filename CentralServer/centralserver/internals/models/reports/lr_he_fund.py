@@ -66,8 +66,8 @@ class LiquidationReportHEFundEntry(SQLModel, table=True):
     )
     receipt: str | None
     particulars: str = Field(primary_key=True)
-    unit: str
-    quantity: float
+    unit: str | None = Field(default=None)
+    quantity: float | None = Field(default=None)
     unit_price: float
     receipt_attachment_urns: str | None = Field(
         default=None,
