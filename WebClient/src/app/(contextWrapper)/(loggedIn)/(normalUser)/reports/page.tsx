@@ -180,12 +180,8 @@ export default function ReportsPage() {
 
     const handleReportStatusChange = useCallback((reportId: string, newStatus: ReportStatus) => {
         // Update the local state to reflect the status change
-        setReportSubmissions((prev) => 
-            prev.map((report) => 
-                report.id === reportId 
-                    ? { ...report, reportStatus: newStatus }
-                    : report
-            )
+        setReportSubmissions((prev) =>
+            prev.map((report) => (report.id === reportId ? { ...report, reportStatus: newStatus } : report))
         );
     }, []);
 
@@ -206,16 +202,23 @@ export default function ReportsPage() {
         disabled?: boolean;
     };
 
-    const QuickActionCard = ({ title, description, icon: Icon, color, onClick, disabled = false }: QuickActionCardProps) => (
-        <Card 
-            shadow="sm" 
-            padding="lg" 
-            radius="md" 
-            withBorder 
-            style={{ 
+    const QuickActionCard = ({
+        title,
+        description,
+        icon: Icon,
+        color,
+        onClick,
+        disabled = false,
+    }: QuickActionCardProps) => (
+        <Card
+            shadow="sm"
+            padding="lg"
+            radius="md"
+            withBorder
+            style={{
                 cursor: disabled ? "not-allowed" : "pointer",
                 opacity: disabled ? 0.6 : 1,
-            }} 
+            }}
             onClick={disabled ? undefined : onClick}
         >
             <Group>
@@ -223,7 +226,9 @@ export default function ReportsPage() {
                     <Icon size={24} />
                 </ActionIcon>
                 <div>
-                    <Text fw={500} c={disabled ? "dimmed" : undefined}>{title}</Text>
+                    <Text fw={500} c={disabled ? "dimmed" : undefined}>
+                        {title}
+                    </Text>
                     <Text size="sm" c="dimmed">
                         {disabled ? "Access restricted by role" : description}
                     </Text>
@@ -389,18 +394,19 @@ export default function ReportsPage() {
                     You are not yet assigned to a school! Reports you create will fail to submit.
                 </Alert>
             )}
-            
+
             {!canCreateReports && userCtx.userInfo?.roleId && (
-                <Alert
-                    variant="light"
-                    color="blue"
-                    title="Role-based Access"
-                    icon={<IconAlertCircle size={16} />}
-                >
-                    As a {userCtx.userInfo.roleId === 4 ? "Principal" : 
-                            userCtx.userInfo.roleId === 3 ? "Administrator" : 
-                            userCtx.userInfo.roleId === 2 ? "Superintendent" : "non-Canteen Manager"}, 
-                    you can view and manage reports but cannot create new ones. Only Canteen Managers can create reports.
+                <Alert variant="light" color="blue" title="Role-based Access" icon={<IconAlertCircle size={16} />}>
+                    As a{" "}
+                    {userCtx.userInfo.roleId === 4
+                        ? "Principal"
+                        : userCtx.userInfo.roleId === 3
+                        ? "Administrator"
+                        : userCtx.userInfo.roleId === 2
+                        ? "Superintendent"
+                        : "non-Canteen Manager"}
+                    , you can view and manage reports but cannot create new ones. Only Canteen Managers can create
+                    reports.
                 </Alert>
             )}
             {/* Quick Actions */}

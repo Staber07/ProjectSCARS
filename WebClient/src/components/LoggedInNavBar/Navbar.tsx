@@ -70,7 +70,7 @@ export const Navbar: React.FC = () => {
                 link: "/statistics",
                 label: "School Statistics",
                 requiredPermission: "users:self:read",
-                showForRoles: [2, 3, 4, 5],
+                showForRoles: [4, 5],
                 icon: <IconGraph stroke={1.5} />,
             },
             {
@@ -78,13 +78,13 @@ export const Navbar: React.FC = () => {
                 link: "/reports",
                 label: "School Reports",
                 requiredPermission: "reports:local:read",
-                showForRoles: [2, 3, 4, 5],
+                showForRoles: [4, 5],
                 icon: <IconReport stroke={1.5} />,
             },
             {
                 key: "adminStatistics",
                 link: "/administration/statistics",
-                label: "Statistics Management",
+                label: "All School Statistics",
                 requiredPermission: "reports:global:read",
                 showForRoles: [2, 3], // Superintendent, Administrator only
                 icon: <IconGraph stroke={1.5} />,
@@ -92,7 +92,7 @@ export const Navbar: React.FC = () => {
             {
                 key: "adminReports",
                 link: "/administration/reports",
-                label: "Report Management",
+                label: "All School Reports",
                 requiredPermission: "reports:global:read",
                 showForRoles: [2, 3], // Superintendent, Administrator only
                 icon: <IconReport stroke={1.5} />,

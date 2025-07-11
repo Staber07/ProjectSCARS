@@ -24,6 +24,7 @@
 import { CreatableUnitSelect } from "@/components/CreatableUnitSelect";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { SubmitForReviewButton } from "@/components/SubmitForReview";
 import { ReportAttachmentManager } from "@/components/Reports/ReportAttachmentManager";
 import * as csclient from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
@@ -1074,6 +1075,24 @@ function LiquidationReportContent() {
 
                     {/* Main Action Buttons */}
                     <Group justify="flex-end" gap="md">
+                        <SubmitForReviewButton
+                            reportType="liquidation"
+                            reportPeriod={{
+                                schoolId: userCtx.userInfo?.schoolId || 0,
+                                year: reportPeriod?.getFullYear() || new Date().getFullYear(),
+                                month: reportPeriod?.getMonth()
+                                    ? reportPeriod.getMonth() + 1
+                                    : new Date().getMonth() + 1,
+                                category: category || "",
+                            }}
+                            onSuccess={() => {
+                                notifications.show({
+                                    title: "Status Updated",
+                                    message: "Report status has been updated to 'Review'.",
+                                    color: "green",
+                                });
+                            }}
+                        />
                         <Button
                             variant="outline"
                             onClick={handleClose}

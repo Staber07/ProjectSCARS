@@ -2,6 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { SubmitForReviewButton } from "@/components/SubmitForReview";
 import * as csclient from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { useUser } from "@/lib/providers/user";
@@ -576,7 +577,7 @@ function SalesandPurchasesContent() {
             if (err instanceof Error && err.message.includes("404")) {
                 return;
             }
-            customLogger.error(err instanceof Error ? err.message : err);
+            customLogger.error(err instanceof Error ? err.message : String(err));
             notifications.show({
                 title: "Error",
                 message: "Failed to delete entry.",
@@ -741,7 +742,7 @@ function SalesandPurchasesContent() {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
             }
-            customLogger.error(err instanceof Error ? err.message : err);
+            customLogger.error(err instanceof Error ? err.message : String(err));
             notifications.show({
                 title: "Error",
                 message: "Failed to submit entries.",
@@ -1141,6 +1142,22 @@ function SalesandPurchasesContent() {
 
                 {/* Action Buttons */}
                 <Group justify="flex-end" gap="md">
+                    <SubmitForReviewButton
+                        reportType="daily"
+                        reportPeriod={{
+                            schoolId: userCtx.userInfo?.schoolId || 0,
+                            year: currentMonth.getFullYear(),
+                            month: currentMonth.getMonth() + 1,
+                        }}
+                        onSuccess={() => {
+                            // Optionally refresh data or update UI after successful submission
+                            notifications.show({
+                                title: "Status Updated",
+                                message: "Report status has been updated to 'Review'.",
+                                color: "green",
+                            });
+                        }}
+                    />
                     <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
                         Cancel
                     </Button>

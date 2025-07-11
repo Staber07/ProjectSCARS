@@ -2,6 +2,7 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { SubmitForReviewButton } from "@/components/SubmitForReview";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -1382,6 +1383,25 @@ function PayrollPageContent() {
                     </Stack>
                 </Card>
             </SimpleGrid>
+
+            {/* Action Buttons */}
+            <Group justify="flex-end" gap="md">
+                <SubmitForReviewButton
+                    reportType="payroll"
+                    reportPeriod={{
+                        schoolId: userCtx.userInfo?.schoolId || 0,
+                        year: selectedMonth?.getFullYear() || new Date().getFullYear(),
+                        month: selectedMonth ? selectedMonth.getMonth() + 1 : new Date().getMonth() + 1,
+                    }}
+                    onSuccess={() => {
+                        notifications.show({
+                            title: "Status Updated",
+                            message: "Report status has been updated to 'Review'.",
+                            color: "green",
+                        });
+                    }}
+                />
+            </Group>
 
             {/* Employee Management Modal */}
             <Modal
