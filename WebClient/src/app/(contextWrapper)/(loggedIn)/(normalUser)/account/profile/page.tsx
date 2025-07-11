@@ -1310,11 +1310,22 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             checked={colorScheme === "dark"}
                             onChange={(e) => setColorScheme(e.currentTarget.checked ? "dark" : "light")}
                         />
-                        <ColorInput
-                            label="Accent Color"
-                            value={localPreferences.accentColor}
-                            onChange={(color) => handlePreferenceChange("accentColor", color)}
-                        />
+                        <Group align="end">
+                            <ColorInput
+                                label="Accent Color"
+                                value={localPreferences.accentColor}
+                                onChange={(color) => handlePreferenceChange("accentColor", color)}
+                                style={{ flex: 1 }}
+                            />
+                            <Button
+                                variant="light"
+                                size="sm"
+                                onClick={() => handlePreferenceChange("accentColor", "#258ce6")}
+                                title="Reset to default accent color"
+                            >
+                                Reset
+                            </Button>
+                        </Group>
                         <Select
                             label="Default Language"
                             data={[
