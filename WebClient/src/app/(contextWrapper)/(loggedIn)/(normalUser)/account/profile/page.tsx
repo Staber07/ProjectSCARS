@@ -64,6 +64,7 @@ import { useForm } from "@mantine/form";
 import { useDisclosure, useLocalStorage } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
+    IconAlertCircle,
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconClipboardCopy,
@@ -118,7 +119,42 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             timezone: "UTC+8 (Philippines)",
         },
     });
-    const form = useForm<EditProfileValues>({ mode: "uncontrolled" });
+    const form = useForm<EditProfileValues>({
+        mode: "uncontrolled",
+        onValuesChange: () => {
+            // Trigger unsaved changes check when form values change
+            setTimeout(() => {
+                if (!userInfo) return;
+
+                const initialValues = {
+                    id: userInfo.id,
+                    username: userInfo.username || "",
+                    nameFirst: userInfo.nameFirst || "",
+                    nameMiddle: userInfo.nameMiddle || "",
+                    nameLast: userInfo.nameLast || "",
+                    position: userInfo.position || "",
+                    email: userInfo.email || "",
+                    school: availableSchools.find((school) => school.startsWith(`[${userInfo.schoolId}]`)),
+                    role: availableRoles.find((role) => role.startsWith(`[${userInfo.roleId}]`)),
+                    deactivated: userInfo.deactivated,
+                    forceUpdateInfo: userInfo.forceUpdateInfo,
+                };
+
+                const currentValues = form.getValues();
+
+                const hasFormChanges = Object.keys(initialValues).some((key) => {
+                    const initial = initialValues[key as keyof typeof initialValues];
+                    const current = currentValues[key as keyof typeof currentValues];
+                    return initial !== current;
+                });
+
+                const hasFileChanges =
+                    editUserAvatar !== null || avatarRemoved || editUserSignature !== null || signatureRemoved;
+
+                setHasUnsavedChanges(hasFormChanges || hasFileChanges);
+            }, 0);
+        },
+    });
 
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
@@ -169,6 +205,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         microsoft: false,
         facebook: false,
     });
+
+    // Add state for tracking unsaved changes
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
     const SetSelectValue = async (value: string, s: string) => {
         // set x in string "[x] y"
@@ -655,6 +694,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
             const [updatedUserInfo, updatedPermissions] = userInfoResult.data as [UserPublic, string[]];
             userCtx.updateUserInfo(updatedUserInfo, updatedPermissions, editUserAvatar);
+            setHasUnsavedChanges(false); // Reset unsaved changes flag after successful save
             buttonStateHandler.close();
         }
     };
@@ -743,8 +783,51 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             };
             customLogger.debug("Setting form values:", new_values);
             form.setValues(new_values);
+            setHasUnsavedChanges(false); // Reset unsaved changes when form is initialized
         }
     }, [userInfo, availableRoles, availableSchools]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Track form changes to show unsaved changes indicator
+    useEffect(() => {
+        if (!userInfo) return;
+
+        const initialValues = {
+            id: userInfo.id,
+            username: userInfo.username || "",
+            nameFirst: userInfo.nameFirst || "",
+            nameMiddle: userInfo.nameMiddle || "",
+            nameLast: userInfo.nameLast || "",
+            position: userInfo.position || "",
+            email: userInfo.email || "",
+            school: availableSchools.find((school) => school.startsWith(`[${userInfo.schoolId}]`)),
+            role: availableRoles.find((role) => role.startsWith(`[${userInfo.roleId}]`)),
+            deactivated: userInfo.deactivated,
+            forceUpdateInfo: userInfo.forceUpdateInfo,
+        };
+
+        const currentValues = form.getValues();
+
+        // Check if any form values have changed or if files/flags have been modified
+        const hasFormChanges = Object.keys(initialValues).some((key) => {
+            const initial = initialValues[key as keyof typeof initialValues];
+            const current = currentValues[key as keyof typeof currentValues];
+            return initial !== current;
+        });
+
+        const hasFileChanges =
+            editUserAvatar !== null || avatarRemoved || editUserSignature !== null || signatureRemoved;
+
+        setHasUnsavedChanges(hasFormChanges || hasFileChanges);
+    }, [
+        form,
+        userInfo,
+        availableRoles,
+        availableSchools,
+        editUserAvatar,
+        avatarRemoved,
+        editUserSignature,
+        signatureRemoved,
+    ]);
 
     useEffect(() => {
         // Fetch available roles and schools
@@ -888,7 +971,14 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     return (
         <Box mx="auto" p="lg">
             <Flex justify="space-between" align="center" mb="sm">
-                <Title order={3}>Profile</Title>
+                <Group align="center">
+                    <Title order={3}>Profile</Title>
+                    {hasUnsavedChanges && (
+                        <Badge color="yellow" variant="filled" size="sm">
+                            You have unsaved changes
+                        </Badge>
+                    )}
+                </Group>
                 <UserSyncButton size="compact-sm" />
             </Flex>
             <Divider mb="lg" />
@@ -1376,7 +1466,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setOtpEnabled(false);
                                 }
                             } catch (error) {
-                                customLogger.error(error instanceof Error ? error.message : error);
+                                customLogger.error(error instanceof Error ? error.message : String(error));
                                 notifications.show({
                                     title: "Error",
                                     message: "An unknown error occurred.",
@@ -1491,7 +1581,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setShowOTPModal(false);
                                     setShowRecoveryCodeModal(true);
                                 } catch (error) {
-                                    customLogger.error(error instanceof Error ? error.message : error);
+                                    customLogger.error(error instanceof Error ? error.message : String(error));
                                     notifications.show({
                                         title: "Error Enabling Two-Step Verification",
                                         message: "An unknown error occurred.",
