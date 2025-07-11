@@ -1,10 +1,10 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
-import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
-import { UserSyncButton } from "@/components/UserSyncButton";
 import { PasswordRequirement, requirements } from "@/components/Password";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
+import { UserSyncButton } from "@/components/UserSyncButton";
 import {
     deleteUserAvatarEndpointV1UsersAvatarDelete,
     deleteUserInfoEndpointV1UsersDelete,
@@ -29,8 +29,10 @@ import {
     verifyEmailV1AuthEmailVerifyPost,
     verifyMfaOtpV1AuthMfaOtpVerifyPost,
 } from "@/lib/api/csclient";
+import { customLogger } from "@/lib/api/customLogger";
 import { GetAllSchools } from "@/lib/api/school";
-import { LocalStorage, userAvatarConfig, userSignatureConfig } from "@/lib/info";
+import { userAvatarConfig, userSignatureConfig } from "@/lib/info";
+import { useThemeContext } from "@/lib/providers/theme";
 import { useUser } from "@/lib/providers/user";
 import { UserPreferences } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
@@ -61,10 +63,9 @@ import {
     useMantineColorScheme,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { useDisclosure, useLocalStorage } from "@mantine/hooks";
+import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import {
-    IconAlertCircle,
     IconCircleDashedCheck,
     IconCircleDashedX,
     IconClipboardCopy,
@@ -84,7 +85,6 @@ import { useQRCode } from "next-qrcode";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { customLogger } from "@/lib/api/customLogger";
 
 interface EditProfileValues {
     id: string;
@@ -111,14 +111,21 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const userCtx = useUser();
     const { SVG } = useQRCode();
     const { setColorScheme, colorScheme } = useMantineColorScheme();
-    const [userPreferences, setUserPreferences] = useLocalStorage<UserPreferences>({
-        key: LocalStorage.userPreferences,
-        defaultValue: {
-            accentColor: "#228be6",
-            language: "English",
-            timezone: "UTC+8 (Philippines)",
-        },
+    const { userPreferences, updatePreference } = useThemeContext();
+
+    // Local state for preferences that will be saved when Save button is clicked
+    const [localPreferences, setLocalPreferences] = useState({
+        accentColor: userPreferences.accentColor,
+        language: userPreferences.language,
     });
+
+    // Sync localPreferences with userPreferences when userPreferences change
+    useEffect(() => {
+        setLocalPreferences({
+            accentColor: userPreferences.accentColor,
+            language: userPreferences.language,
+        });
+    }, [userPreferences]);
     const form = useForm<EditProfileValues>({
         mode: "uncontrolled",
         onValuesChange: () => {
@@ -278,12 +285,8 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     };
 
     const handlePreferenceChange = (key: keyof UserPreferences, value: string | boolean | null) => {
-        setUserPreferences((prev) => ({ ...prev, [key]: value }));
-        notifications.show({
-            title: "Preferences Updated",
-            message: "Your preferences have been saved",
-            color: "green",
-        });
+        setLocalPreferences((prev) => ({ ...prev, [key]: value }));
+        // Remove the immediate notification since preferences are saved with main form
     };
     const handleChangeAvatar = async (file: File | null) => {
         if (file === null) {
@@ -694,6 +697,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
             const [updatedUserInfo, updatedPermissions] = userInfoResult.data as [UserPublic, string[]];
             userCtx.updateUserInfo(updatedUserInfo, updatedPermissions, editUserAvatar);
+
+            // Save preferences to localStorage via theme context
+            Object.keys(localPreferences).forEach((key) => {
+                const prefKey = key as keyof UserPreferences;
+                if (localPreferences[prefKey] !== userPreferences[prefKey]) {
+                    updatePreference(prefKey, localPreferences[prefKey]);
+                }
+            });
+
             setHasUnsavedChanges(false); // Reset unsaved changes flag after successful save
             buttonStateHandler.close();
         }
@@ -817,7 +829,12 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         const hasFileChanges =
             editUserAvatar !== null || avatarRemoved || editUserSignature !== null || signatureRemoved;
 
-        setHasUnsavedChanges(hasFormChanges || hasFileChanges);
+        // Check if preferences have changed
+        const hasPreferenceChanges =
+            localPreferences.accentColor !== userPreferences.accentColor ||
+            localPreferences.language !== userPreferences.language;
+
+        setHasUnsavedChanges(hasFormChanges || hasFileChanges || hasPreferenceChanges);
     }, [
         form,
         userInfo,
@@ -827,6 +844,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         avatarRemoved,
         editUserSignature,
         signatureRemoved,
+        localPreferences.accentColor,
+        localPreferences.language,
+        userPreferences.accentColor,
+        userPreferences.language,
     ]);
 
     useEffect(() => {
@@ -1279,6 +1300,36 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         </Text>
                     </Stack>
                 </Flex>
+                <Paper shadow="sm" p="md" radius="md" mt="xl">
+                    <Title order={4} mb="xs">
+                        Personal Preferences
+                    </Title>
+                    <Stack>
+                        <Switch
+                            label="Dark Mode"
+                            checked={colorScheme === "dark"}
+                            onChange={(e) => setColorScheme(e.currentTarget.checked ? "dark" : "light")}
+                        />
+                        <ColorInput
+                            label="Accent Color"
+                            value={localPreferences.accentColor}
+                            onChange={(color) => handlePreferenceChange("accentColor", color)}
+                        />
+                        <Select
+                            label="Default Language"
+                            data={[
+                                { value: "en", label: "English" },
+                                { value: "fil", label: "Filipino" },
+                            ]}
+                            value={localPreferences.language}
+                            onChange={(value) => handlePreferenceChange("language", value)}
+                            description="This setting will be implemented in a future update"
+                        />
+                    </Stack>
+                </Paper>
+                <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
+                    Save
+                </Button>
                 <Title order={4} mb="sm" mt="lg">
                     Account Security
                 </Title>
@@ -1638,9 +1689,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         </Group>
                     </Stack>
                 </Modal>
-                <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
-                    Save
-                </Button>
             </form>
             <Divider my="lg" label="Linked Accounts" labelPosition="center" />
             <Stack>
@@ -1855,44 +1903,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     )}
                 </Group>
             </Stack>
-
-            <Paper shadow="sm" p="md" radius="md" mt="xl">
-                <Title order={4} mb="xs">
-                    Personal Preferences
-                </Title>
-                <Stack>
-                    <Switch
-                        label="Dark Mode"
-                        checked={colorScheme === "dark"}
-                        onChange={(e) => setColorScheme(e.currentTarget.checked ? "dark" : "light")}
-                    />
-                    <ColorInput
-                        label="Accent Color"
-                        value={userPreferences.accentColor}
-                        onChange={(color) => handlePreferenceChange("accentColor", color)}
-                    />
-                    <Select
-                        label="Default Language"
-                        data={[
-                            { value: "en", label: "English" },
-                            { value: "fil", label: "Filipino" },
-                        ]}
-                        value={userPreferences.language}
-                        onChange={(value) => handlePreferenceChange("language", value)}
-                    />
-                    <Select
-                        label="Timezone"
-                        data={[
-                            { value: "Asia/Manila", label: "Asia/Manila" },
-                            { value: "Asia/Singapore", label: "Asia/Singapore" },
-                            { value: "Asia/Hong_Kong", label: "Asia/Hong_Kong" },
-                            { value: "Asia/Taipei", label: "Asia/Taipei" },
-                        ]}
-                        value={userPreferences.timezone}
-                        onChange={(value) => handlePreferenceChange("timezone", value)}
-                    />
-                </Stack>
-            </Paper>
 
             {/* Signature Drawing Modal */}
             <Modal
