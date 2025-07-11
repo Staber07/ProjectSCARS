@@ -2,6 +2,7 @@
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
+import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
 import {
@@ -10,6 +11,7 @@ import {
     getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
     deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
 } from "@/lib/api/csclient";
+import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import {
     ActionIcon,
     Alert,
@@ -176,24 +178,54 @@ export default function ReportsPage() {
         router.push("/reports/payroll");
     };
 
+    const handleReportStatusChange = useCallback((reportId: string, newStatus: ReportStatus) => {
+        // Update the local state to reflect the status change
+        setReportSubmissions((prev) => 
+            prev.map((report) => 
+                report.id === reportId 
+                    ? { ...report, reportStatus: newStatus }
+                    : report
+            )
+        );
+    }, []);
+
+    // Check if user can create reports based on role
+    const canCreateReports = useMemo(() => {
+        const userRoleId = userCtx.userInfo?.roleId;
+        // Only Canteen Managers (roleId: 5) can create reports
+        // Principals (4), Administrators (3), and Superintendents (2) cannot create reports
+        return userRoleId === 5;
+    }, [userCtx.userInfo?.roleId]);
+
     type QuickActionCardProps = {
         title: string;
         description: string;
         icon: React.ElementType;
         color: string;
         onClick: () => void;
+        disabled?: boolean;
     };
 
-    const QuickActionCard = ({ title, description, icon: Icon, color, onClick }: QuickActionCardProps) => (
-        <Card shadow="sm" padding="lg" radius="md" withBorder style={{ cursor: "pointer" }} onClick={onClick}>
+    const QuickActionCard = ({ title, description, icon: Icon, color, onClick, disabled = false }: QuickActionCardProps) => (
+        <Card 
+            shadow="sm" 
+            padding="lg" 
+            radius="md" 
+            withBorder 
+            style={{ 
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.6 : 1,
+            }} 
+            onClick={disabled ? undefined : onClick}
+        >
             <Group>
-                <ActionIcon size="xl" variant="light" color={color}>
+                <ActionIcon size="xl" variant="light" color={disabled ? "gray" : color}>
                     <Icon size={24} />
                 </ActionIcon>
                 <div>
-                    <Text fw={500}>{title}</Text>
+                    <Text fw={500} c={disabled ? "dimmed" : undefined}>{title}</Text>
                     <Text size="sm" c="dimmed">
-                        {description}
+                        {disabled ? "Access restricted by role" : description}
                     </Text>
                 </div>
             </Group>
@@ -251,22 +283,35 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <Text
-                                size="sm"
-                                c={
-                                    report.reportStatus === "received"
-                                        ? "green"
-                                        : report.reportStatus === "review"
-                                        ? "orange"
-                                        : report.reportStatus === "rejected"
-                                        ? "red"
-                                        : "dimmed"
-                                }
-                                fw={500}
-                                tt="capitalize"
-                            >
-                                {report.reportStatus || "Draft"}
-                            </Text>
+                            <Group gap="xs">
+                                <Text
+                                    size="sm"
+                                    c={
+                                        report.reportStatus === "received"
+                                            ? "green"
+                                            : report.reportStatus === "review"
+                                            ? "orange"
+                                            : report.reportStatus === "rejected"
+                                            ? "red"
+                                            : "dimmed"
+                                    }
+                                    fw={500}
+                                    tt="capitalize"
+                                >
+                                    {report.reportStatus || "Draft"}
+                                </Text>
+                                {userCtx.userInfo?.schoolId && (
+                                    <ReportStatusManager
+                                        currentStatus={report.reportStatus || "draft"}
+                                        reportType="monthly"
+                                        schoolId={userCtx.userInfo.schoolId}
+                                        year={parseInt(dayjs(report.id).format("YYYY"))}
+                                        month={parseInt(dayjs(report.id).format("MM"))}
+                                        onStatusChanged={(newStatus) => handleReportStatusChange(report.id, newStatus)}
+                                        disabled={false}
+                                    />
+                                )}
+                            </Group>
                         </Table.Td>
                         <Table.Td>
                             <div>
@@ -298,16 +343,20 @@ export default function ReportsPage() {
                                     >
                                         View
                                     </Menu.Item>
-                                    <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                                    {canCreateReports && (
+                                        <>
+                                            <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                                            <Menu.Divider />
+                                            <Menu.Item
+                                                color="red"
+                                                leftSection={<IconTrash size={14} />}
+                                                onClick={() => handleDeleteReport(report.id)}
+                                            >
+                                                Delete
+                                            </Menu.Item>
+                                        </>
+                                    )}
                                     <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
-                                    <Menu.Divider />
-                                    <Menu.Item
-                                        color="red"
-                                        leftSection={<IconTrash size={14} />}
-                                        onClick={() => handleDeleteReport(report.id)}
-                                    >
-                                        Delete
-                                    </Menu.Item>
                                 </Menu.Dropdown>
                             </Menu>
                         </Table.Td>
@@ -321,6 +370,9 @@ export default function ReportsPage() {
             handleSelectReport,
             handleDeleteReport,
             handleOpenReportDetails,
+            handleReportStatusChange,
+            canCreateReports,
+            userCtx.userInfo?.schoolId,
         ]
     );
 
@@ -337,6 +389,20 @@ export default function ReportsPage() {
                     You are not yet assigned to a school! Reports you create will fail to submit.
                 </Alert>
             )}
+            
+            {!canCreateReports && userCtx.userInfo?.roleId && (
+                <Alert
+                    variant="light"
+                    color="blue"
+                    title="Role-based Access"
+                    icon={<IconAlertCircle size={16} />}
+                >
+                    As a {userCtx.userInfo.roleId === 4 ? "Principal" : 
+                            userCtx.userInfo.roleId === 3 ? "Administrator" : 
+                            userCtx.userInfo.roleId === 2 ? "Superintendent" : "non-Canteen Manager"}, 
+                    you can view and manage reports but cannot create new ones. Only Canteen Managers can create reports.
+                </Alert>
+            )}
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
@@ -347,6 +413,7 @@ export default function ReportsPage() {
                             icon={IconCash}
                             color="blue"
                             onClick={handleNavigateToSales}
+                            disabled={!canCreateReports}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -356,6 +423,7 @@ export default function ReportsPage() {
                             icon={IconReceipt}
                             color="green"
                             onClick={() => setLiquidationModalOpened(true)}
+                            disabled={!canCreateReports}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -365,6 +433,7 @@ export default function ReportsPage() {
                             icon={IconUsers}
                             color="violet"
                             onClick={handleNavigateToPayroll}
+                            disabled={!canCreateReports}
                         />
                     </Grid.Col>
                 </Grid>
@@ -431,9 +500,11 @@ export default function ReportsPage() {
                         <ActionIcon variant="light" size="sm" aria-label="Download">
                             <IconDownload size={16} />
                         </ActionIcon>
-                        <ActionIcon variant="light" color="red" size="sm" aria-label="Delete">
-                            <IconTrash size={16} />
-                        </ActionIcon>
+                        {canCreateReports && (
+                            <ActionIcon variant="light" color="red" size="sm" aria-label="Delete">
+                                <IconTrash size={16} />
+                            </ActionIcon>
+                        )}
                     </Flex>
                 </Paper>
             )}
