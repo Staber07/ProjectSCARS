@@ -2,21 +2,27 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { ChangeEmailComponent } from "@/components/UserManagement/ChangeEmailComponent";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import { UserSyncButton } from "@/components/UserSyncButton";
+import { PasswordRequirement, requirements } from "@/components/Password";
 import {
     deleteUserAvatarEndpointV1UsersAvatarDelete,
     deleteUserInfoEndpointV1UsersDelete,
+    deleteUserSignatureEndpointV1UsersSignatureDelete,
     disableMfaOtpV1AuthMfaOtpDisablePost,
     generateMfaOtpV1AuthMfaOtpGeneratePost,
     getAllRolesV1AuthRolesGet,
     getOauthConfigV1AuthConfigOauthGet,
     getUserAvatarEndpointV1UsersAvatarGet,
     getUserProfileEndpointV1UsersMeGet,
+    getUserSignatureEndpointV1UsersSignatureGet,
     oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet,
     OtpToken,
     requestVerificationEmailV1AuthEmailRequestPost,
     Role,
     updateUserAvatarEndpointV1UsersAvatarPatch,
     updateUserEndpointV1UsersPatch,
+    updateUserSignatureEndpointV1UsersSignaturePatch,
     UserDelete,
     UserPublic,
     UserUpdate,
@@ -24,7 +30,7 @@ import {
     verifyMfaOtpV1AuthMfaOtpVerifyPost,
 } from "@/lib/api/csclient";
 import { GetAllSchools } from "@/lib/api/school";
-import { LocalStorage, userAvatarConfig } from "@/lib/info";
+import { LocalStorage, userAvatarConfig, userSignatureConfig } from "@/lib/info";
 import { useUser } from "@/lib/providers/user";
 import { UserPreferences } from "@/lib/types";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
@@ -67,6 +73,7 @@ import {
     IconMailOff,
     IconMailOpened,
     IconPencilCheck,
+    IconScribble,
     IconSendOff,
     IconTrash,
     IconUserExclamation,
@@ -114,6 +121,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     const [opened, modalHandler] = useDisclosure(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [passwordLoading, passwordStateHandler] = useDisclosure(false);
     const [otpEnabled, setOtpEnabled] = useState(false);
     const [otpGenData, setOtpGenData] = useState<OtpToken | null>(null);
     const [showOTPModal, setShowOTPModal] = useState(false);
@@ -125,9 +133,35 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
     const [editUserAvatar, setEditUserAvatar] = useState<File | null>(null);
     const [editUserAvatarUrl, setEditUserAvatarUrl] = useState<string | null>(userAvatarUrl);
     const [avatarRemoved, setAvatarRemoved] = useState(false);
+    const [currentSignatureUrn, setCurrentSignatureUrn] = useState<string | null>(null);
+    const [editUserSignature, setEditUserSignature] = useState<File | null>(null);
+    const [editUserSignatureUrl, setEditUserSignatureUrl] = useState<string | null>(null);
+    const [signatureRemoved, setSignatureRemoved] = useState(false);
     const [availableRoles, setAvailableRoles] = useState<string[]>([]);
     const [availableSchools, setAvailableSchools] = useState<string[]>([]);
     const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+    const [showSignatureDrawModal, setShowSignatureDrawModal] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const changePasswordForm = useForm({
+        mode: "uncontrolled",
+        initialValues: {
+            currentPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+        },
+        validate: {
+            currentPassword: (value) => (value.length === 0 ? "Current password is required" : null),
+            newPassword: (value) => {
+                if (value.length === 0) return "New password is required";
+                if (value.length < 8) return "Password must be at least 8 characters long";
+                if (!/(?=.*[a-z])/.test(value)) return "Password must contain at least one lowercase letter";
+                if (!/(?=.*[A-Z])/.test(value)) return "Password must contain at least one uppercase letter";
+                if (!/(?=.*\d)/.test(value)) return "Password must contain at least one digit";
+                return null;
+            },
+            confirmPassword: (value, values) => (value !== values.newPassword ? "Passwords do not match" : null),
+        },
+    });
     const [oauthSupport, setOAuthSupport] = useState<{ google: boolean; microsoft: boolean; facebook: boolean }>({
         google: false,
         // TODO: OAuth adapters below are not implemented yet.
@@ -169,6 +203,35 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 message: "Failed to fetch user avatar.",
                 color: "red",
                 icon: <IconUserExclamation />,
+            });
+            return undefined;
+        }
+    };
+
+    const fetchUserSignature = async (signatureUrn: string): Promise<string | undefined> => {
+        try {
+            const result = await getUserSignatureEndpointV1UsersSignatureGet({
+                query: { fn: signatureUrn },
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to fetch signature: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            const blob = result.data as Blob;
+            const url = URL.createObjectURL(blob);
+            if (signatureUrn && !currentSignatureUrn) URL.revokeObjectURL(signatureUrn);
+            setCurrentSignatureUrn(signatureUrn);
+            return url;
+        } catch (error) {
+            console.error("Failed to fetch user signature:", error);
+            notifications.show({
+                id: "fetch-user-signature-error",
+                title: "Error",
+                message: "Failed to fetch user signature.",
+                color: "red",
+                icon: <IconScribble />,
             });
             return undefined;
         }
@@ -217,6 +280,69 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             }
             return URL.createObjectURL(file); // Create a new URL for the selected file
         });
+    };
+
+    const handleChangeSignature = async (file: File | null) => {
+        if (file === null) {
+            console.debug("No file selected, skipping upload...");
+            return;
+        }
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > userSignatureConfig.MAX_FILE_SIZE_MB) {
+            notifications.show({
+                id: "signature-file-too-large",
+                title: "File Too Large",
+                message: `File size ${fileSizeMB.toFixed(2)} MB exceeds the 1 MB limit.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return;
+        }
+        if (!userSignatureConfig.ALLOWED_FILE_TYPES.includes(file.type)) {
+            notifications.show({
+                id: "signature-invalid-file-type",
+                title: "Invalid File Type",
+                message: `Unsupported file type: ${file.type}. Allowed: JPG, PNG, WEBP.`,
+                color: "red",
+                icon: <IconSendOff />,
+            });
+            return;
+        }
+
+        setSignatureRemoved(false);
+        setEditUserSignature(file);
+        setEditUserSignatureUrl((prevUrl) => {
+            if (prevUrl && !currentSignatureUrn) {
+                URL.revokeObjectURL(prevUrl); // Clean up previous URL
+            }
+            return URL.createObjectURL(file); // Create a new URL for the selected file
+        });
+    };
+
+    const handleDrawSignature = () => {
+        setShowSignatureDrawModal(true);
+    };
+
+    const handleSaveDrawnSignature = (signatureData: string) => {
+        // Convert data URL to blob
+        const [header, base64Data] = signatureData.split(",");
+        const mimeType = header.match(/:(.*?);/)?.[1] || "image/png";
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: mimeType });
+        const file = new File([blob], "signature.png", { type: "image/png" });
+
+        // Use existing signature change handler
+        handleChangeSignature(file);
+        setShowSignatureDrawModal(false);
+    };
+
+    const handleCancelDrawSignature = () => {
+        setShowSignatureDrawModal(false);
     };
     const handleSave = async (values: EditProfileValues) => {
         buttonStateHandler.open();
@@ -397,9 +523,105 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                 setEditUserAvatarUrl(null);
             }
 
+            // Handle signature removal
+            if (signatureRemoved && currentSignatureUrn) {
+                try {
+                    console.debug("Removing signature...");
+                    const deleteResult = await deleteUserSignatureEndpointV1UsersSignatureDelete({
+                        query: { user_id: values.id },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (deleteResult.error) {
+                        throw new Error(
+                            `Failed to remove signature: ${deleteResult.response.status} ${deleteResult.response.statusText}`
+                        );
+                    }
+
+                    console.debug("Signature removed successfully.");
+                    notifications.show({
+                        id: "signature-remove-success",
+                        title: "Success",
+                        message: "E-signature removed successfully.",
+                        color: "green",
+                        icon: <IconPencilCheck />,
+                    });
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to remove signature.";
+                        console.error("Signature removal failed:", detail);
+                        notifications.show({
+                            id: "signature-remove-error",
+                            title: "E-signature Removal Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
+
+            // Handle signature upload
+            if (editUserSignature) {
+                try {
+                    console.debug("Uploading signature...");
+                    const uploadResult = await updateUserSignatureEndpointV1UsersSignaturePatch({
+                        query: { user_id: values.id },
+                        body: { img: editUserSignature },
+                        headers: { Authorization: GetAccessTokenHeader() },
+                    });
+
+                    if (uploadResult.error) {
+                        throw new Error(
+                            `Failed to upload signature: ${uploadResult.response.status} ${uploadResult.response.statusText}`
+                        );
+                    }
+
+                    updatedUser = uploadResult.data as UserPublic;
+                    if (updatedUser.signatureUrn) {
+                        const newSignatureUrl = await fetchUserSignature(updatedUser.signatureUrn);
+                        if (newSignatureUrl) {
+                            setEditUserSignatureUrl(newSignatureUrl);
+                        }
+                        console.debug("Signature uploaded successfully.");
+                        notifications.show({
+                            id: "signature-upload-success",
+                            title: "Success",
+                            message: "E-signature uploaded successfully.",
+                            color: "green",
+                            icon: <IconPencilCheck />,
+                        });
+                    }
+                } catch (error) {
+                    if (error instanceof Error) {
+                        const detail = error.message || "Failed to upload signature.";
+                        console.error("Signature upload failed:", detail);
+                        notifications.show({
+                            id: "signature-upload-error",
+                            title: "E-signature Upload Failed",
+                            message: detail,
+                            color: "red",
+                            icon: <IconSendOff />,
+                        });
+                    }
+                }
+            }
+
+            // Update signature URL if needed
+            if (updatedUser.signatureUrn && updatedUser.signatureUrn.trim() !== "" && !signatureRemoved) {
+                const newSignatureUrl = await fetchUserSignature(updatedUser.signatureUrn);
+                if (newSignatureUrl) {
+                    setEditUserSignatureUrl(newSignatureUrl);
+                }
+            } else if (signatureRemoved) {
+                setEditUserSignatureUrl(null);
+            }
+
             // Reset temporary states after successful save
             setEditUserAvatar(null);
             setAvatarRemoved(false);
+            setEditUserSignature(null);
+            setSignatureRemoved(false);
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 403")) {
                 const detail = error.message || "Failed to update user information.";
@@ -436,9 +658,75 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         }
     };
 
+    const handlePasswordChange = async (values: {
+        currentPassword: string;
+        newPassword: string;
+        confirmPassword: string;
+    }) => {
+        try {
+            passwordStateHandler.open();
+
+            // Call the new password change endpoint
+            const response = await fetch(`${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/users/me/password`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: GetAccessTokenHeader(),
+                },
+                body: JSON.stringify({
+                    current_password: values.currentPassword,
+                    new_password: values.newPassword,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.detail || `Failed to update password: ${response.status} ${response.statusText}`
+                );
+            }
+
+            const result = await response.json();
+
+            notifications.show({
+                id: "password-update-success",
+                title: "Password Updated",
+                message: result.message || "Your password has been updated successfully.",
+                color: "green",
+                icon: <IconKey />,
+            });
+
+            // Reset the form and close the modal
+            changePasswordForm.reset();
+            setNewPassword("");
+            modalHandler.close();
+        } catch (error) {
+            console.error("Password update error:", error);
+            notifications.show({
+                id: "password-update-error",
+                title: "Error",
+                message: (error as Error).message || "Failed to update password. Please try again.",
+                color: "red",
+                icon: <IconSendOff />,
+            });
+        } finally {
+            passwordStateHandler.close();
+        }
+    };
+
     useEffect(() => {
         if (userInfo) {
             setOtpEnabled(userInfo.otpVerified);
+
+            // Initialize signature URL if user has a signature
+            if (userInfo.signatureUrn && userInfo.signatureUrn.trim() !== "") {
+                fetchUserSignature(userInfo.signatureUrn).then((url) => {
+                    if (url) {
+                        setEditUserSignatureUrl(url);
+                    }
+                });
+            }
+
             const new_values = {
                 id: userInfo.id,
                 username: userInfo.username || "",
@@ -598,9 +886,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
 
     return (
         <Box mx="auto" p="lg">
-            <Title order={3} mb="sm">
-                Profile
-            </Title>
+            <Flex justify="space-between" align="center" mb="sm">
+                <Title order={3}>Profile</Title>
+                <UserSyncButton size="compact-sm" />
+            </Flex>
             <Divider mb="lg" />
             <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%">
                 <Group gap={20}>
@@ -813,6 +1102,92 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         />
                     </Tooltip>
                 </Group>
+                <Flex justify="space-between" align="flex-start" wrap="wrap" w="100%" mt="lg">
+                    <Stack gap={10}>
+                        <Text fw={500} size="sm">
+                            Electronic Signature
+                        </Text>
+                        <Group align="center" gap={15}>
+                            {editUserSignatureUrl ? (
+                                <Box
+                                    style={{
+                                        border: "1px solid #e0e0e0",
+                                        borderRadius: "8px",
+                                        padding: "8px",
+                                        backgroundColor: "white",
+                                        maxWidth: "200px",
+                                        maxHeight: "80px",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <Image
+                                        src={editUserSignatureUrl}
+                                        alt="User signature"
+                                        width={200}
+                                        height={80}
+                                        style={{
+                                            objectFit: "contain",
+                                            width: "100%",
+                                            height: "auto",
+                                            maxHeight: "80px",
+                                        }}
+                                    />
+                                </Box>
+                            ) : (
+                                <Box
+                                    style={{
+                                        border: "2px dashed #e0e0e0",
+                                        borderRadius: "8px",
+                                        padding: "20px",
+                                        backgroundColor: "#f9f9f9",
+                                        width: "200px",
+                                        height: "80px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <Text size="xs" c="dimmed" ta="center">
+                                        No signature uploaded
+                                    </Text>
+                                </Box>
+                            )}
+                            <Stack gap={5}>
+                                <FileButton onChange={handleChangeSignature} accept="image/png,image/jpeg">
+                                    {(props) => (
+                                        <Button variant="outline" size="sm" {...props}>
+                                            {editUserSignatureUrl ? "Change Signature" : "Upload Signature"}
+                                        </Button>
+                                    )}
+                                </FileButton>
+                                <Button variant="outline" size="sm" onClick={handleDrawSignature}>
+                                    Draw Signature
+                                </Button>
+                                {editUserSignatureUrl && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        color="red"
+                                        onClick={() => {
+                                            setSignatureRemoved(true);
+                                            setEditUserSignature(null);
+                                            if (editUserSignatureUrl && !currentSignatureUrn) {
+                                                URL.revokeObjectURL(editUserSignatureUrl);
+                                            }
+                                            setEditUserSignatureUrl(null);
+                                        }}
+                                    >
+                                        Remove Signature
+                                    </Button>
+                                )}
+                            </Stack>
+                        </Group>
+                        <Text size="xs" c="dimmed">
+                            Upload your electronic signature or draw it directly. Max file size: 1MB. Formats: JPG, PNG,
+                            WEBP.
+                        </Text>
+                    </Stack>
+                </Flex>
                 <Title order={4} mb="sm" mt="lg">
                     Account Security
                 </Title>
@@ -927,39 +1302,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             labelProps={{ style: { marginBottom: 6 } }}
                         />
                     </Stack>
-                    <Modal opened={opened} onClose={modalHandler.close} title="Update Password" centered>
-                        <Stack>
-                            <TextInput label="Current Password" placeholder="" type="password" required />
-                            <TextInput
-                                label="New Password"
-                                placeholder="At least 8 characters"
-                                type="password"
-                                required
-                            />
-                            <TextInput
-                                label="Confirm Password"
-                                placeholder="At least 8 characters"
-                                type="password"
-                                required
-                            />
-
-                            <Button variant="filled" color="blue">
-                                Update Password
-                            </Button>
-
-                            <Anchor
-                                size="xs"
-                                style={{
-                                    color: "gray",
-                                    textAlign: "center",
-                                    cursor: "pointer",
-                                }}
-                                href="/forgotPassword"
-                            >
-                                Forgot your password?
-                            </Anchor>
-                        </Stack>
-                    </Modal>
+                    {/* Password change modal moved outside the main form */}
 
                     <Button
                         variant="outline"
@@ -1032,9 +1375,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setOtpEnabled(false);
                                 }
                             } catch (error) {
+                                console.error(error instanceof Error ? error.message : error);
                                 notifications.show({
                                     title: "Error",
-                                    message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                    message: "An unknown error occurred.",
                                     color: "red",
                                     icon: <IconX />,
                                 });
@@ -1146,9 +1490,10 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                                     setShowOTPModal(false);
                                     setShowRecoveryCodeModal(true);
                                 } catch (error) {
+                                    console.error(error instanceof Error ? error.message : error);
                                     notifications.show({
                                         title: "Error Enabling Two-Step Verification",
-                                        message: error instanceof Error ? error.message : "An unknown error occurred.",
+                                        message: "An unknown error occurred.",
                                         color: "red",
                                         icon: <IconX />,
                                     });
@@ -1457,6 +1802,28 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     />
                 </Stack>
             </Paper>
+
+            {/* Signature Drawing Modal */}
+            <Modal
+                opened={showSignatureDrawModal}
+                onClose={handleCancelDrawSignature}
+                title={
+                    <Group gap="sm">
+                        <IconScribble size={20} />
+                        <Text fw={500}>Draw Your Signature</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    <Text size="sm" c="dimmed">
+                        Draw your signature in the canvas below. Use your mouse or touch to create your signature.
+                    </Text>
+                    <SignatureCanvas onSave={handleSaveDrawnSignature} onCancel={handleCancelDrawSignature} />
+                </Stack>
+            </Modal>
+
             <ChangeEmailComponent
                 modalOpen={showChangeEmailModal}
                 setModalOpen={setShowChangeEmailModal}
@@ -1482,6 +1849,83 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     }
                 }}
             />
+
+            {/* Password change modal - moved outside the main form */}
+            <Modal
+                opened={opened}
+                onClose={() => {
+                    changePasswordForm.reset();
+                    setNewPassword("");
+                    modalHandler.close();
+                }}
+                title="Update Password"
+                centered
+            >
+                <form onSubmit={changePasswordForm.onSubmit(handlePasswordChange)}>
+                    <Stack>
+                        <TextInput
+                            label="Current Password"
+                            placeholder="Enter your current password"
+                            type="password"
+                            required
+                            key={changePasswordForm.key("currentPassword")}
+                            {...changePasswordForm.getInputProps("currentPassword")}
+                        />
+                        <TextInput
+                            label="New Password"
+                            placeholder="At least 8 characters"
+                            type="password"
+                            required
+                            value={newPassword}
+                            onChange={(event) => {
+                                const value = event.currentTarget.value;
+                                setNewPassword(value);
+                                changePasswordForm.setFieldValue("newPassword", value);
+                            }}
+                            error={changePasswordForm.errors.newPassword}
+                        />
+                        <Box>
+                            {requirements.map((requirement) => (
+                                <PasswordRequirement
+                                    key={requirement.label}
+                                    label={requirement.label}
+                                    meets={requirement.re.test(newPassword)}
+                                />
+                            ))}
+                        </Box>
+                        <TextInput
+                            label="Confirm Password"
+                            placeholder="Re-enter your new password"
+                            type="password"
+                            required
+                            key={changePasswordForm.key("confirmPassword")}
+                            {...changePasswordForm.getInputProps("confirmPassword")}
+                        />
+
+                        <Button
+                            variant="filled"
+                            color="blue"
+                            type="submit"
+                            loading={passwordLoading}
+                            leftSection={<IconKey size={16} />}
+                        >
+                            Update Password
+                        </Button>
+
+                        <Anchor
+                            size="xs"
+                            style={{
+                                color: "gray",
+                                textAlign: "center",
+                                cursor: "pointer",
+                            }}
+                            href="/forgotPassword"
+                        >
+                            Forgot your password?
+                        </Anchor>
+                    </Stack>
+                </form>
+            </Modal>
         </Box>
     );
 }

@@ -203,6 +203,18 @@ class UserPublic(SQLModel):
     lastLoggedInIp: str | None
 
 
+class UserSimple(SQLModel):
+    """A simplified model representing essential user information for reports and signatures."""
+
+    id: str
+    nameFirst: str | None
+    nameMiddle: str | None
+    nameLast: str | None
+    position: str | None
+    avatarUrn: str | None
+    signatureUrn: str | None
+
+
 class UserUpdate(SQLModel):
     """A model used when updating user information."""
 
@@ -271,3 +283,10 @@ class UserPasswordResetRequest(SQLModel):
 
     new_password: str
     recovery_token: str
+
+
+class UserPasswordChange(SQLModel):
+    """A model used for changing a user's password with current password validation."""
+
+    current_password: str
+    new_password: str

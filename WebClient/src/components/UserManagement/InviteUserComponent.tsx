@@ -154,6 +154,7 @@ export function InviteUserComponent({
                 usernameManuallyEdited.current = false; // Reset manual edit flag
                 if (onUserInvite) onUserInvite(result.data);
             } catch (err) {
+                console.error(err instanceof Error ? `Failed to invite user: ${err.message}` : "Failed to invite user");
                 notifications.show({
                     id: "invite-user-error",
                     title: "Error",

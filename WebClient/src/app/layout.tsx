@@ -8,6 +8,8 @@ import { Notifications } from "@mantine/notifications";
 import type { Metadata } from "next";
 
 import "@mantine/core/styles.css";
+import "@mantine/charts/styles.css";
+import "@mantine/dropzone/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/spotlight/styles.css";
 

@@ -2,13 +2,14 @@ import datetime
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session, func, select
+from sqlmodel import Session, select
 
 from centralserver.info import Program
 from centralserver.internals.adapters.object_store import (
     BucketNames,
     get_object_store_handler,
     validate_and_process_image,
+    validate_and_process_signature,
 )
 from centralserver.internals.auth_handler import crypt_ctx, verify_user_permission
 from centralserver.internals.config_handler import app_config
@@ -193,6 +194,64 @@ async def update_user_avatar(
         )
 
         selected_user.avatarUrn = bucket_object.fn
+
+    selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
+
+    session.commit()
+    session.refresh(selected_user)
+    logger.info("User info for `%s` updated.", selected_user.username)
+    return UserPublic.model_validate(selected_user)
+
+
+async def update_user_signature(
+    target_user: str, img: UploadFile | None, session: Session
+) -> UserPublic:
+    """Update the user's e-signature in the database.
+
+    Args:
+        target_user: The user to update.
+        img: The new e-signature image.
+        session: The database session to use.
+
+    Returns:
+        The updated user object.
+    """
+
+    selected_user = session.get(User, target_user)
+
+    if not selected_user:  # Check if user exists
+        logger.warning("Failed to update user: %s (user not found)", target_user)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User not found",
+        )
+
+    object_store_manager = await get_object_store_handler(app_config.object_store)
+    if img is None:
+        logger.debug("Deleting e-signature for user: %s", target_user)
+        if selected_user.signatureUrn is None:
+            logger.warning("No e-signature to delete for user: %s", target_user)
+            raise ValueError("No e-signature to delete.")
+
+        await object_store_manager.delete(
+            BucketNames.ESIGNATURES, selected_user.signatureUrn
+        )
+        selected_user.signatureUrn = None
+
+    else:
+        processed_img = await validate_and_process_signature(await img.read())
+        if selected_user.signatureUrn is not None:
+            logger.debug("Deleting old e-signature for user: %s", target_user)
+            await object_store_manager.delete(
+                BucketNames.ESIGNATURES, selected_user.signatureUrn
+            )
+
+        logger.debug("Updating e-signature for user: %s", target_user)
+        bucket_object = await object_store_manager.put(
+            BucketNames.ESIGNATURES, selected_user.id, processed_img
+        )
+
+        selected_user.signatureUrn = bucket_object.fn
 
     selected_user.lastModified = datetime.datetime.now(datetime.timezone.utc)
 
@@ -487,14 +546,12 @@ async def update_user_info(
             #     session.exec(select(User).where(User.roleId == 1)).all()
             # )
             # if superintendent_quantity == 1:
-            if (
+            admin_count = len(
                 session.exec(
-                    select(func.count(User.id)).where(  # type: ignore
-                        User.roleId == DEFAULT_ROLES[0].id
-                    )
-                ).one()
-                <= 1
-            ):
+                    select(User).where(User.roleId == DEFAULT_ROLES[0].id)
+                ).all()
+            )
+            if admin_count <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot change the role of the last admin user.",
@@ -545,14 +602,12 @@ async def update_user_info(
         if selected_user.roleId == DEFAULT_ROLES[0].id:
             # Make sure that there is at least one superintendent user in the database
             # if len(session.exec(select(User.id).where(User.roleId == DEFAULT_ROLES[0].id)).all()) <= 1:
-            if (
+            admin_count = len(
                 session.exec(
-                    select(func.count(User.id)).where(  # type: ignore
-                        User.roleId == DEFAULT_ROLES[0].id
-                    )
-                ).one()
-                <= 1
-            ):
+                    select(User).where(User.roleId == DEFAULT_ROLES[0].id)
+                ).all()
+            )
+            if admin_count <= 1:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Cannot set deactivated status of the last admin user.",
@@ -612,6 +667,18 @@ async def update_user_info(
 
     session.commit()
     session.refresh(selected_user)
+
+    # Send notification if user was updated by someone else
+    if not updating_self:
+        await push_notification(
+            owner_id=selected_user.id,
+            title="Profile Updated",
+            content="Your profile information has been updated by an administrator. You may need to refresh your session to see the changes.",
+            important=True,
+            notification_type=NotificationType.INFO,
+            session=session,
+        )
+
     if email_changed:
         await push_notification(
             owner_id=selected_user.id,
@@ -676,3 +743,8 @@ async def remove_user_info(
 async def get_user_avatar(fn: str) -> BucketObject | None:
     handler = await get_object_store_handler(app_config.object_store)
     return await handler.get(BucketNames.AVATARS, fn)
+
+
+async def get_user_signature(fn: str) -> BucketObject | None:
+    handler = await get_object_store_handler(app_config.object_store)
+    return await handler.get(BucketNames.ESIGNATURES, fn)

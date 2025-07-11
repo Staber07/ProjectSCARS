@@ -1,6 +1,11 @@
 import { LocalStorage } from "@/lib/info";
-import { UserPublic } from "@/lib/api/csclient";
-import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import {
+    UserPublic,
+    getUserProfileEndpointV1UsersMeGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
+} from "@/lib/api/csclient";
+import { createContext, ReactNode, useContext, useEffect, useState, useCallback, useRef } from "react";
+import { useAuth } from "@/lib/providers/auth";
 
 interface UserContextType {
     userInfo: UserPublic | null;
@@ -9,6 +14,9 @@ interface UserContextType {
     userAvatarUrl: string | null;
     updateUserInfo: (userInfo: UserPublic, permissions: string[] | null, userAvatar?: Blob | null) => void;
     clearUserInfo: () => void;
+    refreshUserData: () => Promise<boolean>;
+    checkForUpdates: () => Promise<boolean>;
+    forceRefresh: () => Promise<boolean>;
 }
 
 interface UserProviderProps {
@@ -22,6 +30,8 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
     const [userPermissions, setUserPermissions] = useState<string[] | null>(null);
     const [userAvatar, setUserAvatar] = useState<Blob | null>(null);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+    const lastCheckTimeRef = useRef<number>(0);
+    const { isAuthenticated } = useAuth();
 
     useEffect(() => {
         const loadUserData = async () => {
@@ -102,7 +112,117 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
         setUserInfo(null);
         setUserPermissions(null);
         setUserAvatar(null);
+        setUserAvatarUrl(null);
+        localStorage.removeItem(LocalStorage.userData);
+        localStorage.removeItem(LocalStorage.userPermissions);
+        localStorage.removeItem(LocalStorage.userAvatar);
     };
+
+    /**
+     * Fetch fresh user data from server and update local context
+     */
+    const refreshUserData = useCallback(async (): Promise<boolean> => {
+        try {
+            const userInfoResult = await getUserProfileEndpointV1UsersMeGet();
+
+            if (userInfoResult.data) {
+                const [fetchedUserInfo, fetchedUserPermissions] = userInfoResult.data;
+
+                // Get user avatar if available
+                let userAvatar: Blob | null = null;
+                if (fetchedUserInfo.avatarUrn) {
+                    try {
+                        const avatarResult = await getUserAvatarEndpointV1UsersAvatarGet({
+                            query: {
+                                fn: fetchedUserInfo.avatarUrn,
+                            },
+                        });
+                        if (avatarResult.data) {
+                            userAvatar = avatarResult.data as Blob;
+                        }
+                    } catch (error) {
+                        console.warn("Failed to fetch user avatar:", error);
+                    }
+                }
+
+                updateUserInfo(fetchedUserInfo, fetchedUserPermissions, userAvatar);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Failed to refresh user data:", error);
+            return false;
+        }
+    }, []);
+
+    /**
+     * Check if local user data is outdated compared to server
+     */
+    const checkForUpdates = useCallback(async (): Promise<boolean> => {
+        if (!isAuthenticated || !userInfo) {
+            return false;
+        }
+
+        // Throttle checks to avoid excessive API calls
+        const now = Date.now();
+        if (now - lastCheckTimeRef.current < 30000) {
+            // 30 seconds minimum between checks
+            return false;
+        }
+        lastCheckTimeRef.current = now;
+
+        try {
+            const userInfoResult = await getUserProfileEndpointV1UsersMeGet();
+
+            if (userInfoResult.data) {
+                const [fetchedUserInfo] = userInfoResult.data;
+
+                // Compare lastModified timestamps
+                const localLastModified = new Date(userInfo.lastModified);
+                const serverLastModified = new Date(fetchedUserInfo.lastModified);
+
+                if (serverLastModified > localLastModified) {
+                    console.info("Server-side user data is newer. Refreshing local data...");
+                    return await refreshUserData();
+                }
+            }
+            return false;
+        } catch (error) {
+            console.error("Failed to check for user updates:", error);
+            return false;
+        }
+    }, [isAuthenticated, userInfo, refreshUserData]);
+
+    /**
+     * Force refresh user data (useful for manual refresh)
+     */
+    const forceRefresh = useCallback(async (): Promise<boolean> => {
+        lastCheckTimeRef.current = 0; // Reset throttle
+        return await refreshUserData();
+    }, [refreshUserData]);
+
+    // Auto-check for updates periodically when user is authenticated
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const userUpdateCheckInterval = setInterval(() => {
+            checkForUpdates();
+        }, 5 * 60 * 1000); // Check every 5 minutes
+
+        return () => clearInterval(userUpdateCheckInterval);
+    }, [isAuthenticated, checkForUpdates]);
+
+    // Check for updates when user focuses the tab/window
+    useEffect(() => {
+        if (!isAuthenticated) return;
+
+        const handleFocus = () => {
+            checkForUpdates();
+        };
+
+        window.addEventListener("focus", handleFocus);
+        return () => window.removeEventListener("focus", handleFocus);
+    }, [isAuthenticated, checkForUpdates]);
 
     return (
         <UserContext.Provider
@@ -113,6 +233,9 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
                 userAvatarUrl,
                 updateUserInfo,
                 clearUserInfo,
+                refreshUserData,
+                checkForUpdates,
+                forceRefresh,
             }}
         >
             {children}

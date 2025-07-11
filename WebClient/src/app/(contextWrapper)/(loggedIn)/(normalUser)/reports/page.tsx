@@ -1,14 +1,18 @@
 "use client";
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
-import { GetLocalMonthlyReports } from "@/lib/api/report";
+import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
-import { MonthlyReport, ReportStatus, School } from "@/lib/api/csclient";
+import {
+    MonthlyReport,
+    School,
+    getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
+    deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
+} from "@/lib/api/csclient";
 import {
     ActionIcon,
     Alert,
-    Badge,
     Card,
     Checkbox,
     Flex,
@@ -52,6 +56,8 @@ export default function ReportsPage() {
     const [statusFilter, setStatusFilter] = useState("all");
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
+    const [detailsModalOpened, setDetailsModalOpened] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
     const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
 
@@ -61,8 +67,12 @@ export default function ReportsPage() {
             try {
                 if (userCtx.userInfo?.schoolId) {
                     setUserAssignedToSchool(true);
-                    const reports = await GetLocalMonthlyReports(userCtx.userInfo.schoolId, 0, 10);
-                    setReportSubmissions(reports);
+                    const { data: reports } = await getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet({
+                        path: { school_id: userCtx.userInfo.schoolId },
+                        query: { offset: 0, limit: 10 },
+                    });
+                    console.debug("Fetched reports:", reports);
+                    setReportSubmissions(reports || []);
                 } else {
                     setUserAssignedToSchool(false);
                     console.warn("No schoolId found in user context");
@@ -83,23 +93,6 @@ export default function ReportsPage() {
 
         return matchesSearch && matchesStatus;
     });
-
-    const getStatusColor = (status: ReportStatus) => {
-        switch (status) {
-            case "approved":
-                return "green";
-            case "draft":
-                return "blue";
-            case "review":
-                return "yellow";
-            case "rejected":
-                return "red";
-            case "archived":
-                return "gray";
-            default:
-                return "gray";
-        }
-    };
 
     const handleSelectAll = (checked: boolean) => {
         if (checked) {
@@ -124,6 +117,59 @@ export default function ReportsPage() {
     const handleCreateLiquidationReport = (category: string, path: string) => {
         console.log(`Selected liquidation category: ${category}, navigating to: ${path}`);
     };
+
+    const handleOpenReportDetails = useCallback((report: MonthlyReport) => {
+        setSelectedReport(report);
+        setDetailsModalOpened(true);
+    }, []);
+
+    const handleCloseDetailsModal = useCallback(() => {
+        setDetailsModalOpened(false);
+        setSelectedReport(null);
+    }, []);
+
+    const handleDeleteReport = useCallback(
+        async (reportId: string) => {
+            try {
+                if (!userCtx.userInfo?.schoolId) {
+                    notifications.show({
+                        title: "Error",
+                        message: "You must be assigned to a school to delete reports.",
+                        color: "red",
+                    });
+                    return;
+                }
+
+                const year = parseInt(dayjs(reportId).format("YYYY"));
+                const month = parseInt(dayjs(reportId).format("MM"));
+
+                await deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete({
+                    path: {
+                        school_id: userCtx.userInfo.schoolId,
+                        year,
+                        month,
+                    },
+                });
+
+                // Remove from local state
+                setReportSubmissions((prev) => prev.filter((r) => r.id !== reportId));
+
+                notifications.show({
+                    title: "Success",
+                    message: "Monthly report and all related reports have been deleted successfully.",
+                    color: "green",
+                });
+            } catch (error) {
+                console.error("Failed to delete report:", error);
+                notifications.show({
+                    title: "Error",
+                    message: "Failed to delete the report. Please try again.",
+                    color: "red",
+                });
+            }
+        },
+        [userCtx.userInfo?.schoolId]
+    );
 
     const handleNavigateToPayroll = () => {
         router.push("/reports/payroll");
@@ -192,7 +238,7 @@ export default function ReportsPage() {
                             />
                         </Table.Td>
                         <Table.Td>
-                            <div>
+                            <div style={{ cursor: "pointer" }} onClick={() => handleOpenReportDetails(report)}>
                                 <Text fw={500} size="sm">
                                     {report.name}
                                 </Text>
@@ -204,9 +250,16 @@ export default function ReportsPage() {
                             </div>
                         </Table.Td>
                         <Table.Td>
-                            <Badge color={getStatusColor(report.reportStatus || "draft")} variant="filled" size="sm">
+                            <Text 
+                                size="sm" 
+                                c={report.reportStatus === "received" ? "green" : 
+                                   report.reportStatus === "review" ? "orange" : 
+                                   report.reportStatus === "rejected" ? "red" : "dimmed"}
+                                fw={500}
+                                tt="capitalize"
+                            >
                                 {report.reportStatus || "Draft"}
-                            </Badge>
+                            </Text>
                         </Table.Td>
                         <Table.Td>
                             <div>
@@ -232,11 +285,20 @@ export default function ReportsPage() {
                                     </ActionIcon>
                                 </Menu.Target>
                                 <Menu.Dropdown>
-                                    <Menu.Item leftSection={<IconEye size={14} />}>View</Menu.Item>
+                                    <Menu.Item
+                                        leftSection={<IconEye size={14} />}
+                                        onClick={() => handleOpenReportDetails(report)}
+                                    >
+                                        View
+                                    </Menu.Item>
                                     <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
                                     <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
                                     <Menu.Divider />
-                                    <Menu.Item color="red" leftSection={<IconTrash size={14} />}>
+                                    <Menu.Item
+                                        color="red"
+                                        leftSection={<IconTrash size={14} />}
+                                        onClick={() => handleDeleteReport(report.id)}
+                                    >
                                         Delete
                                     </Menu.Item>
                                 </Menu.Dropdown>
@@ -245,7 +307,14 @@ export default function ReportsPage() {
                     </Table.Tr>
                 );
             }),
-        [filteredReports, selectedReports, parsedSubmittedBySchools, handleSelectReport]
+        [
+            filteredReports,
+            selectedReports,
+            parsedSubmittedBySchools,
+            handleSelectReport,
+            handleDeleteReport,
+            handleOpenReportDetails,
+        ]
     );
 
     return (
@@ -409,6 +478,14 @@ export default function ReportsPage() {
                 opened={liquidationModalOpened}
                 onClose={() => setLiquidationModalOpened(false)}
                 onSelect={handleCreateLiquidationReport}
+            />
+
+            {/* Monthly Report Details Modal */}
+            <MonthlyReportDetailsModal
+                opened={detailsModalOpened}
+                onClose={handleCloseDetailsModal}
+                report={selectedReport}
+                onDelete={handleDeleteReport}
             />
         </Stack>
     );

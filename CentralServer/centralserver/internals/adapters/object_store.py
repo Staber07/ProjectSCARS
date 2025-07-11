@@ -24,16 +24,20 @@ class BucketNames(Enum):
     """Names of the buckets in the object store."""
 
     AVATARS = "centralserver-avatars"  # Contains user profile pictures
+    ATTACHMENTS = "centralserver-attachments"  # Contains attachments for reports
     ESIGNATURES = "centralserver-esignatures"  # Contains user e-signatures
     SCHOOL_LOGOS = "centralserver-school-logos"  # Contains school logos
     REPORT_EXPORTS = "centralserver-reports"  # Contains exported reports
 
 
-async def validate_and_process_image(contents: bytes) -> bytes:
+async def validate_and_process_image(
+    contents: bytes, is_signature: bool = False
+) -> bytes:
     """Validate and process an image file.
 
     Args:
         contents: The raw bytes of the image file.
+        is_signature: If True, maintains 2:1 aspect ratio for signatures. If False, crops to square for avatars.
 
     Returns:
         The processed image bytes.
@@ -70,25 +74,98 @@ async def validate_and_process_image(contents: bytes) -> bytes:
         raise ValueError("Invalid image file.") from e
 
     width, height = image.size
-    min_dim = min(width, height)
-    dimensions = (
-        int((width - min_dim) / 2),  # left
-        int((height - min_dim) / 2),  # top
-        int((width + min_dim) / 2),  # right
-        int((height + min_dim) / 2),  # bottom
-    )
-    image = image.crop(dimensions)
 
-    logger.debug("Cropped image dimensions: %s", image.size)
-    # We don't need to check image.size[1] because we are cropping it to a square.
-    if image.size[0] < app_config.object_store.min_image_size:
-        raise ValueError(
-            f"Image dimensions {image.size} are smaller than the minimum required size of {app_config.object_store.min_image_size} pixels."
+    if is_signature:
+        # For signatures, maintain 2:1 aspect ratio with max 512x256
+        target_width = min(512, width)
+        target_height = min(256, height)
+
+        # Calculate the aspect ratio maintaining 2:1
+        if target_width / target_height > 2:
+            # Width is too large, adjust based on height
+            target_width = target_height * 2
+        else:
+            # Height is too large, adjust based on width
+            target_height = target_width // 2
+
+        # Resize the image to maintain 2:1 aspect ratio
+        image = image.resize((target_width, target_height), Image.Resampling.LANCZOS)
+
+        logger.debug("Resized signature image dimensions: %s", image.size)
+
+        # Check minimum size for signatures (at least 64x32)
+        if image.size[0] < 64 or image.size[1] < 32:
+            raise ValueError(
+                f"Signature dimensions {image.size} are smaller than the minimum required size of 64x32 pixels."
+            )
+    else:
+        # For avatars, crop to square (existing logic)
+        min_dim = min(width, height)
+        dimensions = (
+            int((width - min_dim) / 2),  # left
+            int((height - min_dim) / 2),  # top
+            int((width + min_dim) / 2),  # right
+            int((height + min_dim) / 2),  # bottom
         )
+        image = image.crop(dimensions)
+
+        logger.debug("Cropped avatar image dimensions: %s", image.size)
+        # We don't need to check image.size[1] because we are cropping it to a square.
+        if image.size[0] < app_config.object_store.min_image_size:
+            raise ValueError(
+                f"Avatar dimensions {image.size} are smaller than the minimum required size of {app_config.object_store.min_image_size} pixels."
+            )
 
     output_buffer = BytesIO()
     image.save(output_buffer, format=save_format)
     return output_buffer.getvalue()
+
+
+async def validate_and_process_signature(contents: bytes) -> bytes:
+    """Validate and process a signature image file.
+
+    Maintains 2:1 aspect ratio with maximum size of 512x256 pixels.
+
+    Args:
+        contents: The raw bytes of the signature image file.
+
+    Returns:
+        The processed signature image bytes.
+
+    Raises:
+        ValueError: If the signature image is invalid or doesn't meet requirements.
+    """
+    return await validate_and_process_image(contents, is_signature=True)
+
+
+async def validate_attachment_file(contents: bytes, filename: str) -> bytes:
+    """Validate a general file attachment.
+
+    Accepts any file type but validates file size limits.
+
+    Args:
+        contents: The raw bytes of the file.
+        filename: The filename for context in error messages.
+
+    Returns:
+        The original file bytes (no processing needed for general files).
+
+    Raises:
+        ValueError: If the file exceeds the size limit.
+    """
+    # Use a more generous file size limit for attachments (e.g., 10MB instead of 2MB for images)
+    max_attachment_size = 10 * 1024 * 1024  # 10MB
+
+    if len(contents) > max_attachment_size:
+        size_mb = len(contents) / (1024 * 1024)
+        max_size_mb = max_attachment_size / (1024 * 1024)
+        raise ValueError(
+            f"File '{filename}' size {size_mb:.2f} MB exceeds the {max_size_mb:.2f} MB size limit."
+        )
+
+    # For general attachments, we don't need to process the file, just return as-is
+    logger.debug("File '%s' validated successfully. Size: %d bytes", filename, len(contents))
+    return contents
 
 
 class ObjectStoreAdapter(ABC):

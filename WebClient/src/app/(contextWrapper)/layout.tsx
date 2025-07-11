@@ -23,8 +23,8 @@ export default function ContextWrapperLayout({ children }: { children: React.Rea
 
     console.debug("Rendering ContextWrapperLayout");
     return (
-        <UserProvider>
-            <AuthProvider>{children}</AuthProvider>
-        </UserProvider>
+        <AuthProvider>
+            <UserProvider>{children}</UserProvider>
+        </AuthProvider>
     );
 }

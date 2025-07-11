@@ -2,18 +2,25 @@
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
     Badge,
+    Box,
     Button,
     Card,
+    Checkbox,
     Divider,
     Flex,
     Group,
+    Image,
+    Loader,
     Modal,
     NumberInput,
     Paper,
     ScrollArea,
+    SimpleGrid,
     Stack,
     Table,
     Text,
@@ -22,6 +29,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
+import { notifications } from "@mantine/notifications";
 import {
     IconCalendar,
     IconCalendarWeek,
@@ -40,6 +48,13 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import {
+    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
+    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
+    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
+    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
+    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
+} from "@/lib/api/csclient/sdk.gen";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -68,9 +83,15 @@ interface WeekPeriod {
     isCompleted: boolean;
 }
 
+interface EmployeeSignature {
+    employeeId: string;
+    signatureData: string;
+}
+
 function PayrollPageContent() {
     const router = useRouter();
-    
+    const userCtx = useUser();
+
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
     const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
@@ -86,8 +107,22 @@ function PayrollPageContent() {
     const [employeeToDelete, setEmployeeToDelete] = useState<string | null>(null);
 
     const [customRateModalOpened, setCustomRateModalOpened] = useState(false);
-    const [customRateEmployee, setCustomRateEmployee] = useState<{employeeId: string, date: Date} | null>(null);
+    const [customRateEmployee, setCustomRateEmployee] = useState<{ employeeId: string; date: Date } | null>(null);
     const [customRateValue, setCustomRateValue] = useState<number>(0);
+
+    const [employeeSignatures, setEmployeeSignatures] = useState<EmployeeSignature[]>([]);
+    const [signatureModalOpened, setSignatureModalOpened] = useState(false);
+    const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
+
+    // Approval state management
+    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
+    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
+
+    // Preview state management
+    const [previewModalOpened, setPreviewModalOpened] = useState(false);
+
+    // Loading state for existing reports
+    const [isLoadingExistingReport, setIsLoadingExistingReport] = useState(false);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -106,52 +141,221 @@ function PayrollPageContent() {
         }
     }, [selectedMonth, workingDaysSchedule]);
 
+    // Load existing payroll report when month changes
+    useEffect(() => {
+        const loadExistingPayrollReport = async () => {
+            if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+                return;
+            }
+
+            setIsLoadingExistingReport(true);
+
+            try {
+                const year = selectedMonth.getFullYear();
+                const month = selectedMonth.getMonth() + 1;
+                const schoolId = userCtx.userInfo.schoolId;
+
+                // Try to fetch existing payroll report
+                const reportResponse = await getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                });
+
+                // Try to fetch existing payroll entries
+                const entriesResponse = await getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                });
+
+                if (reportResponse.data && entriesResponse.data) {
+                    // Parse the entries and convert them back to our internal format
+                    const loadedEmployees: Employee[] = [];
+                    const loadedAttendanceRecords: AttendanceRecord[] = [];
+                    const loadedSignatures: EmployeeSignature[] = [];
+
+                    // Group entries by employee name to rebuild our employee list
+                    const employeeMap = new Map<
+                        string,
+                        {
+                            totalPay: number;
+                            daysWorked: number;
+                            signature?: string;
+                        }
+                    >();
+
+                    entriesResponse.data.forEach((entry) => {
+                        const employeeName = entry.employeeName;
+
+                        if (!employeeMap.has(employeeName)) {
+                            employeeMap.set(employeeName, {
+                                totalPay: 0,
+                                daysWorked: 0,
+                                signature: entry.signature || undefined,
+                            });
+                        }
+
+                        const empData = employeeMap.get(employeeName)!;
+
+                        // Calculate daily pay and working days from the entry
+                        const dailyAmounts = [
+                            entry.sun || 0,
+                            entry.mon || 0,
+                            entry.tue || 0,
+                            entry.wed || 0,
+                            entry.thu || 0,
+                            entry.fri || 0,
+                            entry.sat || 0,
+                        ];
+
+                        dailyAmounts.forEach((amount, dayIndex) => {
+                            if (amount > 0) {
+                                empData.totalPay += amount;
+                                empData.daysWorked += 1;
+
+                                // Generate attendance record for this day
+                                const weekNumber = entry.weekNumber;
+                                const weekPeriod = weekPeriods.find((w) => w.id.endsWith(`-week-${weekNumber}`));
+
+                                if (weekPeriod) {
+                                    // Find the corresponding date based on day of week
+                                    const correspondingDate = weekPeriod.workingDays.find(
+                                        (date) => dayjs(date).day() === dayIndex
+                                    );
+
+                                    if (correspondingDate) {
+                                        loadedAttendanceRecords.push({
+                                            employeeId: employeeName, // Using name as ID for now
+                                            date: dayjs(correspondingDate).format("YYYY-MM-DD"),
+                                            isPresent: true,
+                                            customDailyRate: amount,
+                                        });
+                                    }
+                                }
+                            }
+                        });
+
+                        if (entry.signature) {
+                            empData.signature = entry.signature;
+                        }
+                    });
+
+                    // Convert employee map to employee array
+                    employeeMap.forEach((data, employeeName) => {
+                        const averageRate = data.daysWorked > 0 ? data.totalPay / data.daysWorked : 0;
+
+                        loadedEmployees.push({
+                            id: employeeName, // Using name as ID
+                            name: employeeName,
+                            defaultDailyRate: Math.round(averageRate), // Estimate default rate
+                        });
+
+                        if (data.signature) {
+                            loadedSignatures.push({
+                                employeeId: employeeName,
+                                signatureData: data.signature,
+                            });
+                        }
+                    });
+
+                    // Update state with loaded data
+                    setEmployees(loadedEmployees);
+                    setAttendanceRecords(loadedAttendanceRecords);
+                    setEmployeeSignatures(loadedSignatures);
+
+                    notifications.show({
+                        title: "Report Loaded",
+                        message: `Existing payroll report for ${dayjs(selectedMonth).format(
+                            "MMMM YYYY"
+                        )} has been loaded.`,
+                        color: "blue",
+                        icon: <IconCheck size={18} />,
+                    });
+                }
+            } catch (error) {
+                // If 404, it means no existing report - this is fine
+                if ((error as { status?: number })?.status !== 404) {
+                    console.error("Error loading existing payroll report:", error);
+                    notifications.show({
+                        title: "Notice",
+                        message: "No existing payroll report found for this month. Starting with a blank report.",
+                        color: "yellow",
+                    });
+                }
+                // Clear data for fresh start
+                setEmployees([]);
+                setAttendanceRecords([]);
+                setEmployeeSignatures([]);
+            } finally {
+                setIsLoadingExistingReport(false);
+            }
+        };
+
+        // Only load if we have both month and user info, and week periods are generated
+        if (selectedMonth && userCtx.userInfo?.schoolId && weekPeriods.length > 0) {
+            loadExistingPayrollReport();
+        }
+    }, [selectedMonth, userCtx.userInfo?.schoolId, weekPeriods]);
+
     const generateWeeksForMonth = (monthDate: Date, includedDays: number[] = [1, 2, 3, 4, 5]) => {
         const startOfMonth = dayjs(monthDate).startOf("month");
         const endOfMonth = dayjs(monthDate).endOf("month");
-        
+
         const weeks: WeekPeriod[] = [];
         let currentDate = startOfMonth;
         let weekNumber = 1;
-        
+
         // Group dates by week
         while (currentDate.isSameOrBefore(endOfMonth)) {
             const weekStart = currentDate.startOf("week").add(1, "day"); // Monday
             const weekEnd = weekStart.add(6, "days"); // Sunday
-            
+
             // Generate working days for this week, only within the month
             const workingDays: Date[] = [];
             let dayInWeek = weekStart;
-            
+
             for (let i = 0; i < 7; i++) {
                 // Only include dates within the selected month and matching working days
-                if (dayInWeek.isSameOrAfter(startOfMonth) && 
+                if (
+                    dayInWeek.isSameOrAfter(startOfMonth) &&
                     dayInWeek.isSameOrBefore(endOfMonth) &&
-                    includedDays.includes(dayInWeek.day())) {
+                    includedDays.includes(dayInWeek.day())
+                ) {
                     workingDays.push(dayInWeek.toDate());
                 }
                 dayInWeek = dayInWeek.add(1, "day");
             }
-            
+
             // Only create week if it has working days
             if (workingDays.length > 0) {
                 const newWeek: WeekPeriod = {
                     id: `${monthDate.getFullYear()}-${monthDate.getMonth()}-week-${weekNumber}`,
-                    label: `WEEK ${weekNumber} /DATE COVERED: ${workingDays[0] ? dayjs(workingDays[0]).format("M/D") : ""}-${workingDays[workingDays.length - 1] ? dayjs(workingDays[workingDays.length - 1]).format("D") : ""}`,
+                    label: `WEEK ${weekNumber} /DATE COVERED: ${
+                        workingDays[0] ? dayjs(workingDays[0]).format("M/D") : ""
+                    }-${
+                        workingDays[workingDays.length - 1]
+                            ? dayjs(workingDays[workingDays.length - 1]).format("D")
+                            : ""
+                    }`,
                     startDate: workingDays[0] || weekStart.toDate(),
                     endDate: workingDays[workingDays.length - 1] || weekEnd.toDate(),
                     workingDays,
                     isCompleted: false,
                 };
-                
+
                 weeks.push(newWeek);
                 weekNumber++;
             }
-            
+
             // Move to next week
             currentDate = weekEnd.add(1, "day");
         }
-        
+
         return weeks;
     };
 
@@ -242,11 +446,9 @@ function PayrollPageContent() {
     };
 
     const toggleWeekCompletion = (weekId: string) => {
-        setWeekPeriods(weekPeriods.map(week => 
-            week.id === weekId 
-                ? { ...week, isCompleted: !week.isCompleted }
-                : week
-        ));
+        setWeekPeriods(
+            weekPeriods.map((week) => (week.id === weekId ? { ...week, isCompleted: !week.isCompleted } : week))
+        );
     };
 
     const getAttendanceStatus = (employeeId: string, date: Date): boolean => {
@@ -256,13 +458,13 @@ function PayrollPageContent() {
     };
 
     const openCustomRateModal = (employeeId: string, date: Date) => {
-    const employee = employees.find(emp => emp.id === employeeId);
-    if (employee) {
-        setCustomRateEmployee({ employeeId, date });
-        setCustomRateValue(employee.defaultDailyRate); // Set default value
-        setCustomRateModalOpened(true);
-    }
-};
+        const employee = employees.find((emp) => emp.id === employeeId);
+        if (employee) {
+            setCustomRateEmployee({ employeeId, date });
+            setCustomRateValue(employee.defaultDailyRate); // Set default value
+            setCustomRateModalOpened(true);
+        }
+    };
 
     const saveCustomRate = () => {
         if (customRateEmployee && customRateValue > 0) {
@@ -329,19 +531,343 @@ function PayrollPageContent() {
         }, 0);
     };
 
-    const handleSubmitReport = () => {
-        // TODO: Implement submit report functionality
-        console.log("Submitting payroll report");
+    const openSignatureModal = (employeeId: string) => {
+        setCurrentSigningEmployee(employeeId);
+        setSignatureModalOpened(true);
     };
 
-    const handleSaveDraft = () => {
-        // TODO: Implement save draft functionality
-        console.log("Saving draft payroll report");
+    const saveEmployeeSignature = (signatureData: string) => {
+        if (currentSigningEmployee) {
+            const newSignature: EmployeeSignature = {
+                employeeId: currentSigningEmployee,
+                signatureData,
+            };
+
+            setEmployeeSignatures((prev) => [
+                ...prev.filter((sig) => sig.employeeId !== currentSigningEmployee),
+                newSignature,
+            ]);
+
+            setSignatureModalOpened(false);
+            setCurrentSigningEmployee(null);
+        }
+    };
+
+    const getEmployeeSignature = (employeeId: string) => {
+        return employeeSignatures.find((sig) => sig.employeeId === employeeId);
+    };
+
+    const handleSubmitReport = async () => {
+        if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "Please select a month and ensure you are logged in.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+            return;
+        }
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // First, create or ensure the payroll report exists
+            await createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                query: {
+                    noted_by: userCtx.userInfo.id, // Set the current user as the one who noted it
+                },
+            });
+
+            // Convert our data to the format expected by the API
+            const payrollEntries = [];
+            for (const employee of employees) {
+                for (const week of weekPeriods) {
+                    const weekNumber = parseInt(week.id.split("-week-")[1]);
+
+                    // Calculate daily amounts for each day of the week
+                    const weeklyAmounts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+
+                    for (const workDay of week.workingDays) {
+                        const dayOfWeek = dayjs(workDay).day(); // 0 = Sunday, 1 = Monday, etc.
+                        const record = attendanceRecords.find(
+                            (r) => r.employeeId === employee.id && r.date === dayjs(workDay).format("YYYY-MM-DD")
+                        );
+
+                        if (record?.isPresent) {
+                            const amount = record.customDailyRate || employee.defaultDailyRate;
+
+                            switch (dayOfWeek) {
+                                case 0:
+                                    weeklyAmounts.sun = amount;
+                                    break;
+                                case 1:
+                                    weeklyAmounts.mon = amount;
+                                    break;
+                                case 2:
+                                    weeklyAmounts.tue = amount;
+                                    break;
+                                case 3:
+                                    weeklyAmounts.wed = amount;
+                                    break;
+                                case 4:
+                                    weeklyAmounts.thu = amount;
+                                    break;
+                                case 5:
+                                    weeklyAmounts.fri = amount;
+                                    break;
+                                case 6:
+                                    weeklyAmounts.sat = amount;
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Get employee signature if available
+                    const signature = employeeSignatures.find((sig) => sig.employeeId === employee.id);
+
+                    payrollEntries.push({
+                        week_number: weekNumber,
+                        employee_name: employee.name,
+                        sun: weeklyAmounts.sun,
+                        mon: weeklyAmounts.mon,
+                        tue: weeklyAmounts.tue,
+                        wed: weeklyAmounts.wed,
+                        thu: weeklyAmounts.thu,
+                        fri: weeklyAmounts.fri,
+                        sat: weeklyAmounts.sat,
+                        signature: signature?.signatureData || null,
+                    });
+                }
+            }
+
+            // Create bulk payroll entries
+            if (payrollEntries.length > 0) {
+                await createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                    body: payrollEntries,
+                });
+            }
+
+            // // Change status to submitted
+            // await changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch({
+            //     path: {
+            //         school_id: schoolId,
+            //         year: year,
+            //         month: month,
+            //     },
+            //     body: {
+            //         new_status: "review",
+            //         comments: "Payroll report submitted from web client",
+            //     },
+            // });
+
+            notifications.show({
+                title: "Success",
+                message: "Payroll report has been successfully submitted for review.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+
+            // Redirect back to reports page
+            router.push("/reports");
+        } catch (error) {
+            console.error("Error submitting payroll report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to submit the payroll report. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    };
+
+    const handleSaveDraft = async () => {
+        if (!selectedMonth || !userCtx.userInfo?.schoolId) {
+            notifications.show({
+                title: "Error",
+                message: "Please select a month and ensure you are logged in.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+            return;
+        }
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // First, create or ensure the payroll report exists
+            await createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                query: {
+                    noted_by: userCtx.userInfo.id,
+                },
+            });
+
+            // Convert our data to the format expected by the API
+            const payrollEntries = [];
+            for (const employee of employees) {
+                for (const week of weekPeriods) {
+                    const weekNumber = parseInt(week.id.split("-week-")[1]);
+
+                    // Calculate daily amounts for each day of the week
+                    const weeklyAmounts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+
+                    for (const workDay of week.workingDays) {
+                        const dayOfWeek = dayjs(workDay).day();
+                        const record = attendanceRecords.find(
+                            (r) => r.employeeId === employee.id && r.date === dayjs(workDay).format("YYYY-MM-DD")
+                        );
+
+                        if (record?.isPresent) {
+                            const amount = record.customDailyRate || employee.defaultDailyRate;
+
+                            switch (dayOfWeek) {
+                                case 0:
+                                    weeklyAmounts.sun = amount;
+                                    break;
+                                case 1:
+                                    weeklyAmounts.mon = amount;
+                                    break;
+                                case 2:
+                                    weeklyAmounts.tue = amount;
+                                    break;
+                                case 3:
+                                    weeklyAmounts.wed = amount;
+                                    break;
+                                case 4:
+                                    weeklyAmounts.thu = amount;
+                                    break;
+                                case 5:
+                                    weeklyAmounts.fri = amount;
+                                    break;
+                                case 6:
+                                    weeklyAmounts.sat = amount;
+                                    break;
+                            }
+                        }
+                    }
+
+                    // Get employee signature if available
+                    const signature = employeeSignatures.find((sig) => sig.employeeId === employee.id);
+
+                    payrollEntries.push({
+                        week_number: weekNumber,
+                        employee_name: employee.name,
+                        sun: weeklyAmounts.sun,
+                        mon: weeklyAmounts.mon,
+                        tue: weeklyAmounts.tue,
+                        wed: weeklyAmounts.wed,
+                        thu: weeklyAmounts.thu,
+                        fri: weeklyAmounts.fri,
+                        sat: weeklyAmounts.sat,
+                        signature: signature?.signatureData || null,
+                    });
+                }
+            }
+
+            // Create bulk payroll entries
+            if (payrollEntries.length > 0) {
+                await createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost({
+                    path: {
+                        school_id: schoolId,
+                        year: year,
+                        month: month,
+                    },
+                    body: payrollEntries,
+                });
+            }
+
+            notifications.show({
+                title: "Success",
+                message: "Payroll report draft has been saved successfully.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+        } catch (error) {
+            console.error("Error saving draft:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to save the draft. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    };
+
+    // Helper functions for preview calculations
+    const calculatePayrollSummary = () => {
+        const totalEmployees = employees.length;
+        const totalWorkingDays = weekPeriods.reduce((sum, week) => sum + week.workingDays.length, 0);
+
+        let totalPayroll = 0;
+        let totalAttendance = 0;
+
+        employees.forEach((employee) => {
+            const employeeRecords = attendanceRecords.filter((record) => record.employeeId === employee.id);
+            const daysWorked = employeeRecords.filter((record) => record.isPresent).length;
+            totalAttendance += daysWorked;
+
+            employeeRecords.forEach((record) => {
+                if (record.isPresent) {
+                    const rate = record.customDailyRate || employee.defaultDailyRate;
+                    totalPayroll += rate;
+                }
+            });
+        });
+
+        return {
+            totalEmployees,
+            totalWorkingDays,
+            totalPayroll,
+            totalAttendance,
+        };
+    };
+
+    const calculateEmployeeSummary = (employeeId: string) => {
+        const employee = employees.find((e) => e.id === employeeId);
+        if (!employee) return { daysWorked: 0, averageRate: 0, totalSalary: 0 };
+
+        const employeeRecords = attendanceRecords.filter((record) => record.employeeId === employeeId);
+        const presentRecords = employeeRecords.filter((record) => record.isPresent);
+
+        const daysWorked = presentRecords.length;
+        let totalSalary = 0;
+        let totalRates = 0;
+
+        presentRecords.forEach((record) => {
+            const rate = record.customDailyRate || employee.defaultDailyRate;
+            totalSalary += rate;
+            totalRates += rate;
+        });
+
+        const averageRate = daysWorked > 0 ? totalRates / daysWorked : 0;
+
+        return {
+            daysWorked,
+            averageRate,
+            totalSalary,
+        };
     };
 
     const handlePreview = () => {
-        // TODO: Implement preview functionality
-        console.log("Previewing payroll report");
+        setPreviewModalOpened(true);
     };
 
     const selectedWeek = weekPeriods.find((w) => w.id === selectedWeekId);
@@ -357,23 +883,38 @@ function PayrollPageContent() {
                         </div>
                         <div>
                             <Title order={2} className="text-gray-800">
-                                Payroll
+                                Payroll for {dayjs(selectedMonth).format("MMMM YYYY")}
                             </Title>
                             <Text size="sm" c="dimmed">
                                 Manage staff payroll
+                                {isLoadingExistingReport && " • Loading existing data..."}
                             </Text>
                         </div>
                     </Group>
-                    <ActionIcon
-                        variant="subtle"
-                        color="gray"
-                        size="lg"
-                        onClick={handleClose}
-                        className="hover:bg-gray-100"
-                    >
-                        <IconX size={20} />
-                    </ActionIcon>
+                    <Group gap="md">
+                        <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="lg"
+                            onClick={handleClose}
+                            className="hover:bg-gray-100"
+                        >
+                            <IconX size={20} />
+                        </ActionIcon>
+                    </Group>
                 </Flex>
+
+                {/* Loading indicator */}
+                {isLoadingExistingReport && (
+                    <Card withBorder>
+                        <Group gap="md" justify="center" p="md">
+                            <Loader size="sm" />
+                            <Text size="sm" c="dimmed">
+                                Loading existing payroll data for {dayjs(selectedMonth).format("MMMM YYYY")}...
+                            </Text>
+                        </Group>
+                    </Card>
+                )}
 
                 {/* Month Selection & Working Days */}
                 <Card withBorder>
@@ -383,7 +924,7 @@ function PayrollPageContent() {
                             <MonthPickerInput
                                 placeholder="Select month"
                                 value={selectedMonth}
-                                onChange={(value) => { 
+                                onChange={(value) => {
                                     setSelectedMonth(value ? dayjs(value).toDate() : null);
                                 }}
                                 leftSection={<IconCalendar size={16} />}
@@ -392,11 +933,13 @@ function PayrollPageContent() {
                                 required
                             />
                         </Group>
-                        
+
                         <Divider />
-                        
+
                         <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
-                            <Text fw={500} size="sm">Working Days</Text>
+                            <Text fw={500} size="sm">
+                                Working Days
+                            </Text>
                             <Group gap="xs">
                                 {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
                                     <ActionIcon
@@ -406,12 +949,22 @@ function PayrollPageContent() {
                                         color={workingDaysSchedule.includes(index) ? "blue" : "gray"}
                                         onClick={() => {
                                             if (workingDaysSchedule.includes(index)) {
-                                                setworkingDaysSchedule(prev => prev.filter(d => d !== index));
+                                                setworkingDaysSchedule((prev) => prev.filter((d) => d !== index));
                                             } else {
-                                                setworkingDaysSchedule(prev => [...prev, index].sort());
+                                                setworkingDaysSchedule((prev) => [...prev, index].sort());
                                             }
                                         }}
-                                        title={["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][index]}
+                                        title={
+                                            [
+                                                "Sunday",
+                                                "Monday",
+                                                "Tuesday",
+                                                "Wednesday",
+                                                "Thursday",
+                                                "Friday",
+                                                "Saturday",
+                                            ][index]
+                                        }
                                     >
                                         {day}
                                     </ActionIcon>
@@ -449,18 +1002,20 @@ function PayrollPageContent() {
                             <IconCalendarWeek size={20} />
                             <Text fw={500}>Weekly Periods</Text>
                             <Badge variant="light" size="sm">
-                                {weekPeriods.filter(w => w.isCompleted).length}/{weekPeriods.length} completed
+                                {weekPeriods.filter((w) => w.isCompleted).length}/{weekPeriods.length} completed
                             </Badge>
                         </Group>
-                        
+
                         {selectedWeekId && (
                             <Button
                                 size="xs"
                                 variant="light"
-                                color={weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "green" : "blue"}
+                                color={weekPeriods.find((w) => w.id === selectedWeekId)?.isCompleted ? "green" : "blue"}
                                 onClick={() => toggleWeekCompletion(selectedWeekId)}
                             >
-                                {weekPeriods.find(w => w.id === selectedWeekId)?.isCompleted ? "Mark Incomplete" : "Mark Complete"}
+                                {weekPeriods.find((w) => w.id === selectedWeekId)?.isCompleted
+                                    ? "Mark Incomplete"
+                                    : "Mark Complete"}
                             </Button>
                         )}
                     </Group>
@@ -470,7 +1025,7 @@ function PayrollPageContent() {
                                 <Button
                                     key={week.id}
                                     variant={selectedWeekId === week.id ? "filled" : "outline"}
-                                    color={week.isCompleted ? "green" : (selectedWeekId === week.id ? "blue" : "gray")}
+                                    color={week.isCompleted ? "green" : selectedWeekId === week.id ? "blue" : "gray"}
                                     size="sm"
                                     onClick={() => setSelectedWeekId(week.id)}
                                     className="whitespace-nowrap flex-shrink-0"
@@ -487,7 +1042,7 @@ function PayrollPageContent() {
                 {selectedWeek && employees.length > 0 && (
                     <Card withBorder>
                         <Group justify="space-between" className="mb-4">
-                           <Group gap="sm">
+                            <Group gap="sm">
                                 <Text fw={500}>{selectedWeek.label}</Text>
                                 {selectedWeek.isCompleted && (
                                     <Badge color="green" variant="light" size="sm">
@@ -496,10 +1051,19 @@ function PayrollPageContent() {
                                 )}
                             </Group>
                             <Text className="text-right">
-                                <Text component="span" size="sm" c="dimmed">Total Week Amount:
-                                    ₱{weekPeriods.find(w => w.id === selectedWeekId) ?
-                                    employees.reduce((total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!), 0).toFixed(2)
-                                    : "0.00"}
+                                <Text component="span" size="sm" c="dimmed">
+                                    Total Week Amount: ₱
+                                    {weekPeriods.find((w) => w.id === selectedWeekId)
+                                        ? employees
+                                              .reduce(
+                                                  (total, emp) => total + calculateWeeklyTotal(emp.id, selectedWeekId!),
+                                                  0
+                                              )
+                                              .toLocaleString("en-US", {
+                                                  minimumFractionDigits: 2,
+                                                  maximumFractionDigits: 2,
+                                              })
+                                        : "0.00"}
                                 </Text>
                             </Text>
                         </Group>
@@ -543,7 +1107,8 @@ function PayrollPageContent() {
                                                 const record = attendanceRecords.find(
                                                     (r) => r.employeeId === employee.id && r.date === dateKey
                                                 );
-                                                const displayRate = record?.customDailyRate || employee.defaultDailyRate;
+                                                const displayRate =
+                                                    record?.customDailyRate || employee.defaultDailyRate;
                                                 const hasCustomRate = record?.customDailyRate !== undefined;
 
                                                 return (
@@ -563,7 +1128,11 @@ function PayrollPageContent() {
                                                                     }}
                                                                     className="w-16"
                                                                     disabled={selectedWeek.isCompleted}
-                                                                    title={selectedWeek.isCompleted ? "Week is completed" : "Left click: Mark attendance \nRight click: Set custom rate"}
+                                                                    title={
+                                                                        selectedWeek.isCompleted
+                                                                            ? "Week is completed"
+                                                                            : "Left click: Mark attendance \nRight click: Set custom rate"
+                                                                    }
                                                                 >
                                                                     {isPresent ? `₱${displayRate}` : " - "}
                                                                 </Button>
@@ -577,7 +1146,14 @@ function PayrollPageContent() {
                                             })}
                                             <Table.Td className="text-center">
                                                 <Text fw={500}>
-                                                    ₱{calculateWeeklyTotal(employee.id, selectedWeek.id).toFixed(2)}
+                                                    ₱
+                                                    {calculateWeeklyTotal(employee.id, selectedWeek.id).toLocaleString(
+                                                        "en-US",
+                                                        {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        }
+                                                    )}
                                                 </Text>
                                             </Table.Td>
                                         </Table.Tr>
@@ -588,48 +1164,107 @@ function PayrollPageContent() {
                     </Card>
                 )}
 
-                {/* Monthly Summary */}
+                {/* Monthly Summary with Signatures */}
                 {employees.length > 0 && weekPeriods.length > 0 && (
                     <Card withBorder>
-                        <Text fw={500} ta="center">
+                        <Text fw={500}>
                             MONTH OF{" "}
                             {selectedMonth ? dayjs(selectedMonth).format("MMMM, YYYY").toUpperCase() : "SELECT MONTH"}
                         </Text>
                         <Divider my="md" />
-                        <Group justify="space-between" align="center" mb="md">
-                            <Text fw={500}>NAME</Text>
-                            <Text fw={500}>TOTAL AMOUNT RECEIVED</Text>
+
+                        <ScrollArea>
+                            <Table striped highlightOnHover style={{ minWidth: "800px" }}>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th style={{ width: "50px" }}>#</Table.Th>
+                                        <Table.Th style={{ width: "250px" }}>Name</Table.Th>
+                                        <Table.Th style={{ width: "200px" }}>Total Amount Received</Table.Th>
+                                        <Table.Th style={{ width: "50px" }}>Signature</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {employees.map((employee, index) => {
+                                        const signature = getEmployeeSignature(employee.id);
+                                        return (
+                                            <Table.Tr key={employee.id}>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500}>
+                                                        {index + 1}.
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500} className="uppercase">
+                                                        {employee.name}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Text size="sm" fw={500}>
+                                                        ₱
+                                                        {calculateMonthlyTotal(employee.id).toLocaleString("en-US", {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2,
+                                                        })}
+                                                    </Text>
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <div className="flex items-center gap-2">
+                                                        {signature ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Box
+                                                                    w={120}
+                                                                    h={40}
+                                                                    style={{
+                                                                        border: "1px solid #dee2e6",
+                                                                        borderRadius: "4px",
+                                                                        backgroundColor: "#f8f9fa",
+                                                                        display: "flex",
+                                                                        alignItems: "center",
+                                                                        justifyContent: "center",
+                                                                        overflow: "hidden",
+                                                                    }}
+                                                                >
+                                                                    <Image
+                                                                        src={signature.signatureData}
+                                                                        alt="Employee signature"
+                                                                        style={{
+                                                                            maxWidth: "100%",
+                                                                            maxHeight: "100%",
+                                                                            objectFit: "contain",
+                                                                        }}
+                                                                    />
+                                                                </Box>
+                                                            </div>
+                                                        ) : (
+                                                            <Button
+                                                                size="xs"
+                                                                variant="outline"
+                                                                onClick={() => openSignatureModal(employee.id)}
+                                                                leftSection={<IconEdit size={14} />}
+                                                            >
+                                                                Sign
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </ScrollArea>
+
+                        <Divider my="md" />
+                        <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
+                            <Text fw={700}>Total Amount Received:</Text>
+                            <Text fw={700} size="lg">
+                                ₱
+                                {calculateTotalAmountReceived().toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                })}
+                            </Text>
                         </Group>
-
-                        <div className="space-y-1">
-                            {employees.map((employee, index) => (
-                                <Group
-                                    key={employee.id}
-                                    justify="space-between"
-                                    className="border-b border-gray-200 py-2"
-                                >
-                                    <Group gap="sm">
-                                        <Text size="sm" className="w-8">
-                                            {index + 1}.
-                                        </Text>
-                                        <Text size="sm" fw={500} className="uppercase">
-                                            {employee.name}
-                                        </Text>
-                                    </Group>
-                                    <Text size="sm" fw={500}>
-                                        ₱{calculateMonthlyTotal(employee.id).toFixed(2)}
-                                    </Text>
-                                </Group>
-                            ))}
-
-                            <Divider my="md" />
-                            <Group justify="space-between" className="border-t-2 border-gray-800 pt-2 mt-2">
-                                <Text fw={700}>Total Amount Received:</Text>
-                                <Text fw={700} size="lg">
-                                    ₱{calculateTotalAmountReceived().toFixed(2)}
-                                </Text>
-                            </Group>
-                        </div>
                     </Card>
                 )}
 
@@ -649,6 +1284,103 @@ function PayrollPageContent() {
                     </SplitButton>
                 </Group>
             </Stack>
+
+            {/* Signature Cards */}
+            <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md" mt="xl">
+                {/* Prepared By */}
+                <Card withBorder p="md">
+                    <Stack gap="sm" align="center">
+                        <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                            Prepared by
+                        </Text>
+                        <Box
+                            w={200}
+                            h={80}
+                            style={{
+                                border: "1px solid #dee2e6",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f8f9fa",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {/* <Image src="" alt="Prepared by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
+                        </Box>
+                        <div style={{ textAlign: "center" }}>
+                            <Text fw={600} size="sm">
+                                NAME
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Position
+                            </Text>
+                        </div>
+                    </Stack>
+                </Card>
+
+                {/* Noted By */}
+                <Card withBorder p="md" style={{ position: "relative" }}>
+                    <Badge
+                        size="sm"
+                        color="orange"
+                        variant="light"
+                        style={{
+                            position: "absolute",
+                            top: "12px",
+                            right: "12px",
+                        }}
+                    >
+                        Status
+                    </Badge>
+                    <Stack gap="sm" align="center">
+                        <Text size="sm" c="dimmed" fw={500} style={{ alignSelf: "flex-start" }}>
+                            Noted by
+                        </Text>
+                        <Box
+                            w={200}
+                            h={80}
+                            style={{
+                                border: "1px solid #dee2e6",
+                                borderRadius: "8px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                backgroundColor: "#f8f9fa",
+                                overflow: "hidden",
+                            }}
+                        >
+                            {/* <Image src="" alt="Noted by signature" fit="contain" w="100%" h="100%" /> */}
+                            <Text size="xs" c="dimmed">
+                                Signature
+                            </Text>
+                        </Box>
+                        <div style={{ textAlign: "center" }}>
+                            <Text fw={600} size="sm">
+                                NAME
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                Position
+                            </Text>
+                        </div>
+                        {/* Approval Button for Principals */}
+                        {userCtx.userInfo?.position === "principal" && (
+                            <Button
+                                size="sm"
+                                color="green"
+                                onClick={() => setApprovalModalOpened(true)}
+                                leftSection={<IconCheck size={16} />}
+                                mt="sm"
+                            >
+                                Approve Report
+                            </Button>
+                        )}
+                    </Stack>
+                </Card>
+            </SimpleGrid>
 
             {/* Employee Management Modal */}
             <Modal
@@ -724,7 +1456,9 @@ function PayrollPageContent() {
                                         <Group justify="space-between">
                                             <div>
                                                 <Text fw={500}>{employee.name}</Text>
-                                                <Text size="sm" c="dimmed">₱{employee.defaultDailyRate}/day</Text>
+                                                <Text size="sm" c="dimmed">
+                                                    ₱{employee.defaultDailyRate}/day
+                                                </Text>
                                             </div>
                                             <Group gap="xs">
                                                 <ActionIcon
@@ -773,11 +1507,12 @@ function PayrollPageContent() {
             >
                 <Stack gap="md">
                     <Text>
-                        Are you sure you want to delete this employee? This will also remove all their attendance records.
+                        Are you sure you want to delete this employee? This will also remove all their attendance
+                        records.
                     </Text>
                     <Group justify="flex-end" gap="md">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => {
                                 setDeleteEmployeeModalOpened(false);
                                 setEmployeeToDelete(null);
@@ -785,10 +1520,7 @@ function PayrollPageContent() {
                         >
                             Cancel
                         </Button>
-                        <Button
-                            color="red"
-                            onClick={confirmDeleteEmployee}
-                        >
+                        <Button color="red" onClick={confirmDeleteEmployee}>
                             Delete
                         </Button>
                     </Group>
@@ -816,23 +1548,31 @@ function PayrollPageContent() {
                     {customRateEmployee && (
                         <>
                             <div>
-                                <Text size="sm" c="dimmed">Employee</Text>
+                                <Text size="sm" c="dimmed">
+                                    Employee
+                                </Text>
                                 <Text fw={500}>
-                                    {employees.find(emp => emp.id === customRateEmployee.employeeId)?.name}
+                                    {employees.find((emp) => emp.id === customRateEmployee.employeeId)?.name}
                                 </Text>
                             </div>
-                            
+
                             <div>
-                                <Text size="sm" c="dimmed">Date</Text>
-                                <Text fw={500}>
-                                    {dayjs(customRateEmployee.date).format("MMMM DD, YYYY (dddd)")}
+                                <Text size="sm" c="dimmed">
+                                    Date
                                 </Text>
+                                <Text fw={500}>{dayjs(customRateEmployee.date).format("MMMM DD, YYYY (dddd)")}</Text>
                             </div>
-                            
+
                             <div>
-                                <Text size="sm" c="dimmed">Daily Rate</Text>
+                                <Text size="sm" c="dimmed">
+                                    Daily Rate
+                                </Text>
                                 <Text fw={500}>
-                                    ₱{employees.find(emp => emp.id === customRateEmployee.employeeId)?.defaultDailyRate}
+                                    ₱
+                                    {
+                                        employees.find((emp) => emp.id === customRateEmployee.employeeId)
+                                            ?.defaultDailyRate
+                                    }
                                 </Text>
                             </div>
 
@@ -850,8 +1590,8 @@ function PayrollPageContent() {
                     )}
 
                     <Group justify="flex-end" gap="md" mt="md">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             onClick={() => {
                                 setCustomRateModalOpened(false);
                                 setCustomRateEmployee(null);
@@ -870,8 +1610,255 @@ function PayrollPageContent() {
                     </Group>
                 </Stack>
             </Modal>
+
+            {/* Employee Signature Modal */}
+            <Modal
+                opened={signatureModalOpened}
+                onClose={() => {
+                    setSignatureModalOpened(false);
+                    setCurrentSigningEmployee(null);
+                }}
+                title={
+                    <Group gap="sm">
+                        <IconEdit size={20} />
+                        <Text fw={500}>Employee Signature</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    {currentSigningEmployee && (
+                        <div>
+                            <Text size="sm" c="dimmed">
+                                Employee
+                            </Text>
+                            <Text fw={500}>{employees.find((emp) => emp.id === currentSigningEmployee)?.name}</Text>
+                        </div>
+                    )}
+
+                    <div>
+                        <Text size="sm" fw={500} mb="sm">
+                            Please sign below to acknowledge payment:
+                        </Text>
+                        <SignatureCanvas
+                            onSave={saveEmployeeSignature}
+                            onCancel={() => {
+                                setSignatureModalOpened(false);
+                                setCurrentSigningEmployee(null);
+                            }}
+                            width={400}
+                            height={150}
+                        />
+                    </div>
+                </Stack>
+            </Modal>
+
+            {/* Approval Modal */}
+            <Modal
+                opened={approvalModalOpened}
+                onClose={() => {
+                    setApprovalModalOpened(false);
+                    setApprovalCheckbox(false);
+                }}
+                title={
+                    <Group gap="sm">
+                        <IconCheck size={20} />
+                        <Text fw={500}>Approve Payroll Report</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    <Text size="sm">
+                        Are you sure you want to approve this payroll report? This action cannot be undone.
+                    </Text>
+
+                    <Checkbox
+                        checked={approvalCheckbox}
+                        onChange={(event) => setApprovalCheckbox(event.currentTarget.checked)}
+                        label="I confirm that I have reviewed this report and approve it for submission."
+                    />
+
+                    <Group justify="flex-end" gap="sm">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setApprovalModalOpened(false);
+                                setApprovalCheckbox(false);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="green"
+                            onClick={handleApproveReport}
+                            disabled={!approvalCheckbox}
+                            leftSection={<IconCheck size={16} />}
+                        >
+                            Approve Report
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
+
+            {/* Preview Modal */}
+            <Modal
+                opened={previewModalOpened}
+                onClose={() => setPreviewModalOpened(false)}
+                title={
+                    <Group gap="sm">
+                        <IconReceipt2 size={20} />
+                        <Text fw={500}>Payroll Report Preview</Text>
+                    </Group>
+                }
+                centered
+                size="xl"
+            >
+                <ScrollArea.Autosize mah={600}>
+                    <Stack gap="md">
+                        {/* Report Header */}
+                        <Paper withBorder p="md">
+                            <Group justify="space-between">
+                                <div>
+                                    <Text fw={500} size="lg">
+                                        Payroll Report for{" "}
+                                        {selectedMonth ? dayjs(selectedMonth).format("MMMM YYYY") : "No month selected"}
+                                    </Text>
+                                    <Text size="sm" c="dimmed">
+                                        School: {userCtx.userInfo?.schoolId || "Unknown School"}
+                                    </Text>
+                                </div>
+                                <Badge color="blue" size="lg">
+                                    {calculatePayrollSummary().totalEmployees} Employees
+                                </Badge>
+                            </Group>
+                        </Paper>
+
+                        {/* Summary Stats */}
+                        <SimpleGrid cols={3} spacing="md">
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    ₱{calculatePayrollSummary().totalPayroll.toLocaleString()}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Total Payroll
+                                </Text>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    {calculatePayrollSummary().totalWorkingDays}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Working Days
+                                </Text>
+                            </Paper>
+                            <Paper withBorder p="md" ta="center">
+                                <Text fw={500} size="xl">
+                                    {calculatePayrollSummary().totalAttendance}
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    Total Attendance
+                                </Text>
+                            </Paper>
+                        </SimpleGrid>
+
+                        {/* Employee Details */}
+                        <Paper withBorder p="md">
+                            <Text fw={500} mb="md">
+                                Employee Summary
+                            </Text>
+                            <Table>
+                                <Table.Thead>
+                                    <Table.Tr>
+                                        <Table.Th>Employee</Table.Th>
+                                        <Table.Th>Days Worked</Table.Th>
+                                        <Table.Th>Average Daily Rate</Table.Th>
+                                        <Table.Th>Total Salary</Table.Th>
+                                        <Table.Th>Signature</Table.Th>
+                                    </Table.Tr>
+                                </Table.Thead>
+                                <Table.Tbody>
+                                    {employees.map((employee) => {
+                                        const summary = calculateEmployeeSummary(employee.id);
+                                        const signature = employeeSignatures.find((s) => s.employeeId === employee.id);
+                                        return (
+                                            <Table.Tr key={employee.id}>
+                                                <Table.Td>{employee.name}</Table.Td>
+                                                <Table.Td>{summary.daysWorked}</Table.Td>
+                                                <Table.Td>₱{summary.averageRate.toLocaleString()}</Table.Td>
+                                                <Table.Td>₱{summary.totalSalary.toLocaleString()}</Table.Td>
+                                                <Table.Td>
+                                                    {signature ? (
+                                                        <Badge color="green" size="sm">
+                                                            Signed
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge color="red" size="sm">
+                                                            Not Signed
+                                                        </Badge>
+                                                    )}
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        );
+                                    })}
+                                </Table.Tbody>
+                            </Table>
+                        </Paper>
+
+                        {/* Action Buttons */}
+                        <Group justify="flex-end" gap="sm">
+                            <Button variant="outline" onClick={() => setPreviewModalOpened(false)}>
+                                Close
+                            </Button>
+                        </Group>
+                    </Stack>
+                </ScrollArea.Autosize>
+            </Modal>
         </div>
     );
+
+    async function handleApproveReport() {
+        if (!approvalCheckbox || !selectedMonth || !userCtx.userInfo?.schoolId) return;
+
+        try {
+            const year = selectedMonth.getFullYear();
+            const month = selectedMonth.getMonth() + 1;
+            const schoolId = userCtx.userInfo.schoolId;
+
+            // Change status to approved
+            await changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch({
+                path: {
+                    school_id: schoolId,
+                    year: year,
+                    month: month,
+                },
+                body: {
+                    new_status: "approved",
+                    comments: "Payroll report approved by principal",
+                },
+            });
+
+            notifications.show({
+                title: "Report Approved",
+                message: "The payroll report has been successfully approved.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+
+            setApprovalModalOpened(false);
+            setApprovalCheckbox(false);
+        } catch (error) {
+            console.error("Error approving report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to approve the report. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    }
 }
 
 export default function PayrollPage(): React.ReactElement {
