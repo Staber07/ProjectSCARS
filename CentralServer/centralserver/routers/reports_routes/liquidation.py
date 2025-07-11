@@ -162,6 +162,7 @@ class LiquidationReportCreateRequest(BaseModel):
     notedBy: str | None = None
     preparedBy: str | None = None
     teacherInCharge: str | None = None
+    memo: str | None = None
     entries: list[LiquidationReportEntryData] = []
     certifiedBy: list[str] = []
 
@@ -175,6 +176,7 @@ class LiquidationReportResponse(BaseModel):
     notedBy: str | None = None
     preparedBy: str | None = None
     teacherInCharge: str | None = None
+    memo: str | None = None
     entries: list[LiquidationReportEntryData] = []
     certifiedBy: list[str] = []
     totalAmount: float = 0.0
@@ -232,6 +234,7 @@ def _convert_to_response(
             category=category,
             parent=datetime.date.today(),
             reportStatus=None,
+            memo=None,
             entries=[],
             certifiedBy=[],
             totalAmount=0.0,
@@ -285,6 +288,7 @@ def _convert_to_response(
     prepared_by = _get_field_value(report, "preparedBy", "preparedby")
     teacher_in_charge = _get_field_value(report, "teacherInCharge")
     report_status = _get_field_value(report, "reportStatus")
+    memo = _get_field_value(report, "memo")
 
     return LiquidationReportResponse(
         category=category,
@@ -293,6 +297,7 @@ def _convert_to_response(
         notedBy=noted_by,
         preparedBy=prepared_by,
         teacherInCharge=teacher_in_charge,
+        memo=memo,
         entries=entries,
         certifiedBy=certified_by,
         totalAmount=_calculate_total_amount(entries, category_config["has_qty_unit"]),
@@ -525,6 +530,7 @@ async def create_or_update_liquidation_report(
         "preparedBy": request_data.preparedBy or user.id,
         "notedBy": request_data.notedBy,
         "teacherInCharge": request_data.teacherInCharge,
+        "memo": request_data.memo,
     }
 
     # Delete existing report if it exists

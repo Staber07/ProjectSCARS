@@ -24,6 +24,10 @@ class LiquidationReportSchoolOperationFund(SQLModel, table=True):
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
+    memo: str | None = Field(
+        default=None,
+        description="Optional memo/notes for the liquidation report.",
+    )
 
     certified_by: list["SchoolOperationFundCertifiedBy"] = Relationship(
         back_populates="parent_report", cascade_delete=True

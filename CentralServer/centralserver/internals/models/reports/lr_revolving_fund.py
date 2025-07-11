@@ -24,6 +24,10 @@ class LiquidationReportRevolvingFund(SQLModel, table=True):
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
+    memo: str | None = Field(
+        default=None,
+        description="Optional memo/notes for the liquidation report.",
+    )
 
     entries: list["RevolvingFundEntry"] = Relationship(
         back_populates="parent_report", cascade_delete=True

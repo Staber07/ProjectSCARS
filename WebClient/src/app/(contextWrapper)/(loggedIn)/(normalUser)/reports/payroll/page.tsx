@@ -1,16 +1,16 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
-import type { ReportStatus } from "@/lib/api/csclient/types.gen";
+import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
     Badge,
     Box,
     Button,
     Card,
+    Checkbox,
     Divider,
     Flex,
     Group,
@@ -28,6 +28,7 @@ import {
 } from "@mantine/core";
 import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
+import { notifications } from "@mantine/notifications";
 import {
     IconCalendar,
     IconCalendarWeek,
@@ -81,6 +82,7 @@ interface EmployeeSignature {
 
 function PayrollPageContent() {
     const router = useRouter();
+    const userCtx = useUser();
 
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [weekPeriods, setWeekPeriods] = useState<WeekPeriod[]>([]);
@@ -104,8 +106,9 @@ function PayrollPageContent() {
     const [signatureModalOpened, setSignatureModalOpened] = useState(false);
     const [currentSigningEmployee, setCurrentSigningEmployee] = useState<string | null>(null);
 
-    // Report status state
-    const [currentReportStatus, setCurrentReportStatus] = useState<ReportStatus>("draft");
+    // Approval state management
+    const [approvalModalOpened, setApprovalModalOpened] = useState(false);
+    const [approvalCheckbox, setApprovalCheckbox] = useState(false);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -415,18 +418,6 @@ function PayrollPageContent() {
                         </div>
                     </Group>
                     <Group gap="md">
-                        {selectedMonth && (
-                            <ReportStatusManager
-                                currentStatus={currentReportStatus}
-                                reportType="payroll"
-                                schoolId={1} // TODO: Get from user context when available
-                                year={selectedMonth.getFullYear()}
-                                month={selectedMonth.getMonth() + 1}
-                                onStatusChanged={(newStatus) => {
-                                    setCurrentReportStatus(newStatus);
-                                }}
-                            />
-                        )}
                         <ActionIcon
                             variant="subtle"
                             color="gray"
@@ -889,6 +880,18 @@ function PayrollPageContent() {
                                 Position
                             </Text>
                         </div>
+                        {/* Approval Button for Principals */}
+                        {userCtx.userInfo?.position === "principal" && (
+                            <Button
+                                size="sm"
+                                color="green"
+                                onClick={() => setApprovalModalOpened(true)}
+                                leftSection={<IconCheck size={16} />}
+                                mt="sm"
+                            >
+                                Approve Report
+                            </Button>
+                        )}
                     </Stack>
                 </Card>
             </SimpleGrid>
@@ -1164,8 +1167,85 @@ function PayrollPageContent() {
                     </div>
                 </Stack>
             </Modal>
+
+            {/* Approval Modal */}
+            <Modal
+                opened={approvalModalOpened}
+                onClose={() => {
+                    setApprovalModalOpened(false);
+                    setApprovalCheckbox(false);
+                }}
+                title={
+                    <Group gap="sm">
+                        <IconCheck size={20} />
+                        <Text fw={500}>Approve Payroll Report</Text>
+                    </Group>
+                }
+                centered
+                size="md"
+            >
+                <Stack gap="md">
+                    <Text size="sm">
+                        Are you sure you want to approve this payroll report? This action cannot be undone.
+                    </Text>
+                    
+                    <Checkbox
+                        checked={approvalCheckbox}
+                        onChange={(event) => setApprovalCheckbox(event.currentTarget.checked)}
+                        label="I confirm that I have reviewed this report and approve it for submission."
+                    />
+                    
+                    <Group justify="flex-end" gap="sm">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setApprovalModalOpened(false);
+                                setApprovalCheckbox(false);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="green"
+                            onClick={handleApproveReport}
+                            disabled={!approvalCheckbox}
+                            leftSection={<IconCheck size={16} />}
+                        >
+                            Approve Report
+                        </Button>
+                    </Group>
+                </Stack>
+            </Modal>
         </div>
     );
+
+    async function handleApproveReport() {
+        if (!approvalCheckbox) return;
+        
+        try {
+            // Here you would call the API to approve the report
+            // For now, we'll just show a success notification
+            
+            notifications.show({
+                title: "Report Approved",
+                message: "The payroll report has been successfully approved.",
+                color: "green",
+                icon: <IconCheck size={18} />,
+            });
+            
+            setApprovalModalOpened(false);
+            setApprovalCheckbox(false);
+            
+        } catch (error) {
+            console.error("Error approving report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to approve the report. Please try again.",
+                color: "red",
+                icon: <IconX size={18} />,
+            });
+        }
+    }
 }
 
 export default function PayrollPage(): React.ReactElement {

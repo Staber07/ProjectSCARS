@@ -269,6 +269,11 @@ export type LiquidationReportAdministrativeExpenses = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -298,6 +303,11 @@ export type LiquidationReportClinicFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -317,6 +327,10 @@ export type LiquidationReportCreateRequest = {
      * Teacherincharge
      */
     teacherInCharge?: string | null;
+    /**
+     * Memo
+     */
+    memo?: string | null;
     /**
      * Entries
      */
@@ -392,6 +406,11 @@ export type LiquidationReportFacultyAndStudentDevFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -418,6 +437,11 @@ export type LiquidationReportHeFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -447,6 +471,11 @@ export type LiquidationReportOperatingExpenses = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -478,6 +507,10 @@ export type LiquidationReportResponse = {
      * Teacherincharge
      */
     teacherInCharge?: string | null;
+    /**
+     * Memo
+     */
+    memo?: string | null;
     /**
      * Entries
      */
@@ -517,6 +550,11 @@ export type LiquidationReportRevolvingFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -544,6 +582,11 @@ export type LiquidationReportSchoolOperationFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -571,6 +614,11 @@ export type LiquidationReportSupplementaryFeedingFund = {
      * The status of the report.
      */
     reportStatus?: ReportStatus;
+    /**
+     * Memo
+     * Optional memo/notes for the liquidation report.
+     */
+    memo?: string | null;
 };
 
 /**
@@ -1251,6 +1299,21 @@ export type UserInvite = {
      * Schoolid
      */
     schoolId?: number | null;
+};
+
+/**
+ * UserPasswordChange
+ * A model used for changing a user's password with current password validation.
+ */
+export type UserPasswordChange = {
+    /**
+     * Current Password
+     */
+    current_password: string;
+    /**
+     * New Password
+     */
+    new_password: string;
 };
 
 /**
@@ -2364,6 +2427,53 @@ export type GetUsersSimpleEndpointV1UsersSimpleGetResponses = {
 };
 
 export type GetUsersSimpleEndpointV1UsersSimpleGetResponse = GetUsersSimpleEndpointV1UsersSimpleGetResponses[keyof GetUsersSimpleEndpointV1UsersSimpleGetResponses];
+
+export type GetUserLastModifiedEndpointV1UsersMeLastModifiedGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/v1/users/me/last-modified';
+};
+
+export type GetUserLastModifiedEndpointV1UsersMeLastModifiedGetResponses = {
+    /**
+     * Response Get User Last Modified Endpoint V1 Users Me Last Modified Get
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type GetUserLastModifiedEndpointV1UsersMeLastModifiedGetResponse = GetUserLastModifiedEndpointV1UsersMeLastModifiedGetResponses[keyof GetUserLastModifiedEndpointV1UsersMeLastModifiedGetResponses];
+
+export type ChangeUserPasswordEndpointV1UsersMePasswordPatchData = {
+    body: UserPasswordChange;
+    path?: never;
+    query?: never;
+    url: '/v1/users/me/password';
+};
+
+export type ChangeUserPasswordEndpointV1UsersMePasswordPatchErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeUserPasswordEndpointV1UsersMePasswordPatchError = ChangeUserPasswordEndpointV1UsersMePasswordPatchErrors[keyof ChangeUserPasswordEndpointV1UsersMePasswordPatchErrors];
+
+export type ChangeUserPasswordEndpointV1UsersMePasswordPatchResponses = {
+    /**
+     * Response Change User Password Endpoint V1 Users Me Password Patch
+     * Successful Response
+     */
+    200: {
+        [key: string]: string;
+    };
+};
+
+export type ChangeUserPasswordEndpointV1UsersMePasswordPatchResponse = ChangeUserPasswordEndpointV1UsersMePasswordPatchResponses[keyof ChangeUserPasswordEndpointV1UsersMePasswordPatchResponses];
 
 export type CreateSchoolEndpointV1SchoolsCreatePostData = {
     body: SchoolCreate;

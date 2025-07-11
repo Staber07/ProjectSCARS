@@ -27,6 +27,10 @@ class LiquidationReportOperatingExpenses(SQLModel, table=True):
         default=ReportStatus.DRAFT,
         description="The status of the report.",
     )
+    memo: str | None = Field(
+        default=None,
+        description="Optional memo/notes for the liquidation report.",
+    )
 
     parent_report: "MonthlyReport" = Relationship(
         back_populates="operating_expenses_report"

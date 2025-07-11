@@ -207,9 +207,11 @@ function SalesandPurchasesContent() {
                                     // Load current user's signature for notedBy if available
                                     if (currentUser.signatureUrn) {
                                         try {
-                                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                                query: { fn: currentUser.signatureUrn },
-                                            });
+                                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet(
+                                                {
+                                                    query: { fn: currentUser.signatureUrn },
+                                                }
+                                            );
                                             if (response.data) {
                                                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                                                 setNotedBySignatureUrl(signatureUrl);
@@ -290,7 +292,7 @@ function SalesandPurchasesContent() {
                 const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
                 setPreparedBy(currentUserName);
                 setPreparedByPosition(userCtx.userInfo.position || null);
-                
+
                 // Load current user's signature for preparedBy only if preparedBy is not set yet
                 if (userCtx.userInfo.signatureUrn) {
                     try {
@@ -713,7 +715,7 @@ function SalesandPurchasesContent() {
             // Update the preparedBy to current user since this is a new submission
             setPreparedBy(currentUserName);
             setPreparedByPosition(userCtx.userInfo.position || null);
-            
+
             // Update the preparedBy signature to current user's signature
             if (userCtx.userInfo.signatureUrn) {
                 try {
