@@ -1,7 +1,7 @@
 """Generic utilities for report status management across all report types."""
 
 import datetime
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Union
 
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
@@ -20,13 +20,10 @@ logger = LoggerFactory().get_logger(__name__)
 
 class ReportStatusManager:
     """Generic manager for handling report status changes across different report types."""
-    
+
     @staticmethod
     def get_monthly_report(
-        session: Session,
-        school_id: int,
-        year: int,
-        month: int
+        session: Session, school_id: int, year: int, month: int
     ) -> MonthlyReport:
         """Get the monthly report for the given parameters."""
         try:
@@ -47,7 +44,7 @@ class ReportStatusManager:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Monthly report not found.",
             ) from e
-    
+
     @staticmethod
     def change_report_status(
         session: Session,
@@ -62,7 +59,7 @@ class ReportStatusManager:
     ) -> Any:
         """
         Generic function to change the status of any report type.
-        
+
         Args:
             session: Database session
             user: User making the change
@@ -73,11 +70,11 @@ class ReportStatusManager:
             year: Report year
             month: Report month
             category: Category (for liquidation reports)
-            
+
         Returns:
             The updated report object
         """
-        
+
         # Validate the status transition based on user role
         if not RoleBasedTransitions.is_transition_valid(
             user.roleId, report.reportStatus, status_change.new_status
@@ -86,7 +83,7 @@ class ReportStatusManager:
                 user.roleId, report.reportStatus
             )
             role_description = RoleBasedTransitions.get_role_description(user.roleId)
-            
+
             if not valid_transitions:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -98,22 +95,22 @@ class ReportStatusManager:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail=f"As a {role_description}, you can only change reports from '{report.reportStatus.value}' to: {', '.join(valid_statuses)}.",
                 )
-        
+
         # Update the report status
         old_status = report.reportStatus
         report.reportStatus = status_change.new_status
-        
+
         # Add to session and commit
         session.add(report)
         session.commit()
         session.refresh(report)
-        
+
         # Build log context
         context_parts = [f"school {school_id}", f"{year}-{month}"]
         if category:
             context_parts.append(f"category {category}")
         context = ", ".join(context_parts)
-        
+
         logger.info(
             "user `%s` (role %s) changed status of %s report for %s from '%s' to '%s'",
             user.id,
@@ -123,9 +120,9 @@ class ReportStatusManager:
             old_status.value,
             status_change.new_status.value,
         )
-        
+
         return report
-    
+
     @staticmethod
     def get_valid_transitions_response(
         user: User,
@@ -135,9 +132,28 @@ class ReportStatusManager:
         valid_transitions = RoleBasedTransitions.get_valid_transitions(
             user.roleId, report.reportStatus
         )
-        
+
         return {
             "current_status": report.reportStatus.value,
             "valid_transitions": [status.value for status in valid_transitions],
             "user_role": RoleBasedTransitions.get_role_description(user.roleId),
         }
+
+    @staticmethod
+    def check_view_permission(
+        user: User,
+        report: Any,  # Any report type with reportStatus field
+    ) -> bool:
+        """Check if user can view the report based on role and report status."""
+        return RoleBasedTransitions.can_view_report(user.roleId, report.reportStatus)
+
+    @staticmethod
+    def check_create_permission(user: User) -> bool:
+        """Check if user can create new reports."""
+        return RoleBasedTransitions.can_create_report(user.roleId)
+
+    @staticmethod
+    def get_viewable_reports_filter(user: User) -> List[Any]:
+        """Get list of viewable report statuses for filtering queries."""
+        viewable_statuses = RoleBasedTransitions.get_viewable_statuses(user.roleId)
+        return viewable_statuses  # Return the enum objects directly
