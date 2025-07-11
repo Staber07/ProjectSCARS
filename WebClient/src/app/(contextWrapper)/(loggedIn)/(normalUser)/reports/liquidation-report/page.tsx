@@ -698,6 +698,30 @@ function LiquidationReportContent() {
         return <LoadingComponent message="Loading liquidation report..." />;
     }
 
+    // Check if category is valid
+    if (!category || !report_type[category as keyof typeof report_type]) {
+        return (
+            <div className="max-w-7xl mx-auto p-4 sm:p-6">
+                <Stack gap="lg" align="center">
+                    <div className="p-4 bg-red-50 rounded-lg">
+                        <IconHistory size={48} className="text-red-500" />
+                    </div>
+                    <div className="text-center">
+                        <Title order={2} className="text-red-600">
+                            Invalid Report Category
+                        </Title>
+                        <Text size="sm" c="dimmed" mb="lg">
+                            The report category is missing or invalid.
+                        </Text>
+                        <Button onClick={() => router.push("/reports")} variant="outline">
+                            Back to Reports
+                        </Button>
+                    </div>
+                </Stack>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto p-4 sm:p-6">
             <Stack gap="lg">
