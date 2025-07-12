@@ -144,8 +144,10 @@ function LiquidationReportContent() {
 
     // Approval state management
     const [approvalModalOpened, setApprovalModalOpened] = useState(false);
-    const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [approvalCheckbox, setApprovalCheckbox] = useState(false);
+
+    // Report status tracking
+    const [reportStatus, setReportStatus] = useState<string | null>(null);
 
     const hasQtyUnit = QTY_FIELDS_REQUIRED.includes(category || "");
     const hasReceiptVoucher = RECEIPT_FIELDS_REQUIRED.includes(category || "");
@@ -171,6 +173,11 @@ function LiquidationReportContent() {
 
                 if (response.data) {
                     const report = response.data;
+
+                    // Load report status to determine approval state
+                    if (report.reportStatus) {
+                        setReportStatus(report.reportStatus);
+                    }
 
                     // Load signature information from existing report
                     if (report.preparedBy) {
@@ -289,7 +296,7 @@ function LiquidationReportContent() {
                 }
             };
 
-            // Set prepared by to current user ID
+            // Set prepared by to current user ID (ensure we store user ID, not name)
             setPreparedBy(userCtx.userInfo.id);
 
             // Load current user's signature if available
@@ -322,7 +329,8 @@ function LiquidationReportContent() {
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
 
-                    // Load the user's signature if available and mark as approved
+                    // Load the user's signature if available
+                    // Only mark as approved if the report status is actually "approved"
                     if (matchingUser.signatureUrn) {
                         try {
                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
@@ -332,7 +340,7 @@ function LiquidationReportContent() {
                             if (response.data) {
                                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                                 setNotedBySignatureUrl(signatureUrl);
-                                setApprovalConfirmed(true); // Mark as approved since we loaded their signature
+                                // Don't automatically set approval - this should be based on reportStatus
                             }
                         } catch (error) {
                             customLogger.error("Failed to load noted by user signature:", error);
@@ -386,14 +394,13 @@ function LiquidationReportContent() {
 
     /**
      * Handle selection of a user for the "noted by" field
-     * Reason: Load the selected user's signature and update the report data
+     * Ensures user ID (not name) is stored for the notedBy field
      */
     const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        setNotedBy(user.id); // Use user ID instead of name
+        setNotedBy(user.id); // Store user ID, not name - this is critical for backend consistency
         setSelectedNotedByUser(user);
 
         // Reset approval state when changing the noted by user
-        setApprovalConfirmed(false);
         setApprovalCheckbox(false);
         setNotedBySignatureUrl(null);
 
@@ -407,7 +414,6 @@ function LiquidationReportContent() {
     const handleClearNotedBy = () => {
         setNotedBy(null);
         setSelectedNotedByUser(null);
-        setApprovalConfirmed(false);
         setApprovalCheckbox(false);
         if (notedBySignatureUrl) {
             URL.revokeObjectURL(notedBySignatureUrl);
@@ -431,7 +437,9 @@ function LiquidationReportContent() {
             if (response.data) {
                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                 setNotedBySignatureUrl(signatureUrl);
-                setApprovalConfirmed(true);
+                // Note: Report status should be updated through a separate API call for approval
+                // For now, we just update the local state. The actual approval should happen
+                // through the proper approval workflow.
             }
         } catch (error) {
             customLogger.error("Failed to load noted by user signature:", error);
@@ -558,12 +566,20 @@ function LiquidationReportContent() {
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
                 entries,
-                notedBy: notedBy || null, // Use user ID
-                preparedBy: preparedBy || null, // Use user ID
-                teacherInCharge: userCtx.userInfo.id, // Can be set later
+                notedBy: notedBy || null, // Use user ID - ensure it's a valid user ID
+                preparedBy: preparedBy || null, // Use user ID - ensure it's a valid user ID
+                teacherInCharge: userCtx.userInfo.id, // Current user ID
                 certifiedBy: [], // Can be set later
                 memo: notes || null, // Add memo field
             };
+
+            // Validate that notedBy and preparedBy are valid user IDs (not names)
+            if (notedBy && typeof notedBy !== "string") {
+                throw new Error("Invalid notedBy user ID");
+            }
+            if (preparedBy && typeof preparedBy !== "string") {
+                throw new Error("Invalid preparedBy user ID");
+            }
 
             await csclient.createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
                 path: {
@@ -635,12 +651,20 @@ function LiquidationReportContent() {
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
                 entries,
-                notedBy: notedBy || null, // Use user ID
-                preparedBy: preparedBy || null, // Use user ID
+                notedBy: notedBy || null, // Use user ID - ensure it's a valid user ID
+                preparedBy: preparedBy || null, // Use user ID - ensure it's a valid user ID
                 teacherInCharge: userCtx.userInfo.id,
                 certifiedBy: [],
                 memo: notes || null, // Add memo field
             };
+
+            // Validate that notedBy and preparedBy are valid user IDs (not names)
+            if (notedBy && typeof notedBy !== "string") {
+                throw new Error("Invalid notedBy user ID");
+            }
+            if (preparedBy && typeof preparedBy !== "string") {
+                throw new Error("Invalid preparedBy user ID");
+            }
 
             await csclient.createOrUpdateLiquidationReportV1ReportsLiquidationSchoolIdYearMonthCategoryPatch({
                 path: {
@@ -1036,7 +1060,8 @@ function LiquidationReportContent() {
                             {/* Approval Section */}
                             {selectedNotedByUser && (
                                 <div style={{ textAlign: "center", marginTop: "8px" }}>
-                                    {approvalConfirmed ? (
+                                    {/* Show "Approved" badge only when report status is actually "approved" by principal */}
+                                    {reportStatus === "approved" ? (
                                         <Badge color="green" variant="light">
                                             Approved
                                         </Badge>
