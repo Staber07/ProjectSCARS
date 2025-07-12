@@ -441,6 +441,7 @@ function LiquidationReportContent() {
         if (!approvalCheckbox || !selectedNotedByUser?.signatureUrn) return;
 
         try {
+            // First, load the signature
             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
                 query: { fn: selectedNotedByUser.signatureUrn },
             });
@@ -448,15 +449,40 @@ function LiquidationReportContent() {
             if (response.data) {
                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                 setNotedBySignatureUrl(signatureUrl);
-                // Note: Report status should be updated through a separate API call for approval
-                // For now, we just update the local state. The actual approval should happen
-                // through the proper approval workflow.
+
+                // Update the report status to "approved" on the backend
+                if (userCtx.userInfo?.schoolId && reportPeriod && category) {
+                    const year = reportPeriod.getFullYear();
+                    const month = reportPeriod.getMonth() + 1;
+
+                    await csclient.changeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatch({
+                        path: {
+                            school_id: userCtx.userInfo.schoolId,
+                            year,
+                            month,
+                            category,
+                        },
+                        body: {
+                            new_status: "approved",
+                            comments: "Liquidation report approved by principal",
+                        },
+                    });
+
+                    // Update the local state
+                    setReportStatus("approved");
+
+                    notifications.show({
+                        title: "Report Approved",
+                        message: "The liquidation report has been approved successfully.",
+                        color: "green",
+                    });
+                }
             }
         } catch (error) {
-            customLogger.error("Failed to load noted by user signature:", error);
+            customLogger.error("Failed to approve liquidation report:", error);
             notifications.show({
                 title: "Error",
-                message: "Failed to load signature.",
+                message: "Failed to approve the report. Please try again.",
                 color: "red",
             });
         }
