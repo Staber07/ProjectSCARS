@@ -6,6 +6,8 @@ import { SubmitForReviewButton } from "@/components/SubmitForReview";
 import * as csclient from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { useUser } from "@/lib/providers/user";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import {
     ActionIcon,
     Alert,
@@ -28,7 +30,7 @@ import {
 import { DatePickerInput, MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { notifications } from "@mantine/notifications";
-import { IconAlertCircle, IconCalendar, IconHistory, IconX } from "@tabler/icons-react";
+import { IconAlertCircle, IconCalendar, IconDownload, IconFileTypePdf, IconHistory, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
@@ -67,10 +69,13 @@ function SalesandPurchasesContent() {
     const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
     const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
-
     const [approvalModalOpened, setApprovalModalOpened] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [approvalCheckbox, setApprovalCheckbox] = useState(false);
+
+    const [schoolData, setSchoolData] = useState<csclient.School | null>(null);
+    const [logoUrl, setLogoUrl] = useState<string | null>(null);
+    const [pdfModalOpened, setPdfModalOpened] = useState(false);
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -358,6 +363,44 @@ function SalesandPurchasesContent() {
 
         loadNotedBySignature();
     }, [notedBy, selectedNotedByUser, schoolUsers]);
+
+    useEffect(() => {
+        const loadSchoolData = async () => {
+            if (!userCtx.userInfo?.schoolId) return;
+
+            try {
+                // Get school details using the school ID
+                const schoolResponse = await csclient.getSchoolEndpointV1SchoolsGet({
+                    query: {
+                        school_id: userCtx.userInfo.schoolId,
+                    },
+                });
+                if (schoolResponse.data) {
+                    setSchoolData(schoolResponse.data);
+                    // Load school logo if available
+                    if (schoolResponse.data.logoUrn) {
+                        try {
+                            const logoResponse = await csclient.getSchoolLogoEndpointV1SchoolsLogoGet({
+                                query: {
+                                    fn: schoolResponse.data.logoUrn,
+                                },
+                            });
+                            if (logoResponse.data) {
+                                const logoUrl = URL.createObjectURL(logoResponse.data as Blob);
+                                setLogoUrl(logoUrl);
+                            }
+                        } catch (logoError) {
+                            console.error("Failed to load school logo:", logoError);
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load school data:", error);
+            }
+        };
+
+        loadSchoolData();
+    }, [userCtx.userInfo?.schoolId]);
 
     const handleClose = () => {
         router.push("/reports");
@@ -751,6 +794,330 @@ function SalesandPurchasesContent() {
                 color: "red",
             });
         }
+    };
+
+    const getFileName = () => {
+        const monthYear = dayjs(currentMonth).format("MMMM-YYYY");
+        const schoolName = schoolData?.name || userCtx.userInfo?.schoolId || "School";
+        return `Financial-Report-${schoolName}-${monthYear}.pdf`;
+    };
+
+    const exportToPDF = async () => {
+        const element = document.getElementById("financial-report-content");
+        if (!element) return;
+
+        try {
+            // Hide action buttons during export
+            const actionButtons = document.querySelectorAll(".hide-in-pdf");
+            actionButtons.forEach((btn) => ((btn as HTMLElement).style.display = "none"));
+
+            const canvas = await html2canvas(element, {
+                useCORS: true,
+                allowTaint: true,
+                background: "#ffffff",
+            });
+
+            const imgData = canvas.toDataURL("image/png");
+            const pdf = new jsPDF({
+                orientation: "portrait",
+                unit: "mm",
+                format: "a4",
+            });
+
+            const imgWidth = 210;
+            const pageHeight = 295;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+
+            let position = 0;
+
+            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
+
+            const monthYear = dayjs(currentMonth).format("MMMM-YYYY");
+            const schoolName = userCtx.userInfo?.schoolId || "School";
+            pdf.save(`Financial-Report-${schoolName}-${monthYear}.pdf`);
+
+            // Show action buttons again
+            actionButtons.forEach((btn) => ((btn as HTMLElement).style.display = ""));
+
+            notifications.show({
+                title: "Success",
+                message: "PDF exported successfully",
+                color: "green",
+            });
+        } catch (error) {
+            console.error("Error exporting PDF:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to export PDF",
+                color: "red",
+            });
+        }
+    };
+
+    const PDFReportTemplate = () => {
+        return (
+            <div
+                id="financial-report-content"
+                style={{
+                    backgroundColor: "white",
+                    padding: "40px",
+                    fontFamily: "Arial, sans-serif",
+                    minHeight: "100vh",
+                }}
+            >
+                {/* Header with logos and school info */}
+                <div style={{ textAlign: "center", marginBottom: "30px" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "20px",
+                        }}
+                    >
+                        <div style={{ width: "80px", height: "80px" }}>
+                            {/* School Logo */}
+                            {logoUrl ? (
+                                <Image
+                                    src={logoUrl}
+                                    alt="School Logo"
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                        borderRadius: "50%",
+                                    }}
+                                />
+                            ) : (
+                                <div
+                                    style={{
+                                        width: "100%",
+                                        height: "100%",
+                                        border: "1px solid #ccc",
+                                        borderRadius: "50%",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: "12px",
+                                        color: "#666",
+                                    }}
+                                >
+                                    LOGO
+                                </div>
+                            )}
+                        </div>
+
+                        <div style={{ textAlign: "center", flex: 1 }}>
+                            <div style={{ fontSize: "14px", fontWeight: "bold" }}>Republic of the Philippines</div>
+                            <div style={{ fontSize: "14px", fontWeight: "bold" }}>Department of Education</div>
+                            <div style={{ fontSize: "14px", fontWeight: "bold" }}>Region III- Central Luzon</div>
+                            <div style={{ fontSize: "14px", fontWeight: "bold" }}>
+                                SCHOOLS DIVISION OF CITY OF BALIWAG
+                            </div>
+                            <div style={{ fontSize: "16px", fontWeight: "bold", marginTop: "5px" }}>
+                                {schoolData?.name.toUpperCase() || "SCHOOL NAME"}
+                            </div>
+                            <div style={{ fontSize: "12px" }}>{schoolData?.address || "School Address"}</div>
+                        </div>
+
+                        <div style={{ width: "80px", height: "80px" }}>
+                            {/* DepEd Logo */}
+                            <div
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    border: "1px solid #ccc",
+                                    borderRadius: "50%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontSize: "10px",
+                                    color: "#666",
+                                }}
+                            >
+                                DepEd
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style={{
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                            marginTop: "30px",
+                            textDecoration: "underline",
+                        }}
+                    >
+                        Financial Report for the Month of {dayjs(currentMonth).format("MMMM, YYYY").toUpperCase()}
+                    </div>
+                </div>
+
+                {/* Table */}
+                <table
+                    style={{
+                        width: "100%",
+                        borderCollapse: "collapse",
+                        margin: "20px 0",
+                        fontSize: "12px",
+                    }}
+                >
+                    <thead>
+                        <tr style={{ backgroundColor: "#f5f5f5" }}>
+                            <th style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>Date</th>
+                            <th style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>Sales</th>
+                            <th style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>Purchases</th>
+                            <th style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>
+                                Net Income
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dailyEntries
+                            .slice()
+                            .sort((a, b) => a.day - b.day)
+                            .map((entry) => (
+                                <tr key={`${entry.date}-${entry.day}`}>
+                                    <td style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>
+                                        {dayjs(entry.date).date(entry.day).format("DD-MMM-YY")}
+                                    </td>
+                                    <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                        {entry.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                        {entry.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                    <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                        {entry.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                    </td>
+                                </tr>
+                            ))}
+                        <tr style={{ backgroundColor: "#f5f5f5", fontWeight: "bold" }}>
+                            <td style={{ border: "1px solid #000", padding: "8px", textAlign: "center" }}>TOTAL</td>
+                            <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                {totals.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                {totals.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td style={{ border: "1px solid #000", padding: "8px", textAlign: "right" }}>
+                                {totals.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* Summary box */}
+                <div
+                    style={{
+                        marginTop: "20px",
+                        border: "1px solid #000",
+                        padding: "10px",
+                        width: "200px",
+                    }}
+                >
+                    <table style={{ width: "100%", fontSize: "12px" }}>
+                        <tbody>
+                            <tr>
+                                <td style={{ border: "1px solid #000", padding: "5px", fontWeight: "bold" }}>Sales</td>
+                                <td style={{ border: "1px solid #000", padding: "5px", textAlign: "right" }}>
+                                    {totals.sales.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ border: "1px solid #000", padding: "5px", fontWeight: "bold" }}>
+                                    Purchase
+                                </td>
+                                <td style={{ border: "1px solid #000", padding: "5px", textAlign: "right" }}>
+                                    {totals.purchases.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style={{ border: "1px solid #000", padding: "5px", fontWeight: "bold" }}>
+                                    Gross Income
+                                </td>
+                                <td style={{ border: "1px solid #000", padding: "5px", textAlign: "right" }}>
+                                    {totals.netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* Signatures */}
+                <div
+                    style={{
+                        marginTop: "40px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                    }}
+                >
+                    <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: "12px", marginBottom: "5px" }}>Prepared by:</div>
+                        <div
+                            style={{
+                                width: "200px",
+                                height: "60px",
+                                border: preparedBySignatureUrl ? "none" : "1px solid #ccc",
+                                marginBottom: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            {preparedBySignatureUrl ? (
+                                <Image
+                                    src={preparedBySignatureUrl}
+                                    alt="Prepared by signature"
+                                    style={{ maxWidth: "100%", maxHeight: "100%" }}
+                                />
+                            ) : (
+                                <div style={{ fontSize: "10px", color: "#666" }}>Signature</div>
+                            )}
+                        </div>
+                        <div style={{ borderBottom: "1px solid #000", width: "200px", marginBottom: "5px" }}></div>
+                        <div style={{ fontSize: "12px", fontWeight: "bold" }}>{preparedBy || "NAME"}</div>
+                        <div style={{ fontSize: "10px" }}>{userCtx.userInfo?.position || "Position"}</div>
+                    </div>
+
+                    <div style={{ textAlign: "center" }}>
+                        <div style={{ fontSize: "12px", marginBottom: "5px" }}>Noted:</div>
+                        <div
+                            style={{
+                                width: "200px",
+                                height: "60px",
+                                border: notedBySignatureUrl && approvalConfirmed ? "none" : "1px solid #ccc",
+                                marginBottom: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            {notedBySignatureUrl && approvalConfirmed ? (
+                                <Image
+                                    src={notedBySignatureUrl}
+                                    alt="Noted by signature"
+                                    style={{ maxWidth: "100%", maxHeight: "100%" }}
+                                />
+                            ) : (
+                                <div style={{ fontSize: "10px", color: "#666" }}>Signature</div>
+                            )}
+                        </div>
+                        <div style={{ borderBottom: "1px solid #000", width: "200px", marginBottom: "5px" }}></div>
+                        <div style={{ fontSize: "12px", fontWeight: "bold" }}>{notedBy || "NAME"}</div>
+                        <div style={{ fontSize: "10px" }}>{selectedNotedByUser?.position || "Position"}</div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const tableRows = useMemo(
@@ -1160,10 +1527,20 @@ function SalesandPurchasesContent() {
                             });
                         }}
                     />
-                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100">
+                    <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100 hide-in-pdf">
                         Cancel
                     </Button>
-                    <SplitButton onSubmit={handleSubmit}>Submit</SplitButton>
+                    <Button
+                        variant="outline"
+                        onClick={() => setPdfModalOpened(true)}
+                        className="hide-in-pdf"
+                        leftSection={<IconFileTypePdf size={16} />}
+                    >
+                        Export PDF
+                    </Button>
+                    <SplitButton onSubmit={handleSubmit} className="hide-in-pdf">
+                        Submit
+                    </SplitButton>
                 </Group>
 
                 {/* User Selection Modal for "Noted By" */}
@@ -1347,6 +1724,37 @@ function SalesandPurchasesContent() {
                             Delete
                         </Button>
                     </Group>
+                </Modal>
+
+                <Modal
+                    opened={pdfModalOpened}
+                    onClose={() => setPdfModalOpened(false)}
+                    title={getFileName()}
+                    size="90%"
+                    centered
+                    padding="sm"
+                >
+                    <Stack gap="xs">
+                        <div
+                            style={{
+                                maxHeight: "70vh",
+                                overflowY: "auto",
+                                border: "1px solid #e0e0e0",
+                                borderRadius: "8px",
+                            }}
+                        >
+                            <PDFReportTemplate />
+                        </div>
+
+                        <Group justify="flex-end" gap="md">
+                            <Button variant="outline" onClick={() => setPdfModalOpened(false)}>
+                                Cancel
+                            </Button>
+                            <Button onClick={exportToPDF} leftSection={<IconDownload size={16} />}>
+                                Download
+                            </Button>
+                        </Group>
+                    </Stack>
                 </Modal>
             </Stack>
         </div>
