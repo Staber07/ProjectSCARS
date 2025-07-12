@@ -63,12 +63,9 @@ class ReportStatusManager:
         not_in_review_reports: List[str] = []
 
         # Check Daily Financial Report (only if it exists)
-        if (
-            monthly_report.daily_financial_report is not None
-            and (
-                monthly_report.daily_financial_report.reportStatus is None
-                or monthly_report.daily_financial_report.reportStatus != ReportStatus.REVIEW
-            )
+        if monthly_report.daily_financial_report is not None and (
+            monthly_report.daily_financial_report.reportStatus is None
+            or monthly_report.daily_financial_report.reportStatus != ReportStatus.REVIEW
         ):
             status_value = (
                 monthly_report.daily_financial_report.reportStatus.value
@@ -195,9 +192,19 @@ class ReportStatusManager:
         # Update the report status
         old_status = report.reportStatus
         report.reportStatus = status_change.new_status
+        
+        # Update timestamps based on status change
+        ReportStatusManager._update_status_timestamps(report, status_change.new_status)
 
         # Add to session and commit
         session.add(report)
+        
+        # For monthly reports, cascade status to component reports
+        if report_type == "monthly":
+            ReportStatusManager._cascade_status_to_component_reports(
+                session, report, status_change.new_status
+            )
+        
         session.commit()
         session.refresh(report)
 
@@ -217,7 +224,118 @@ class ReportStatusManager:
             status_change.new_status.value,
         )
 
+        # Cascade status change to component reports if monthly report
+        if report_type == "monthly":
+            ReportStatusManager._cascade_status_to_component_reports(
+                session, report, status_change.new_status
+            )
+
         return report
+
+    @staticmethod
+    def _cascade_status_to_component_reports(
+        session: Session, monthly_report: MonthlyReport, new_status: ReportStatus
+    ) -> None:
+        """
+        Cascade status changes from monthly report to all existing component reports.
+        This ensures consistency across all related reports.
+
+        Args:
+            session: Database session
+            monthly_report: The monthly report whose status changed
+            new_status: The new status to apply to component reports
+        """
+        # Only cascade for certain statuses
+        cascade_statuses = [
+            ReportStatus.APPROVED,
+            ReportStatus.REJECTED,
+            ReportStatus.RECEIVED,
+            ReportStatus.ARCHIVED,
+        ]
+
+        if new_status not in cascade_statuses:
+            return
+
+        reports_updated: List[str] = []
+
+        # Update Daily Financial Report if it exists
+        if monthly_report.daily_financial_report is not None:
+            old_status = monthly_report.daily_financial_report.reportStatus
+            if old_status is not None:
+                monthly_report.daily_financial_report.reportStatus = new_status
+                ReportStatusManager._update_status_timestamps(
+                    monthly_report.daily_financial_report, new_status
+                )
+                session.add(monthly_report.daily_financial_report)
+                reports_updated.append(
+                    f"Daily Financial Report ({old_status.value} → {new_status.value})"
+                )
+
+        # Update Payroll Report if it exists
+        if monthly_report.payroll_report is not None:
+            old_status = monthly_report.payroll_report.reportStatus
+            monthly_report.payroll_report.reportStatus = new_status
+            ReportStatusManager._update_status_timestamps(
+                monthly_report.payroll_report, new_status
+            )
+            session.add(monthly_report.payroll_report)
+            reports_updated.append(
+                f"Payroll Report ({old_status.value} → {new_status.value})"
+            )
+
+        # Update all liquidation reports if they exist
+        liquidation_reports: List[tuple[str, Any]] = [
+            ("Operating Expenses", monthly_report.operating_expenses_report),
+            ("Administrative Expenses", monthly_report.administrative_expenses_report),
+            ("Clinic Fund", monthly_report.clinic_fund_report),
+            ("Supplementary Feeding Fund", monthly_report.supplementary_feeding_fund_report),
+            ("HE Fund", monthly_report.he_fund_report),
+            ("Faculty & Student Dev Fund", monthly_report.faculty_and_student_dev_fund_report),
+            ("School Operation Fund", monthly_report.school_operation_fund_report),
+            ("Revolving Fund", monthly_report.revolving_fund_report),
+        ]
+
+        for report_name, report in liquidation_reports:
+            if report is not None and hasattr(report, "reportStatus"):
+                old_status = getattr(report, "reportStatus", None)
+                if old_status is not None:
+                    setattr(report, "reportStatus", new_status)
+                    ReportStatusManager._update_status_timestamps(report, new_status)
+                    session.add(report)
+                    reports_updated.append(
+                        f"{report_name} Report ({old_status.value} → {new_status.value})"
+                    )
+
+        # Log the cascade operation
+        if reports_updated:
+            logger.info(
+                "Cascaded status change to component reports for monthly report %s: %s",
+                monthly_report.id,
+                ", ".join(reports_updated),
+            )
+
+    @staticmethod
+    def _update_status_timestamps(report: Any, new_status: ReportStatus) -> None:
+        """
+        Update timestamp fields based on status changes.
+        
+        Args:
+            report: The report object to update timestamps for
+            new_status: The new status being set
+        """
+        current_time = datetime.datetime.now()
+        
+        # Set dateApproved when status becomes APPROVED
+        if new_status == ReportStatus.APPROVED and hasattr(report, "dateApproved"):
+            report.dateApproved = current_time
+            
+        # Set dateReceived when status becomes RECEIVED
+        if new_status == ReportStatus.RECEIVED and hasattr(report, "dateReceived"):
+            report.dateReceived = current_time
+            
+        # Always update lastModified
+        if hasattr(report, "lastModified"):
+            report.lastModified = current_time
 
     @staticmethod
     def get_valid_transitions_response(

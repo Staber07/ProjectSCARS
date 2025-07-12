@@ -149,9 +149,7 @@ export default function ReportsPage() {
 
     const handleReportUpdate = useCallback((updatedReport: MonthlyReport) => {
         // Update the local state with the updated report
-        setReportSubmissions((prev) =>
-            prev.map((report) => (report.id === updatedReport.id ? updatedReport : report))
-        );
+        setReportSubmissions((prev) => prev.map((report) => (report.id === updatedReport.id ? updatedReport : report)));
     }, []);
 
     const handleDeleteReport = useCallback(async (reportId: string) => {
@@ -384,24 +382,25 @@ export default function ReportsPage() {
                                     >
                                         View
                                     </Menu.Item>
-                                    {canCreateReports && (
-                                        <>
-                                            <Menu.Item 
-                                                leftSection={<IconPencil size={14} />}
-                                                onClick={() => handleOpenEditModal(report)}
-                                            >
-                                                Edit
-                                            </Menu.Item>
-                                            <Menu.Divider />
-                                            <Menu.Item
-                                                color="red"
-                                                leftSection={<IconTrash size={14} />}
-                                                onClick={() => handleDeleteReport(report.id)}
-                                            >
-                                                Delete
-                                            </Menu.Item>
-                                        </>
-                                    )}
+                                    {canCreateReports &&
+                                        (report.reportStatus === "draft" || report.reportStatus === "rejected") && (
+                                            <>
+                                                <Menu.Item
+                                                    leftSection={<IconPencil size={14} />}
+                                                    onClick={() => handleOpenEditModal(report)}
+                                                >
+                                                    Edit
+                                                </Menu.Item>
+                                                <Menu.Divider />
+                                                <Menu.Item
+                                                    color="red"
+                                                    leftSection={<IconTrash size={14} />}
+                                                    onClick={() => handleDeleteReport(report.id)}
+                                                >
+                                                    Delete
+                                                </Menu.Item>
+                                            </>
+                                        )}
                                     <Menu.Item leftSection={<IconDownload size={14} />}>Download</Menu.Item>
                                 </Menu.Dropdown>
                             </Menu>

@@ -247,6 +247,23 @@ async def create_school_monthly_report(
             preparedBy=user.id,
             notedBy=noted_by,
         )
+    else:
+        # Check if the existing report can be edited
+        if selected_monthly_report.reportStatus not in [
+            ReportStatus.DRAFT,
+            ReportStatus.REJECTED,
+        ]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot edit report with status '{selected_monthly_report.reportStatus.value}'. Reports can only be edited when they are in 'draft' or 'rejected' status.",
+            )
+
+        # Update the existing report
+        if noted_by is not None:
+            selected_monthly_report.notedBy = noted_by
+        selected_monthly_report.lastModified = datetime.datetime.now(
+            datetime.timezone.utc
+        )
 
     session.add(selected_monthly_report)
     session.commit()

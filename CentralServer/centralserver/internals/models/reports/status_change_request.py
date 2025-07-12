@@ -3,6 +3,7 @@
 from typing import Dict, List
 
 from pydantic import BaseModel, Field
+from ulid import R
 
 from centralserver.internals.models.reports.report_status import ReportStatus
 
@@ -21,14 +22,23 @@ class RoleBasedTransitions:
 
     # Role ID to valid transitions mapping
     ROLE_TRANSITIONS: Dict[int, Dict[ReportStatus, List[ReportStatus]]] = {
-        5: {ReportStatus.DRAFT: [ReportStatus.REVIEW]},  # Canteen Manager
+        5: {  # Canteen Manager
+            ReportStatus.DRAFT: [ReportStatus.REVIEW],
+            ReportStatus.REJECTED: [
+                ReportStatus.REVIEW
+            ],  # Allow re-submission after rejection
+        },
         4: {  # Principal
             ReportStatus.REVIEW: [ReportStatus.APPROVED, ReportStatus.REJECTED]
         },
         2: {  # Superintendent
-            ReportStatus.APPROVED: [ReportStatus.RECEIVED, ReportStatus.ARCHIVED]
+            ReportStatus.APPROVED: [ReportStatus.RECEIVED, ReportStatus.ARCHIVED],
+            ReportStatus.RECEIVED: [ReportStatus.ARCHIVED],
         },
-        3: {ReportStatus.APPROVED: [ReportStatus.RECEIVED]},  # Administrator
+        3: {
+            ReportStatus.APPROVED: [ReportStatus.RECEIVED, ReportStatus.ARCHIVED],
+            ReportStatus.RECEIVED: [ReportStatus.ARCHIVED],
+        },  # Administrator
     }
 
     # Define which roles can view reports in specific statuses
