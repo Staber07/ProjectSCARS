@@ -942,7 +942,7 @@ async def change_liquidation_report_status(
         )
 
     # Use the generic status manager to change the status
-    return ReportStatusManager.change_report_status(
+    return await ReportStatusManager.change_report_status(
         session=session,
         user=user,
         report=liquidation_report,

@@ -971,7 +971,7 @@ async def change_payroll_report_status(
         )
 
     # Use the generic status manager to change the status
-    return ReportStatusManager.change_report_status(
+    return await ReportStatusManager.change_report_status(
         session=session,
         user=user,
         report=payroll_report,
