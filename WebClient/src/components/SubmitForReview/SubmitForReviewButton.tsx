@@ -7,7 +7,7 @@ import { useUser } from "@/lib/providers/user";
 import { SubmitForReviewModal } from "./SubmitForReviewModal";
 
 interface SubmitForReviewButtonProps {
-    reportType: "daily" | "payroll" | "liquidation";
+    reportType: "daily" | "payroll" | "liquidation" | "monthly";
     reportPeriod: {
         schoolId: number;
         year: number;

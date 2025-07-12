@@ -10,7 +10,7 @@ import { customLogger } from "@/lib/api/customLogger";
 interface SubmitForReviewModalProps {
     opened: boolean;
     onClose: () => void;
-    reportType: "daily" | "payroll" | "liquidation";
+    reportType: "daily" | "payroll" | "liquidation" | "monthly";
     reportPeriod: {
         schoolId: number;
         year: number;
@@ -89,6 +89,16 @@ export function SubmitForReviewModal({
                             }
                         );
                     break;
+                case "monthly":
+                    response = await csclient.changeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatch({
+                        path: {
+                            school_id: reportPeriod.schoolId,
+                            year: reportPeriod.year,
+                            month: reportPeriod.month,
+                        },
+                        body: statusChangeRequest,
+                    });
+                    break;
                 default:
                     throw new Error(`Unsupported report type: ${reportType}`);
             }
@@ -118,10 +128,26 @@ export function SubmitForReviewModal({
             onClose();
         } catch (error) {
             customLogger.error("Failed to submit report for review:", error);
+
+            // Extract error message from API response
+            let errorMessage = "Failed to submit report for review.";
+
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (error && typeof error === "object" && "response" in error) {
+                const apiError = error as { response?: { data?: { detail?: string }; statusText?: string } };
+                if (apiError.response?.data?.detail) {
+                    errorMessage = apiError.response.data.detail;
+                } else if (apiError.response?.statusText) {
+                    errorMessage = `API Error: ${apiError.response.statusText}`;
+                }
+            }
+
             notifications.show({
-                title: "Error",
-                message: error instanceof Error ? error.message : "Failed to submit report for review.",
+                title: "Cannot Submit for Review",
+                message: errorMessage,
                 color: "red",
+                autoClose: false, // Don't auto-close for validation errors as they need user action
             });
         } finally {
             setIsSubmitting(false);
@@ -144,6 +170,8 @@ export function SubmitForReviewModal({
                 return "Payroll Report";
             case "liquidation":
                 return "Liquidation Report";
+            case "monthly":
+                return "Monthly Report";
             default:
                 return "Report";
         }

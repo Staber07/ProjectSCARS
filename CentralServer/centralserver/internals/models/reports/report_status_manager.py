@@ -14,6 +14,7 @@ from centralserver.internals.models.reports.status_change_request import (
 )
 from centralserver.internals.models.user import User
 from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.reports.report_status import ReportStatus
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -46,6 +47,95 @@ class ReportStatusManager:
             ) from e
 
     @staticmethod
+    def _check_monthly_report_component_statuses(
+        monthly_report: MonthlyReport, target_status: Any
+    ) -> None:
+        """
+        Check if all existing component reports of a monthly report are in the required status.
+        For monthly reports transitioning to REVIEW, all existing component reports must already be in REVIEW.
+        Missing reports are not required and will not block the submission.
+        """
+
+        # Only validate when transitioning monthly report to REVIEW status
+        if target_status != ReportStatus.REVIEW:
+            return
+
+        not_in_review_reports: List[str] = []
+
+        # Check Daily Financial Report (only if it exists)
+        if (
+            monthly_report.daily_financial_report is not None
+            and (
+                monthly_report.daily_financial_report.reportStatus is None
+                or monthly_report.daily_financial_report.reportStatus != ReportStatus.REVIEW
+            )
+        ):
+            status_value = (
+                monthly_report.daily_financial_report.reportStatus.value
+                if monthly_report.daily_financial_report.reportStatus
+                else "draft"
+            )
+            not_in_review_reports.append(
+                f"Daily Sales & Purchases Report (current status: {status_value})"
+            )
+
+        # Check Payroll Report (only if it exists)
+        if (
+            monthly_report.payroll_report is not None
+            and monthly_report.payroll_report.reportStatus != ReportStatus.REVIEW
+        ):
+            not_in_review_reports.append(
+                f"Payroll Report (current status: {monthly_report.payroll_report.reportStatus.value})"
+            )
+
+        # Check all liquidation reports (only if they exist)
+        liquidation_reports: List[tuple[str, Any]] = [
+            ("Operating Expenses Report", monthly_report.operating_expenses_report),
+            (
+                "Administrative Expenses Report",
+                monthly_report.administrative_expenses_report,
+            ),
+            ("Clinic Fund Report", monthly_report.clinic_fund_report),
+            (
+                "Supplementary Feeding Fund Report",
+                monthly_report.supplementary_feeding_fund_report,
+            ),
+            ("HE Fund Report", monthly_report.he_fund_report),
+            (
+                "Faculty & Student Development Fund Report",
+                monthly_report.faculty_and_student_dev_fund_report,
+            ),
+            (
+                "School Operation Fund Report",
+                monthly_report.school_operation_fund_report,
+            ),
+            ("Revolving Fund Report", monthly_report.revolving_fund_report),
+        ]
+
+        for report_name, report in liquidation_reports:
+            if (
+                report is not None
+                and hasattr(report, "reportStatus")
+                and report.reportStatus != ReportStatus.REVIEW
+            ):
+                not_in_review_reports.append(
+                    f"{report_name} (current status: {report.reportStatus.value})"
+                )
+
+        # Construct error message if validation fails
+        if not_in_review_reports:
+            error_message = (
+                "Cannot submit monthly report for review. "
+                f"Reports not in REVIEW status: {', '.join(not_in_review_reports)}. "
+                "Please submit these existing reports for review first."
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=error_message,
+            )
+
+    @staticmethod
     def change_report_status(
         session: Session,
         user: User,
@@ -74,6 +164,12 @@ class ReportStatusManager:
         Returns:
             The updated report object
         """
+
+        # Special validation for monthly reports - check component report statuses
+        if report_type == "monthly":
+            ReportStatusManager._check_monthly_report_component_statuses(
+                report, status_change.new_status
+            )
 
         # Validate the status transition based on user role
         if not RoleBasedTransitions.is_transition_valid(

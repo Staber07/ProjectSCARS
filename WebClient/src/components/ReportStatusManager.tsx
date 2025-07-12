@@ -123,11 +123,35 @@ export function ReportStatusManager({
             setHasCheckedTransitions(true);
         } catch (error) {
             customLogger.error("Failed to fetch valid transitions:", error);
+
+            // Extract meaningful error message from different error types
+            let errorMessage = "Failed to load available status changes";
+
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "object" && error !== null) {
+                // Handle API error objects that might contain detail
+                const apiError = error as {
+                    detail?: string | string[];
+                    message?: string;
+                    error?: { detail?: string | string[] };
+                };
+                if (apiError.detail) {
+                    errorMessage = Array.isArray(apiError.detail) ? apiError.detail.join(", ") : apiError.detail;
+                } else if (apiError.message) {
+                    errorMessage = apiError.message;
+                } else if (apiError.error && apiError.error.detail) {
+                    errorMessage = Array.isArray(apiError.error.detail)
+                        ? apiError.error.detail.join(", ")
+                        : apiError.error.detail;
+                }
+            }
+
             setValidTransitions([]);
             setHasCheckedTransitions(true);
             notifications.show({
                 title: "Error",
-                message: "Failed to load available status changes",
+                message: errorMessage,
                 color: "red",
             });
         } finally {
@@ -199,9 +223,33 @@ export function ReportStatusManager({
             setValidTransitions([]);
         } catch (error) {
             customLogger.error("Failed to change status:", error);
+
+            // Extract meaningful error message from different error types
+            let errorMessage = "Failed to change report status";
+
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === "object" && error !== null) {
+                // Handle API error objects that might contain detail
+                const apiError = error as {
+                    detail?: string | string[];
+                    message?: string;
+                    error?: { detail?: string | string[] };
+                };
+                if (apiError.detail) {
+                    errorMessage = Array.isArray(apiError.detail) ? apiError.detail.join(", ") : apiError.detail;
+                } else if (apiError.message) {
+                    errorMessage = apiError.message;
+                } else if (apiError.error && apiError.error.detail) {
+                    errorMessage = Array.isArray(apiError.error.detail)
+                        ? apiError.error.detail.join(", ")
+                        : apiError.error.detail;
+                }
+            }
+
             notifications.show({
                 title: "Error",
-                message: error instanceof Error ? error.message : "Failed to change report status",
+                message: errorMessage,
                 color: "red",
             });
         } finally {
