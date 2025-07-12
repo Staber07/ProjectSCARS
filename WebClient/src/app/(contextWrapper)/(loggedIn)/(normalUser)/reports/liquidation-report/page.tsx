@@ -963,7 +963,9 @@ function LiquidationReportContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {userCtx.userInfo ? `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim() : "N/A"}
+                                    {userCtx.userInfo
+                                        ? `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim()
+                                        : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {userCtx.userInfo?.position || "Position"}
@@ -1023,7 +1025,9 @@ function LiquidationReportContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {selectedNotedByUser ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim() : "N/A"}
+                                    {selectedNotedByUser
+                                        ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim()
+                                        : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}

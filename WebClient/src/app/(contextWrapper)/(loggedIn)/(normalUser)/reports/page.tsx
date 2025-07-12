@@ -135,62 +135,56 @@ export default function ReportsPage() {
         setSelectedReport(null);
     }, []);
 
-    const handleDeleteReport = useCallback(
-        async (reportId: string) => {
-            setReportToDelete(reportId);
-            setDeleteConfirmModalOpened(true);
-        },
-        []
-    );
+    const handleDeleteReport = useCallback(async (reportId: string) => {
+        setReportToDelete(reportId);
+        setDeleteConfirmModalOpened(true);
+    }, []);
 
-    const confirmDeleteReport = useCallback(
-        async () => {
-            if (!reportToDelete) return;
+    const confirmDeleteReport = useCallback(async () => {
+        if (!reportToDelete) return;
 
-            try {
-                if (!userCtx.userInfo?.schoolId) {
-                    notifications.show({
-                        title: "Error",
-                        message: "You must be assigned to a school to delete reports.",
-                        color: "red",
-                    });
-                    return;
-                }
-
-                const year = parseInt(dayjs(reportToDelete).format("YYYY"));
-                const month = parseInt(dayjs(reportToDelete).format("MM"));
-
-                await deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete({
-                    path: {
-                        school_id: userCtx.userInfo.schoolId,
-                        year,
-                        month,
-                    },
-                });
-
-                // Remove from local state
-                setReportSubmissions((prev) => prev.filter((r) => r.id !== reportToDelete));
-
-                notifications.show({
-                    title: "Success",
-                    message: "Monthly report and all related reports have been deleted successfully.",
-                    color: "green",
-                });
-
-                // Close modal and reset state
-                setDeleteConfirmModalOpened(false);
-                setReportToDelete(null);
-            } catch (error) {
-                customLogger.error("Failed to delete report:", error);
+        try {
+            if (!userCtx.userInfo?.schoolId) {
                 notifications.show({
                     title: "Error",
-                    message: "Failed to delete the report. Please try again.",
+                    message: "You must be assigned to a school to delete reports.",
                     color: "red",
                 });
+                return;
             }
-        },
-        [reportToDelete, userCtx.userInfo?.schoolId]
-    );
+
+            const year = parseInt(dayjs(reportToDelete).format("YYYY"));
+            const month = parseInt(dayjs(reportToDelete).format("MM"));
+
+            await deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete({
+                path: {
+                    school_id: userCtx.userInfo.schoolId,
+                    year,
+                    month,
+                },
+            });
+
+            // Remove from local state
+            setReportSubmissions((prev) => prev.filter((r) => r.id !== reportToDelete));
+
+            notifications.show({
+                title: "Success",
+                message: "Monthly report and all related reports have been deleted successfully.",
+                color: "green",
+            });
+
+            // Close modal and reset state
+            setDeleteConfirmModalOpened(false);
+            setReportToDelete(null);
+        } catch (error) {
+            customLogger.error("Failed to delete report:", error);
+            notifications.show({
+                title: "Error",
+                message: "Failed to delete the report. Please try again.",
+                color: "red",
+            });
+        }
+    }, [reportToDelete, userCtx.userInfo?.schoolId]);
 
     const cancelDeleteReport = useCallback(() => {
         setDeleteConfirmModalOpened(false);
@@ -596,12 +590,7 @@ export default function ReportsPage() {
             />
 
             {/* Delete Confirmation Modal */}
-            <Modal
-                opened={deleteConfirmModalOpened}
-                onClose={cancelDeleteReport}
-                title="Confirm Deletion"
-                centered
-            >
+            <Modal opened={deleteConfirmModalOpened} onClose={cancelDeleteReport} title="Confirm Deletion" centered>
                 <Stack gap="md">
                     <Text>
                         Are you sure you want to delete this monthly report? This action cannot be undone and will
