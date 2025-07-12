@@ -11,6 +11,9 @@ import {
     School,
     getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
     deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
+    changeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatch,
+    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
+    changeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatch,
 } from "@/lib/api/csclient";
 import type { ReportStatus } from "@/lib/api/csclient/types.gen";
 import {
@@ -212,12 +215,122 @@ export default function ReportsPage() {
         router.push("/reports/payroll");
     };
 
-    const handleReportStatusChange = useCallback((reportId: string, newStatus: ReportStatus) => {
-        // Update the local state to reflect the status change
-        setReportSubmissions((prev) =>
-            prev.map((report) => (report.id === reportId ? { ...report, reportStatus: newStatus } : report))
-        );
-    }, []);
+    const cascadeStatusToComponentReports = useCallback(
+        async (reportId: string, newStatus: ReportStatus, schoolId: number) => {
+            try {
+                const year = parseInt(dayjs(reportId).format("YYYY"));
+                const month = parseInt(dayjs(reportId).format("MM"));
+
+                customLogger.log(`Cascading status "${newStatus}" to component reports for ${year}-${month}`);
+
+                const statusChangeRequest = {
+                    new_status: newStatus,
+                    comments: "Auto-cascaded from monthly report status change",
+                };
+
+                // Array to track which component reports were successfully updated
+                const updatedReports: string[] = [];
+                const failedReports: string[] = [];
+
+                // Change Daily Financial Report status
+                try {
+                    await changeDailyReportStatusV1ReportsDailySchoolIdYearMonthStatusPatch({
+                        path: { school_id: schoolId, year, month },
+                        body: statusChangeRequest,
+                    });
+                    updatedReports.push("Daily Financial Report");
+                } catch (error) {
+                    customLogger.warn("Failed to update Daily Financial Report status:", error);
+                    failedReports.push("Daily Financial Report");
+                }
+
+                // Change Payroll Report status
+                try {
+                    await changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch({
+                        path: { school_id: schoolId, year, month },
+                        body: statusChangeRequest,
+                    });
+                    updatedReports.push("Payroll Report");
+                } catch (error) {
+                    customLogger.warn("Failed to update Payroll Report status:", error);
+                    failedReports.push("Payroll Report");
+                }
+
+                // Change all Liquidation Report statuses
+                const liquidationCategories = [
+                    "operating_expenses",
+                    "administrative_expenses",
+                    "supplementary_feeding_fund",
+                    "clinic_fund",
+                    "faculty_stud_dev_fund",
+                    "he_fund",
+                    "school_operations_fund",
+                    "revolving_fund",
+                ];
+
+                for (const category of liquidationCategories) {
+                    try {
+                        await changeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatch({
+                            path: { school_id: schoolId, year, month, category },
+                            body: statusChangeRequest,
+                        });
+                        updatedReports.push(
+                            `${category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} Report`
+                        );
+                    } catch (error) {
+                        customLogger.warn(`Failed to update ${category} liquidation report status:`, error);
+                        failedReports.push(
+                            `${category.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())} Report`
+                        );
+                    }
+                }
+
+                // Show notification about the cascade operation
+                if (updatedReports.length > 0) {
+                    notifications.show({
+                        title: "Component Reports Updated",
+                        message: `Successfully updated ${updatedReports.length} component report(s) to "${newStatus}" status.`,
+                        color: "green",
+                    });
+                }
+
+                if (failedReports.length > 0) {
+                    notifications.show({
+                        title: "Partial Update",
+                        message: `Some component reports could not be updated (${failedReports.length} failed). This is normal if those reports don't exist yet.`,
+                        color: "yellow",
+                    });
+                }
+
+                customLogger.log(
+                    `Cascade complete. Updated: ${updatedReports.join(", ")}. Failed: ${failedReports.join(", ")}`
+                );
+            } catch (error) {
+                customLogger.error("Error during cascade operation:", error);
+                notifications.show({
+                    title: "Cascade Error",
+                    message: "An error occurred while updating component reports. Please check the logs.",
+                    color: "red",
+                });
+            }
+        },
+        []
+    );
+
+    const handleReportStatusChange = useCallback(
+        (reportId: string, newStatus: ReportStatus) => {
+            // Update the local state to reflect the status change
+            setReportSubmissions((prev) =>
+                prev.map((report) => (report.id === reportId ? { ...report, reportStatus: newStatus } : report))
+            );
+
+            // If the status is being changed to "review", cascade to all component reports
+            if (newStatus === "review" && userCtx.userInfo?.schoolId) {
+                cascadeStatusToComponentReports(reportId, newStatus, userCtx.userInfo.schoolId);
+            }
+        },
+        [userCtx.userInfo?.schoolId, cascadeStatusToComponentReports]
+    );
 
     // Check if user can create reports based on role
     const canCreateReports = useMemo(() => {
