@@ -455,18 +455,20 @@ function LiquidationReportContent() {
                     const year = reportPeriod.getFullYear();
                     const month = reportPeriod.getMonth() + 1;
 
-                    await csclient.changeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatch({
-                        path: {
-                            school_id: userCtx.userInfo.schoolId,
-                            year,
-                            month,
-                            category,
-                        },
-                        body: {
-                            new_status: "approved",
-                            comments: "Liquidation report approved by principal",
-                        },
-                    });
+                    await csclient.changeLiquidationReportStatusV1ReportsLiquidationSchoolIdYearMonthCategoryStatusPatch(
+                        {
+                            path: {
+                                school_id: userCtx.userInfo.schoolId,
+                                year,
+                                month,
+                                category,
+                            },
+                            body: {
+                                new_status: "approved",
+                                comments: "Liquidation report approved by principal",
+                            },
+                        }
+                    );
 
                     // Update the local state
                     setReportStatus("approved");
