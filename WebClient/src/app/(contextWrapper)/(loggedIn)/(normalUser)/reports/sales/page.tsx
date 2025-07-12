@@ -73,6 +73,9 @@ function SalesandPurchasesContent() {
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [approvalCheckbox, setApprovalCheckbox] = useState(false);
 
+    // Report status state
+    const [reportStatus, setReportStatus] = useState<string | null>(null);
+
     const [schoolData, setSchoolData] = useState<csclient.School | null>(null);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [pdfModalOpened, setPdfModalOpened] = useState(false);
@@ -132,6 +135,10 @@ function SalesandPurchasesContent() {
 
                 if (reportRes?.data) {
                     const report = reportRes.data as csclient.DailyFinancialReport;
+
+                    // Set the report status
+                    setReportStatus(report.reportStatus || null);
+
                     // Set the prepared by from the report (get user name from user ID)
                     if (report.preparedBy) {
                         // Find the user in schoolUsers to get their name
@@ -190,7 +197,7 @@ function SalesandPurchasesContent() {
                             setNotedBy(notedByName);
                             setSelectedNotedByUser(notedByUser);
                             // Load the notedBy user's signature if they have approved the report
-                            if (notedByUser.signatureUrn) {
+                            if (notedByUser.signatureUrn && report.reportStatus === "approved") {
                                 try {
                                     const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
                                         query: { fn: notedByUser.signatureUrn },
@@ -215,7 +222,7 @@ function SalesandPurchasesContent() {
                                 if (currentUser) {
                                     setSelectedNotedByUser(currentUser);
                                     // Load current user's signature for notedBy if available
-                                    if (currentUser.signatureUrn) {
+                                    if (currentUser.signatureUrn && report.reportStatus === "approved") {
                                         try {
                                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet(
                                                 {
@@ -342,8 +349,8 @@ function SalesandPurchasesContent() {
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
 
-                    // Load the user's signature if available
-                    if (matchingUser.signatureUrn) {
+                    // Load the user's signature if available and report is approved
+                    if (matchingUser.signatureUrn && reportStatus === "approved") {
                         try {
                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
                                 query: { fn: matchingUser.signatureUrn },
@@ -352,6 +359,7 @@ function SalesandPurchasesContent() {
                             if (response.data) {
                                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                                 setNotedBySignatureUrl(signatureUrl);
+                                setApprovalConfirmed(true);
                             }
                         } catch (error) {
                             customLogger.error("Failed to load noted by user signature:", error);
@@ -362,7 +370,7 @@ function SalesandPurchasesContent() {
         };
 
         loadNotedBySignature();
-    }, [notedBy, selectedNotedByUser, schoolUsers]);
+    }, [notedBy, selectedNotedByUser, schoolUsers, reportStatus]);
 
     useEffect(() => {
         const loadSchoolData = async () => {
@@ -1101,7 +1109,7 @@ function SalesandPurchasesContent() {
                                 justifyContent: "center",
                             }}
                         >
-                            {notedBySignatureUrl && approvalConfirmed ? (
+                            {notedBySignatureUrl && approvalConfirmed && reportStatus === "approved" ? (
                                 <Image
                                     src={notedBySignatureUrl}
                                     alt="Noted by signature"
@@ -1433,10 +1441,16 @@ function SalesandPurchasesContent() {
                                     </Text>
                                     <Badge
                                         size="sm"
-                                        color={approvalConfirmed ? "green" : selectedNotedByUser ? "yellow" : "gray"}
+                                        color={
+                                            approvalConfirmed && reportStatus === "approved"
+                                                ? "green"
+                                                : selectedNotedByUser
+                                                ? "yellow"
+                                                : "gray"
+                                        }
                                         variant="light"
                                     >
-                                        {approvalConfirmed
+                                        {approvalConfirmed && reportStatus === "approved"
                                             ? "Approved"
                                             : selectedNotedByUser
                                             ? "Pending Approval"
@@ -1466,7 +1480,7 @@ function SalesandPurchasesContent() {
                                     overflow: "hidden",
                                 }}
                             >
-                                {notedBySignatureUrl && approvalConfirmed ? (
+                                {notedBySignatureUrl && approvalConfirmed && reportStatus === "approved" ? (
                                     <Image
                                         src={notedBySignatureUrl}
                                         alt="Noted by signature"

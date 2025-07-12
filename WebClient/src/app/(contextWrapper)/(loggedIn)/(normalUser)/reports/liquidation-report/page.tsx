@@ -331,7 +331,7 @@ function LiquidationReportContent() {
 
                     // Load the user's signature if available
                     // Only mark as approved if the report status is actually "approved"
-                    if (matchingUser.signatureUrn) {
+                    if (matchingUser.signatureUrn && reportStatus === "approved") {
                         try {
                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
                                 query: { fn: matchingUser.signatureUrn },
@@ -351,7 +351,18 @@ function LiquidationReportContent() {
         };
 
         loadNotedBySignature();
-    }, [notedBy, selectedNotedByUser, schoolUsers]);
+    }, [notedBy, selectedNotedByUser, schoolUsers, reportStatus]);
+
+    // Effect to handle report status changes - clear signatures if not approved
+    useEffect(() => {
+        if (reportStatus && reportStatus !== "approved") {
+            // Clear noted by signature if report is not approved
+            if (notedBySignatureUrl) {
+                URL.revokeObjectURL(notedBySignatureUrl);
+                setNotedBySignatureUrl(null);
+            }
+        }
+    }, [reportStatus, notedBySignatureUrl]);
 
     // Validate category parameter
     if (!category || !report_type[category as keyof typeof report_type]) {
@@ -1006,8 +1017,22 @@ function LiquidationReportContent() {
                                     <Text size="sm" c="dimmed" fw={500}>
                                         Noted by
                                     </Text>
-                                    <Badge size="sm" color={selectedNotedByUser ? "green" : "orange"} variant="light">
-                                        {selectedNotedByUser ? "Selected" : "Not Selected"}
+                                    <Badge
+                                        size="sm"
+                                        color={
+                                            reportStatus === "approved"
+                                                ? "green"
+                                                : selectedNotedByUser
+                                                ? "yellow"
+                                                : "gray"
+                                        }
+                                        variant="light"
+                                    >
+                                        {reportStatus === "approved"
+                                            ? "Approved"
+                                            : selectedNotedByUser
+                                            ? "Pending Approval"
+                                            : "Not Selected"}
                                     </Badge>
                                 </Group>
                                 {selectedNotedByUser ? (
@@ -1033,7 +1058,7 @@ function LiquidationReportContent() {
                                     overflow: "hidden",
                                 }}
                             >
-                                {notedBySignatureUrl ? (
+                                {notedBySignatureUrl && reportStatus === "approved" ? (
                                     <Image
                                         src={notedBySignatureUrl}
                                         alt="Noted by signature"
@@ -1066,15 +1091,18 @@ function LiquidationReportContent() {
                                             Approved
                                         </Badge>
                                     ) : (
-                                        <Button
-                                            size="xs"
-                                            variant="light"
-                                            color="blue"
-                                            onClick={openApprovalModal}
-                                            disabled={!selectedNotedByUser.signatureUrn}
-                                        >
-                                            Approve Report
-                                        </Button>
+                                        /* Only show approve button if the logged-in user is the same as the notedBy user */
+                                        selectedNotedByUser.id === userCtx.userInfo?.id && (
+                                            <Button
+                                                size="xs"
+                                                variant="light"
+                                                color="blue"
+                                                onClick={openApprovalModal}
+                                                disabled={!selectedNotedByUser.signatureUrn}
+                                            >
+                                                Approve Report
+                                            </Button>
+                                        )
                                     )}
                                 </div>
                             )}
