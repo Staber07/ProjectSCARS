@@ -738,6 +738,8 @@ function SalesandPurchasesContent() {
                     customLogger.error("Failed to load current user signature for preparedBy:", error);
                 }
             }
+
+            router.push("/reports");
         } catch (err: unknown) {
             if (err instanceof Error && err.message.includes("404 Not Found")) {
                 return;
