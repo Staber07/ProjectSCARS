@@ -15,7 +15,11 @@ import {
 
 import classes from "./Stats.module.css";
 
-import { getDailySalesAndPurchasesSummaryFilteredV1ReportsDailySchoolIdYearMonthSummaryFilteredGet, getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet, School } from "@/lib/api/csclient";
+import {
+    getDailySalesAndPurchasesSummaryFilteredV1ReportsDailySchoolIdYearMonthSummaryFilteredGet,
+    getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet,
+    School,
+} from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useCallback, useEffect, useState } from "react";
@@ -102,20 +106,12 @@ export default function StatisticsPage() {
             const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
             // Fetch current month summary with filtering
-            const currentSummaryResponse = await fetchSummaryWithFallback(
-                userInfo.schoolId,
-                currentYear,
-                currentMonth
-            );
+            const currentSummaryResponse = await fetchSummaryWithFallback(userInfo.schoolId, currentYear, currentMonth);
 
             // Fetch previous month summary for comparison
             let prevSummaryResponse;
             try {
-                prevSummaryResponse = await fetchSummaryWithFallback(
-                    userInfo.schoolId,
-                    prevYear,
-                    prevMonth
-                );
+                prevSummaryResponse = await fetchSummaryWithFallback(userInfo.schoolId, prevYear, prevMonth);
             } catch {
                 // Previous month data may not exist
                 prevSummaryResponse = { data: { total_sales: 0, total_purchases: 0, net_income: 0 } };
@@ -129,11 +125,7 @@ export default function StatisticsPage() {
                 const month = targetDate.month() + 1;
 
                 try {
-                    const monthSummary = await fetchSummaryWithFallback(
-                        userInfo.schoolId,
-                        year,
-                        month
-                    );
+                    const monthSummary = await fetchSummaryWithFallback(userInfo.schoolId, year, month);
 
                     if (monthSummary.data) {
                         const sales =
@@ -375,9 +367,7 @@ export default function StatisticsPage() {
                 <Alert color="blue" mb="lg">
                     <Group gap="xs">
                         <IconAlertCircle size={16} />
-                        <Text size="sm">
-                            As an administrator, you are viewing data from approved reports only.
-                        </Text>
+                        <Text size="sm">As an administrator, you are viewing data from approved reports only.</Text>
                     </Group>
                 </Alert>
             )}

@@ -1288,7 +1288,7 @@ async def get_daily_sales_and_purchases_summary_filtered(
     Returns:
         Summary statistics including totals, averages, and entry count from filtered reports.
     """
-    
+
     user = await get_user(token.id, session, by_id=True)
     if not user:
         raise HTTPException(
@@ -1312,7 +1312,7 @@ async def get_daily_sales_and_purchases_summary_filtered(
         include_reviews = False
         include_approved = True
         include_rejected = False
-        
+
     logger.debug(
         "user `%s` (role %s) requesting filtered daily sales summary for school %s for %s-%s. "
         "Filters: drafts=%s, reviews=%s, approved=%s, rejected=%s, received=%s, archived=%s",
@@ -1599,7 +1599,7 @@ async def change_daily_report_status(
     status_change: StatusChangeRequest,
 ) -> DailyFinancialReport:
     """Change the status of a daily financial report based on user role and permissions.
-    
+
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
@@ -1607,21 +1607,21 @@ async def change_daily_report_status(
         year: The year of the report.
         month: The month of the report.
         status_change: The status change request containing new status and optional comments.
-        
+
     Returns:
         The updated daily financial report.
-        
+
     Raises:
         HTTPException: If user doesn't have permission, report not found, or invalid transition.
     """
-    
+
     user = await get_user(token.id, session, by_id=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    
+
     # Check basic permission to read reports
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
@@ -1631,7 +1631,7 @@ async def change_daily_report_status(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this report.",
         )
-    
+
     logger.debug(
         "user `%s` (role %s) attempting to change status of daily financial report for school %s, %s-%s to %s",
         token.id,
@@ -1641,17 +1641,19 @@ async def change_daily_report_status(
         month,
         status_change.new_status.value,
     )
-    
+
     # Get the monthly report and then the daily financial report
-    monthly_report = ReportStatusManager.get_monthly_report(session, school_id, year, month)
-    
+    monthly_report = ReportStatusManager.get_monthly_report(
+        session, school_id, year, month
+    )
+
     daily_report = monthly_report.daily_financial_report
     if daily_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Daily financial report not found.",
         )
-    
+
     # Use the generic status manager to change the status
     return ReportStatusManager.change_report_status(
         session=session,
@@ -1674,25 +1676,25 @@ async def get_daily_valid_status_transitions(
     month: int,
 ) -> dict[str, str | list[str]]:
     """Get the valid status transitions for a daily financial report based on user role.
-    
+
     Args:
         token: The decoded JWT token of the logged-in user.
         session: The database session.
         school_id: The ID of the school the report belongs to.
         year: The year of the report.
         month: The month of the report.
-        
+
     Returns:
         A dictionary containing the current status and valid transitions.
     """
-    
+
     user = await get_user(token.id, session, by_id=True)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found.",
         )
-    
+
     # Check basic permission to read reports
     required_permission = (
         "reports:local:read" if user.schoolId == school_id else "reports:global:read"
@@ -1702,16 +1704,18 @@ async def get_daily_valid_status_transitions(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to access this report.",
         )
-    
+
     # Get the monthly report and then the daily financial report
-    monthly_report = ReportStatusManager.get_monthly_report(session, school_id, year, month)
-    
+    monthly_report = ReportStatusManager.get_monthly_report(
+        session, school_id, year, month
+    )
+
     daily_report = monthly_report.daily_financial_report
     if daily_report is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Daily financial report not found.",
         )
-    
+
     # Get valid transitions for this user role and current status
     return ReportStatusManager.get_valid_transitions_response(user, daily_report)
