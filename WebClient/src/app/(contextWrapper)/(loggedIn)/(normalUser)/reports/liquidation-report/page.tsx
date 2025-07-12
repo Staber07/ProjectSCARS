@@ -225,13 +225,13 @@ function LiquidationReportContent() {
                         });
                         setReceiptAttachmentUrns(allAttachmentUrns);
 
-                        notifications.show({
-                            title: "Report Loaded",
-                            message: `Loaded existing report with ${loadedItems.length} items${
-                                allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""
-                            }.`,
-                            color: "blue",
-                        });
+                        // notifications.show({
+                        //     title: "Report Loaded",
+                        //     message: `Loaded existing report with ${loadedItems.length} items${
+                        //         allAttachmentUrns.length > 0 ? ` and ${allAttachmentUrns.length} attachments` : ""
+                        //     }.`,
+                        //     color: "blue",
+                        // });
                     }
                 }
             } catch {
