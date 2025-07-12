@@ -304,6 +304,7 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                                     <Table.Th>Report Name</Table.Th>
                                     <Table.Th>Type</Table.Th>
                                     <Table.Th>Status</Table.Th>
+                                    <Table.Th>Signatures</Table.Th>
                                     <Table.Th>Actions</Table.Th>
                                 </Table.Tr>
                             </Table.Thead>
@@ -333,6 +334,11 @@ export function MonthlyReportDetailsModal({ opened, onClose, report, onDelete }:
                                                         ? "Not Created"
                                                         : linkedReport.status || "Draft"}
                                                 </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Text size="sm" c="dimmed">
+                                                    {linkedReport.status === "approved" ? "Signed" : "Not Signed"}
+                                                </Text>
                                             </Table.Td>
                                             <Table.Td>
                                                 <ActionIcon

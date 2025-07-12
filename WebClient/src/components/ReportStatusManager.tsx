@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button, Group, Menu, Text, Modal, Stack, Textarea } from "@mantine/core";
-import { IconChevronDown, IconCheck, IconX, IconClock, IconArchive } from "@tabler/icons-react";
+import { Button, Group, Menu, Text, Modal, Stack, Textarea, ActionIcon } from "@mantine/core";
+import { IconCheck, IconX, IconClock, IconArchive } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import {
     changeMonthlyReportStatusV1ReportsMonthlySchoolIdYearMonthStatusPatch,
@@ -286,9 +286,9 @@ export function ReportStatusManager({
     // Only disable if explicitly disabled prop is true, OR if we've checked transitions and there are none available
     if (disabled || (hasCheckedTransitions && validTransitions.length === 0)) {
         return (
-            <Button variant="light" color={config.color} size="xs" leftSection={<Icon size={14} />} disabled>
-                {config.label}
-            </Button>
+            <ActionIcon variant="light" color={config.color} size="sm" disabled>
+                <Icon size={14} />
+            </ActionIcon>
         );
     }
 
@@ -296,17 +296,15 @@ export function ReportStatusManager({
         <>
             <Menu opened={menuOpened} onClose={() => setMenuOpened(false)} position="bottom-start" withArrow>
                 <Menu.Target>
-                    <Button
+                    <ActionIcon
                         variant="light"
                         color={config.color}
-                        size="xs"
-                        leftSection={<Icon size={14} />}
-                        rightSection={<IconChevronDown size={12} />}
+                        size="sm"
                         onClick={handleMenuClick}
                         loading={loading && !modalOpened}
                     >
-                        {config.label}
-                    </Button>
+                        <Icon size={14} />
+                    </ActionIcon>
                 </Menu.Target>
 
                 <Menu.Dropdown>

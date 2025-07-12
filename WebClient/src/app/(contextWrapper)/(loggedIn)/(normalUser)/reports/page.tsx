@@ -2,6 +2,7 @@
 
 import { LiquidationReportModal } from "@/components/LiquidationReportCategory";
 import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
+import { MonthlyReportEditModal } from "@/components/MonthlyReportEditModal";
 import { ReportStatusManager } from "@/components/ReportStatusManager";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useUser } from "@/lib/providers/user";
@@ -62,6 +63,7 @@ export default function ReportsPage() {
     const [categoryFilter, setCategoryFilter] = useState("all");
     const [liquidationModalOpened, setLiquidationModalOpened] = useState(false);
     const [detailsModalOpened, setDetailsModalOpened] = useState(false);
+    const [editModalOpened, setEditModalOpened] = useState(false);
     const [deleteConfirmModalOpened, setDeleteConfirmModalOpened] = useState(false);
     const [reportToDelete, setReportToDelete] = useState<string | null>(null);
     const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
@@ -133,6 +135,23 @@ export default function ReportsPage() {
     const handleCloseDetailsModal = useCallback(() => {
         setDetailsModalOpened(false);
         setSelectedReport(null);
+    }, []);
+
+    const handleOpenEditModal = useCallback((report: MonthlyReport) => {
+        setSelectedReport(report);
+        setEditModalOpened(true);
+    }, []);
+
+    const handleCloseEditModal = useCallback(() => {
+        setEditModalOpened(false);
+        setSelectedReport(null);
+    }, []);
+
+    const handleReportUpdate = useCallback((updatedReport: MonthlyReport) => {
+        // Update the local state with the updated report
+        setReportSubmissions((prev) =>
+            prev.map((report) => (report.id === updatedReport.id ? updatedReport : report))
+        );
     }, []);
 
     const handleDeleteReport = useCallback(async (reportId: string) => {
@@ -367,7 +386,12 @@ export default function ReportsPage() {
                                     </Menu.Item>
                                     {canCreateReports && (
                                         <>
-                                            <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
+                                            <Menu.Item 
+                                                leftSection={<IconPencil size={14} />}
+                                                onClick={() => handleOpenEditModal(report)}
+                                            >
+                                                Edit
+                                            </Menu.Item>
                                             <Menu.Divider />
                                             <Menu.Item
                                                 color="red"
@@ -392,6 +416,7 @@ export default function ReportsPage() {
             handleSelectReport,
             handleDeleteReport,
             handleOpenReportDetails,
+            handleOpenEditModal,
             handleReportStatusChange,
             canCreateReports,
             userCtx.userInfo?.schoolId,
@@ -587,6 +612,14 @@ export default function ReportsPage() {
                 onClose={handleCloseDetailsModal}
                 report={selectedReport}
                 onDelete={handleDeleteReport}
+            />
+
+            {/* Monthly Report Edit Modal */}
+            <MonthlyReportEditModal
+                opened={editModalOpened}
+                onClose={handleCloseEditModal}
+                report={selectedReport}
+                onUpdate={handleReportUpdate}
             />
 
             {/* Delete Confirmation Modal */}
