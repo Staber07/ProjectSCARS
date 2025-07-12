@@ -3773,7 +3773,7 @@ export type GetDailySalesAndPurchasesSummaryFilteredV1ReportsDailySchoolIdYearMo
     200: {
         [key: string]: number | number | {
             [key: string]: number | number;
-        } | null;
+        } | string | null;
     };
 };
 
