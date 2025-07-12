@@ -1,7 +1,7 @@
 "use client";
 
 import { BarChart, LineChart } from "@mantine/charts";
-import { Card, Divider, Grid, Group, Paper, SimpleGrid, Text, Title, Alert, Loader } from "@mantine/core";
+import { Card, Divider, Grid, Group, Paper, SimpleGrid, Text, Title, Alert, Loader, Switch } from "@mantine/core";
 import {
     IconArrowDownRight,
     IconArrowUpRight,
@@ -10,11 +10,12 @@ import {
     IconReceipt2,
     IconUserPlus,
     IconAlertCircle,
+    IconFilter,
 } from "@tabler/icons-react";
 
 import classes from "./Stats.module.css";
 
-import { getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet, School } from "@/lib/api/csclient";
+import { getDailySalesAndPurchasesSummaryFilteredV1ReportsDailySchoolIdYearMonthSummaryFilteredGet, getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet, School } from "@/lib/api/csclient";
 import { useUser } from "@/lib/providers/user";
 import { GetSchoolInfo } from "@/lib/api/school";
 import { useCallback, useEffect, useState } from "react";
@@ -47,6 +48,12 @@ export default function StatisticsPage() {
     const [error, setError] = useState<string | null>(null);
     const [statsData, setStatsData] = useState<FinancialStats | null>(null);
     const [schoolInfo, setSchoolInfo] = useState<School | null>(null);
+    const [includeDrafts, setIncludeDrafts] = useState(false);
+    const [includeReviews, setIncludeReviews] = useState(true); // Default to include reviews
+
+    // Determine if user can control filtering based on role
+    const canControlFiltering = userInfo?.roleId && [4, 5].includes(userInfo.roleId); // Principals and Canteen Managers can control filtering
+    const isAdminUser = userInfo?.roleId && [2, 3].includes(userInfo.roleId); // Superintendent or Administrator
 
     const fetchFinancialData = useCallback(async () => {
         if (!userInfo?.schoolId) {
@@ -54,6 +61,30 @@ export default function StatisticsPage() {
             setError("You are not assigned to a school. Please contact your administrator.");
             return;
         }
+
+        // Helper function to fetch summary with fallback
+        const fetchSummaryWithFallback = async (schoolId: number, year: number, month: number) => {
+            try {
+                // Try filtered endpoint first
+                return await getDailySalesAndPurchasesSummaryFilteredV1ReportsDailySchoolIdYearMonthSummaryFilteredGet({
+                    path: { school_id: schoolId, year, month },
+                    query: {
+                        include_drafts: includeDrafts,
+                        include_reviews: includeReviews,
+                        include_approved: true,
+                        include_rejected: true,
+                        include_received: true,
+                        include_archived: true,
+                    },
+                });
+            } catch {
+                // If filtered endpoint fails (404), fallback to original endpoint
+                console.warn("Filtered endpoint not available, falling back to original endpoint");
+                return await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
+                    path: { school_id: schoolId, year, month },
+                });
+            }
+        };
 
         try {
             setLoading(true);
@@ -70,26 +101,21 @@ export default function StatisticsPage() {
             const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
             const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-            // Fetch current month summary
-            const currentSummaryResponse =
-                await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
-                    path: {
-                        school_id: userInfo.schoolId,
-                        year: currentYear,
-                        month: currentMonth,
-                    },
-                });
+            // Fetch current month summary with filtering
+            const currentSummaryResponse = await fetchSummaryWithFallback(
+                userInfo.schoolId,
+                currentYear,
+                currentMonth
+            );
 
             // Fetch previous month summary for comparison
             let prevSummaryResponse;
             try {
-                prevSummaryResponse = await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
-                    path: {
-                        school_id: userInfo.schoolId,
-                        year: prevYear,
-                        month: prevMonth,
-                    },
-                });
+                prevSummaryResponse = await fetchSummaryWithFallback(
+                    userInfo.schoolId,
+                    prevYear,
+                    prevMonth
+                );
             } catch {
                 // Previous month data may not exist
                 prevSummaryResponse = { data: { total_sales: 0, total_purchases: 0, net_income: 0 } };
@@ -103,14 +129,11 @@ export default function StatisticsPage() {
                 const month = targetDate.month() + 1;
 
                 try {
-                    const monthSummary =
-                        await getDailySalesAndPurchasesSummaryV1ReportsDailySchoolIdYearMonthSummaryGet({
-                            path: {
-                                school_id: userInfo.schoolId,
-                                year,
-                                month,
-                            },
-                        });
+                    const monthSummary = await fetchSummaryWithFallback(
+                        userInfo.schoolId,
+                        year,
+                        month
+                    );
 
                     if (monthSummary.data) {
                         const sales =
@@ -184,11 +207,11 @@ export default function StatisticsPage() {
         } finally {
             setLoading(false);
         }
-    }, [userInfo?.schoolId]);
+    }, [userInfo?.schoolId, includeDrafts, includeReviews]);
 
     useEffect(() => {
         fetchFinancialData();
-    }, [fetchFinancialData]);
+    }, [fetchFinancialData, includeDrafts, includeReviews]);
 
     if (loading) {
         return (
@@ -315,6 +338,48 @@ export default function StatisticsPage() {
                 <Title order={2} mb="lg">
                     Financial Statistics - {schoolInfo.name}
                 </Title>
+            )}
+
+            {/* Filtering Controls - Only show for Canteen Managers */}
+            {canControlFiltering && (
+                <Card withBorder p="md" mb="lg">
+                    <Group justify="space-between" align="center">
+                        <Group gap="xs">
+                            <IconFilter size={20} />
+                            <Text fw={500}>Report Filtering Options</Text>
+                        </Group>
+                        <Group gap="lg">
+                            <Group gap="xs">
+                                <Switch
+                                    checked={includeDrafts}
+                                    onChange={(e) => setIncludeDrafts(e.currentTarget.checked)}
+                                    size="sm"
+                                />
+                                <Text size="sm">Include Draft Reports</Text>
+                            </Group>
+                            <Group gap="xs">
+                                <Switch
+                                    checked={includeReviews}
+                                    onChange={(e) => setIncludeReviews(e.currentTarget.checked)}
+                                    size="sm"
+                                />
+                                <Text size="sm">Include Reports Under Review</Text>
+                            </Group>
+                        </Group>
+                    </Group>
+                </Card>
+            )}
+
+            {/* Status indicator for admin users */}
+            {isAdminUser && (
+                <Alert color="blue" mb="lg">
+                    <Group gap="xs">
+                        <IconAlertCircle size={16} />
+                        <Text size="sm">
+                            As an administrator, you are viewing data from approved reports only.
+                        </Text>
+                    </Group>
+                </Alert>
             )}
 
             <SimpleGrid cols={{ base: 1, xs: 2, md: 4 }}>{stats}</SimpleGrid>
