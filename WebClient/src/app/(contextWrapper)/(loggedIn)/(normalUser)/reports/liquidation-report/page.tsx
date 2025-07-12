@@ -178,7 +178,7 @@ function LiquidationReportContent() {
                     }
                     if (report.notedBy) {
                         setNotedBy(report.notedBy);
-                        // Store the noted by name so we can match it with a user later
+                        // Store the noted by ID so we can match it with a user later
                         // The signature will be loaded in the effect after school users are loaded
                     }
 
@@ -289,9 +289,8 @@ function LiquidationReportContent() {
                 }
             };
 
-            // Set prepared by to current user
-            const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
-            setPreparedBy(currentUserName);
+            // Set prepared by to current user ID
+            setPreparedBy(userCtx.userInfo.id);
 
             // Load current user's signature if available
             if (userCtx.userInfo.signatureUrn) {
@@ -312,16 +311,13 @@ function LiquidationReportContent() {
         initializeSignatures();
     }, [userCtx.userInfo]);
 
-    // Effect to match loaded notedBy name with actual user and load their signature
+    // Effect to match loaded notedBy ID with actual user and load their signature
     useEffect(() => {
         const loadNotedBySignature = async () => {
-            // If we have a notedBy name from a loaded report but no selected user yet
+            // If we have a notedBy ID from a loaded report but no selected user yet
             if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
-                // Try to find the user by matching their name
-                const matchingUser = schoolUsers.find((user) => {
-                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-                    return userName === notedBy;
-                });
+                // Try to find the user by matching their ID
+                const matchingUser = schoolUsers.find((user) => user.id === notedBy);
 
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
@@ -393,8 +389,7 @@ function LiquidationReportContent() {
      * Reason: Load the selected user's signature and update the report data
      */
     const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-        setNotedBy(userName);
+        setNotedBy(user.id); // Use user ID instead of name
         setSelectedNotedByUser(user);
 
         // Reset approval state when changing the noted by user
@@ -563,8 +558,8 @@ function LiquidationReportContent() {
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
                 entries,
-                notedBy: notedBy || null, // Use selected noted by user name
-                preparedBy: preparedBy || null, // Use current user name
+                notedBy: notedBy || null, // Use user ID
+                preparedBy: preparedBy || null, // Use user ID
                 teacherInCharge: userCtx.userInfo.id, // Can be set later
                 certifiedBy: [], // Can be set later
                 memo: notes || null, // Add memo field
@@ -640,8 +635,8 @@ function LiquidationReportContent() {
             // Prepare the report data
             const reportData: csclient.LiquidationReportCreateRequest = {
                 entries,
-                notedBy: notedBy || null, // Use selected noted by user name
-                preparedBy: preparedBy || null, // Use current user name
+                notedBy: notedBy || null, // Use user ID
+                preparedBy: preparedBy || null, // Use user ID
                 teacherInCharge: userCtx.userInfo.id,
                 certifiedBy: [],
                 memo: notes || null, // Add memo field
@@ -968,7 +963,7 @@ function LiquidationReportContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {preparedBy || "N/A"}
+                                    {userCtx.userInfo ? `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim() : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {userCtx.userInfo?.position || "Position"}
@@ -1028,7 +1023,7 @@ function LiquidationReportContent() {
                             </Box>
                             <div style={{ textAlign: "center" }}>
                                 <Text fw={600} size="sm">
-                                    {notedBy || "N/A"}
+                                    {selectedNotedByUser ? `${selectedNotedByUser.nameFirst} ${selectedNotedByUser.nameLast}`.trim() : "N/A"}
                                 </Text>
                                 <Text size="xs" c="dimmed">
                                     {selectedNotedByUser?.position || "Position"}
