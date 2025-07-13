@@ -37,4 +37,6 @@
             "database": "${workspaceFolder:ProjectSCARS}/CentralServer/db/centralserver.db"
         }
     ]
+    
 }
+
