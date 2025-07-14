@@ -425,6 +425,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         const hasFieldsToDelete = Object.values(fieldsToDelete).some(
             (field, index) => index > 0 && field === true // Skip the id field at index 0
         );
+        // Track successful operations for consolidated notification
+        const successfulOperations: string[] = [];
+
         try {
             customLogger.debug("Has values to remove:", hasFieldsToDelete);
             if (hasFieldsToDelete) {
@@ -469,13 +472,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             }
 
             let updatedUser = result.data as UserPublic;
-            notifications.show({
-                id: "user-update-success",
-                title: "Success",
-                message: "User information updated successfully.",
-                color: "green",
-                icon: <IconPencilCheck />,
-            });
+            successfulOperations.push("Profile information");
 
             if (avatarRemoved && currentAvatarUrn) {
                 try {
@@ -492,13 +489,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     }
 
                     customLogger.debug("Avatar removed successfully.");
-                    notifications.show({
-                        id: "avatar-remove-success",
-                        title: "Success",
-                        message: "Avatar removed successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
+                    successfulOperations.push("Avatar removed");
                 } catch (error) {
                     if (error instanceof Error) {
                         const detail = error.message || "Failed to remove avatar.";
@@ -532,13 +523,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     if (updatedUser.avatarUrn) {
                         fetchUserAvatar(updatedUser.avatarUrn);
                         customLogger.debug("Avatar uploaded successfully.");
-                        notifications.show({
-                            id: "avatar-upload-success",
-                            title: "Success",
-                            message: "Avatar uploaded successfully.",
-                            color: "green",
-                            icon: <IconPencilCheck />,
-                        });
+                        successfulOperations.push("Avatar updated");
                     }
                 } catch (error) {
                     if (error instanceof Error) {
@@ -582,13 +567,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     }
 
                     customLogger.debug("Signature removed successfully.");
-                    notifications.show({
-                        id: "signature-remove-success",
-                        title: "Success",
-                        message: "E-signature removed successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
+                    successfulOperations.push("E-signature removed");
                 } catch (error) {
                     if (error instanceof Error) {
                         const detail = error.message || "Failed to remove signature.";
@@ -627,13 +606,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             setEditUserSignatureUrl(newSignatureUrl);
                         }
                         customLogger.debug("Signature uploaded successfully.");
-                        notifications.show({
-                            id: "signature-upload-success",
-                            title: "Success",
-                            message: "E-signature uploaded successfully.",
-                            color: "green",
-                            icon: <IconPencilCheck />,
-                        });
+                        successfulOperations.push("E-signature updated");
                     }
                 } catch (error) {
                     if (error instanceof Error) {
@@ -665,6 +638,22 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             setAvatarRemoved(false);
             setEditUserSignature(null);
             setSignatureRemoved(false);
+
+            // Show consolidated success notification if any operations were successful
+            if (successfulOperations.length > 0) {
+                const message =
+                    successfulOperations.length === 1
+                        ? `${successfulOperations[0]} updated successfully.`
+                        : `Successfully updated: ${successfulOperations.join(", ")}.`;
+
+                notifications.show({
+                    id: "profile-update-success",
+                    title: "Profile Updated",
+                    message,
+                    color: "green",
+                    icon: <IconPencilCheck />,
+                });
+            }
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 403")) {
                 const detail = error.message || "Failed to update user information.";
