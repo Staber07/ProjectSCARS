@@ -14,6 +14,7 @@ from centralserver.routers import (
     reports_routes,
     schools_routes,
     users_routes,
+    ai_routes
 )
 
 logger = LoggerFactory(
@@ -42,6 +43,7 @@ app = FastAPI(
     on_shutdown=[shutdown],
 )
 
+app.include_router(ai_routes.router)
 app.include_router(auth_routes.router)
 app.include_router(users_routes.router)
 app.include_router(schools_routes.router)

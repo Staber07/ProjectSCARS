@@ -177,6 +177,7 @@ async def get_school_daily_report_entries(
     return list(daily_report.entries)
 
 
+
 @router.patch("/{school_id}/{year}/{month}")
 async def create_school_daily_report(
     token: logged_in_dep,
