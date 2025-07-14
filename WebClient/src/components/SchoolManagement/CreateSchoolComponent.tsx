@@ -7,7 +7,7 @@ import { Button, Modal, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconCheck, IconUserCheck, IconUserExclamation, IconSendOff } from "@tabler/icons-react";
+import { IconBuildingPlus, IconCheck, IconSendOff, IconUserExclamation } from "@tabler/icons-react";
 import { useCallback } from "react";
 
 interface CreateSchoolComponentProps {
@@ -97,7 +97,7 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
                     <TextInput label="Phone Number" {...form.getInputProps("phone")} />
                     <TextInput label="Email Address" type="email" {...form.getInputProps("email")} />
                     <TextInput label="Website" {...form.getInputProps("website")} />
-                    <Button type="submit" loading={buttonLoading} rightSection={<IconUserCheck />}>
+                    <Button type="submit" loading={buttonLoading} rightSection={<IconBuildingPlus />}>
                         Create School
                     </Button>
                 </Stack>

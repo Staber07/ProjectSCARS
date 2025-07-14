@@ -24,11 +24,11 @@ from centralserver.internals.models.reports.payroll_report import (
     PayrollReportEntry,
     PayrollReportUpdateRequest,
 )
-from centralserver.internals.models.reports.status_change_request import (
-    StatusChangeRequest,
-)
 from centralserver.internals.models.reports.report_status_manager import (
     ReportStatusManager,
+)
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
 )
 from centralserver.internals.models.token import DecodedJWTToken
 
@@ -971,7 +971,7 @@ async def change_payroll_report_status(
         )
 
     # Use the generic status manager to change the status
-    return ReportStatusManager.change_report_status(
+    return await ReportStatusManager.change_report_status(
         session=session,
         user=user,
         report=payroll_report,

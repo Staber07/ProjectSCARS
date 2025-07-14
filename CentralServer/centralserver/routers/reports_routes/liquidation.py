@@ -58,11 +58,11 @@ from centralserver.internals.models.reports.monthly_report import (
     MonthlyReport,
     ReportStatus,
 )
-from centralserver.internals.models.reports.status_change_request import (
-    StatusChangeRequest,
-)
 from centralserver.internals.models.reports.report_status_manager import (
     ReportStatusManager,
+)
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
 )
 from centralserver.internals.models.token import DecodedJWTToken
 
@@ -553,7 +553,10 @@ async def create_or_update_liquidation_report(
         }
 
         # Add receipt attachment URNs if available
-        if hasattr(entry_data, "receipt_attachment_urns") and entry_data.receipt_attachment_urns:
+        if (
+            hasattr(entry_data, "receipt_attachment_urns")
+            and entry_data.receipt_attachment_urns
+        ):
             entry_dict["receipt_attachment_urns"] = entry_data.receipt_attachment_urns
 
         # Handle receipt number field variations based on model type
@@ -929,7 +932,7 @@ async def change_liquidation_report_status(
     # Get the monthly report and then the liquidation report
     # Note: We don't actually need monthly_report here, just checking it exists
     ReportStatusManager.get_monthly_report(session, school_id, year, month)
-    
+
     # Get the specific liquidation report
     parent_date = datetime.date(year=year, month=month, day=1)
     category_config = LIQUIDATION_CATEGORIES[category]
@@ -942,7 +945,7 @@ async def change_liquidation_report_status(
         )
 
     # Use the generic status manager to change the status
-    return ReportStatusManager.change_report_status(
+    return await ReportStatusManager.change_report_status(
         session=session,
         user=user,
         report=liquidation_report,

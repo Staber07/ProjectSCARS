@@ -145,7 +145,7 @@ export function MainLoginComponent(): React.ReactElement {
                 if (result.error) {
                     const errorMessage = `Failed to log in: ${result.response.status} ${result.response.statusText}`;
                     form.setFieldValue("password", "");
-                    customLogger.error(result.error);
+                    customLogger.error(errorMessage);
                     throw new Error(errorMessage);
                 }
 
@@ -161,7 +161,7 @@ export function MainLoginComponent(): React.ReactElement {
 
                 if (result.error) {
                     const errorMessage = `Failed to validate TOTP: ${result.response.status} ${result.response.statusText}`;
-                    customLogger.error(result.error);
+                    customLogger.error(errorMessage);
                     throw new Error(errorMessage);
                 }
 
@@ -588,7 +588,7 @@ export function MainLoginComponent(): React.ReactElement {
 
                             if (result.error) {
                                 const errorMessage = `Failed to use OTP recovery code: ${result.response.status} ${result.response.statusText}`;
-                                customLogger.error(result.error);
+                                customLogger.error(errorMessage);
                                 throw new Error(errorMessage);
                             }
 

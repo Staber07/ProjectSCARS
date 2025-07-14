@@ -1,9 +1,18 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SubmitForReviewButton } from "@/components/SubmitForReview";
-import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import * as csclient from "@/lib/api/csclient";
+import {
+    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
+    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
+    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
+    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
+    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
+} from "@/lib/api/csclient/sdk.gen";
+import { customLogger } from "@/lib/api/customLogger";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -33,6 +42,7 @@ import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { notifications } from "@mantine/notifications";
 import {
+    IconAlertCircle,
     IconCalendar,
     IconCalendarWeek,
     IconCheck,
@@ -42,7 +52,6 @@ import {
     IconUser,
     IconUsers,
     IconX,
-    IconAlertCircle,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -51,15 +60,6 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import * as csclient from "@/lib/api/csclient";
-import {
-    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
-    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
-    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
-    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
-    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
-} from "@/lib/api/csclient/sdk.gen";
-import { customLogger } from "@/lib/api/customLogger";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -131,7 +131,6 @@ function PayrollPageContent() {
 
     // Signature state management for report approval
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
-    const [preparedBy, setPreparedBy] = useState<string | null>(null);
     const [notedBy, setNotedBy] = useState<string | null>(null);
     const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
     const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
@@ -145,7 +144,7 @@ function PayrollPageContent() {
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
 
     // Report status tracking
-    const [reportStatus, setReportStatus] = useState<string | null>(null);
+    const [reportStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -300,7 +299,7 @@ function PayrollPageContent() {
                     //     icon: <IconCheck size={18} />,
                     // });
                 }
-            } catch (error) {
+            } catch {
                 // If 404, it means no existing report - this is fine
                 // if ((error as { status?: number })?.status !== 404) {
                 //     customLogger.error("Error loading existing payroll report:", error);
@@ -356,9 +355,6 @@ function PayrollPageContent() {
                 }
             };
 
-            // Set prepared by to current user ID (ensure we store user ID, not name)
-            setPreparedBy(userCtx.userInfo.id);
-
             // Load current user's signature if available
             if (userCtx.userInfo.signatureUrn) {
                 try {
@@ -386,10 +382,13 @@ function PayrollPageContent() {
     // Effect to match loaded notedBy ID with actual user and load their signature
     useEffect(() => {
         const loadNotedBySignature = async () => {
-            // If we have a notedBy ID from a loaded report but no selected user yet
+            // If we have a notedBy name from a loaded report but no selected user yet
             if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
-                // Try to find the user by matching their ID
-                const matchingUser = schoolUsers.find((user) => user.id === notedBy);
+                // Try to find the user by matching their name
+                const matchingUser = schoolUsers.find((user) => {
+                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
+                    return userName === notedBy;
+                });
 
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
@@ -719,11 +718,6 @@ function PayrollPageContent() {
         }, 0);
     };
 
-    const openSignatureModal = (employeeId: string) => {
-        setCurrentSigningEmployee(employeeId);
-        setSignatureModalOpened(true);
-    };
-
     const saveEmployeeSignature = (signatureData: string) => {
         if (currentSigningEmployee) {
             const newSignature: EmployeeSignature = {
@@ -741,9 +735,9 @@ function PayrollPageContent() {
         }
     };
 
-    const getEmployeeSignature = (employeeId: string) => {
-        return employeeSignatures.find((sig) => sig.employeeId === employeeId);
-    };
+    // const getEmployeeSignature = (employeeId: string) => {
+    //     return employeeSignatures.find((sig) => sig.employeeId === employeeId);
+    // };
 
     const handleSubmitReport = async () => {
         if (!selectedMonth || !userCtx.userInfo?.schoolId) {
@@ -1373,7 +1367,7 @@ function PayrollPageContent() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {employees.map((employee, index) => {
-                                        const signature = getEmployeeSignature(employee.id);
+                                        // const signature = getEmployeeSignature(employee.id);
                                         return (
                                             <Table.Tr key={employee.id}>
                                                 <Table.Td>

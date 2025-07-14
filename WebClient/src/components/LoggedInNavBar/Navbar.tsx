@@ -1,6 +1,6 @@
 "use client";
 
-import { Code, Group, Image, Indicator, NavLink, Title } from "@mantine/core";
+import { Avatar, Code, Group, Image, Indicator, NavLink, Text, Title, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
@@ -15,8 +15,11 @@ import {
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
 
-import { getNotificationQuantityV1NotificationsQuantityGet } from "@/lib/api/csclient";
-import { Program } from "@/lib/info";
+import {
+    getNotificationQuantityV1NotificationsQuantityGet,
+    getUserAvatarEndpointV1UsersAvatarGet,
+} from "@/lib/api/csclient";
+import { Program, roles } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
 import { GetAccessTokenHeader } from "@/lib/utils/token";
@@ -28,6 +31,7 @@ import { customLogger } from "@/lib/api/customLogger";
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
     const [notificationsQuantity, setNotificationsQuantity] = useState<number>(0);
+    const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
     const userCtx = useUser();
     const router = useRouter();
     const pathname = usePathname();
@@ -174,6 +178,40 @@ export const Navbar: React.FC = () => {
         });
     }, [notificationsQuantity, pathname, userCtx.userPermissions, userCtx.userInfo?.roleId]);
 
+    const fetchUserAvatar = async (avatarUrn: string): Promise<string | null> => {
+        try {
+            const result = await getUserAvatarEndpointV1UsersAvatarGet({
+                query: { fn: avatarUrn },
+                headers: { Authorization: GetAccessTokenHeader() },
+            });
+
+            if (result.error) {
+                throw new Error(`Failed to fetch avatar: ${result.response.status} ${result.response.statusText}`);
+            }
+
+            const blob = result.data as Blob;
+            const url = URL.createObjectURL(blob);
+            return url;
+        } catch (error) {
+            customLogger.error("Failed to fetch user avatar:", error);
+            return null;
+        }
+    };
+
+    // Fetch user avatar when component mounts or when user avatar URN changes
+    useEffect(() => {
+        const fetchAndSetAvatar = async () => {
+            if (userCtx.userInfo?.avatarUrn) {
+                const avatarUrl = await fetchUserAvatar(userCtx.userInfo.avatarUrn);
+                setUserAvatarUrl(avatarUrl || null);
+            } else {
+                setUserAvatarUrl(null);
+            }
+        };
+
+        fetchAndSetAvatar();
+    }, [userCtx.userInfo?.avatarUrn]);
+
     customLogger.debug("Returning Navbar");
     return (
         <nav className={classes.navbar}>
@@ -193,6 +231,41 @@ export const Navbar: React.FC = () => {
                     </Group>
                 </Group>
                 <div>{links}</div>
+            </div>
+            <div className={classes.footer}>
+                {/* The logged-in user's avatar and name */}
+                <Group gap="sm" align="center">
+                    {userCtx.userInfo?.avatarUrn && userAvatarUrl ? (
+                        <Avatar radius="xl" src={userAvatarUrl}>
+                            <IconUser />
+                        </Avatar>
+                    ) : (
+                        <Avatar
+                            radius="xl"
+                            name={userCtx.userInfo?.nameFirst + " " + userCtx.userInfo?.nameLast}
+                            color="initials"
+                        />
+                    )}
+                    <Tooltip label={roles[userCtx.userInfo?.roleId || 0] || "Unknown Role"} position="top" withArrow>
+                        <div>
+                            <Text size="sm" fw={500}>
+                                {[
+                                    userCtx.userInfo?.nameFirst,
+                                    userCtx.userInfo?.nameMiddle
+                                        ? userCtx.userInfo.nameMiddle
+                                              .split(" ")
+                                              .map((n) => n[0])
+                                              .join(".") + ". "
+                                        : "",
+                                    userCtx.userInfo?.nameLast,
+                                ].join(" ")}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                                {userCtx.userInfo?.username}
+                            </Text>
+                        </div>
+                    </Tooltip>
+                </Group>
             </div>
             <div className={classes.footer}>
                 <NavLink

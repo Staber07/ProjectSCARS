@@ -4,17 +4,19 @@ import datetime
 from typing import Any, Dict, List, Union
 
 from fastapi import HTTPException, status
-from sqlmodel import Session, select
 from sqlalchemy.exc import NoResultFound
+from sqlmodel import Session, select
 
+from centralserver.internals.logger import LoggerFactory
+from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.reports.monthly_report import MonthlyReport
+from centralserver.internals.models.reports.report_status import ReportStatus
 from centralserver.internals.models.reports.status_change_request import (
-    StatusChangeRequest,
     RoleBasedTransitions,
+    StatusChangeRequest,
 )
 from centralserver.internals.models.user import User
-from centralserver.internals.logger import LoggerFactory
-from centralserver.internals.models.reports.report_status import ReportStatus
+from centralserver.internals.notification_handler import push_notification
 
 logger = LoggerFactory().get_logger(__name__)
 
@@ -47,93 +49,7 @@ class ReportStatusManager:
             ) from e
 
     @staticmethod
-    def _check_monthly_report_component_statuses(
-        monthly_report: MonthlyReport, target_status: Any
-    ) -> None:
-        """
-        Check if all existing component reports of a monthly report are in the required status.
-        For monthly reports transitioning to REVIEW, all existing component reports must already be in REVIEW.
-        Missing reports are not required and will not block the submission.
-        """
-
-        # Only validate when transitioning monthly report to REVIEW status
-        if target_status != ReportStatus.REVIEW:
-            return
-
-        not_in_review_reports: List[str] = []
-
-        # Check Daily Financial Report (only if it exists)
-        if monthly_report.daily_financial_report is not None and (
-            monthly_report.daily_financial_report.reportStatus is None
-            or monthly_report.daily_financial_report.reportStatus != ReportStatus.REVIEW
-        ):
-            status_value = (
-                monthly_report.daily_financial_report.reportStatus.value
-                if monthly_report.daily_financial_report.reportStatus
-                else "draft"
-            )
-            not_in_review_reports.append(
-                f"Daily Sales & Purchases Report (current status: {status_value})"
-            )
-
-        # Check Payroll Report (only if it exists)
-        if (
-            monthly_report.payroll_report is not None
-            and monthly_report.payroll_report.reportStatus != ReportStatus.REVIEW
-        ):
-            not_in_review_reports.append(
-                f"Payroll Report (current status: {monthly_report.payroll_report.reportStatus.value})"
-            )
-
-        # Check all liquidation reports (only if they exist)
-        liquidation_reports: List[tuple[str, Any]] = [
-            ("Operating Expenses Report", monthly_report.operating_expenses_report),
-            (
-                "Administrative Expenses Report",
-                monthly_report.administrative_expenses_report,
-            ),
-            ("Clinic Fund Report", monthly_report.clinic_fund_report),
-            (
-                "Supplementary Feeding Fund Report",
-                monthly_report.supplementary_feeding_fund_report,
-            ),
-            ("HE Fund Report", monthly_report.he_fund_report),
-            (
-                "Faculty & Student Development Fund Report",
-                monthly_report.faculty_and_student_dev_fund_report,
-            ),
-            (
-                "School Operation Fund Report",
-                monthly_report.school_operation_fund_report,
-            ),
-            ("Revolving Fund Report", monthly_report.revolving_fund_report),
-        ]
-
-        for report_name, report in liquidation_reports:
-            if (
-                report is not None
-                and hasattr(report, "reportStatus")
-                and report.reportStatus != ReportStatus.REVIEW
-            ):
-                not_in_review_reports.append(
-                    f"{report_name} (current status: {report.reportStatus.value})"
-                )
-
-        # Construct error message if validation fails
-        if not_in_review_reports:
-            error_message = (
-                "Cannot submit monthly report for review. "
-                f"Reports not in REVIEW status: {', '.join(not_in_review_reports)}. "
-                "Please submit these existing reports for review first."
-            )
-
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_message,
-            )
-
-    @staticmethod
-    def change_report_status(
+    async def change_report_status(
         session: Session,
         user: User,
         report: Any,  # Any report type with reportStatus field
@@ -162,11 +78,9 @@ class ReportStatusManager:
             The updated report object
         """
 
-        # Special validation for monthly reports - check component report statuses
-        if report_type == "monthly":
-            ReportStatusManager._check_monthly_report_component_statuses(
-                report, status_change.new_status
-            )
+        # Special validation for monthly reports has been removed to allow cascading behavior.
+        # When a monthly report status changes to REVIEW, it will automatically
+        # cascade to all component reports, eliminating the need for pre-validation.
 
         # Validate the status transition based on user role
         if not RoleBasedTransitions.is_transition_valid(
@@ -192,21 +106,35 @@ class ReportStatusManager:
         # Update the report status
         old_status = report.reportStatus
         report.reportStatus = status_change.new_status
-        
+
         # Update timestamps based on status change
         ReportStatusManager._update_status_timestamps(report, status_change.new_status)
 
         # Add to session and commit
         session.add(report)
-        
+
         # For monthly reports, cascade status to component reports
         if report_type == "monthly":
-            ReportStatusManager._cascade_status_to_component_reports(
+            await ReportStatusManager._cascade_status_to_component_reports(
                 session, report, status_change.new_status
             )
-        
+
         session.commit()
         session.refresh(report)
+
+        # Send notification to the user who prepared the report
+        await ReportStatusManager._notify_report_status_change(
+            session=session,
+            report=report,
+            old_status=old_status,
+            new_status=status_change.new_status,
+            report_type=report_type,
+            school_id=school_id,
+            year=year,
+            month=month,
+            category=category,
+            comments=status_change.comments,
+        )
 
         # Build log context
         context_parts = [f"school {school_id}", f"{year}-{month}"]
@@ -226,14 +154,14 @@ class ReportStatusManager:
 
         # Cascade status change to component reports if monthly report
         if report_type == "monthly":
-            ReportStatusManager._cascade_status_to_component_reports(
+            await ReportStatusManager._cascade_status_to_component_reports(
                 session, report, status_change.new_status
             )
 
         return report
 
     @staticmethod
-    def _cascade_status_to_component_reports(
+    async def _cascade_status_to_component_reports(
         session: Session, monthly_report: MonthlyReport, new_status: ReportStatus
     ) -> None:
         """
@@ -247,6 +175,7 @@ class ReportStatusManager:
         """
         # Only cascade for certain statuses
         cascade_statuses = [
+            ReportStatus.REVIEW,  # Added: Cascade when monthly report is submitted for review
             ReportStatus.APPROVED,
             ReportStatus.REJECTED,
             ReportStatus.RECEIVED,
@@ -257,6 +186,11 @@ class ReportStatusManager:
             return
 
         reports_updated: List[str] = []
+
+        # Extract year and month from monthly report
+        year = monthly_report.id.year
+        month = monthly_report.id.month
+        school_id = monthly_report.submittedBySchool
 
         # Update Daily Financial Report if it exists
         if monthly_report.daily_financial_report is not None:
@@ -271,6 +205,24 @@ class ReportStatusManager:
                     f"Daily Financial Report ({old_status.value} → {new_status.value})"
                 )
 
+                # Send notification for daily financial report
+                cascade_comment = (
+                    "Automatically submitted for review when monthly report was submitted for review"
+                    if new_status == ReportStatus.REVIEW
+                    else f"Status cascaded from monthly report status change to {new_status.value}"
+                )
+                await ReportStatusManager._notify_report_status_change(
+                    session=session,
+                    report=monthly_report.daily_financial_report,
+                    old_status=old_status,
+                    new_status=new_status,
+                    report_type="daily financial",
+                    school_id=school_id,
+                    year=year,
+                    month=month,
+                    comments=cascade_comment,
+                )
+
         # Update Payroll Report if it exists
         if monthly_report.payroll_report is not None:
             old_status = monthly_report.payroll_report.reportStatus
@@ -283,14 +235,38 @@ class ReportStatusManager:
                 f"Payroll Report ({old_status.value} → {new_status.value})"
             )
 
+            # Send notification for payroll report
+            cascade_comment = (
+                "Automatically submitted for review when monthly report was submitted for review"
+                if new_status == ReportStatus.REVIEW
+                else f"Status cascaded from monthly report status change to {new_status.value}"
+            )
+            await ReportStatusManager._notify_report_status_change(
+                session=session,
+                report=monthly_report.payroll_report,
+                old_status=old_status,
+                new_status=new_status,
+                report_type="payroll",
+                school_id=school_id,
+                year=year,
+                month=month,
+                comments=cascade_comment,
+            )
+
         # Update all liquidation reports if they exist
         liquidation_reports: List[tuple[str, Any]] = [
             ("Operating Expenses", monthly_report.operating_expenses_report),
             ("Administrative Expenses", monthly_report.administrative_expenses_report),
             ("Clinic Fund", monthly_report.clinic_fund_report),
-            ("Supplementary Feeding Fund", monthly_report.supplementary_feeding_fund_report),
+            (
+                "Supplementary Feeding Fund",
+                monthly_report.supplementary_feeding_fund_report,
+            ),
             ("HE Fund", monthly_report.he_fund_report),
-            ("Faculty & Student Dev Fund", monthly_report.faculty_and_student_dev_fund_report),
+            (
+                "Faculty & Student Dev Fund",
+                monthly_report.faculty_and_student_dev_fund_report,
+            ),
             ("School Operation Fund", monthly_report.school_operation_fund_report),
             ("Revolving Fund", monthly_report.revolving_fund_report),
         ]
@@ -306,6 +282,27 @@ class ReportStatusManager:
                         f"{report_name} Report ({old_status.value} → {new_status.value})"
                     )
 
+                    # Send notification for liquidation report
+                    # Convert report name to category format (e.g., "Operating Expenses" -> "operating_expenses")
+                    category = report_name.lower().replace(" ", "_").replace("&", "and")
+                    cascade_comment = (
+                        "Automatically submitted for review when monthly report was submitted for review"
+                        if new_status == ReportStatus.REVIEW
+                        else f"Status cascaded from monthly report status change to {new_status.value}"
+                    )
+                    await ReportStatusManager._notify_report_status_change(
+                        session=session,
+                        report=report,
+                        old_status=old_status,
+                        new_status=new_status,
+                        report_type="liquidation",
+                        school_id=school_id,
+                        year=year,
+                        month=month,
+                        category=category,
+                        comments=cascade_comment,
+                    )
+
         # Log the cascade operation
         if reports_updated:
             logger.info(
@@ -318,21 +315,21 @@ class ReportStatusManager:
     def _update_status_timestamps(report: Any, new_status: ReportStatus) -> None:
         """
         Update timestamp fields based on status changes.
-        
+
         Args:
             report: The report object to update timestamps for
             new_status: The new status being set
         """
         current_time = datetime.datetime.now()
-        
+
         # Set dateApproved when status becomes APPROVED
         if new_status == ReportStatus.APPROVED and hasattr(report, "dateApproved"):
             report.dateApproved = current_time
-            
+
         # Set dateReceived when status becomes RECEIVED
         if new_status == ReportStatus.RECEIVED and hasattr(report, "dateReceived"):
             report.dateReceived = current_time
-            
+
         # Always update lastModified
         if hasattr(report, "lastModified"):
             report.lastModified = current_time
@@ -371,3 +368,106 @@ class ReportStatusManager:
         """Get list of viewable report statuses for filtering queries."""
         viewable_statuses = RoleBasedTransitions.get_viewable_statuses(user.roleId)
         return viewable_statuses  # Return the enum objects directly
+
+    @staticmethod
+    async def _notify_report_status_change(
+        session: Session,
+        report: Any,
+        old_status: ReportStatus,
+        new_status: ReportStatus,
+        report_type: str,
+        school_id: int,
+        year: int,
+        month: int,
+        category: str | None = None,
+        comments: str | None = None,
+    ) -> None:
+        """
+        Send notification to the user who prepared the report when its status changes.
+
+        Args:
+            session: Database session
+            report: The report object
+            old_status: Previous status
+            new_status: New status
+            report_type: Type of report (e.g., "monthly", "payroll", "liquidation")
+            school_id: School ID
+            year: Report year
+            month: Report month
+            category: Category (for liquidation reports)
+            comments: Optional comments about the status change
+        """
+        # Check if report has a preparedBy field
+        prepared_by = getattr(report, "preparedBy", None)
+        if not prepared_by:
+            logger.debug(
+                "No preparedBy field found for %s report, skipping notification",
+                report_type,
+            )
+            return
+
+        # Build report description
+        report_description = f"{report_type.title()} Report"
+        if category:
+            report_description = (
+                f"{category.replace('_', ' ').title()} {report_description}"
+            )
+
+        report_context = f"for {year}-{month:02d}"
+
+        # Create notification title based on status
+        status_action_map = {
+            ReportStatus.REVIEW: "submitted for review",
+            ReportStatus.APPROVED: "approved",
+            ReportStatus.REJECTED: "rejected",
+            ReportStatus.RECEIVED: "received",
+            ReportStatus.ARCHIVED: "archived",
+        }
+
+        action = status_action_map.get(new_status, f"changed to {new_status.value}")
+        title = f"Report Status Update: {report_description} {action}"
+
+        # Build notification content
+        content_parts = [
+            f"Your {report_description} {report_context} has been {action}.",
+            f"Previous status: {old_status.value}",
+            f"Current status: {new_status.value}",
+        ]
+
+        if comments:
+            content_parts.append(f"Comments: {comments}")
+
+        content = "\n".join(content_parts)
+
+        # Determine notification type and importance based on status
+        notification_type = NotificationType.INFO
+        is_important = False
+
+        if new_status == ReportStatus.APPROVED:
+            notification_type = NotificationType.SUCCESS
+            is_important = True
+        elif new_status == ReportStatus.REJECTED:
+            notification_type = NotificationType.WARNING
+            is_important = True
+        elif new_status == ReportStatus.RECEIVED:
+            notification_type = NotificationType.SUCCESS
+            is_important = True
+
+        # Send the notification
+        await push_notification(
+            owner_id=prepared_by,
+            title=title,
+            content=content,
+            session=session,
+            important=is_important,
+            notification_type=notification_type,
+        )
+
+        logger.info(
+            "Sent status change notification to user %s for %s report %s: %s → %s",
+            prepared_by,
+            report_type,
+            report_context,
+            old_status.value,
+            new_status.value,
+        )

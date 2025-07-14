@@ -22,6 +22,7 @@ import {
     Button,
     Card,
     Checkbox,
+    Container,
     Flex,
     Grid,
     Group,
@@ -38,10 +39,12 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
     IconAlertCircle,
+    IconBuildings,
     IconCash,
     IconDots,
     IconDownload,
     IconEye,
+    IconFileSad,
     IconFilter,
     IconPencil,
     IconReceipt,
@@ -340,6 +343,33 @@ export default function ReportsPage() {
         return userRoleId === 5;
     }, [userCtx.userInfo?.roleId]);
 
+    // Check if user has complete profile and is assigned to school
+    const hasCompleteProfile = useMemo(() => {
+        return !!(
+            userCtx.userInfo?.nameFirst &&
+            userCtx.userInfo?.nameLast &&
+            userCtx.userInfo?.position &&
+            userCtx.userInfo?.signatureUrn
+        );
+    }, [userCtx.userInfo]);
+
+    const isAssignedToSchool = useMemo(() => {
+        return !!userCtx.userInfo?.schoolId;
+    }, [userCtx.userInfo?.schoolId]);
+
+    const getDisabledReason = () => {
+        if (!isAssignedToSchool) {
+            return "Not assigned to a school";
+        }
+        if (!hasCompleteProfile) {
+            return "Profile incomplete";
+        }
+        if (!canCreateReports) {
+            return "Access restricted by role";
+        }
+        return "";
+    };
+
     type QuickActionCardProps = {
         title: string;
         description: string;
@@ -347,6 +377,7 @@ export default function ReportsPage() {
         color: string;
         onClick: () => void;
         disabled?: boolean;
+        disabledReason?: string;
     };
 
     const QuickActionCard = ({
@@ -356,6 +387,7 @@ export default function ReportsPage() {
         color,
         onClick,
         disabled = false,
+        disabledReason,
     }: QuickActionCardProps) => (
         <Card
             shadow="sm"
@@ -377,7 +409,7 @@ export default function ReportsPage() {
                         {title}
                     </Text>
                     <Text size="sm" c="dimmed">
-                        {disabled ? "Access restricted by role" : description}
+                        {disabled ? disabledReason || "Access restricted" : description}
                     </Text>
                 </div>
             </Group>
@@ -535,22 +567,42 @@ export default function ReportsPage() {
         ]
     );
 
+    // Show notification for users not assigned to school
+    useEffect(() => {
+        if (!isAssignedToSchool && userCtx.userInfo) {
+            notifications.show({
+                id: "no-school-assigned",
+                title: "No School Assigned",
+                message:
+                    "You are not yet assigned to a school! You will not be able to create or manage reports until you are assigned to a school. Please contact your administrator to get assigned.",
+                color: "yellow",
+                icon: <IconAlertCircle size={16} />,
+                autoClose: false,
+                withCloseButton: true,
+            });
+        }
+    }, [isAssignedToSchool, userCtx.userInfo]);
+
+    // Show notification for incomplete profile
+    useEffect(() => {
+        if (!hasCompleteProfile && userCtx.userInfo && isAssignedToSchool) {
+            notifications.show({
+                id: "incomplete-profile",
+                title: "Incomplete Profile",
+                message:
+                    "Your profile is incomplete. Please update your profile with your full name, position, and signature to create reports.",
+                color: "red",
+                icon: <IconAlertCircle size={16} />,
+                autoClose: false,
+                withCloseButton: true,
+            });
+        }
+    }, [hasCompleteProfile, userCtx.userInfo, isAssignedToSchool]);
+
     return (
         <Stack gap="lg">
-            {!userCtx.userInfo?.schoolId && (
-                <Alert
-                    variant="light"
-                    color="yellow"
-                    withCloseButton
-                    title="Warning"
-                    icon={<IconAlertCircle size={16} />}
-                >
-                    You are not yet assigned to a school! Reports you create will fail to submit.
-                </Alert>
-            )}
-
             {!canCreateReports && userCtx.userInfo?.roleId && (
-                <Alert variant="light" color="blue" title="Role-based Access" icon={<IconAlertCircle size={16} />}>
+                <Alert variant="light" color="blue" title="Role-Based Access" icon={<IconAlertCircle size={16} />}>
                     As a{" "}
                     {userCtx.userInfo.roleId === 4
                         ? "Principal"
@@ -563,6 +615,7 @@ export default function ReportsPage() {
                     reports.
                 </Alert>
             )}
+
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
@@ -573,7 +626,8 @@ export default function ReportsPage() {
                             icon={IconCash}
                             color="blue"
                             onClick={handleNavigateToSales}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -583,7 +637,8 @@ export default function ReportsPage() {
                             icon={IconReceipt}
                             color="green"
                             onClick={() => setLiquidationModalOpened(true)}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -593,7 +648,8 @@ export default function ReportsPage() {
                             icon={IconUsers}
                             color="violet"
                             onClick={handleNavigateToPayroll}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                 </Grid>
@@ -698,9 +754,27 @@ export default function ReportsPage() {
                 {filteredReports.length === 0 && (
                     <Paper p="xl" ta="center">
                         {userAssignedToSchool ? (
-                            <Text c="dimmed">No reports found</Text>
+                            <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                                <IconFileSad
+                                    size={64}
+                                    style={{ margin: "auto", display: "block" }}
+                                    color="var(--mantine-color-dimmed)"
+                                />
+                                <Text size="lg" mt="xl" c="dimmed">
+                                    No Reports Found
+                                </Text>
+                            </Container>
                         ) : (
-                            <Text c="dimmed">You are not assigned to any school.</Text>
+                            <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                                <IconBuildings
+                                    size={64}
+                                    style={{ margin: "auto", display: "block" }}
+                                    color="var(--mantine-color-dimmed)"
+                                />
+                                <Text size="lg" mt="xl" c="dimmed">
+                                    You are not assigned to any school
+                                </Text>
+                            </Container>
                         )}
                     </Paper>
                 )}

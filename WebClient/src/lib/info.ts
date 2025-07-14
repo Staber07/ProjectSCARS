@@ -10,7 +10,7 @@ import {
 // Used for exporting the program information and connection details into NavBar Component
 export const Program = {
     name: "BENTO",
-    description: "Baliuag's Enhanced Network for School Canteen Tracking Operations",
+    description: "Baliuag's Enhanced Network for Tracking Operations",
     version: "0.5.0",
 };
 

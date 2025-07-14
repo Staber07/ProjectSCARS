@@ -425,6 +425,9 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         const hasFieldsToDelete = Object.values(fieldsToDelete).some(
             (field, index) => index > 0 && field === true // Skip the id field at index 0
         );
+        // Track successful operations for consolidated notification
+        const successfulOperations: string[] = [];
+
         try {
             customLogger.debug("Has values to remove:", hasFieldsToDelete);
             if (hasFieldsToDelete) {
@@ -469,13 +472,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             }
 
             let updatedUser = result.data as UserPublic;
-            notifications.show({
-                id: "user-update-success",
-                title: "Success",
-                message: "User information updated successfully.",
-                color: "green",
-                icon: <IconPencilCheck />,
-            });
+            successfulOperations.push("Profile information");
 
             if (avatarRemoved && currentAvatarUrn) {
                 try {
@@ -492,13 +489,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     }
 
                     customLogger.debug("Avatar removed successfully.");
-                    notifications.show({
-                        id: "avatar-remove-success",
-                        title: "Success",
-                        message: "Avatar removed successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
+                    successfulOperations.push("Avatar removed");
                 } catch (error) {
                     if (error instanceof Error) {
                         const detail = error.message || "Failed to remove avatar.";
@@ -532,13 +523,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     if (updatedUser.avatarUrn) {
                         fetchUserAvatar(updatedUser.avatarUrn);
                         customLogger.debug("Avatar uploaded successfully.");
-                        notifications.show({
-                            id: "avatar-upload-success",
-                            title: "Success",
-                            message: "Avatar uploaded successfully.",
-                            color: "green",
-                            icon: <IconPencilCheck />,
-                        });
+                        successfulOperations.push("Avatar updated");
                     }
                 } catch (error) {
                     if (error instanceof Error) {
@@ -582,13 +567,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                     }
 
                     customLogger.debug("Signature removed successfully.");
-                    notifications.show({
-                        id: "signature-remove-success",
-                        title: "Success",
-                        message: "E-signature removed successfully.",
-                        color: "green",
-                        icon: <IconPencilCheck />,
-                    });
+                    successfulOperations.push("E-signature removed");
                 } catch (error) {
                     if (error instanceof Error) {
                         const detail = error.message || "Failed to remove signature.";
@@ -627,13 +606,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                             setEditUserSignatureUrl(newSignatureUrl);
                         }
                         customLogger.debug("Signature uploaded successfully.");
-                        notifications.show({
-                            id: "signature-upload-success",
-                            title: "Success",
-                            message: "E-signature uploaded successfully.",
-                            color: "green",
-                            icon: <IconPencilCheck />,
-                        });
+                        successfulOperations.push("E-signature updated");
                     }
                 } catch (error) {
                     if (error instanceof Error) {
@@ -665,6 +638,22 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             setAvatarRemoved(false);
             setEditUserSignature(null);
             setSignatureRemoved(false);
+
+            // Show consolidated success notification if any operations were successful
+            if (successfulOperations.length > 0) {
+                const message =
+                    successfulOperations.length === 1
+                        ? `${successfulOperations[0]} updated successfully.`
+                        : `Successfully updated: ${successfulOperations.join(", ")}.`;
+
+                notifications.show({
+                    id: "profile-update-success",
+                    title: "Profile Updated",
+                    message,
+                    color: "green",
+                    icon: <IconPencilCheck />,
+                });
+            }
         } catch (error) {
             if (error instanceof Error && error.message.includes("status code 403")) {
                 const detail = error.message || "Failed to update user information.";
@@ -1338,9 +1327,6 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         />
                     </Stack>
                 </Paper>
-                <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
-                    Save
-                </Button>
                 <Title order={4} mb="sm" mt="lg">
                     Account Security
                 </Title>
@@ -1556,364 +1542,367 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         }}
                     />
                 </Group>
-                <Modal
-                    opened={showOTPModal}
-                    onClose={() => {
-                        showOTPSecretHandler.close();
-                        setShowOTPModal(false);
-                    }}
-                    title="Enable Two-Step Verification"
-                    centered
-                >
-                    <Stack>
-                        <Text size="sm" c="dimmed" ta="center">
-                            Scan the QR code below with your authenticator app to set up two-step verification.
-                        </Text>
-                        <Box style={{ textAlign: "center" }}>
-                            <SVG text={otpGenData?.provisioning_uri || ""} />
-                        </Box>
-                        {!showOTPSecret && (
-                            <Anchor
-                                size="xs"
-                                c="dimmed"
-                                onClick={showOTPSecretHandler.open}
-                                style={{ cursor: "pointer", textAlign: "center" }}
-                            >
-                                Can&apos;t scan the QR code?
-                            </Anchor>
-                        )}
-                        {showOTPSecret && (
-                            <Anchor
-                                size="xs"
-                                c="dimmed"
-                                onClick={() => {
-                                    if (otpGenData?.secret) {
-                                        navigator.clipboard.writeText(otpGenData.secret);
-                                        // showOTPSecretHandler.close();
-                                        notifications.show({
-                                            title: "Secret Copied",
-                                            message: "The secret key has been copied to your clipboard",
-                                            color: "green",
-                                        });
-                                    }
-                                }}
-                                style={{ cursor: "pointer", textAlign: "center" }}
-                            >
-                                <strong>{otpGenData?.secret.match(/.{1,4}/g)?.join(" ") || "Error"}</strong>
-                            </Anchor>
-                        )}
-                        <Text size="sm" ta="center">
-                            Enter the verification code generated by your authenticator app below to complete the setup.
-                        </Text>
-                        <Center>
-                            <PinInput
-                                oneTimeCode
-                                length={6}
-                                type="number"
-                                onChange={(value) => {
-                                    setVerifyOtpCode(value);
-                                    setOtpVerifyHasError(false);
-                                }}
-                                error={otpVerifyHasError}
-                            />
-                        </Center>
-                        <Button
-                            variant="filled"
-                            color="blue"
-                            onClick={async () => {
-                                try {
-                                    const result = await verifyMfaOtpV1AuthMfaOtpVerifyPost({
-                                        query: { otp: verifyOtpCode },
-                                        headers: { Authorization: GetAccessTokenHeader() },
-                                    });
-
-                                    if (result.error) {
-                                        throw new Error(
-                                            `Failed to verify OTP: ${result.response.status} ${result.response.statusText}`
-                                        );
-                                    }
-
-                                    notifications.show({
-                                        title: "Two-Step Verification Enabled",
-                                        message: "You will now be prompted for a verification code during login.",
-                                        color: "green",
-                                        icon: <IconKey />,
-                                    });
-                                    setOtpEnabled(true);
-                                    setShowOTPModal(false);
-                                    setShowRecoveryCodeModal(true);
-                                } catch (error) {
-                                    customLogger.error(error instanceof Error ? error.message : String(error));
-                                    notifications.show({
-                                        title: "Error Enabling Two-Step Verification",
-                                        message: "An unknown error occurred.",
-                                        color: "red",
-                                        icon: <IconX />,
-                                    });
-                                    setOtpVerifyHasError(true);
-                                } finally {
-                                    showOTPSecretHandler.close();
-                                }
-                            }}
-                        >
-                            Enable Two-Step Verification
-                        </Button>
-                    </Stack>
-                </Modal>
-                <Modal
-                    opened={showRecoveryCodeModal}
-                    onClose={() => setShowRecoveryCodeModal(false)}
-                    title="Recovery Code"
-                    centered
-                >
-                    <Stack>
-                        <Text size="sm" c="dimmed" ta="center">
-                            Store this recovery code in a safe place. They can be used to access your account if you
-                            lose access to your authenticator app.
-                        </Text>
-                        <Group justify="center" gap="sm">
-                            <Flex justify="center" align="center" gap="xs">
-                                {otpGenData?.recovery_code ? (
-                                    <Text size="md" fw={500}>
-                                        {otpGenData.recovery_code}
+                <Divider my="lg" label="Linked Accounts" labelPosition="center" />
+                <Stack>
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/google.svg"
+                                    alt="Google Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Google
                                     </Text>
-                                ) : (
-                                    <Text size="md" c="red">
-                                        No recovery code available
-                                    </Text>
-                                )}
-                                <ActionIcon
-                                    variant="light"
-                                    color="blue"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(otpGenData?.recovery_code || "");
-                                        notifications.show({
-                                            title: "Recovery Codes Copied",
-                                            message: "The recovery codes have been copied to your clipboard",
-                                            color: "green",
-                                        });
-                                    }}
-                                >
-                                    <IconClipboardCopy size={16} />
-                                </ActionIcon>
-                            </Flex>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedGoogleId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedGoogleId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed">
+                                    Link your Google account for quick sign-in
+                                </Text>
+                            </div>
                         </Group>
-                    </Stack>
-                </Modal>
-            </form>
-            <Divider my="lg" label="Linked Accounts" labelPosition="center" />
-            <Stack>
-                <Group justify="space-between" align="center">
-                    <Group>
-                        <Box w={30} h={30}>
-                            <Image
-                                src="/assets/logos/google.svg"
-                                alt="Google Logo"
-                                width={30}
-                                height={30}
-                                style={{ objectFit: "contain" }}
-                            />
-                        </Box>
-                        <div>
-                            <Group>
-                                <Text size="sm" fw={500}>
-                                    Google
-                                </Text>
-                                <Badge
-                                    variant="filled"
-                                    color={userInfo?.oauthLinkedGoogleId ? "green" : "gray"}
-                                    size="xs"
-                                >
-                                    {userInfo?.oauthLinkedGoogleId ? "Linked" : "Not Linked"}
-                                </Badge>
-                            </Group>
-                            <Text size="xs" c="dimmed">
-                                Link your Google account for quick sign-in
-                            </Text>
-                        </div>
-                    </Group>
-                    {userInfo?.oauthLinkedGoogleId ? (
-                        <Button
-                            variant="light"
-                            color="red"
-                            size="xs"
-                            disabled={!oauthSupport.google}
-                            onClick={async () => {
-                                try {
-                                    const result = await oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet({
-                                        headers: { Authorization: GetAccessTokenHeader() },
-                                    });
+                        {userInfo?.oauthLinkedGoogleId ? (
+                            <Button
+                                variant="light"
+                                color="red"
+                                size="xs"
+                                disabled={!oauthSupport.google}
+                                onClick={async () => {
+                                    try {
+                                        const result = await oauthUnlinkGoogleV1AuthOauthGoogleUnlinkGet({
+                                            headers: { Authorization: GetAccessTokenHeader() },
+                                        });
 
-                                    if (result.error) {
-                                        throw new Error(
-                                            `Failed to unlink Google account: ${result.response.status} ${result.response.statusText}`
-                                        );
+                                        if (result.error) {
+                                            throw new Error(
+                                                `Failed to unlink Google account: ${result.response.status} ${result.response.statusText}`
+                                            );
+                                        }
+
+                                        notifications.show({
+                                            title: "Unlink Successful",
+                                            message: "Your Google account has been unlinked successfully.",
+                                            color: "green",
+                                        });
+                                    } catch (error) {
+                                        customLogger.error("Failed to unlink Google account:", error);
+                                        notifications.show({
+                                            title: "Unlink Failed",
+                                            message: "Failed to unlink your Google account. Please try again later.",
+                                            color: "red",
+                                        });
                                     }
-
+                                }}
+                            >
+                                Unlink Account
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="light"
+                                color="red"
+                                size="xs"
+                                disabled={!oauthSupport.google}
+                                onClick={async () => {
+                                    const response = await fetch(
+                                        `${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/auth/oauth/google/login`
+                                    );
+                                    const data = await response.json();
+                                    if (data.url) {
+                                        window.location.href = data.url;
+                                    }
+                                }}
+                            >
+                                Link Account
+                            </Button>
+                        )}
+                    </Group>
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/facebook.svg"
+                                    alt="Facebook Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Facebook
+                                    </Text>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedFacebookId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedFacebookId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed">
+                                    Link your Facebook account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        {userInfo?.oauthLinkedMicrosoftId ? (
+                            <Button
+                                variant="light"
+                                color="blue"
+                                size="xs"
+                                disabled={!oauthSupport.facebook}
+                                onClick={() => {
                                     notifications.show({
-                                        title: "Unlink Successful",
-                                        message: "Your Google account has been unlinked successfully.",
+                                        title: "Coming Soon",
+                                        message: "Facebook account linking will be available soon",
+                                        color: "blue",
+                                    });
+                                }}
+                            >
+                                Unlink Account
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="light"
+                                color="blue"
+                                size="xs"
+                                disabled={!oauthSupport.facebook}
+                                onClick={async () => {
+                                    notifications.show({
+                                        title: "Coming Soon",
+                                        message: "Facebook account linking will be available soon",
+                                        color: "blue",
+                                    });
+                                }}
+                            >
+                                Link Account
+                            </Button>
+                        )}
+                    </Group>
+                    <Group justify="space-between" align="center">
+                        <Group>
+                            <Box w={30} h={30}>
+                                <Image
+                                    src="/assets/logos/microsoft.svg"
+                                    alt="Microsoft Logo"
+                                    width={30}
+                                    height={30}
+                                    style={{ objectFit: "contain" }}
+                                />
+                            </Box>
+                            <div>
+                                <Group>
+                                    <Text size="sm" fw={500}>
+                                        Microsoft
+                                    </Text>
+                                    <Badge
+                                        variant="filled"
+                                        color={userInfo?.oauthLinkedMicrosoftId ? "green" : "gray"}
+                                        size="xs"
+                                    >
+                                        {userInfo?.oauthLinkedMicrosoftId ? "Linked" : "Not Linked"}
+                                    </Badge>
+                                </Group>
+                                <Text size="xs" c="dimmed">
+                                    Link your Microsoft account for quick sign-in
+                                </Text>
+                            </div>
+                        </Group>
+                        {userInfo?.oauthLinkedFacebookId ? (
+                            <Button
+                                variant="light"
+                                color="indigo"
+                                size="xs"
+                                disabled={!oauthSupport.facebook}
+                                onClick={() => {
+                                    notifications.show({
+                                        title: "Coming Soon",
+                                        message: "Microsoft account unlinking will be available soon",
+                                        color: "blue",
+                                    });
+                                }}
+                            >
+                                Unlink Account
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="light"
+                                color="indigo"
+                                size="xs"
+                                disabled={!oauthSupport.facebook}
+                                onClick={async () => {
+                                    notifications.show({
+                                        title: "Coming Soon",
+                                        message: "Microsoft account linking will be available soon",
+                                        color: "blue",
+                                    });
+                                }}
+                            >
+                                Link Account
+                            </Button>
+                        )}
+                    </Group>
+                </Stack>{" "}
+                <Button loading={buttonLoading} rightSection={<IconDeviceFloppy />} type="submit" fullWidth mt="xl">
+                    Save
+                </Button>
+            </form>
+            <Modal
+                opened={showOTPModal}
+                onClose={() => {
+                    showOTPSecretHandler.close();
+                    setShowOTPModal(false);
+                }}
+                title="Enable Two-Step Verification"
+                centered
+            >
+                <Stack>
+                    <Text size="sm" c="dimmed" ta="center">
+                        Scan the QR code below with your authenticator app to set up two-step verification.
+                    </Text>
+                    <Box style={{ textAlign: "center" }}>
+                        <SVG text={otpGenData?.provisioning_uri || ""} />
+                    </Box>
+                    {!showOTPSecret && (
+                        <Anchor
+                            size="xs"
+                            c="dimmed"
+                            onClick={showOTPSecretHandler.open}
+                            style={{ cursor: "pointer", textAlign: "center" }}
+                        >
+                            Can&apos;t scan the QR code?
+                        </Anchor>
+                    )}
+                    {showOTPSecret && (
+                        <Anchor
+                            size="xs"
+                            c="dimmed"
+                            onClick={() => {
+                                if (otpGenData?.secret) {
+                                    navigator.clipboard.writeText(otpGenData.secret);
+                                    // showOTPSecretHandler.close();
+                                    notifications.show({
+                                        title: "Secret Copied",
+                                        message: "The secret key has been copied to your clipboard",
                                         color: "green",
                                     });
-                                } catch (error) {
-                                    customLogger.error("Failed to unlink Google account:", error);
+                                }
+                            }}
+                            style={{ cursor: "pointer", textAlign: "center" }}
+                        >
+                            <strong>{otpGenData?.secret.match(/.{1,4}/g)?.join(" ") || "Error"}</strong>
+                        </Anchor>
+                    )}
+                    <Text size="sm" ta="center">
+                        Enter the verification code generated by your authenticator app below to complete the setup.
+                    </Text>
+                    <Center>
+                        <PinInput
+                            oneTimeCode
+                            length={6}
+                            type="number"
+                            onChange={(value) => {
+                                setVerifyOtpCode(value);
+                                setOtpVerifyHasError(false);
+                            }}
+                            error={otpVerifyHasError}
+                        />
+                    </Center>
+                    <Button
+                        variant="filled"
+                        color="blue"
+                        onClick={async () => {
+                            try {
+                                const result = await verifyMfaOtpV1AuthMfaOtpVerifyPost({
+                                    query: { otp: verifyOtpCode },
+                                    headers: { Authorization: GetAccessTokenHeader() },
+                                });
+
+                                if (result.error) {
+                                    throw new Error(
+                                        `Failed to verify OTP: ${result.response.status} ${result.response.statusText}`
+                                    );
+                                }
+
+                                notifications.show({
+                                    title: "Two-Step Verification Enabled",
+                                    message: "You will now be prompted for a verification code during login.",
+                                    color: "green",
+                                    icon: <IconKey />,
+                                });
+                                setOtpEnabled(true);
+                                setShowOTPModal(false);
+                                setShowRecoveryCodeModal(true);
+                            } catch (error) {
+                                customLogger.error(error instanceof Error ? error.message : String(error));
+                                notifications.show({
+                                    title: "Error Enabling Two-Step Verification",
+                                    message: "An unknown error occurred.",
+                                    color: "red",
+                                    icon: <IconX />,
+                                });
+                                setOtpVerifyHasError(true);
+                            } finally {
+                                showOTPSecretHandler.close();
+                            }
+                        }}
+                    >
+                        Enable Two-Step Verification
+                    </Button>
+                </Stack>
+            </Modal>
+            <Modal
+                opened={showRecoveryCodeModal}
+                onClose={() => setShowRecoveryCodeModal(false)}
+                title="Recovery Code"
+                centered
+            >
+                <Stack>
+                    <Text size="sm" c="dimmed" ta="center">
+                        Store this recovery code in a safe place. They can be used to access your account if you lose
+                        access to your authenticator app.
+                    </Text>
+                    <Group justify="center" gap="sm">
+                        <Flex justify="center" align="center" gap="xs">
+                            {otpGenData?.recovery_code ? (
+                                <Text size="md" fw={500}>
+                                    {otpGenData.recovery_code}
+                                </Text>
+                            ) : (
+                                <Text size="md" c="red">
+                                    No recovery code available
+                                </Text>
+                            )}
+                            <ActionIcon
+                                variant="light"
+                                color="blue"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(otpGenData?.recovery_code || "");
                                     notifications.show({
-                                        title: "Unlink Failed",
-                                        message: "Failed to unlink your Google account. Please try again later.",
-                                        color: "red",
+                                        title: "Recovery Codes Copied",
+                                        message: "The recovery codes have been copied to your clipboard",
+                                        color: "green",
                                     });
-                                }
-                            }}
-                        >
-                            Unlink Account
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="light"
-                            color="red"
-                            size="xs"
-                            disabled={!oauthSupport.google}
-                            onClick={async () => {
-                                const response = await fetch(
-                                    `${process.env.NEXT_PUBLIC_CENTRAL_SERVER_ENDPOINT}/v1/auth/oauth/google/login`
-                                );
-                                const data = await response.json();
-                                if (data.url) {
-                                    window.location.href = data.url;
-                                }
-                            }}
-                        >
-                            Link Account
-                        </Button>
-                    )}
-                </Group>
-                <Group justify="space-between" align="center">
-                    <Group>
-                        <Box w={30} h={30}>
-                            <Image
-                                src="/assets/logos/facebook.svg"
-                                alt="Facebook Logo"
-                                width={30}
-                                height={30}
-                                style={{ objectFit: "contain" }}
-                            />
-                        </Box>
-                        <div>
-                            <Group>
-                                <Text size="sm" fw={500}>
-                                    Facebook
-                                </Text>
-                                <Badge
-                                    variant="filled"
-                                    color={userInfo?.oauthLinkedFacebookId ? "green" : "gray"}
-                                    size="xs"
-                                >
-                                    {userInfo?.oauthLinkedFacebookId ? "Linked" : "Not Linked"}
-                                </Badge>
-                            </Group>
-                            <Text size="xs" c="dimmed">
-                                Link your Facebook account for quick sign-in
-                            </Text>
-                        </div>
+                                }}
+                            >
+                                <IconClipboardCopy size={16} />
+                            </ActionIcon>
+                        </Flex>
                     </Group>
-                    {userInfo?.oauthLinkedMicrosoftId ? (
-                        <Button
-                            variant="light"
-                            color="blue"
-                            size="xs"
-                            disabled={!oauthSupport.facebook}
-                            onClick={() => {
-                                notifications.show({
-                                    title: "Coming Soon",
-                                    message: "Facebook account linking will be available soon",
-                                    color: "blue",
-                                });
-                            }}
-                        >
-                            Unlink Account
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="light"
-                            color="blue"
-                            size="xs"
-                            disabled={!oauthSupport.facebook}
-                            onClick={async () => {
-                                notifications.show({
-                                    title: "Coming Soon",
-                                    message: "Facebook account linking will be available soon",
-                                    color: "blue",
-                                });
-                            }}
-                        >
-                            Link Account
-                        </Button>
-                    )}
-                </Group>
-                <Group justify="space-between" align="center">
-                    <Group>
-                        <Box w={30} h={30}>
-                            <Image
-                                src="/assets/logos/microsoft.svg"
-                                alt="Microsoft Logo"
-                                width={30}
-                                height={30}
-                                style={{ objectFit: "contain" }}
-                            />
-                        </Box>
-                        <div>
-                            <Group>
-                                <Text size="sm" fw={500}>
-                                    Microsoft
-                                </Text>
-                                <Badge
-                                    variant="filled"
-                                    color={userInfo?.oauthLinkedMicrosoftId ? "green" : "gray"}
-                                    size="xs"
-                                >
-                                    {userInfo?.oauthLinkedMicrosoftId ? "Linked" : "Not Linked"}
-                                </Badge>
-                            </Group>
-                            <Text size="xs" c="dimmed">
-                                Link your Microsoft account for quick sign-in
-                            </Text>
-                        </div>
-                    </Group>
-                    {userInfo?.oauthLinkedFacebookId ? (
-                        <Button
-                            variant="light"
-                            color="indigo"
-                            size="xs"
-                            disabled={!oauthSupport.facebook}
-                            onClick={() => {
-                                notifications.show({
-                                    title: "Coming Soon",
-                                    message: "Microsoft account unlinking will be available soon",
-                                    color: "blue",
-                                });
-                            }}
-                        >
-                            Unlink Account
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="light"
-                            color="indigo"
-                            size="xs"
-                            disabled={!oauthSupport.facebook}
-                            onClick={async () => {
-                                notifications.show({
-                                    title: "Coming Soon",
-                                    message: "Microsoft account linking will be available soon",
-                                    color: "blue",
-                                });
-                            }}
-                        >
-                            Link Account
-                        </Button>
-                    )}
-                </Group>
-            </Stack>
+                </Stack>
+            </Modal>
 
             {/* Signature Drawing Modal */}
             <Modal

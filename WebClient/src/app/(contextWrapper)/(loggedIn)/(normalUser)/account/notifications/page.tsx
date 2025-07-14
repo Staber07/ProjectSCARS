@@ -16,11 +16,11 @@ import {
     Box,
     Card,
     Checkbox,
+    Container,
     Divider,
     Group,
     ScrollArea,
     SegmentedControl,
-    Select,
     Stack,
     Text,
     TextInput,
@@ -31,6 +31,7 @@ import { notifications } from "@mantine/notifications";
 import {
     IconAlertCircle,
     IconCircleCheck,
+    IconConfetti,
     IconInfoCircle,
     IconMail,
     IconMailOpened,
@@ -49,7 +50,6 @@ export default function NotificationsPage() {
     const [filteredNotifications, setFilteredNotifications] = useState<Notification[]>([]);
     const [filter, setFilter] = useState("unread");
     const [search, setSearch] = useState("");
-    const [groupBy, setGroupBy] = useState("Date");
     const [selectAll, setSelectAll] = useState(false);
     const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -179,13 +179,6 @@ export default function NotificationsPage() {
                     value={search}
                     onChange={(e) => setSearch(e.currentTarget.value)}
                 />
-                <Select
-                    value={groupBy}
-                    onChange={(value) => {
-                        if (value) setGroupBy(value);
-                    }}
-                    data={["Date", "Type"]}
-                />
             </Group>
 
             <Group mb="sm" justify="space-between">
@@ -306,7 +299,18 @@ export default function NotificationsPage() {
             <ScrollArea h={600}>
                 <Stack>
                     {loading && <LoadingComponent withBorder={false} />}
-                    {!loading && filteredNotifications.length === 0 && <Text>No notifications found.</Text>}
+                    {!loading && filteredNotifications.length === 0 && (
+                        <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                            <IconConfetti
+                                size={64}
+                                style={{ margin: "auto", display: "block" }}
+                                color="var(--mantine-color-dimmed)"
+                            />
+                            <Text size="lg" mt="xl" c="dimmed">
+                                You&apos;re all good!
+                            </Text>
+                        </Container>
+                    )}
                     {!loading &&
                         filteredNotifications
                             .slice()

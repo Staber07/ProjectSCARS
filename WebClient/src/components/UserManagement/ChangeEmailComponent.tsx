@@ -81,9 +81,7 @@ export function ChangeEmailComponent({
 
                 if (verificationResult.error) {
                     customLogger.warn(
-                        "Failed to send verification email:",
-                        verificationResult.response.status,
-                        verificationResult.response.statusText
+                        `Failed to send verification email: ${verificationResult.response.status} ${verificationResult.response.statusText}`
                     );
                     notifications.show({
                         id: "verification-email-warning",
