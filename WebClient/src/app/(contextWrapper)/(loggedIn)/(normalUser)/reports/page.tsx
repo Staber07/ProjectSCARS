@@ -22,6 +22,7 @@ import {
     Button,
     Card,
     Checkbox,
+    Container,
     Flex,
     Grid,
     Group,
@@ -38,10 +39,12 @@ import {
 import { notifications } from "@mantine/notifications";
 import {
     IconAlertCircle,
+    IconBuildings,
     IconCash,
     IconDots,
     IconDownload,
     IconEye,
+    IconFileSad,
     IconFilter,
     IconPencil,
     IconReceipt,
@@ -72,9 +75,6 @@ export default function ReportsPage() {
     const [selectedReport, setSelectedReport] = useState<MonthlyReport | null>(null);
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
     const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
-
-    const [alertNotAssignedToSchoolDismissed, setAlertNotAssignedToSchoolDismissed] = useState(false);
-    const [alertIncompleteProfileDismissed, setAlertIncompleteProfileDismissed] = useState(false);
 
     // Fetch reports on component mount
     useEffect(() => {
@@ -567,24 +567,42 @@ export default function ReportsPage() {
         ]
     );
 
+    // Show notification for users not assigned to school
+    useEffect(() => {
+        if (!isAssignedToSchool && userCtx.userInfo) {
+            notifications.show({
+                id: "no-school-assigned",
+                title: "No School Assigned",
+                message:
+                    "You are not yet assigned to a school! You will not be able to create or manage reports until you are assigned to a school. Please contact your administrator to get assigned.",
+                color: "yellow",
+                icon: <IconAlertCircle size={16} />,
+                autoClose: false,
+                withCloseButton: true,
+            });
+        }
+    }, [isAssignedToSchool, userCtx.userInfo]);
+
+    // Show notification for incomplete profile
+    useEffect(() => {
+        if (!hasCompleteProfile && userCtx.userInfo && isAssignedToSchool) {
+            notifications.show({
+                id: "incomplete-profile",
+                title: "Incomplete Profile",
+                message:
+                    "Your profile is incomplete. Please update your profile with your full name, position, and signature to create reports.",
+                color: "red",
+                icon: <IconAlertCircle size={16} />,
+                autoClose: false,
+                withCloseButton: true,
+            });
+        }
+    }, [hasCompleteProfile, userCtx.userInfo, isAssignedToSchool]);
+
     return (
         <Stack gap="lg">
-            {!isAssignedToSchool && !alertNotAssignedToSchoolDismissed && (
-                <Alert
-                    variant="light"
-                    color="yellow"
-                    withCloseButton
-                    title="No School Assigned"
-                    icon={<IconAlertCircle size={16} />}
-                    onClose={() => setAlertNotAssignedToSchoolDismissed(true)}
-                >
-                    You are not yet assigned to a school! You will not be able to create or manage reports until you are
-                    assigned to a school. Please contact your administrator to get assigned.
-                </Alert>
-            )}
-
             {!canCreateReports && userCtx.userInfo?.roleId && (
-                <Alert variant="light" color="blue" title="Role-based Access" icon={<IconAlertCircle size={16} />}>
+                <Alert variant="light" color="blue" title="Role-Based Access" icon={<IconAlertCircle size={16} />}>
                     As a{" "}
                     {userCtx.userInfo.roleId === 4
                         ? "Principal"
@@ -595,20 +613,6 @@ export default function ReportsPage() {
                         : "non-Canteen Manager"}
                     , you can view and manage reports but cannot create new ones. Only Canteen Managers can create
                     reports.
-                </Alert>
-            )}
-
-            {!hasCompleteProfile && !alertIncompleteProfileDismissed && (
-                <Alert
-                    variant="light"
-                    color="red"
-                    withCloseButton
-                    title="Incomplete Profile"
-                    icon={<IconAlertCircle size={16} />}
-                    onClose={() => setAlertIncompleteProfileDismissed(true)}
-                >
-                    Your profile is incomplete. Please update your profile with your full name, position, and signature
-                    to create reports.
                 </Alert>
             )}
 
@@ -750,9 +754,27 @@ export default function ReportsPage() {
                 {filteredReports.length === 0 && (
                     <Paper p="xl" ta="center">
                         {userAssignedToSchool ? (
-                            <Text c="dimmed">No reports found</Text>
+                            <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                                <IconFileSad
+                                    size={64}
+                                    style={{ margin: "auto", display: "block" }}
+                                    color="var(--mantine-color-dimmed)"
+                                />
+                                <Text size="lg" mt="xl" c="dimmed">
+                                    No Reports Found
+                                </Text>
+                            </Container>
                         ) : (
-                            <Text c="dimmed">You are not assigned to any school.</Text>
+                            <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                                <IconBuildings
+                                    size={64}
+                                    style={{ margin: "auto", display: "block" }}
+                                    color="var(--mantine-color-dimmed)"
+                                />
+                                <Text size="lg" mt="xl" c="dimmed">
+                                    You are not assigned to any school
+                                </Text>
+                            </Container>
                         )}
                     </Paper>
                 )}
