@@ -73,6 +73,9 @@ export default function ReportsPage() {
     const [reportSubmissions, setReportSubmissions] = useState<MonthlyReport[]>([]);
     const [parsedSubmittedBySchools, setParsedSubmittedBySchools] = useState<Record<number, School>>({});
 
+    const [alertNotAssignedToSchoolDismissed, setAlertNotAssignedToSchoolDismissed] = useState(false);
+    const [alertIncompleteProfileDismissed, setAlertIncompleteProfileDismissed] = useState(false);
+
     // Fetch reports on component mount
     useEffect(() => {
         const fetchReports = async () => {
@@ -340,6 +343,33 @@ export default function ReportsPage() {
         return userRoleId === 5;
     }, [userCtx.userInfo?.roleId]);
 
+    // Check if user has complete profile and is assigned to school
+    const hasCompleteProfile = useMemo(() => {
+        return !!(
+            userCtx.userInfo?.nameFirst &&
+            userCtx.userInfo?.nameLast &&
+            userCtx.userInfo?.position &&
+            userCtx.userInfo?.signatureUrn
+        );
+    }, [userCtx.userInfo]);
+
+    const isAssignedToSchool = useMemo(() => {
+        return !!userCtx.userInfo?.schoolId;
+    }, [userCtx.userInfo?.schoolId]);
+
+    const getDisabledReason = () => {
+        if (!isAssignedToSchool) {
+            return "Not assigned to a school";
+        }
+        if (!hasCompleteProfile) {
+            return "Profile incomplete";
+        }
+        if (!canCreateReports) {
+            return "Access restricted by role";
+        }
+        return "";
+    };
+
     type QuickActionCardProps = {
         title: string;
         description: string;
@@ -347,6 +377,7 @@ export default function ReportsPage() {
         color: string;
         onClick: () => void;
         disabled?: boolean;
+        disabledReason?: string;
     };
 
     const QuickActionCard = ({
@@ -356,6 +387,7 @@ export default function ReportsPage() {
         color,
         onClick,
         disabled = false,
+        disabledReason,
     }: QuickActionCardProps) => (
         <Card
             shadow="sm"
@@ -377,7 +409,7 @@ export default function ReportsPage() {
                         {title}
                     </Text>
                     <Text size="sm" c="dimmed">
-                        {disabled ? "Access restricted by role" : description}
+                        {disabled ? disabledReason || "Access restricted" : description}
                     </Text>
                 </div>
             </Group>
@@ -537,15 +569,17 @@ export default function ReportsPage() {
 
     return (
         <Stack gap="lg">
-            {!userCtx.userInfo?.schoolId && (
+            {!isAssignedToSchool && !alertNotAssignedToSchoolDismissed && (
                 <Alert
                     variant="light"
                     color="yellow"
                     withCloseButton
-                    title="Warning"
+                    title="No School Assigned"
                     icon={<IconAlertCircle size={16} />}
+                    onClose={() => setAlertNotAssignedToSchoolDismissed(true)}
                 >
-                    You are not yet assigned to a school! Reports you create will fail to submit.
+                    You are not yet assigned to a school! You will not be able to create or manage reports until you are
+                    assigned to a school. Please contact your administrator to get assigned.
                 </Alert>
             )}
 
@@ -563,6 +597,21 @@ export default function ReportsPage() {
                     reports.
                 </Alert>
             )}
+
+            {!hasCompleteProfile && !alertIncompleteProfileDismissed && (
+                <Alert
+                    variant="light"
+                    color="red"
+                    withCloseButton
+                    title="Incomplete Profile"
+                    icon={<IconAlertCircle size={16} />}
+                    onClose={() => setAlertIncompleteProfileDismissed(true)}
+                >
+                    Your profile is incomplete. Please update your profile with your full name, position, and signature
+                    to create reports.
+                </Alert>
+            )}
+
             {/* Quick Actions */}
             <Paper shadow="xs" p="md">
                 <Grid>
@@ -573,7 +622,8 @@ export default function ReportsPage() {
                             icon={IconCash}
                             color="blue"
                             onClick={handleNavigateToSales}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -583,7 +633,8 @@ export default function ReportsPage() {
                             icon={IconReceipt}
                             color="green"
                             onClick={() => setLiquidationModalOpened(true)}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                     <Grid.Col span={4}>
@@ -593,7 +644,8 @@ export default function ReportsPage() {
                             icon={IconUsers}
                             color="violet"
                             onClick={handleNavigateToPayroll}
-                            disabled={!canCreateReports}
+                            disabled={!canCreateReports || !hasCompleteProfile || !isAssignedToSchool}
+                            disabledReason={getDisabledReason()}
                         />
                     </Grid.Col>
                 </Grid>

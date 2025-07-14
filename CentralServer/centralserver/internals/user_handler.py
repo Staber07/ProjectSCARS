@@ -673,7 +673,7 @@ async def update_user_info(
         await push_notification(
             owner_id=selected_user.id,
             title="Profile Updated",
-            content="Your profile information has been updated by an administrator. You may need to refresh your session to see the changes.",
+            content="Your profile information has been updated by a higher-up. You may need to refresh your session to see the changes.",
             important=True,
             notification_type=NotificationType.INFO,
             session=session,

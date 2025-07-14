@@ -13,6 +13,7 @@ import {
     Badge,
     Skeleton,
     Box,
+    ThemeIcon,
 } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
 import "@mantine/dates/styles.css";
@@ -24,6 +25,8 @@ import {
     IconTrendingUp,
     IconAlertCircle,
     IconSchool,
+    IconChartScatter,
+    IconConfetti,
 } from "@tabler/icons-react";
 import { motion } from "framer-motion";
 import { memo, useState, useEffect, useCallback } from "react";
@@ -58,7 +61,15 @@ const StatCard = memo(
         color?: string;
         loading?: boolean;
     }) => (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            drag
+            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+            dragElastic={0.05}
+            dragSnapToOrigin
+        >
             <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
                 <Stack gap="sm">
                     <Group justify="space-between">
@@ -112,9 +123,13 @@ const CalendarCard = memo(({ salesEntryDates, loading = false }: { salesEntryDat
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
+            drag
+            dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+            dragElastic={0.05}
+            dragSnapToOrigin
         >
             <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-                <Stack gap="md">
+                <Stack gap="md" align="center">
                     <Group gap="sm">
                         <IconCalendarStats size={24} color="var(--mantine-color-teal-6)" />
                         <Text size="xs" tt="uppercase" fw={700} c="dimmed">
@@ -124,17 +139,14 @@ const CalendarCard = memo(({ salesEntryDates, loading = false }: { salesEntryDat
 
                     <Box pos="relative">
                         <LoadingOverlay visible={loading} />
-                        <Calendar getDayProps={getDayProps} size="sm" firstDayOfWeek={1} hideOutsideDates />
+                        <Calendar
+                            getDayProps={getDayProps}
+                            size="sm"
+                            firstDayOfWeek={1}
+                            hideOutsideDates
+                            highlightToday
+                        />
                     </Box>
-
-                    <Paper p="xs" bg="gray.0" radius="sm">
-                        <Group gap="xs">
-                            <Box w={12} h={12} bg="green.5" style={{ borderRadius: 2 }} />
-                            <Text size="xs" c="dimmed">
-                                Days with sales entries
-                            </Text>
-                        </Group>
-                    </Paper>
                 </Stack>
             </Card>
         </motion.div>
@@ -181,8 +193,6 @@ export const HomeSection = memo(() => {
             if (isAdminUser) {
                 // Admin users see system-wide data
                 dashboardData.schoolName = "All Schools";
-                // TODO: Implement system-wide report counting
-                // For now, show placeholder data
                 dashboardData.totalReports = 0;
                 dashboardData.draftReports = 0;
             } else if (schoolId) {
@@ -247,7 +257,7 @@ export const HomeSection = memo(() => {
                     setError("Failed to load school information");
                 }
             } else {
-                setError("You are not assigned to a school. Please contact your administrator.");
+                setError("You are not yet assigned to a school.");
             }
 
             setStats(dashboardData);
@@ -274,14 +284,14 @@ export const HomeSection = memo(() => {
 
     const netIncome = stats.currentMonthSales - stats.currentMonthExpenses;
 
-    return (
+    return !error ? (
         <Container size="xl" mt={50}>
             {/* Header */}
             <Stack gap="xl" mb="xl">
                 <div>
                     <Group gap="sm" mb="xs">
                         <IconSchool size={28} color="var(--mantine-color-blue-6)" />
-                        <Title order={2}>Canteen Finance Dashboard</Title>
+                        <Title order={2}>Canteen Finance Overview</Title>
                     </Group>
                     {stats.schoolName && (
                         <Text size="lg" c="dimmed">
@@ -289,12 +299,6 @@ export const HomeSection = memo(() => {
                         </Text>
                     )}
                 </div>
-
-                {error && (
-                    <Alert icon={<IconAlertCircle size={16} />} color="red" variant="light">
-                        {error}
-                    </Alert>
-                )}
             </Stack>
 
             {/* Bento Grid */}
@@ -310,18 +314,16 @@ export const HomeSection = memo(() => {
                         loading={loading}
                     />
                 </Grid.Col>
-
                 <Grid.Col span={{ base: 12, md: 3 }}>
                     <StatCard
                         icon={IconFileCheck}
                         title="Draft Reports"
                         value={stats.draftReports}
-                        subtitle="Pending submission"
+                        subtitle="Pending submissions"
                         color="orange"
                         loading={loading}
                     />
                 </Grid.Col>
-
                 <Grid.Col span={{ base: 12, md: 3 }}>
                     <StatCard
                         icon={IconCoin}
@@ -332,7 +334,6 @@ export const HomeSection = memo(() => {
                         loading={loading}
                     />
                 </Grid.Col>
-
                 <Grid.Col span={{ base: 12, md: 3 }}>
                     <StatCard
                         icon={IconTrendingUp}
@@ -355,6 +356,10 @@ export const HomeSection = memo(() => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.3 }}
+                        drag
+                        dragConstraints={{ top: 0, left: 0, right: 0, bottom: 0 }}
+                        dragElastic={0.05}
+                        dragSnapToOrigin
                     >
                         <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
                             <Stack gap="md">
@@ -398,29 +403,47 @@ export const HomeSection = memo(() => {
                                     </Group>
 
                                     {!loading && netIncome !== 0 && (
-                                        <RingProgress
-                                            size={120}
-                                            thickness={12}
-                                            sections={[
-                                                {
-                                                    value:
-                                                        stats.currentMonthSales > 0
-                                                            ? (Math.abs(netIncome) / stats.currentMonthSales) * 100
-                                                            : 0,
-                                                    color: netIncome >= 0 ? "green" : "red",
-                                                },
-                                            ]}
-                                            label={
-                                                <Text ta="center" fw={700} size="sm">
-                                                    {stats.currentMonthSales > 0
-                                                        ? `${(
-                                                              (Math.abs(netIncome) / stats.currentMonthSales) *
-                                                              100
-                                                          ).toFixed(1)}%`
-                                                        : "0%"}
+                                        <Group justify="space-between" align="flex-start" mt="md">
+                                            <Stack align="center" gap="xs">
+                                                <RingProgress
+                                                    size={120}
+                                                    thickness={12}
+                                                    sections={[
+                                                        {
+                                                            value:
+                                                                stats.currentMonthSales > 0
+                                                                    ? (Math.abs(netIncome) / stats.currentMonthSales) *
+                                                                      100
+                                                                    : 0,
+                                                            color: netIncome >= 0 ? "green" : "red",
+                                                        },
+                                                    ]}
+                                                    label={
+                                                        <Text ta="center" fw={700} size="sm">
+                                                            {stats.currentMonthSales > 0
+                                                                ? `${(
+                                                                      (Math.abs(netIncome) / stats.currentMonthSales) *
+                                                                      100
+                                                                  ).toFixed(1)}%`
+                                                                : "0%"}
+                                                        </Text>
+                                                    }
+                                                />
+                                                <Text size="xs" c="dimmed" ta="center">
+                                                    {netIncome >= 0
+                                                        ? "Profit margin"
+                                                        : "Loss margin (expenses exceed sales)"}
                                                 </Text>
-                                            }
-                                        />
+                                            </Stack>
+                                            <Box style={{ flex: 1 }} ml="md">
+                                                <Text size="sm">
+                                                    Lorem ipsum keme keme keme 48 years nang kasi na ang katagalugan
+                                                    bakit tanders at ang mahogany waz sa otoko chopopo at bakit
+                                                    katagalugan planggana sa boyband jupang-pang kasi na ang Gino na ang
+                                                    intonses jutay ugmas.
+                                                </Text>
+                                            </Box>
+                                        </Group>
                                     )}
                                 </Stack>
                             </Stack>
@@ -428,6 +451,13 @@ export const HomeSection = memo(() => {
                     </motion.div>
                 </Grid.Col>
             </Grid>
+        </Container>
+    ) : (
+        <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+            <IconConfetti size={64} style={{ margin: "auto", display: "block" }} color="var(--mantine-color-dimmed)" />
+            <Text size="lg" mt="xl" c="dimmed">
+                You&apos;re all good!
+            </Text>
         </Container>
     );
 });
