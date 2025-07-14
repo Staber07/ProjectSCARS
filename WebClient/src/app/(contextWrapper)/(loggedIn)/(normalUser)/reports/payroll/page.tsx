@@ -131,7 +131,6 @@ function PayrollPageContent() {
 
     // Signature state management for report approval
     // Reason: Track prepared by (current user) and noted by (selected user) for report signatures
-    const [preparedBy, setPreparedBy] = useState<string | null>(null);
     const [notedBy, setNotedBy] = useState<string | null>(null);
     const [preparedBySignatureUrl, setPreparedBySignatureUrl] = useState<string | null>(null);
     const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
@@ -145,7 +144,7 @@ function PayrollPageContent() {
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
 
     // Report status tracking
-    const [reportStatus, setReportStatus] = useState<string | null>(null);
+    const [reportStatus] = useState<string | null>(null);
 
     useEffect(() => {
         if (weekPeriods.length > 0 && !selectedWeekId) {
@@ -356,9 +355,6 @@ function PayrollPageContent() {
                 }
             };
 
-            // Set prepared by to current user ID (ensure we store user ID, not name)
-            setPreparedBy(userCtx.userInfo.id);
-
             // Load current user's signature if available
             if (userCtx.userInfo.signatureUrn) {
                 try {
@@ -386,10 +382,13 @@ function PayrollPageContent() {
     // Effect to match loaded notedBy ID with actual user and load their signature
     useEffect(() => {
         const loadNotedBySignature = async () => {
-            // If we have a notedBy ID from a loaded report but no selected user yet
+            // If we have a notedBy name from a loaded report but no selected user yet
             if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
-                // Try to find the user by matching their ID
-                const matchingUser = schoolUsers.find((user) => user.id === notedBy);
+                // Try to find the user by matching their name
+                const matchingUser = schoolUsers.find((user) => {
+                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
+                    return userName === notedBy;
+                });
 
                 if (matchingUser) {
                     setSelectedNotedByUser(matchingUser);
@@ -736,9 +735,9 @@ function PayrollPageContent() {
         }
     };
 
-    const getEmployeeSignature = (employeeId: string) => {
-        return employeeSignatures.find((sig) => sig.employeeId === employeeId);
-    };
+    // const getEmployeeSignature = (employeeId: string) => {
+    //     return employeeSignatures.find((sig) => sig.employeeId === employeeId);
+    // };
 
     const handleSubmitReport = async () => {
         if (!selectedMonth || !userCtx.userInfo?.schoolId) {
