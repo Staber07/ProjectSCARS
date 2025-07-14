@@ -3,7 +3,6 @@
 import { HomeSection } from "@/components/Dashboard/HomeSection";
 import { ErrorBoundary } from "@/components/ErrorBoundary/ErrorBoundary";
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
-import { SpotlightComponent } from "@/components/SpotlightComponent";
 import {
     Notification,
     getUserAvatarEndpointV1UsersAvatarGet,
@@ -19,7 +18,6 @@ import {
     Avatar,
     Card,
     Container,
-    Divider,
     Flex,
     Group,
     List,

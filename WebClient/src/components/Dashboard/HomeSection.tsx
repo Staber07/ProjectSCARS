@@ -1,40 +1,35 @@
+import * as csclient from "@/lib/api/csclient";
+import { customLogger } from "@/lib/api/customLogger";
+import { GetSchoolInfo } from "@/lib/api/school";
+import { useUser } from "@/lib/providers/user";
 import {
+    Badge,
+    Box,
     Card,
     Container,
     Grid,
     Group,
     LoadingOverlay,
-    Paper,
     RingProgress,
+    Skeleton,
     Stack,
     Text,
     Title,
-    Alert,
-    Badge,
-    Skeleton,
-    Box,
-    ThemeIcon,
 } from "@mantine/core";
 import { Calendar } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import {
     IconCalendarStats,
-    IconFileText,
-    IconFileCheck,
     IconCoin,
-    IconTrendingUp,
-    IconAlertCircle,
-    IconSchool,
-    IconChartScatter,
     IconConfetti,
+    IconFileCheck,
+    IconFileText,
+    IconSchool,
+    IconTrendingUp,
 } from "@tabler/icons-react";
-import { motion } from "framer-motion";
-import { memo, useState, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
-import { useUser } from "@/lib/providers/user";
-import * as csclient from "@/lib/api/csclient";
-import { customLogger } from "@/lib/api/customLogger";
-import { GetSchoolInfo } from "@/lib/api/school";
+import { motion } from "framer-motion";
+import { memo, useCallback, useEffect, useState } from "react";
 
 interface DashboardStats {
     totalReports: number;

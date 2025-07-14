@@ -7,14 +7,7 @@ import { Button, Modal, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import {
-    IconCheck,
-    IconUserCheck,
-    IconUserExclamation,
-    IconSendOff,
-    IconSchool,
-    IconBuildingPlus,
-} from "@tabler/icons-react";
+import { IconBuildingPlus, IconCheck, IconSendOff, IconUserExclamation } from "@tabler/icons-react";
 import { useCallback } from "react";
 
 interface CreateSchoolComponentProps {

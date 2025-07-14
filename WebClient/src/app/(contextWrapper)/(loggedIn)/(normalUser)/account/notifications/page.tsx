@@ -21,7 +21,6 @@ import {
     Group,
     ScrollArea,
     SegmentedControl,
-    Select,
     Stack,
     Text,
     TextInput,

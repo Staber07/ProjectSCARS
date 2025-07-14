@@ -1,9 +1,18 @@
 "use client";
 
 import { LoadingComponent } from "@/components/LoadingComponent/LoadingComponent";
+import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
 import { SplitButton } from "@/components/SplitButton/SplitButton";
 import { SubmitForReviewButton } from "@/components/SubmitForReview";
-import { SignatureCanvas } from "@/components/SignatureCanvas/SignatureCanvas";
+import * as csclient from "@/lib/api/csclient";
+import {
+    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
+    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
+    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
+    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
+    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
+} from "@/lib/api/csclient/sdk.gen";
+import { customLogger } from "@/lib/api/customLogger";
 import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
@@ -33,6 +42,7 @@ import { MonthPickerInput } from "@mantine/dates";
 import "@mantine/dates/styles.css";
 import { notifications } from "@mantine/notifications";
 import {
+    IconAlertCircle,
     IconCalendar,
     IconCalendarWeek,
     IconCheck,
@@ -42,7 +52,6 @@ import {
     IconUser,
     IconUsers,
     IconX,
-    IconAlertCircle,
 } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -51,15 +60,6 @@ import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import weekOfYear from "dayjs/plugin/weekOfYear";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import * as csclient from "@/lib/api/csclient";
-import {
-    createSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthPatch,
-    createBulkPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesBulkPost,
-    changePayrollReportStatusV1ReportsPayrollSchoolIdYearMonthStatusPatch,
-    getSchoolPayrollReportV1ReportsPayrollSchoolIdYearMonthGet,
-    getSchoolPayrollReportEntriesV1ReportsPayrollSchoolIdYearMonthEntriesGet,
-} from "@/lib/api/csclient/sdk.gen";
-import { customLogger } from "@/lib/api/customLogger";
 
 dayjs.extend(weekOfYear);
 dayjs.extend(isoWeek);
@@ -300,7 +300,7 @@ function PayrollPageContent() {
                     //     icon: <IconCheck size={18} />,
                     // });
                 }
-            } catch (error) {
+            } catch {
                 // If 404, it means no existing report - this is fine
                 // if ((error as { status?: number })?.status !== 404) {
                 //     customLogger.error("Error loading existing payroll report:", error);
@@ -717,11 +717,6 @@ function PayrollPageContent() {
         return employees.reduce((total, employee) => {
             return total + calculateMonthlyTotal(employee.id);
         }, 0);
-    };
-
-    const openSignatureModal = (employeeId: string) => {
-        setCurrentSigningEmployee(employeeId);
-        setSignatureModalOpened(true);
     };
 
     const saveEmployeeSignature = (signatureData: string) => {
@@ -1373,7 +1368,7 @@ function PayrollPageContent() {
                                 </Table.Thead>
                                 <Table.Tbody>
                                     {employees.map((employee, index) => {
-                                        const signature = getEmployeeSignature(employee.id);
+                                        // const signature = getEmployeeSignature(employee.id);
                                         return (
                                             <Table.Tr key={employee.id}>
                                                 <Table.Td>
