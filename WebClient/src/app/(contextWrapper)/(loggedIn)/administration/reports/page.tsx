@@ -16,6 +16,7 @@ import {
     ActionIcon,
     Button,
     Checkbox,
+    Container,
     Flex,
     Group,
     Menu,
@@ -29,7 +30,17 @@ import {
     TextInput,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconDots, IconDownload, IconEye, IconFilter, IconPencil, IconSearch, IconTrash } from "@tabler/icons-react";
+import {
+    IconDots,
+    IconDownload,
+    IconEye,
+    IconFileSad,
+    IconFilter,
+    IconMist,
+    IconPencil,
+    IconSearch,
+    IconTrash,
+} from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { customLogger } from "@/lib/api/customLogger";
@@ -478,8 +489,17 @@ export default function ReportsPage() {
                 </Table>
 
                 {filteredReports.length === 0 && (
-                    <Paper p="xl" ta="center">
-                        <Text c="dimmed">No reports found</Text>
+                    <Paper pb="xl" ta="center">
+                        <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                            <IconFileSad
+                                size={64}
+                                style={{ margin: "auto", display: "block" }}
+                                color="var(--mantine-color-dimmed)"
+                            />
+                            <Text size="lg" mt="xl" c="dimmed">
+                                No Reports Found
+                            </Text>
+                        </Container>
                     </Paper>
                 )}
             </Paper>
