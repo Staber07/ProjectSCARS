@@ -58,11 +58,11 @@ from centralserver.internals.models.reports.monthly_report import (
     MonthlyReport,
     ReportStatus,
 )
-from centralserver.internals.models.reports.status_change_request import (
-    StatusChangeRequest,
-)
 from centralserver.internals.models.reports.report_status_manager import (
     ReportStatusManager,
+)
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
 )
 from centralserver.internals.models.token import DecodedJWTToken
 

@@ -24,11 +24,11 @@ from centralserver.internals.models.reports.payroll_report import (
     PayrollReportEntry,
     PayrollReportUpdateRequest,
 )
-from centralserver.internals.models.reports.status_change_request import (
-    StatusChangeRequest,
-)
 from centralserver.internals.models.reports.report_status_manager import (
     ReportStatusManager,
+)
+from centralserver.internals.models.reports.status_change_request import (
+    StatusChangeRequest,
 )
 from centralserver.internals.models.token import DecodedJWTToken
 

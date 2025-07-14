@@ -19,10 +19,10 @@ from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import (
     User,
     UserDelete,
+    UserPasswordChange,
     UserPublic,
     UserSimple,
     UserUpdate,
-    UserPasswordChange,
 )
 from centralserver.internals.permissions import ROLE_PERMISSIONS
 from centralserver.internals.user_handler import (
