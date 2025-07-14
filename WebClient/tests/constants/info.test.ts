@@ -23,8 +23,8 @@ describe("Info Configuration", () => {
             expect(LocalStorage.accessToken).toBe("at");
             expect(LocalStorage.userData).toBe("ud");
             expect(LocalStorage.userPermissions).toBe("up");
-            expect(LocalStorage.userAvatar).toBe("ua");
-            expect(LocalStorage.userPreferences).toBe("upref");
+            expect(LocalStorage.userAvatar).toBe("userAvatar");
+            expect(LocalStorage.userPreferences).toBe("userPrefs");
             expect(LocalStorage.setupCompleteDismissed).toBe("setupCompleteDismissed");
         });
 
