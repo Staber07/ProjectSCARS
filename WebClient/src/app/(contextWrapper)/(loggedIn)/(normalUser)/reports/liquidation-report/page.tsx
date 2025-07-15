@@ -217,20 +217,20 @@ function LiquidationReportContent() {
                         }));
                         setExpenseItems(loadedItems);
 
-                        // Load receipt attachments if available
+                        // Load receipt attachments if available (only from the first entry to avoid duplication)
                         const allAttachmentUrns: string[] = [];
-                        report.entries.forEach((entry) => {
-                            if (entry.receipt_attachment_urns) {
-                                try {
-                                    const urns = JSON.parse(entry.receipt_attachment_urns);
-                                    if (Array.isArray(urns)) {
-                                        allAttachmentUrns.push(...urns);
-                                    }
-                                } catch (error) {
-                                    customLogger.error("Failed to parse receipt attachment URNs:", error);
+                        
+                        // Only check the first entry for attachments since that's where we store them
+                        if (report.entries.length > 0 && report.entries[0].receipt_attachment_urns) {
+                            try {
+                                const urns = JSON.parse(report.entries[0].receipt_attachment_urns);
+                                if (Array.isArray(urns)) {
+                                    allAttachmentUrns.push(...urns);
                                 }
+                            } catch (error) {
+                                customLogger.error("Failed to parse receipt attachment URNs:", error);
                             }
-                        });
+                        }
                         setReceiptAttachmentUrns(allAttachmentUrns);
 
                         // notifications.show({
@@ -619,11 +619,11 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
-            // Combine receipt attachment URNs with general report attachment URNs
+            // Store attachments only in the first entry to avoid duplication
             const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
 
-            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
+            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item, index) => {
                 const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                 return {
                     date: dayjs(item.date).format("YYYY-MM-DD"),
@@ -635,7 +635,8 @@ function LiquidationReportContent() {
                     ...(isAmountOnly
                         ? { amount: item.unitPrice, unitPrice: null }
                         : { unitPrice: item.unitPrice, amount: null }),
-                    receipt_attachment_urns: receiptUrnString,
+                    // Only store attachments in the first entry to avoid duplication
+                    receipt_attachment_urns: index === 0 ? receiptUrnString : null,
                 };
             });
 
@@ -702,13 +703,13 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data (even if some fields are empty for draft)
-            // Combine receipt attachment URNs with general report attachment URNs
+            // Store attachments only in the first entry to avoid duplication
             const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
 
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
-                .map((item) => {
+                .map((item, index) => {
                     const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                     return {
                         date: dayjs(item.date).format("YYYY-MM-DD"),
@@ -720,7 +721,8 @@ function LiquidationReportContent() {
                         ...(isAmountOnly
                             ? { amount: item.unitPrice, unitPrice: null }
                             : { unitPrice: item.unitPrice, amount: null }),
-                        receipt_attachment_urns: receiptUrnString,
+                        // Only store attachments in the first entry to avoid duplication
+                        receipt_attachment_urns: index === 0 ? receiptUrnString : null,
                     };
                 });
 
