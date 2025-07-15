@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 from pathlib import Path
 from typing import Final
@@ -15,6 +16,13 @@ FORBIDDEN_CONFIG_KEYS = {
     ],  # Security-critical keys that should not be changed via web
     "mailing": ["password"],  # Sensitive credentials (though we allow this for now)
 }
+
+
+class AnnouncementRecipients(Enum):
+    ALL = "all"
+    ROLE = "role"
+    SCHOOL = "school"
+    USERS = "users"
 
 
 class Program:
