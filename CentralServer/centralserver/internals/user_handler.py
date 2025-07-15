@@ -490,7 +490,8 @@ async def update_user_info(
                 token=token,
             ):
                 logger.warning(
-                    "Failed to update user: %s (permission denied: school)", target_user.id
+                    "Failed to update user: %s (permission denied: school)",
+                    target_user.id,
                 )
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
