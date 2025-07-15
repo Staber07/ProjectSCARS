@@ -1,6 +1,13 @@
 "use client";
 
-import { deleteSchoolInfoEndpointV1SchoolsDelete, getUsersSimpleEndpointV1UsersSimpleGet, School, SchoolDelete, SchoolUpdate, UserSimple } from "@/lib/api/csclient";
+import {
+    deleteSchoolInfoEndpointV1SchoolsDelete,
+    getUsersSimpleEndpointV1UsersSimpleGet,
+    School,
+    SchoolDelete,
+    SchoolUpdate,
+    UserSimple,
+} from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { RemoveSchoolLogo, UpdateSchoolInfo, UploadSchoolLogo } from "@/lib/api/school";
 import { Button, Card, Center, FileButton, Flex, Image, Modal, Select, Switch, TextInput } from "@mantine/core";
@@ -44,11 +51,11 @@ export function EditSchoolComponent({
 
     const loadUsers = useCallback(async () => {
         if (!school?.id) return;
-        
+
         setLoadingUsers(true);
         try {
             const result = await getUsersSimpleEndpointV1UsersSimpleGet({
-                query: { school_id: school.id }
+                query: { school_id: school.id },
             });
             if (result.data) {
                 setUsers(result.data);
@@ -405,7 +412,9 @@ export function EditSchoolComponent({
                         placeholder={loadingUsers ? "Loading users..." : "Select a user to approve reports"}
                         data={users.map((user) => ({
                             value: user.id,
-                            label: `${user.nameFirst || ""} ${user.nameMiddle || ""} ${user.nameLast || ""}`.trim() || user.id,
+                            label:
+                                `${user.nameFirst || ""} ${user.nameMiddle || ""} ${user.nameLast || ""}`.trim() ||
+                                user.id,
                         }))}
                         value={editSchool.assignedNotedBy || ""}
                         onChange={(value) =>

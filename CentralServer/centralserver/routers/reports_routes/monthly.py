@@ -242,11 +242,11 @@ async def create_school_monthly_report(
         year,
         month,
     )
-    
+
     # If no noted_by is provided, try to get it from the school's assignedNotedBy
     if noted_by is None:
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
     selected_monthly_report = session.exec(
         select(MonthlyReport).where(
             MonthlyReport.id == datetime.date(year=year, month=month, day=1),

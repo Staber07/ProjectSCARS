@@ -246,7 +246,7 @@ async def create_school_payroll_report(
         year,
         month,
     )
-    
+
     # If no noted_by is provided, try to get it from the school's assignedNotedBy
     if noted_by is None:
         noted_by = await get_school_assigned_noted_by(school_id, session)
@@ -484,7 +484,7 @@ async def create_bulk_payroll_report_entries(
     if payroll_report is None:
         # Get the school's assigned noted by user
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
         payroll_report = PayrollReport(
             parent=datetime.date(year=year, month=month, day=1),
             preparedBy=user.id,

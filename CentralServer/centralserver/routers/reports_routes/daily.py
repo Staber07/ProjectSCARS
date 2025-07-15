@@ -227,7 +227,7 @@ async def create_school_daily_report(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have permission to create daily reports.",
         )
-    
+
     logger.debug(
         "user `%s` creating or updating daily report of school %s for %s-%s.",
         token.id,
@@ -235,11 +235,11 @@ async def create_school_daily_report(
         year,
         month,
     )
-    
+
     # If no noted_by is provided, try to get it from the school's assignedNotedBy
     if noted_by is None:
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
     selected_monthly_report = session.exec(
         select(MonthlyReport).where(
             MonthlyReport.id == datetime.date(year=year, month=month, day=1),
@@ -726,7 +726,7 @@ async def create_daily_sales_and_purchases_entry(
     if monthly_report is None:
         # Get the school's assigned noted by user
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
         monthly_report = MonthlyReport(
             id=datetime.date(year=year, month=month, day=1),
             name=f"Daily Report for {datetime.date(year=year, month=month, day=1).strftime('%B %Y')}",
@@ -747,7 +747,7 @@ async def create_daily_sales_and_purchases_entry(
     if daily_report is None:
         # Get the school's assigned noted by user
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
         daily_report = DailyFinancialReport(
             parent=datetime.date(year=year, month=month, day=1),
             reportStatus=ReportStatus.DRAFT,
@@ -1090,7 +1090,7 @@ async def create_bulk_daily_sales_and_purchases_entries(
     if monthly_report is None:
         # Get the school's assigned noted by user
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
         monthly_report = MonthlyReport(
             id=datetime.date(year=year, month=month, day=1),
             name=f"Daily Report for {datetime.date(year=year, month=month, day=1).strftime('%B %Y')}",
@@ -1111,7 +1111,7 @@ async def create_bulk_daily_sales_and_purchases_entries(
     if daily_report is None:
         # Get the school's assigned noted by user
         noted_by = await get_school_assigned_noted_by(school_id, session)
-        
+
         daily_report = DailyFinancialReport(
             parent=datetime.date(year=year, month=month, day=1),
             reportStatus=ReportStatus.DRAFT,

@@ -18,6 +18,7 @@ from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.school import School
+from centralserver.internals.school_handler import clear_assigned_noted_by_for_user
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import (
     User,
@@ -475,7 +476,8 @@ async def update_user_info(
         # Set new password
         selected_user.password = crypt_ctx.hash(target_user.password)
 
-    if target_user.schoolId is not None:  # Update school ID if provided
+    # Handle schoolId updates - check if the field was explicitly provided in the request
+    if "schoolId" in target_user.model_fields_set:
         if not await verify_user_permission(
             (
                 "users:self:modify:school"
@@ -493,15 +495,26 @@ async def update_user_info(
                 detail="Permission denied: Cannot modify school.",
             )
 
-        # Check if the school exists
-        if not session.get(School, target_user.schoolId):
-            logger.warning(
-                "Failed to update user: %s (school not found)", target_user.id
+        # If schoolId is not None, check if the school exists
+        if target_user.schoolId is not None:
+            if not session.get(School, target_user.schoolId):
+                logger.warning(
+                    "Failed to update user: %s (school not found)", target_user.id
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="School not found",
+                )
+
+        # If the user's school assignment is changing, clear any assignedNotedBy references
+        if selected_user.schoolId != target_user.schoolId:
+            logger.debug(
+                "User %s school assignment changing from %s to %s, clearing assignedNotedBy references",
+                target_user.id,
+                selected_user.schoolId,
+                target_user.schoolId,
             )
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="School not found",
-            )
+            await clear_assigned_noted_by_for_user(target_user.id, session)
 
         logger.debug(
             "Setting school ID for user: %s to %s",
@@ -733,6 +746,13 @@ async def remove_user_info(
         selected_user.position = None
 
     if target_user.schoolId:
+        # Clear any assignedNotedBy references before removing the user from the school
+        logger.debug(
+            "User %s is being removed from school %s, clearing assignedNotedBy references",
+            selected_user.id,
+            selected_user.schoolId,
+        )
+        await clear_assigned_noted_by_for_user(selected_user.id, session)
         selected_user.schoolId = None
 
     session.commit()

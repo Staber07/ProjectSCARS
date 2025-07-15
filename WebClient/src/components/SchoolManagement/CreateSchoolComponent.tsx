@@ -125,19 +125,7 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
                     <TextInput label="Phone Number" {...form.getInputProps("phone")} />
                     <TextInput label="Email Address" type="email" {...form.getInputProps("email")} />
                     <TextInput label="Website" {...form.getInputProps("website")} />
-                    <Select
-                        label="Assigned Report Approver"
-                        placeholder={loadingUsers ? "Loading users..." : "Select a user to approve reports"}
-                        data={users.map((user) => ({
-                            value: user.id,
-                            label: `${user.nameFirst || ""} ${user.nameMiddle || ""} ${user.nameLast || ""}`.trim() || user.id,
-                        }))}
-                        searchable
-                        clearable
-                        disabled={loadingUsers}
-                        {...form.getInputProps("assignedNotedBy")}
-                        description="This user will automatically approve all reports created by this school"
-                    />
+
                     <Button type="submit" loading={buttonLoading} rightSection={<IconBuildingPlus />}>
                         Create School
                     </Button>

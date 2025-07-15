@@ -17,9 +17,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "motion/react";
 
-import {
-    getNotificationQuantityV1NotificationsQuantityGet,
-} from "@/lib/api/csclient";
+import { getNotificationQuantityV1NotificationsQuantityGet } from "@/lib/api/csclient";
 import { Program, roles } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";

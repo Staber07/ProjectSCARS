@@ -325,6 +325,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         });
     };
 
+    const handleRemoveAvatar = () => {
+        setAvatarRemoved(true);
+        setEditUserAvatar(null);
+        if (editUserAvatarUrl && !currentAvatarUrn) {
+            URL.revokeObjectURL(editUserAvatarUrl);
+        }
+        setEditUserAvatarUrl(null);
+    };
+
     const handleChangeSignature = async (file: File | null) => {
         if (file === null) {
             customLogger.debug("No file selected, skipping upload...");
@@ -1022,13 +1031,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         </Text>
                     </Stack>
                 </Group>
-                <FileButton onChange={handleChangeAvatar} accept="image/png,image/jpeg">
-                    {(props) => (
-                        <Button variant="outline" size="sm" {...props}>
-                            Change Profile Picture
+                <Group gap="sm">
+                    <FileButton onChange={handleChangeAvatar} accept="image/png,image/jpeg">
+                        {(props) => (
+                            <Button variant="outline" size="sm" {...props}>
+                                Change Profile Picture
+                            </Button>
+                        )}
+                    </FileButton>
+                    {(editUserAvatarUrl || userAvatarUrl) && (
+                        <Button variant="outline" size="sm" color="red" onClick={handleRemoveAvatar}>
+                            Remove Avatar
                         </Button>
                     )}
-                </FileButton>
+                </Group>
             </Flex>
 
             <Divider my="lg" />
