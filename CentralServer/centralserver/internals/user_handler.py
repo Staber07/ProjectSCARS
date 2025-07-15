@@ -18,7 +18,6 @@ from centralserver.internals.models.notification import NotificationType
 from centralserver.internals.models.object_store import BucketObject
 from centralserver.internals.models.role import Role
 from centralserver.internals.models.school import School
-from centralserver.internals.school_handler import clear_assigned_noted_by_for_user
 from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import (
     User,
@@ -29,6 +28,7 @@ from centralserver.internals.models.user import (
 )
 from centralserver.internals.notification_handler import push_notification
 from centralserver.internals.permissions import DEFAULT_ROLES
+from centralserver.internals.school_handler import clear_assigned_noted_by_for_user
 
 logger = LoggerFactory().get_logger(__name__)
 
