@@ -77,32 +77,43 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
         setUserInfo(userInfo);
         localStorage.setItem(LocalStorage.userData, JSON.stringify(userInfo));
 
-        // Update permissions and avatar only if they are provided
-        if (permissions) {
-            setUserPermissions(permissions);
-            localStorage.setItem(LocalStorage.userPermissions, JSON.stringify(permissions));
-        } else {
-            setUserPermissions(null);
-            localStorage.removeItem(LocalStorage.userPermissions);
+        // Update permissions only if they are provided
+        if (permissions !== undefined) {
+            if (permissions) {
+                setUserPermissions(permissions);
+                localStorage.setItem(LocalStorage.userPermissions, JSON.stringify(permissions));
+            } else {
+                setUserPermissions(null);
+                localStorage.removeItem(LocalStorage.userPermissions);
+            }
         }
 
-        if (userAvatar) {
-            setUserAvatar(userAvatar);
-            setUserAvatarUrl((prevUrl) => {
-                if (prevUrl) {
-                    URL.revokeObjectURL(prevUrl);
-                }
-                return URL.createObjectURL(userAvatar);
-            });
-            const reader = new FileReader();
-            reader.onload = () => {
-                localStorage.setItem(LocalStorage.userAvatar, reader.result as string);
-            };
-            reader.readAsDataURL(userAvatar);
-        } else {
-            setUserAvatar(null);
-            setUserAvatarUrl(null);
-            localStorage.removeItem(LocalStorage.userAvatar);
+        // Update avatar only if it's explicitly provided (including null)
+        if (userAvatar !== undefined) {
+            if (userAvatar) {
+                setUserAvatar(userAvatar);
+                setUserAvatarUrl((prevUrl) => {
+                    if (prevUrl) {
+                        URL.revokeObjectURL(prevUrl);
+                    }
+                    return URL.createObjectURL(userAvatar);
+                });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    localStorage.setItem(LocalStorage.userAvatar, reader.result as string);
+                };
+                reader.readAsDataURL(userAvatar);
+            } else {
+                // Clear avatar when userAvatar is explicitly null
+                setUserAvatar(null);
+                setUserAvatarUrl((prevUrl) => {
+                    if (prevUrl) {
+                        URL.revokeObjectURL(prevUrl);
+                    }
+                    return null;
+                });
+                localStorage.removeItem(LocalStorage.userAvatar);
+            }
         }
     };
 
@@ -146,6 +157,7 @@ export function UserProvider({ children }: UserProviderProps): ReactNode {
                     }
                 }
 
+                // Always update avatar (including null if there's no avatar)
                 updateUserInfo(fetchedUserInfo, fetchedUserPermissions, userAvatar);
                 return true;
             }
