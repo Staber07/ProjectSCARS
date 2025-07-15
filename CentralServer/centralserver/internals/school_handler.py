@@ -25,6 +25,7 @@ async def create_school(new_school: SchoolCreate, session: Session) -> School:
         phone=new_school.phone,
         email=new_school.email,
         website=new_school.website,
+        assignedNotedBy=new_school.assignedNotedBy,
     )
     session.add(school)
     session.commit()

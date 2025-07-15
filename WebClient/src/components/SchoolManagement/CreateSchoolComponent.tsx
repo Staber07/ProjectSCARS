@@ -1,14 +1,14 @@
 "use client";
 
-import { School } from "@/lib/api/csclient";
+import { getUsersSimpleEndpointV1UsersSimpleGet, School, UserSimple } from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { CreateSchool } from "@/lib/api/school";
-import { Button, Modal, Stack, TextInput } from "@mantine/core";
+import { Button, Modal, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { IconBuildingPlus, IconCheck, IconSendOff, IconUserExclamation } from "@tabler/icons-react";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface CreateSchoolComponentProps {
     modalOpen: boolean;
@@ -18,6 +18,8 @@ interface CreateSchoolComponentProps {
 
 export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate }: CreateSchoolComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
+    const [users, setUsers] = useState<UserSimple[]>([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
 
     const form = useForm({
         initialValues: {
@@ -26,11 +28,36 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
             phone: "",
             email: "",
             website: "",
+            assignedNotedBy: "",
         },
         validate: {
             schoolName: (value) => (!value ? "School name is required" : null),
         },
     });
+
+    const loadUsers = useCallback(async () => {
+        setLoadingUsers(true);
+        try {
+            const result = await getUsersSimpleEndpointV1UsersSimpleGet();
+            if (result.data) {
+                setUsers(result.data);
+            } else {
+                setUsers([]);
+            }
+        } catch (error) {
+            customLogger.error("Failed to load users:", error);
+            setUsers([]);
+        } finally {
+            setLoadingUsers(false);
+        }
+    }, []);
+
+    // Load users when modal opens
+    useEffect(() => {
+        if (modalOpen) {
+            loadUsers();
+        }
+    }, [modalOpen, loadUsers]);
 
     const handleCreateSchool = useCallback(
         async (values: typeof form.values) => {
@@ -42,6 +69,7 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
                     phone: values.phone !== "" ? values.phone : null,
                     email: values.email !== "" ? values.email : null,
                     website: values.website !== "" ? values.website : null,
+                    assignedNotedBy: values.assignedNotedBy !== "" ? values.assignedNotedBy : null,
                 });
                 notifications.show({
                     id: "create-school-success",
@@ -97,6 +125,19 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
                     <TextInput label="Phone Number" {...form.getInputProps("phone")} />
                     <TextInput label="Email Address" type="email" {...form.getInputProps("email")} />
                     <TextInput label="Website" {...form.getInputProps("website")} />
+                    <Select
+                        label="Assigned Report Approver"
+                        placeholder={loadingUsers ? "Loading users..." : "Select a user to approve reports"}
+                        data={users.map((user) => ({
+                            value: user.id,
+                            label: `${user.nameFirst || ""} ${user.nameMiddle || ""} ${user.nameLast || ""}`.trim() || user.id,
+                        }))}
+                        searchable
+                        clearable
+                        disabled={loadingUsers}
+                        {...form.getInputProps("assignedNotedBy")}
+                        description="This user will automatically approve all reports created by this school"
+                    />
                     <Button type="submit" loading={buttonLoading} rightSection={<IconBuildingPlus />}>
                         Create School
                     </Button>

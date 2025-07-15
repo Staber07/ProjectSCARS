@@ -23,9 +23,20 @@ from centralserver.internals.models.reports.status_change_request import (
     RoleBasedTransitions,
     StatusChangeRequest,
 )
+from centralserver.internals.models.school import School
 from centralserver.internals.models.token import DecodedJWTToken
 
 logger = LoggerFactory().get_logger(__name__)
+
+
+async def get_school_assigned_noted_by(school_id: int, session: Session) -> str | None:
+    """Get the assigned noted by user for a school."""
+    school = session.get(School, school_id)
+    if school and school.assignedNotedBy:
+        return school.assignedNotedBy
+    return None
+
+
 router = APIRouter(prefix="/monthly")
 logged_in_dep = Annotated[DecodedJWTToken, Depends(verify_access_token)]
 
@@ -231,6 +242,11 @@ async def create_school_monthly_report(
         year,
         month,
     )
+    
+    # If no noted_by is provided, try to get it from the school's assignedNotedBy
+    if noted_by is None:
+        noted_by = await get_school_assigned_noted_by(school_id, session)
+        
     selected_monthly_report = session.exec(
         select(MonthlyReport).where(
             MonthlyReport.id == datetime.date(year=year, month=month, day=1),

@@ -1097,6 +1097,11 @@ export type School = {
      */
     deactivated?: boolean;
     /**
+     * Assignednotedby
+     * The user that should approve the school reports.
+     */
+    assignedNotedBy?: string | null;
+    /**
      * Datecreated
      * The timestamp when the record was created.
      */
@@ -1133,6 +1138,10 @@ export type SchoolCreate = {
      * Website
      */
     website?: string | null;
+    /**
+     * Assignednotedby
+     */
+    assignedNotedBy?: string | null;
 };
 
 /**
@@ -1195,6 +1204,10 @@ export type SchoolUpdate = {
      * Deactivated
      */
     deactivated?: boolean | null;
+    /**
+     * Assignednotedby
+     */
+    assignedNotedBy?: string | null;
 };
 
 /**
