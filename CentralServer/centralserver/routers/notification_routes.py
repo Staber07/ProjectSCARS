@@ -27,7 +27,9 @@ from centralserver.internals.notification_handler import (
 from centralserver.internals.notification_handler import (
     get_user_notifications as internals_get_user_notifications,
 )
-from centralserver.internals.notification_handler import push_notification
+from centralserver.internals.notification_handler import (
+    push_notification,
+)
 
 logger = LoggerFactory().get_logger(__name__)
 
