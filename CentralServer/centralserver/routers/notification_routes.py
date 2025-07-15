@@ -20,10 +20,14 @@ from centralserver.internals.models.token import DecodedJWTToken
 from centralserver.internals.models.user import User
 from centralserver.internals.notification_handler import (
     archive_notification as internals_archive_notification,
-    get_notification as internals_get_notification,
-    get_user_notifications as internals_get_user_notifications,
-    push_notification,
 )
+from centralserver.internals.notification_handler import (
+    get_notification as internals_get_notification,
+)
+from centralserver.internals.notification_handler import (
+    get_user_notifications as internals_get_user_notifications,
+)
+from centralserver.internals.notification_handler import push_notification
 
 logger = LoggerFactory().get_logger(__name__)
 
