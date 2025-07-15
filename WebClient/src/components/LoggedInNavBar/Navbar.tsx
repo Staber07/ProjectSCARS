@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Code, Group, Image, Indicator, NavLink, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Code, Group, Image, Indicator, NavLink, Text, Title, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
@@ -9,11 +9,13 @@ import {
     IconHelp,
     IconLogout,
     IconNotification,
+    IconRefresh,
     IconReport,
     IconSettings,
     IconUser,
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
 
 import {
     getNotificationQuantityV1NotificationsQuantityGet,
@@ -27,15 +29,18 @@ import { JSX, useEffect, useState } from "react";
 
 import classes from "./Navbar.module.css";
 import { customLogger } from "@/lib/api/customLogger";
+import { useUserSyncControls } from "@/lib/hooks/useUserSyncControls";
 
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
     const [notificationsQuantity, setNotificationsQuantity] = useState<number>(0);
     const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+    const [isHovered, setIsHovered] = useState<boolean>(false);
     const userCtx = useUser();
     const router = useRouter();
     const pathname = usePathname();
     const { logout } = useAuth();
+    const { triggerRefresh, isRefreshing } = useUserSyncControls();
 
     const fetchNotificationsQuantity = async () => {
         try {
@@ -234,7 +239,12 @@ export const Navbar: React.FC = () => {
             </div>
             <div className={classes.footer}>
                 {/* The logged-in user's avatar and name */}
-                <Group gap="sm" align="center">
+                <Group
+                    gap="sm"
+                    align="center"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
                     {userCtx.userInfo?.avatarUrn && userAvatarUrl ? (
                         <Avatar radius="xl" src={userAvatarUrl}>
                             <IconUser />
@@ -265,6 +275,22 @@ export const Navbar: React.FC = () => {
                             </Text>
                         </div>
                     </Tooltip>
+                    {isHovered && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <ActionIcon
+                                disabled={isRefreshing}
+                                variant="light"
+                                size="sm"
+                                onClick={() => triggerRefresh()}
+                            >
+                                <IconRefresh />
+                            </ActionIcon>
+                        </motion.div>
+                    )}
                 </Group>
             </div>
             <div className={classes.footer}>
