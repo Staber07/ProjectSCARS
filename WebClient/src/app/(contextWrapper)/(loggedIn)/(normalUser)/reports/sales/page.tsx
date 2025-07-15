@@ -66,9 +66,7 @@ function SalesandPurchasesContent() {
     const [notedBySignatureUrl, setNotedBySignatureUrl] = useState<string | null>(null);
 
     // User selection state for "noted by" field
-    const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
-    const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
     const [approvalModalOpened, setApprovalModalOpened] = useState(false);
     const [approvalConfirmed, setApprovalConfirmed] = useState(false);
     const [approvalCheckbox, setApprovalCheckbox] = useState(false);
@@ -79,6 +77,11 @@ function SalesandPurchasesContent() {
     const [schoolData, setSchoolData] = useState<csclient.School | null>(null);
     const [logoUrl, setLogoUrl] = useState<string | null>(null);
     const [pdfModalOpened, setPdfModalOpened] = useState(false);
+
+    // Helper function to check if the report is read-only
+    const isReadOnly = useCallback(() => {
+        return reportStatus === "review" || reportStatus === "approved";
+    }, [reportStatus]);
 
     // Fetch entries for the current month
     useEffect(() => {
@@ -122,7 +125,7 @@ function SalesandPurchasesContent() {
     // Load daily report data after school users are loaded
     useEffect(() => {
         const loadDailyReportData = async () => {
-            if (!userCtx.userInfo?.schoolId || schoolUsers.length === 0) return;
+            if (!userCtx.userInfo?.schoolId) return;
 
             try {
                 const reportRes = await csclient.getSchoolDailyReportV1ReportsDailySchoolIdYearMonthGet({
@@ -136,113 +139,74 @@ function SalesandPurchasesContent() {
                 if (reportRes?.data) {
                     const report = reportRes.data as csclient.DailyFinancialReport;
 
+                    console.log("Loaded report:", report);
+                    console.log("Report notedBy:", report.notedBy);
+
                     // Set the report status
                     setReportStatus(report.reportStatus || null);
 
-                    // Set the prepared by from the report (get user name from user ID)
-                    if (report.preparedBy) {
-                        // Find the user in schoolUsers to get their name
-                        const preparedByUser = schoolUsers.find((user) => user.id === report.preparedBy);
-                        if (preparedByUser) {
-                            const preparedByName = `${preparedByUser.nameFirst} ${preparedByUser.nameLast}`.trim();
-                            setPreparedBy(preparedByName);
-                            setPreparedByPosition(preparedByUser.position || null);
-                            // Load the preparedBy user's signature
-                            if (preparedByUser.signatureUrn) {
-                                try {
-                                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                        query: { fn: preparedByUser.signatureUrn },
-                                    });
-                                    if (response.data) {
-                                        const signatureUrl = URL.createObjectURL(response.data as Blob);
-                                        setPreparedBySignatureUrl(signatureUrl);
-                                    }
-                                } catch (error) {
-                                    customLogger.error("Failed to load prepared by user signature:", error);
+                    // Set the prepared by from the report (only if it's the current user)
+                    if (report.preparedBy === userCtx.userInfo?.id) {
+                        const currentUserName = `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
+                        setPreparedBy(currentUserName);
+                        setPreparedByPosition(userCtx.userInfo.position || null);
+                        // Load current user's signature for preparedBy
+                        if (userCtx.userInfo.signatureUrn) {
+                            try {
+                                const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                    query: { fn: userCtx.userInfo.signatureUrn },
+                                });
+                                if (response.data) {
+                                    const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                    setPreparedBySignatureUrl(signatureUrl);
                                 }
-                            }
-                        } else {
-                            // If user not found in schoolUsers, try to get from current user if it's the same
-                            if (report.preparedBy === userCtx.userInfo?.id) {
-                                const currentUserName =
-                                    `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
-                                setPreparedBy(currentUserName);
-                                setPreparedByPosition(userCtx.userInfo.position || null);
-                                // Load current user's signature for preparedBy
-                                if (userCtx.userInfo.signatureUrn) {
-                                    try {
-                                        const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                            query: { fn: userCtx.userInfo.signatureUrn },
-                                        });
-                                        if (response.data) {
-                                            const signatureUrl = URL.createObjectURL(response.data as Blob);
-                                            setPreparedBySignatureUrl(signatureUrl);
-                                        }
-                                    } catch (error) {
-                                        customLogger.error(
-                                            "Failed to load current user signature for preparedBy:",
-                                            error
-                                        );
-                                    }
-                                }
+                            } catch (error) {
+                                customLogger.error("Failed to load current user signature for preparedBy:", error);
                             }
                         }
-                    }
-                    // Set the noted by from the report (get user name from user ID)
+                    } // Set the noted by from the report (for any user)
                     if (report.notedBy) {
-                        // Find the user in schoolUsers to get their name
-                        const notedByUser = schoolUsers.find((user) => user.id === report.notedBy);
-                        if (notedByUser) {
-                            const notedByName = `${notedByUser.nameFirst} ${notedByUser.nameLast}`.trim();
-                            setNotedBy(notedByName);
-                            setSelectedNotedByUser(notedByUser);
-                            // Load the notedBy user's signature if they have approved the report
-                            if (notedByUser.signatureUrn && report.reportStatus === "approved") {
-                                try {
-                                    const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                        query: { fn: notedByUser.signatureUrn },
-                                    });
-                                    if (response.data) {
-                                        const signatureUrl = URL.createObjectURL(response.data as Blob);
-                                        setNotedBySignatureUrl(signatureUrl);
-                                        setApprovalConfirmed(true); // Mark as approved since we loaded their signature
-                                    }
-                                } catch (error) {
-                                    customLogger.error("Failed to load noted by user signature:", error);
-                                }
-                            }
-                        } else {
-                            // If user not found in schoolUsers, try to get from current user if it's the same
-                            if (report.notedBy === userCtx.userInfo?.id) {
-                                const currentUserName =
-                                    `${userCtx.userInfo.nameFirst} ${userCtx.userInfo.nameLast}`.trim();
-                                setNotedBy(currentUserName);
-                                // Find current user in schoolUsers to set as selectedNotedByUser
-                                const currentUser = schoolUsers.find((user) => user.id === userCtx.userInfo?.id);
-                                if (currentUser) {
-                                    setSelectedNotedByUser(currentUser);
-                                    // Load current user's signature for notedBy if available
-                                    if (currentUser.signatureUrn && report.reportStatus === "approved") {
+                        console.log("Loading notedBy user for ID:", report.notedBy);
+                        try {
+                            // Get the user details for the notedBy user using simple endpoint
+                            const userResponse = await csclient.getUsersSimpleEndpointV1UsersSimpleGet();
+
+                            console.log("User response:", userResponse.data);
+
+                            if (userResponse.data) {
+                                // Find the user with the matching ID
+                                const notedByUser = userResponse.data.find((user) => user.id === report.notedBy);
+
+                                if (notedByUser) {
+                                    const userName = `${notedByUser.nameFirst} ${notedByUser.nameLast}`.trim();
+                                    console.log("Setting notedBy to:", userName);
+                                    setNotedBy(userName);
+                                    setSelectedNotedByUser(notedByUser);
+
+                                    // Load user's signature for notedBy (always load if available)
+                                    if (notedByUser.signatureUrn) {
                                         try {
                                             const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet(
                                                 {
-                                                    query: { fn: currentUser.signatureUrn },
+                                                    query: { fn: notedByUser.signatureUrn },
                                                 }
                                             );
                                             if (response.data) {
                                                 const signatureUrl = URL.createObjectURL(response.data as Blob);
                                                 setNotedBySignatureUrl(signatureUrl);
-                                                setApprovalConfirmed(true); // Mark as approved since we loaded their signature
+                                                // Only mark as approved if report status is approved
+                                                if (report.reportStatus === "approved") {
+                                                    setApprovalConfirmed(true);
+                                                }
                                             }
                                         } catch (error) {
-                                            customLogger.error(
-                                                "Failed to load current user signature for notedBy:",
-                                                error
-                                            );
+                                            customLogger.error("Failed to load noted by user signature:", error);
                                         }
                                     }
                                 }
                             }
+                        } catch (error) {
+                            customLogger.error("Failed to load noted by user details:", error);
                         }
                     }
                 }
@@ -256,7 +220,6 @@ function SalesandPurchasesContent() {
     }, [
         currentMonth,
         userCtx.userInfo?.schoolId,
-        schoolUsers,
         userCtx.userInfo?.id,
         userCtx.userInfo?.nameFirst,
         userCtx.userInfo?.nameLast,
@@ -268,35 +231,6 @@ function SalesandPurchasesContent() {
     useEffect(() => {
         const initializeSignatures = async () => {
             if (!userCtx.userInfo) return;
-
-            /**
-             * Load users from the same school for "noted by" selection
-             * Using the simplified user endpoint to avoid permission errors
-             * Reason: Allow selection of any user from the same school for report approval
-             */
-            const loadSchoolUsers = async () => {
-                if (!userCtx.userInfo?.schoolId) return;
-
-                try {
-                    const response = await csclient.getUsersSimpleEndpointV1UsersSimpleGet();
-
-                    if (response.data) {
-                        // Note: The simple endpoint already filters users to the current user's school
-                        // so we don't need to filter by schoolId here
-                        setSchoolUsers(response.data);
-                    }
-                } catch (error) {
-                    customLogger.error("Failed to load school users:", error);
-                    notifications.show({
-                        title: "Error",
-                        message: "Failed to load users from your school.",
-                        color: "red",
-                    });
-                }
-            };
-
-            // Load school users for noted by selection
-            await loadSchoolUsers();
         };
 
         initializeSignatures();
@@ -335,43 +269,6 @@ function SalesandPurchasesContent() {
         initializePreparedBy();
     }, [userCtx.userInfo, preparedBy, preparedBySignatureUrl]);
 
-    // Effect to match loaded notedBy name with actual user and load their signature
-    useEffect(() => {
-        const loadNotedBySignature = async () => {
-            // If we have a notedBy name from a loaded report but no selected user yet
-            if (notedBy && !selectedNotedByUser && schoolUsers.length > 0) {
-                // Try to find the user by matching their name
-                const matchingUser = schoolUsers.find((user) => {
-                    const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-                    return userName === notedBy;
-                });
-
-                if (matchingUser) {
-                    setSelectedNotedByUser(matchingUser);
-
-                    // Load the user's signature if available and report is approved
-                    if (matchingUser.signatureUrn && reportStatus === "approved") {
-                        try {
-                            const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
-                                query: { fn: matchingUser.signatureUrn },
-                            });
-
-                            if (response.data) {
-                                const signatureUrl = URL.createObjectURL(response.data as Blob);
-                                setNotedBySignatureUrl(signatureUrl);
-                                setApprovalConfirmed(true);
-                            }
-                        } catch (error) {
-                            customLogger.error("Failed to load noted by user signature:", error);
-                        }
-                    }
-                }
-            }
-        };
-
-        loadNotedBySignature();
-    }, [notedBy, selectedNotedByUser, schoolUsers, reportStatus]);
-
     useEffect(() => {
         const loadSchoolData = async () => {
             if (!userCtx.userInfo?.schoolId) return;
@@ -385,6 +282,49 @@ function SalesandPurchasesContent() {
                 });
                 if (schoolResponse.data) {
                     setSchoolData(schoolResponse.data);
+
+                    // Auto-assign the principal as the notedBy user if not already set
+                    if (!notedBy && !selectedNotedByUser && schoolResponse.data.assignedNotedBy) {
+                        console.log("Auto-assigning principal as notedBy:", schoolResponse.data.assignedNotedBy);
+                        try {
+                            const usersResponse = await csclient.getUsersSimpleEndpointV1UsersSimpleGet();
+
+                            if (usersResponse.data) {
+                                // Find the principal user by ID
+                                const principalUser = usersResponse.data.find(
+                                    (user) => user.id === schoolResponse.data.assignedNotedBy
+                                );
+
+                                if (principalUser) {
+                                    const principalName = `${principalUser.nameFirst} ${principalUser.nameLast}`.trim();
+                                    console.log("Setting principal as notedBy:", principalName);
+                                    setNotedBy(principalName);
+                                    setSelectedNotedByUser(principalUser);
+
+                                    // Load principal's signature
+                                    if (principalUser.signatureUrn) {
+                                        try {
+                                            const signatureResponse =
+                                                await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                                    query: { fn: principalUser.signatureUrn },
+                                                });
+                                            if (signatureResponse.data) {
+                                                const signatureUrl = URL.createObjectURL(
+                                                    signatureResponse.data as Blob
+                                                );
+                                                setNotedBySignatureUrl(signatureUrl);
+                                            }
+                                        } catch (signatureError) {
+                                            console.error("Failed to load principal signature:", signatureError);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (principalError) {
+                            console.error("Failed to load principal user details:", principalError);
+                        }
+                    }
+
                     // Load school logo if available
                     if (schoolResponse.data.logoUrn) {
                         try {
@@ -408,38 +348,15 @@ function SalesandPurchasesContent() {
         };
 
         loadSchoolData();
-    }, [userCtx.userInfo?.schoolId]);
+    }, [userCtx.userInfo?.schoolId, notedBy, selectedNotedByUser]);
 
     const handleClose = () => {
         router.push("/reports");
     };
 
-    const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        const userName = `${user.nameFirst} ${user.nameLast}`.trim();
-        setNotedBy(userName);
-        setSelectedNotedByUser(user);
-
-        setApprovalConfirmed(false);
-        setApprovalCheckbox(false);
-        setNotedBySignatureUrl(null);
-
-        setUserSelectModalOpened(false);
-    };
-
     const openApprovalModal = () => {
         setApprovalCheckbox(false);
         setApprovalModalOpened(true);
-    };
-
-    const handleClearNotedBy = () => {
-        setNotedBy(null);
-        setSelectedNotedByUser(null);
-        setApprovalConfirmed(false);
-        setApprovalCheckbox(false);
-        if (notedBySignatureUrl) {
-            URL.revokeObjectURL(notedBySignatureUrl);
-            setNotedBySignatureUrl(null);
-        }
     };
 
     const handleApprovalConfirm = async () => {
@@ -1183,25 +1100,28 @@ function SalesandPurchasesContent() {
                                         setModalPurchases(entry.purchases);
                                         setModalOpened(true);
                                     }}
+                                    disabled={isReadOnly()}
                                 >
-                                    Edit
+                                    {isReadOnly() ? "View" : "Edit"}
                                 </Button>
-                                <Button
-                                    size="xs"
-                                    color="red"
-                                    variant="light"
-                                    onClick={() => {
-                                        setEntryToDelete(entry);
-                                        setDeleteModalOpened(true);
-                                    }}
-                                >
-                                    Delete
-                                </Button>
+                                {!isReadOnly() && (
+                                    <Button
+                                        size="xs"
+                                        color="red"
+                                        variant="light"
+                                        onClick={() => {
+                                            setEntryToDelete(entry);
+                                            setDeleteModalOpened(true);
+                                        }}
+                                    >
+                                        Delete
+                                    </Button>
+                                )}
                             </Group>
                         </Table.Td>
                     </Table.Tr>
                 )),
-        [dailyEntries]
+        [dailyEntries, isReadOnly]
     );
 
     return (
@@ -1217,9 +1137,15 @@ function SalesandPurchasesContent() {
                             <Title order={2} className="text-gray-800">
                                 Financial Report for the Month of {dayjs(currentMonth).format("MMMM YYYY")}
                             </Title>
-                            <Text size="sm" c="dimmed">
-                                Record daily sales and purchases
-                            </Text>
+                            {isReadOnly() ? (
+                                <Text size="sm" color="orange" fw={500}>
+                                    Read-only mode - Report is {reportStatus === "review" ? "under review" : "approved"}
+                                </Text>
+                            ) : (
+                                <Text size="sm" c="dimmed">
+                                    Record daily sales and purchases
+                                </Text>
+                            )}
                         </div>
                     </Group>
                     <ActionIcon
@@ -1248,7 +1174,9 @@ function SalesandPurchasesContent() {
                 {/* Date Selection */}
                 <Card withBorder>
                     <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
-                        <Text fw={500}>Select Date to Record</Text>
+                        <Text fw={500}>
+                            {isReadOnly() ? "View Report Data" : "Select Date to Record"}
+                        </Text>
                         <Group gap="md">
                             <MonthPickerInput
                                 placeholder="Select month"
@@ -1258,6 +1186,16 @@ function SalesandPurchasesContent() {
                                         const newMonth = new Date(value);
                                         setCurrentMonth(newMonth);
                                         setSelectedDate(null);
+
+                                        // Clear report-specific state when changing months
+                                        setReportStatus(null);
+                                        setPreparedBy(null);
+                                        setPreparedByPosition(null);
+                                        setNotedBy(null);
+                                        setPreparedBySignatureUrl(null);
+                                        setNotedBySignatureUrl(null);
+                                        setSelectedNotedByUser(null);
+                                        setApprovalConfirmed(false);
                                     }
                                 }}
                                 leftSection={<IconCalendar size={16} />}
@@ -1267,19 +1205,22 @@ function SalesandPurchasesContent() {
                                 placeholder="Select date"
                                 value={selectedDate}
                                 onChange={(value) => {
-                                    if (value) {
-                                        const date = new Date(value);
-                                        if (!isNaN(date.getTime())) {
-                                            handleDateSelect(date);
+                                    if (!isReadOnly()) {
+                                        if (value) {
+                                            const date = new Date(value);
+                                            if (!isNaN(date.getTime())) {
+                                                handleDateSelect(date);
+                                            }
+                                        } else {
+                                            handleDateSelect(null);
                                         }
-                                    } else {
-                                        handleDateSelect(null);
                                     }
                                 }}
                                 leftSection={<IconCalendar size={16} />}
                                 className="w-64"
                                 minDate={currentMonth ? dayjs(currentMonth).startOf("month").toDate() : undefined}
                                 maxDate={currentMonth ? dayjs(currentMonth).endOf("month").toDate() : new Date()}
+                                disabled={isReadOnly()}
                                 getDayProps={(date) => {
                                     // e.date is always the first of the month (YYYY-MM-01), but e.day is the actual day
                                     // So reconstruct the real date string for comparison
@@ -1304,8 +1245,9 @@ function SalesandPurchasesContent() {
                                 variant="outline"
                                 color="blue"
                                 size="lg"
-                                onClick={() => handleDateSelect(new Date())}
+                                onClick={() => !isReadOnly() && handleDateSelect(new Date())}
                                 title="Select today"
+                                disabled={isReadOnly()}
                             >
                                 <IconCalendar size={16} />
                             </ActionIcon>
@@ -1321,7 +1263,9 @@ function SalesandPurchasesContent() {
                                 No entries recorded yet
                             </Text>
                             <Text size="sm" c="dimmed">
-                                Select a date above to add your first daily sales and purchases entry
+                                {isReadOnly()
+                                    ? "No financial data available for this month"
+                                    : "Select a date above to add your first daily sales and purchases entry"}
                             </Text>
                         </div>
                     ) : (
@@ -1457,15 +1401,6 @@ function SalesandPurchasesContent() {
                                             : "Not Selected"}
                                     </Badge>
                                 </Group>
-                                {selectedNotedByUser ? (
-                                    <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
-                                        Clear
-                                    </Button>
-                                ) : (
-                                    <Button size="xs" variant="light" onClick={() => setUserSelectModalOpened(true)}>
-                                        Select User
-                                    </Button>
-                                )}
                             </Group>
                             <Box
                                 w={200}
@@ -1532,13 +1467,15 @@ function SalesandPurchasesContent() {
                             year: currentMonth.getFullYear(),
                             month: currentMonth.getMonth() + 1,
                         }}
+                        disabled={isReadOnly()}
                         onSuccess={() => {
-                            // Optionally refresh data or update UI after successful submission
+                            // Redirect to reports page after successful submission
                             notifications.show({
                                 title: "Status Updated",
-                                message: "Report status has been updated to 'Review'.",
+                                message: "Report has been submitted for review.",
                                 color: "green",
                             });
+                            router.push("/reports");
                         }}
                     />
                     <Button variant="outline" onClick={handleClose} className="hover:bg-gray-100 hide-in-pdf">
@@ -1552,66 +1489,10 @@ function SalesandPurchasesContent() {
                     >
                         Export PDF
                     </Button>
-                    <SplitButton onSubmit={handleSubmit} className="hide-in-pdf">
+                    <SplitButton disabled={isReadOnly()} onSubmit={handleSubmit} className="hide-in-pdf">
                         Submit
                     </SplitButton>
                 </Group>
-
-                {/* User Selection Modal for "Noted By" */}
-                <Modal
-                    opened={userSelectModalOpened}
-                    onClose={() => setUserSelectModalOpened(false)}
-                    title="Select User for 'Noted By'"
-                    size="md"
-                    centered
-                >
-                    <Stack gap="md">
-                        <Text size="sm" c="dimmed">
-                            Select a user from your school to be noted by on this report:
-                        </Text>
-
-                        {schoolUsers.length === 0 ? (
-                            <Text c="dimmed" ta="center">
-                                No users found from your school.
-                            </Text>
-                        ) : (
-                            <Stack gap="xs">
-                                {schoolUsers.map((user) => (
-                                    <Card
-                                        key={user.id}
-                                        p="sm"
-                                        withBorder
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() => handleNotedByUserSelect(user)}
-                                        className="hover:bg-gray-50"
-                                    >
-                                        <Group justify="space-between">
-                                            <div>
-                                                <Text fw={500}>
-                                                    {user.nameFirst} {user.nameLast}
-                                                </Text>
-                                                <Text size="sm" c="dimmed">
-                                                    {user.position || "No position specified"}
-                                                </Text>
-                                            </div>
-                                            {user.signatureUrn && (
-                                                <Badge size="sm" color="green" variant="light">
-                                                    Has Signature
-                                                </Badge>
-                                            )}
-                                        </Group>
-                                    </Card>
-                                ))}
-                            </Stack>
-                        )}
-
-                        <Group justify="flex-end" mt="md">
-                            <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
-                                Cancel
-                            </Button>
-                        </Group>
-                    </Stack>
-                </Modal>
 
                 {/* Approval Confirmation Modal */}
                 <Modal
@@ -1666,8 +1547,10 @@ function SalesandPurchasesContent() {
                     onClose={() => setModalOpened(false)}
                     title={
                         editingEntry
-                            ? `Entry for ${dayjs(editingEntry.date).date(editingEntry.day).format("MMMM DD, YYYY")}`
-                            : "Edit Entry"
+                            ? `${isReadOnly() ? "View" : "Edit"} Entry for ${dayjs(editingEntry.date)
+                                  .date(editingEntry.day)
+                                  .format("MMMM DD, YYYY")}`
+                            : `${isReadOnly() ? "View" : "Edit"} Entry`
                     }
                     centered
                     size="md"
@@ -1687,6 +1570,8 @@ function SalesandPurchasesContent() {
                                 thousandSeparator=","
                                 prefix="₱"
                                 size="md"
+                                readOnly={isReadOnly()}
+                                disabled={isReadOnly()}
                             />
                             <NumberInput
                                 label="Purchases"
@@ -1700,6 +1585,8 @@ function SalesandPurchasesContent() {
                                 thousandSeparator=","
                                 prefix="₱"
                                 size="md"
+                                readOnly={isReadOnly()}
+                                disabled={isReadOnly()}
                             />
                         </Stack>
                         <Text size="sm" c="dimmed">
@@ -1708,9 +1595,9 @@ function SalesandPurchasesContent() {
                         </Text>
                         <Group justify="end" gap="sm" mt="md">
                             <Button variant="subtle" onClick={() => setModalOpened(false)} color="gray" size="md">
-                                Cancel
+                                {isReadOnly() ? "Close" : "Cancel"}
                             </Button>
-                            <Button onClick={handleSaveEntry}>Save Entry</Button>
+                            {!isReadOnly() && <Button onClick={handleSaveEntry}>Save Entry</Button>}
                         </Group>
                     </Stack>
                 </Modal>
