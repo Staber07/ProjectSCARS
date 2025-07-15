@@ -60,8 +60,8 @@ export function useUserSync() {
 
         // Throttle checks to avoid excessive API calls
         const now = Date.now();
-        if (now - lastCheckTimeRef.current < 30000) {
-            // 30 seconds minimum between checks
+        if (now - lastCheckTimeRef.current < 10000) {
+            // 10 seconds minimum between checks
             return false;
         }
         lastCheckTimeRef.current = now;

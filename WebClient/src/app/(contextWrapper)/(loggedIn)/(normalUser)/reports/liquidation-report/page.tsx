@@ -56,7 +56,7 @@ import { notifications } from "@mantine/notifications";
 import { IconCalendar, IconFileText, IconHistory, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { customLogger } from "@/lib/api/customLogger";
 
 const report_type = {
@@ -140,7 +140,6 @@ function LiquidationReportContent() {
     // User selection state for "noted by" field
     const [schoolUsers, setSchoolUsers] = useState<csclient.UserSimple[]>([]);
     const [selectedNotedByUser, setSelectedNotedByUser] = useState<csclient.UserSimple | null>(null);
-    const [userSelectModalOpened, setUserSelectModalOpened] = useState(false);
 
     // Approval state management
     const [approvalModalOpened, setApprovalModalOpened] = useState(false);
@@ -148,6 +147,15 @@ function LiquidationReportContent() {
 
     // Report status tracking
     const [reportStatus, setReportStatus] = useState<string | null>(null);
+
+    // School data for automatic principal assignment
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [schoolData, setSchoolData] = useState<csclient.School | null>(null);
+
+    // Helper function to check if the report is read-only
+    const isReadOnly = useCallback(() => {
+        return reportStatus === "review" || reportStatus === "approved";
+    }, [reportStatus]);
 
     const hasQtyUnit = QTY_FIELDS_REQUIRED.includes(category || "");
     const hasReceiptVoucher = RECEIPT_FIELDS_REQUIRED.includes(category || "");
@@ -209,20 +217,20 @@ function LiquidationReportContent() {
                         }));
                         setExpenseItems(loadedItems);
 
-                        // Load receipt attachments if available
+                        // Load receipt attachments if available (only from the first entry to avoid duplication)
                         const allAttachmentUrns: string[] = [];
-                        report.entries.forEach((entry) => {
-                            if (entry.receipt_attachment_urns) {
-                                try {
-                                    const urns = JSON.parse(entry.receipt_attachment_urns);
-                                    if (Array.isArray(urns)) {
-                                        allAttachmentUrns.push(...urns);
-                                    }
-                                } catch (error) {
-                                    customLogger.error("Failed to parse receipt attachment URNs:", error);
+
+                        // Only check the first entry for attachments since that's where we store them
+                        if (report.entries.length > 0 && report.entries[0].receipt_attachment_urns) {
+                            try {
+                                const urns = JSON.parse(report.entries[0].receipt_attachment_urns);
+                                if (Array.isArray(urns)) {
+                                    allAttachmentUrns.push(...urns);
                                 }
+                            } catch (error) {
+                                customLogger.error("Failed to parse receipt attachment URNs:", error);
                             }
-                        });
+                        }
                         setReceiptAttachmentUrns(allAttachmentUrns);
 
                         // notifications.show({
@@ -364,6 +372,64 @@ function LiquidationReportContent() {
         }
     }, [reportStatus, notedBySignatureUrl]);
 
+    // Load school data and automatically assign principal
+    useEffect(() => {
+        const loadSchoolData = async () => {
+            if (!userCtx.userInfo?.schoolId) return;
+
+            try {
+                // Get school details using the school ID
+                const schoolResponse = await csclient.getSchoolEndpointV1SchoolsGet({
+                    query: {
+                        school_id: userCtx.userInfo.schoolId,
+                    },
+                });
+
+                if (schoolResponse.data) {
+                    setSchoolData(schoolResponse.data);
+
+                    // Automatically assign the principal as notedBy if not already set
+                    if (!notedBy && !selectedNotedByUser && schoolResponse.data.assignedNotedBy) {
+                        console.log("Auto-assigning principal as notedBy:", schoolResponse.data.assignedNotedBy);
+
+                        // Set the notedBy to the assigned principal's ID
+                        setNotedBy(schoolResponse.data.assignedNotedBy);
+
+                        // Find the principal user from schoolUsers if available
+                        if (schoolUsers.length > 0) {
+                            const principalUser = schoolUsers.find(
+                                (user) => user.id === schoolResponse.data.assignedNotedBy
+                            );
+                            if (principalUser) {
+                                setSelectedNotedByUser(principalUser);
+
+                                // Load the principal's signature if available and report is approved
+                                if (principalUser.signatureUrn && reportStatus === "approved") {
+                                    try {
+                                        const response = await csclient.getUserSignatureEndpointV1UsersSignatureGet({
+                                            query: { fn: principalUser.signatureUrn },
+                                        });
+
+                                        if (response.data) {
+                                            const signatureUrl = URL.createObjectURL(response.data as Blob);
+                                            setNotedBySignatureUrl(signatureUrl);
+                                        }
+                                    } catch (error) {
+                                        customLogger.error("Failed to load principal signature:", error);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to load school data:", error);
+            }
+        };
+
+        loadSchoolData();
+    }, [userCtx.userInfo?.schoolId, notedBy, selectedNotedByUser, schoolUsers, reportStatus]);
+
     // Validate category parameter
     if (!category || !report_type[category as keyof typeof report_type]) {
         return (
@@ -401,35 +467,6 @@ function LiquidationReportContent() {
 
     const handleClose = () => {
         router.push("/reports");
-    };
-
-    /**
-     * Handle selection of a user for the "noted by" field
-     * Ensures user ID (not name) is stored for the notedBy field
-     */
-    const handleNotedByUserSelect = async (user: csclient.UserSimple) => {
-        setNotedBy(user.id); // Store user ID, not name - this is critical for backend consistency
-        setSelectedNotedByUser(user);
-
-        // Reset approval state when changing the noted by user
-        setApprovalCheckbox(false);
-        setNotedBySignatureUrl(null);
-
-        setUserSelectModalOpened(false);
-    };
-
-    /**
-     * Clear the noted by user selection
-     * Reason: Allow user to remove the noted by selection and signature
-     */
-    const handleClearNotedBy = () => {
-        setNotedBy(null);
-        setSelectedNotedByUser(null);
-        setApprovalCheckbox(false);
-        if (notedBySignatureUrl) {
-            URL.revokeObjectURL(notedBySignatureUrl);
-            setNotedBySignatureUrl(null);
-        }
     };
 
     const openApprovalModal = () => {
@@ -582,11 +619,11 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data
-            // Combine receipt attachment URNs with general report attachment URNs
+            // Store attachments only in the first entry to avoid duplication
             const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
 
-            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item) => {
+            const entries: csclient.LiquidationReportEntryData[] = expenseItems.map((item, index) => {
                 const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                 return {
                     date: dayjs(item.date).format("YYYY-MM-DD"),
@@ -598,7 +635,8 @@ function LiquidationReportContent() {
                     ...(isAmountOnly
                         ? { amount: item.unitPrice, unitPrice: null }
                         : { unitPrice: item.unitPrice, amount: null }),
-                    receipt_attachment_urns: receiptUrnString,
+                    // Only store attachments in the first entry to avoid duplication
+                    receipt_attachment_urns: index === 0 ? receiptUrnString : null,
                 };
             });
 
@@ -665,13 +703,13 @@ function LiquidationReportContent() {
             const month = reportPeriod.getMonth() + 1;
 
             // Prepare the entries data (even if some fields are empty for draft)
-            // Combine receipt attachment URNs with general report attachment URNs
+            // Store attachments only in the first entry to avoid duplication
             const allAttachmentUrns = [...receiptAttachmentUrns, ...reportAttachments.map((att) => att.file_urn)];
             const receiptUrnString = allAttachmentUrns.length > 0 ? JSON.stringify(allAttachmentUrns) : null;
 
             const entries: csclient.LiquidationReportEntryData[] = expenseItems
                 .filter((item) => item.particulars || item.unitPrice > 0) // Only include items with some data
-                .map((item) => {
+                .map((item, index) => {
                     const isAmountOnly = AMOUNT_ONLY_FIELDS.includes(category || "");
                     return {
                         date: dayjs(item.date).format("YYYY-MM-DD"),
@@ -683,7 +721,8 @@ function LiquidationReportContent() {
                         ...(isAmountOnly
                             ? { amount: item.unitPrice, unitPrice: null }
                             : { unitPrice: item.unitPrice, amount: null }),
-                        receipt_attachment_urns: receiptUrnString,
+                        // Only store attachments in the first entry to avoid duplication
+                        receipt_attachment_urns: index === 0 ? receiptUrnString : null,
                     };
                 });
 
@@ -788,11 +827,19 @@ function LiquidationReportContent() {
                             <IconHistory size={28} />
                         </div>
                         <div>
-                            <Title order={2} className="text-gray-800">
-                                {report_type[category as keyof typeof report_type] || "Report Category Not Found"}
-                            </Title>
+                            <Group gap="sm" align="center">
+                                <Title order={2} className="text-gray-800">
+                                    {report_type[category as keyof typeof report_type] || "Report Category Not Found"}
+                                </Title>
+                                {isReadOnly() && (
+                                    <Badge color="blue" variant="light" size="sm">
+                                        {reportStatus === "approved" ? "Approved" : "Under Review"}
+                                    </Badge>
+                                )}
+                            </Group>
                             <Text size="sm" c="dimmed">
-                                Create and manage expense liquidation for {dayjs(reportPeriod).format("MMMM YYYY")}
+                                {isReadOnly() ? "Viewing" : "Create and manage"} expense liquidation for{" "}
+                                {dayjs(reportPeriod).format("MMMM YYYY")}
                             </Text>
                         </div>
                     </Group>
@@ -815,7 +862,34 @@ function LiquidationReportContent() {
                         <MonthPickerInput
                             placeholder="Select month"
                             value={reportPeriod}
-                            onChange={(value) => setReportPeriod(value ? new Date(value) : null)}
+                            onChange={(value) => {
+                                const newDate = value ? new Date(value) : null;
+                                setReportPeriod(newDate);
+
+                                // Clear state when month changes
+                                setExpenseItems([
+                                    {
+                                        id: new Date(),
+                                        date: new Date(),
+                                        particulars: "",
+                                        receiptNumber: RECEIPT_FIELDS_REQUIRED.includes(category || "")
+                                            ? ""
+                                            : undefined,
+                                        quantity: QTY_FIELDS_REQUIRED.includes(category || "") ? 1 : undefined,
+                                        unit: QTY_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
+                                        unitPrice: 0,
+                                    },
+                                ]);
+                                setNotes("");
+                                setReportAttachments([]);
+                                setReceiptAttachmentUrns([]);
+                                setReportStatus(null);
+                                setNotedBy(null);
+                                setSelectedNotedByUser(null);
+                                setNotedBySignatureUrl(null);
+                                setPreparedBy(null);
+                                setPreparedBySignatureUrl(null);
+                            }}
                             leftSection={<IconCalendar size={16} />}
                             className="w-full sm:w-64"
                             valueFormat="MMMM YYYY"
@@ -832,6 +906,7 @@ function LiquidationReportContent() {
                             onClick={addNewItem}
                             variant="light"
                             className="bg-blue-50 hover:bg-blue-100"
+                            disabled={isReadOnly()}
                         >
                             Add Item
                         </Button>
@@ -868,6 +943,8 @@ function LiquidationReportContent() {
                                                     maxDate={maxDate}
                                                     date={reportPeriod || new Date()}
                                                     required
+                                                    readOnly={isReadOnly()}
+                                                    disabled={isReadOnly()}
                                                 />
                                             </Table.Td>
                                             {hasReceiptVoucher && (
@@ -879,6 +956,8 @@ function LiquidationReportContent() {
                                                         onChange={(e) =>
                                                             updateItem(item.id, "receiptNumber", e.currentTarget.value)
                                                         }
+                                                        readOnly={isReadOnly()}
+                                                        disabled={isReadOnly()}
                                                     />
                                                 </Table.Td>
                                             )}
@@ -891,6 +970,8 @@ function LiquidationReportContent() {
                                                         updateItem(item.id, "particulars", e.currentTarget.value)
                                                     }
                                                     required
+                                                    readOnly={isReadOnly()}
+                                                    disabled={isReadOnly()}
                                                 />
                                             </Table.Td>
                                             {hasQtyUnit && (
@@ -904,6 +985,8 @@ function LiquidationReportContent() {
                                                                 updateItem(item.id, "quantity", Number(value) || 1)
                                                             }
                                                             min={1}
+                                                            readOnly={isReadOnly()}
+                                                            disabled={isReadOnly()}
                                                         />
                                                     </Table.Td>
                                                     <Table.Td>
@@ -927,6 +1010,8 @@ function LiquidationReportContent() {
                                                     min={0}
                                                     leftSection="₱"
                                                     hideControls
+                                                    readOnly={isReadOnly()}
+                                                    disabled={isReadOnly()}
                                                 />
                                             </Table.Td>
                                             {hasQtyUnit && (
@@ -939,7 +1024,7 @@ function LiquidationReportContent() {
                                                     color="red"
                                                     variant="subtle"
                                                     onClick={() => removeItem(item.id)}
-                                                    disabled={expenseItems.length === 1}
+                                                    disabled={expenseItems.length === 1 || isReadOnly()}
                                                     className="hover:bg-red-50"
                                                 >
                                                     <IconTrash size={16} />
@@ -973,6 +1058,8 @@ function LiquidationReportContent() {
                             onChange={(e) => setNotes(e.currentTarget.value)}
                             minRows={3}
                             maxRows={6}
+                            readOnly={isReadOnly()}
+                            disabled={isReadOnly()}
                         />
                     </Stack>
                 </Card>
@@ -984,7 +1071,7 @@ function LiquidationReportContent() {
                     initialAttachmentUrns={receiptAttachmentUrns}
                     maxFiles={10}
                     maxFileSize={5 * 1024 * 1024} // 5MB
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isReadOnly()}
                     title="Supporting Documents"
                     description="Upload receipts, invoices, and other supporting documents for this liquidation report"
                 />
@@ -1041,37 +1128,22 @@ function LiquidationReportContent() {
                     <Card withBorder p="md">
                         <Stack gap="sm" align="center">
                             <Group justify="space-between" w="100%" align="center">
-                                <Group gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" fw={500}>
-                                        Noted by
-                                    </Text>
-                                    <Badge
-                                        size="sm"
-                                        color={
-                                            reportStatus === "approved"
-                                                ? "green"
-                                                : selectedNotedByUser
-                                                ? "yellow"
-                                                : "gray"
-                                        }
-                                        variant="light"
-                                    >
-                                        {reportStatus === "approved"
-                                            ? "Approved"
-                                            : selectedNotedByUser
-                                            ? "Pending Approval"
-                                            : "Not Selected"}
-                                    </Badge>
-                                </Group>
-                                {selectedNotedByUser ? (
-                                    <Button size="xs" variant="subtle" color="red" onClick={handleClearNotedBy}>
-                                        Clear
-                                    </Button>
-                                ) : (
-                                    <Button size="xs" variant="light" onClick={() => setUserSelectModalOpened(true)}>
-                                        Select User
-                                    </Button>
-                                )}
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Noted by
+                                </Text>
+                                <Badge
+                                    size="sm"
+                                    color={
+                                        reportStatus === "approved" ? "green" : selectedNotedByUser ? "yellow" : "gray"
+                                    }
+                                    variant="light"
+                                >
+                                    {reportStatus === "approved"
+                                        ? "Approved"
+                                        : selectedNotedByUser
+                                        ? "Pending Approval"
+                                        : "Not Assigned"}
+                                </Badge>
                             </Group>
                             <Box
                                 w={200}
@@ -1191,69 +1263,14 @@ function LiquidationReportContent() {
                                 !reportPeriod ||
                                 !category ||
                                 expenseItems.some((item) => !item.date || !item.particulars) ||
-                                expenseItems.every((item) => !item.particulars && item.unitPrice === 0)
+                                expenseItems.every((item) => !item.particulars && item.unitPrice === 0) ||
+                                isReadOnly()
                             }
                         >
                             {isSubmitting ? "Submitting..." : "Submit Report"}
                         </SplitButton>
                     </Group>
                 </Stack>
-
-                {/* User Selection Modal for "Noted By" */}
-                <Modal
-                    opened={userSelectModalOpened}
-                    onClose={() => setUserSelectModalOpened(false)}
-                    title="Select User for 'Noted By'"
-                    size="md"
-                    centered
-                >
-                    <Stack gap="md">
-                        <Text size="sm" c="dimmed">
-                            Select a user from your school to be noted by on this report:
-                        </Text>
-
-                        {schoolUsers.length === 0 ? (
-                            <Text c="dimmed" ta="center">
-                                No users found from your school.
-                            </Text>
-                        ) : (
-                            <Stack gap="xs">
-                                {schoolUsers.map((user) => (
-                                    <Card
-                                        key={user.id}
-                                        p="sm"
-                                        withBorder
-                                        style={{ cursor: "pointer" }}
-                                        onClick={() => handleNotedByUserSelect(user)}
-                                        className="hover:bg-gray-50"
-                                    >
-                                        <Group justify="space-between">
-                                            <div>
-                                                <Text fw={500}>
-                                                    {user.nameFirst} {user.nameLast}
-                                                </Text>
-                                                <Text size="sm" c="dimmed">
-                                                    {user.position || "No position specified"}
-                                                </Text>
-                                            </div>
-                                            {user.signatureUrn && (
-                                                <Badge size="sm" color="green" variant="light">
-                                                    Has Signature
-                                                </Badge>
-                                            )}
-                                        </Group>
-                                    </Card>
-                                ))}
-                            </Stack>
-                        )}
-
-                        <Group justify="flex-end" mt="md">
-                            <Button variant="outline" onClick={() => setUserSelectModalOpened(false)}>
-                                Cancel
-                            </Button>
-                        </Group>
-                    </Stack>
-                </Modal>
 
                 {/* Approval Modal */}
                 <Modal

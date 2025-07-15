@@ -325,6 +325,15 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         });
     };
 
+    const handleRemoveAvatar = () => {
+        setAvatarRemoved(true);
+        setEditUserAvatar(null);
+        if (editUserAvatarUrl && !currentAvatarUrn) {
+            URL.revokeObjectURL(editUserAvatarUrl);
+        }
+        setEditUserAvatarUrl(null);
+    };
+
     const handleChangeSignature = async (file: File | null) => {
         if (file === null) {
             customLogger.debug("No file selected, skipping upload...");
@@ -395,6 +404,24 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
         // Resolve async operations first
         const schoolId = await GetSelectValue(values.school);
         const roleId = await GetSelectValue(values.role);
+
+        // Debug logging
+        customLogger.debug("Form values debug:", {
+            valuesSchool: values.school,
+            valuesRole: values.role,
+            availableSchools: availableSchools.length,
+            availableRoles: availableRoles.length,
+            userInfoSchoolId: userInfo?.schoolId,
+            userInfoRoleId: userInfo?.roleId,
+        });
+
+        customLogger.debug("School comparison:", {
+            schoolId,
+            userInfoSchoolId: userInfo?.schoolId,
+            schoolIdNumber: schoolId ? Number(schoolId) : null,
+            isSchoolChanging: (schoolId ? Number(schoolId) : null) !== userInfo?.schoolId,
+        });
+
         const newUserInfo: UserUpdate = {
             id: values.id,
             username: values.username !== userInfo?.username ? values.username : undefined,
@@ -403,13 +430,44 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
             nameLast: values.nameLast !== userInfo?.nameLast ? values.nameLast || null : undefined,
             position: values.position !== userInfo?.position ? values.position || null : undefined,
             email: values.email !== userInfo?.email ? values.email || null : undefined,
-            schoolId: Number(schoolId) !== userInfo?.schoolId && schoolId ? Number(schoolId) : null,
-            roleId: Number(roleId) !== userInfo?.roleId && roleId ? Number(roleId) : null,
             deactivated: values.deactivated !== userInfo?.deactivated ? values.deactivated : undefined,
             forceUpdateInfo: values.forceUpdateInfo !== userInfo?.forceUpdateInfo ? values.forceUpdateInfo : undefined,
             finishedTutorials: null,
             password: null,
         };
+
+        // Only add schoolId if it's actually changing
+        const newSchoolId = schoolId ? Number(schoolId) : null;
+        const isSchoolActuallyChanging = newSchoolId !== userInfo?.schoolId;
+
+        // Additional check: if school field is null but user has a school,
+        // and the form couldn't find the school in available schools, don't treat it as a change
+        const schoolFormValue = values.school;
+        const userHasSchool = userInfo?.schoolId !== null;
+        const schoolFieldIsEmpty = schoolFormValue === undefined || schoolFormValue === null;
+
+        // If user has a school but form field is empty, it might be because the school
+        // wasn't loaded yet in availableSchools, so don't treat it as a change
+        const shouldIgnoreSchoolChange = userHasSchool && schoolFieldIsEmpty && availableSchools.length === 0;
+
+        customLogger.debug("School change analysis:", {
+            newSchoolId,
+            isSchoolActuallyChanging,
+            schoolFormValue,
+            userHasSchool,
+            schoolFieldIsEmpty,
+            shouldIgnoreSchoolChange,
+        });
+
+        if (isSchoolActuallyChanging && !shouldIgnoreSchoolChange) {
+            newUserInfo.schoolId = newSchoolId;
+        }
+
+        // Only add roleId if it's actually changing
+        const newRoleId = roleId ? Number(roleId) : null;
+        if (newRoleId !== userInfo?.roleId) {
+            newUserInfo.roleId = newRoleId;
+        }
 
         // Check for fields that were cleared (set to null) and need to be deleted
         const fieldsToDelete: UserDelete = {
@@ -999,7 +1057,7 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         radius="lg"
                         size={100}
                         color="#258ce6"
-                        src={editUserAvatarUrl || userAvatarUrl || undefined}
+                        src={avatarRemoved ? undefined : editUserAvatarUrl || userAvatarUrl || undefined}
                     />
                     <Stack gap={0}>
                         <Text size="sm" c="dimmed">
@@ -1022,13 +1080,20 @@ function ProfileContent({ userInfo, userPermissions, userAvatarUrl }: ProfileCon
                         </Text>
                     </Stack>
                 </Group>
-                <FileButton onChange={handleChangeAvatar} accept="image/png,image/jpeg">
-                    {(props) => (
-                        <Button variant="outline" size="sm" {...props}>
-                            Change Profile Picture
+                <Group gap="sm">
+                    <FileButton onChange={handleChangeAvatar} accept="image/png,image/jpeg">
+                        {(props) => (
+                            <Button variant="outline" size="sm" {...props}>
+                                Change Profile Picture
+                            </Button>
+                        )}
+                    </FileButton>
+                    {(editUserAvatarUrl || userAvatarUrl) && !avatarRemoved && (
+                        <Button variant="outline" size="sm" color="red" onClick={handleRemoveAvatar}>
+                            Remove Avatar
                         </Button>
                     )}
-                </FileButton>
+                </Group>
             </Flex>
 
             <Divider my="lg" />

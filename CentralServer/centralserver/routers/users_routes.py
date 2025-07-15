@@ -415,10 +415,19 @@ async def delete_user_avatar_endpoint(
         session: The session to the database.
     """
 
-    if not await verify_user_permission("users:global:modify", session, token):
+    updating_self = user_id == token.id
+    if not await verify_user_permission(
+        "users:self:modify" if updating_self else "users:global:modify",
+        session,
+        token,
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to update user profiles.",
+            detail=(
+                "You do not have permission to update your profile."
+                if updating_self
+                else "You do not have permission to update user profiles."
+            ),
         )
 
     logger.debug("user %s is deleting user avatar of %s...", token.id, user_id)

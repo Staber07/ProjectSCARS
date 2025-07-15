@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, Code, Group, Image, Indicator, NavLink, Text, Title, Tooltip } from "@mantine/core";
+import { ActionIcon, Avatar, Code, Group, Image, Indicator, NavLink, Text, Title, Tooltip } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import {
     IconBuilding,
@@ -9,39 +9,38 @@ import {
     IconHelp,
     IconLogout,
     IconNotification,
+    IconRefresh,
     IconReport,
     IconSettings,
     IconUser,
 } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
+import { motion } from "motion/react";
 
-import {
-    getNotificationQuantityV1NotificationsQuantityGet,
-    getUserAvatarEndpointV1UsersAvatarGet,
-} from "@/lib/api/csclient";
+import { getNotificationQuantityV1NotificationsQuantityGet } from "@/lib/api/csclient";
 import { Program, roles } from "@/lib/info";
 import { useAuth } from "@/lib/providers/auth";
 import { useUser } from "@/lib/providers/user";
-import { GetAccessTokenHeader } from "@/lib/utils/token";
 import { JSX, useEffect, useState } from "react";
 
 import classes from "./Navbar.module.css";
 import { customLogger } from "@/lib/api/customLogger";
+import { useUserSyncControls } from "@/lib/hooks/useUserSyncControls";
 
 export const Navbar: React.FC = () => {
     const [links, setLinks] = useState<JSX.Element[]>([]);
     const [notificationsQuantity, setNotificationsQuantity] = useState<number>(0);
-    const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+    const [isHovered, setIsHovered] = useState<boolean>(false);
     const userCtx = useUser();
     const router = useRouter();
     const pathname = usePathname();
     const { logout } = useAuth();
+    const { triggerRefresh, isRefreshing } = useUserSyncControls();
 
     const fetchNotificationsQuantity = async () => {
         try {
             const result = await getNotificationQuantityV1NotificationsQuantityGet({
                 query: { show_archived: false },
-                headers: { Authorization: GetAccessTokenHeader() },
             });
 
             if (result.error) {
@@ -178,40 +177,6 @@ export const Navbar: React.FC = () => {
         });
     }, [notificationsQuantity, pathname, userCtx.userPermissions, userCtx.userInfo?.roleId]);
 
-    const fetchUserAvatar = async (avatarUrn: string): Promise<string | null> => {
-        try {
-            const result = await getUserAvatarEndpointV1UsersAvatarGet({
-                query: { fn: avatarUrn },
-                headers: { Authorization: GetAccessTokenHeader() },
-            });
-
-            if (result.error) {
-                throw new Error(`Failed to fetch avatar: ${result.response.status} ${result.response.statusText}`);
-            }
-
-            const blob = result.data as Blob;
-            const url = URL.createObjectURL(blob);
-            return url;
-        } catch (error) {
-            customLogger.error("Failed to fetch user avatar:", error);
-            return null;
-        }
-    };
-
-    // Fetch user avatar when component mounts or when user avatar URN changes
-    useEffect(() => {
-        const fetchAndSetAvatar = async () => {
-            if (userCtx.userInfo?.avatarUrn) {
-                const avatarUrl = await fetchUserAvatar(userCtx.userInfo.avatarUrn);
-                setUserAvatarUrl(avatarUrl || null);
-            } else {
-                setUserAvatarUrl(null);
-            }
-        };
-
-        fetchAndSetAvatar();
-    }, [userCtx.userInfo?.avatarUrn]);
-
     customLogger.debug("Returning Navbar");
     return (
         <nav className={classes.navbar}>
@@ -234,9 +199,14 @@ export const Navbar: React.FC = () => {
             </div>
             <div className={classes.footer}>
                 {/* The logged-in user's avatar and name */}
-                <Group gap="sm" align="center">
-                    {userCtx.userInfo?.avatarUrn && userAvatarUrl ? (
-                        <Avatar radius="xl" src={userAvatarUrl}>
+                <Group
+                    gap="sm"
+                    align="center"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                >
+                    {userCtx.userInfo?.avatarUrn && userCtx.userAvatarUrl ? (
+                        <Avatar radius="xl" src={userCtx.userAvatarUrl}>
                             <IconUser />
                         </Avatar>
                     ) : (
@@ -265,6 +235,22 @@ export const Navbar: React.FC = () => {
                             </Text>
                         </div>
                     </Tooltip>
+                    {isHovered && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                        >
+                            <ActionIcon
+                                disabled={isRefreshing}
+                                variant="light"
+                                size="sm"
+                                onClick={() => triggerRefresh()}
+                            >
+                                <IconRefresh />
+                            </ActionIcon>
+                        </motion.div>
+                    )}
                 </Group>
             </div>
             <div className={classes.footer}>
