@@ -2,7 +2,7 @@ import { customLogger } from "@/lib/api/customLogger";
 import { LocalStorage, randomLoadingMessages } from "@/lib/info";
 import { Center, Container, Image, Loader, Paper, Stack, Text } from "@mantine/core";
 import { motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { JSX, useEffect, useState } from "react";
 
 type LoadingComponentProps = {
     message?: string; // The message to display below the title

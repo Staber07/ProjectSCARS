@@ -84,7 +84,7 @@ function ResetPasswordContent(): React.ReactElement {
             });
 
             if (result.error) {
-                customLogger.error(result.response.status, result.response.statusText);
+                customLogger.error(`${result.response.status} ${result.response.statusText}`);
                 notifications.show({
                     id: "reset-password-failure",
                     title: "Password reset failed",

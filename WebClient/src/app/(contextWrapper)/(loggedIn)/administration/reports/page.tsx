@@ -3,19 +3,21 @@
 import { MonthlyReportDetailsModal } from "@/components/MonthlyReportDetailsModal";
 import { MonthlyReportEditModal } from "@/components/MonthlyReportEditModal";
 import { ReportStatusManager } from "@/components/ReportStatusManager";
-import { GetAllSchools, GetSchoolInfo } from "@/lib/api/school";
-import { useUser } from "@/lib/providers/user";
 import {
     MonthlyReport,
     School,
-    getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
     deleteSchoolMonthlyReportV1ReportsMonthlySchoolIdYearMonthDelete,
+    getAllSchoolMonthlyReportsV1ReportsMonthlySchoolIdGet,
 } from "@/lib/api/csclient";
 import type { ReportStatus } from "@/lib/api/csclient/types.gen";
+import { customLogger } from "@/lib/api/customLogger";
+import { GetAllSchools, GetSchoolInfo } from "@/lib/api/school";
+import { useUser } from "@/lib/providers/user";
 import {
     ActionIcon,
     Button,
     Checkbox,
+    Container,
     Flex,
     Group,
     Menu,
@@ -29,10 +31,18 @@ import {
     TextInput,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconDots, IconDownload, IconEye, IconFilter, IconPencil, IconSearch, IconTrash } from "@tabler/icons-react";
+import {
+    IconDots,
+    IconDownload,
+    IconEye,
+    IconFileSad,
+    IconFilter,
+    IconPencil,
+    IconSearch,
+    IconTrash,
+} from "@tabler/icons-react";
 import dayjs from "dayjs";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { customLogger } from "@/lib/api/customLogger";
 
 export default function ReportsPage() {
     customLogger.debug("Rendering Administration ReportsPage");
@@ -478,8 +488,17 @@ export default function ReportsPage() {
                 </Table>
 
                 {filteredReports.length === 0 && (
-                    <Paper p="xl" ta="center">
-                        <Text c="dimmed">No reports found</Text>
+                    <Paper pb="xl" ta="center">
+                        <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                            <IconFileSad
+                                size={64}
+                                style={{ margin: "auto", display: "block" }}
+                                color="var(--mantine-color-dimmed)"
+                            />
+                            <Text size="lg" mt="xl" c="dimmed">
+                                No Reports Found
+                            </Text>
+                        </Container>
                     </Paper>
                 )}
             </Paper>

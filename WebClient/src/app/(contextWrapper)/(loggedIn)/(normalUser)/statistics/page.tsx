@@ -1,7 +1,20 @@
 "use client";
 
 import { BarChart, LineChart } from "@mantine/charts";
-import { Card, Divider, Grid, Group, Paper, SimpleGrid, Text, Title, Alert, Loader, Switch } from "@mantine/core";
+import {
+    Card,
+    Divider,
+    Grid,
+    Group,
+    Paper,
+    SimpleGrid,
+    Text,
+    Title,
+    Alert,
+    Loader,
+    Switch,
+    Container,
+} from "@mantine/core";
 import {
     IconArrowDownRight,
     IconArrowUpRight,
@@ -11,6 +24,7 @@ import {
     IconUserPlus,
     IconAlertCircle,
     IconFilter,
+    IconZoomQuestion,
 } from "@tabler/icons-react";
 
 import classes from "./Stats.module.css";
@@ -219,14 +233,16 @@ export default function StatisticsPage() {
     if (error || !statsData) {
         return (
             <div className={classes.root}>
-                <Alert
-                    icon={<IconAlertCircle size={16} />}
-                    title="Error Loading Data"
-                    color="red"
-                    style={{ margin: "2rem 0" }}
-                >
-                    {error || "No financial data available"}
-                </Alert>
+                <Container size="xl" mt={50} style={{ textAlign: "center" }}>
+                    <IconZoomQuestion
+                        size={64}
+                        style={{ margin: "auto", display: "block" }}
+                        color="var(--mantine-color-dimmed)"
+                    />
+                    <Text size="lg" mt="xl" c="dimmed">
+                        {error || "No financial data available"}
+                    </Text>
+                </Container>
             </div>
         );
     }
