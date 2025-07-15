@@ -1,13 +1,13 @@
 "use client";
 
-import { getUsersSimpleEndpointV1UsersSimpleGet, School, UserSimple } from "@/lib/api/csclient";
+import { getAllUsersEndpointV1UsersAllGet, School, UserPublic } from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { CreateSchool } from "@/lib/api/school";
 import { Button, Modal, Select, Stack, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { IconBuildingPlus, IconCheck, IconSendOff, IconUserExclamation } from "@tabler/icons-react";
+import { IconBuildingPlus, IconCheck, IconSendOff, IconTrash, IconUserExclamation } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 
 interface CreateSchoolComponentProps {
@@ -18,7 +18,7 @@ interface CreateSchoolComponentProps {
 
 export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate }: CreateSchoolComponentProps) {
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
-    const [users, setUsers] = useState<UserSimple[]>([]);
+    const [users, setUsers] = useState<UserPublic[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
     const form = useForm({
@@ -38,9 +38,13 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
     const loadUsers = useCallback(async () => {
         setLoadingUsers(true);
         try {
-            const result = await getUsersSimpleEndpointV1UsersSimpleGet();
+            const result = await getAllUsersEndpointV1UsersAllGet({
+                query: { show_all: false, limit: 999 },
+            });
             if (result.data) {
-                setUsers(result.data);
+                // Filter to only show principals (roleId: 4) who can approve reports
+                const principals = result.data.filter((user) => user.roleId === 4);
+                setUsers(principals);
             } else {
                 setUsers([]);
             }
@@ -125,6 +129,38 @@ export function CreateSchoolComponent({ modalOpen, setModalOpen, onSchoolCreate 
                     <TextInput label="Phone Number" {...form.getInputProps("phone")} />
                     <TextInput label="Email Address" type="email" {...form.getInputProps("email")} />
                     <TextInput label="Website" {...form.getInputProps("website")} />
+
+                    <Select
+                        label="Assigned Report Approver"
+                        placeholder={loadingUsers ? "Loading principals..." : "Select a principal to approve reports"}
+                        data={users.map((user) => ({
+                            value: user.id,
+                            label:
+                                `${user.nameFirst || ""} ${user.nameMiddle || ""} ${user.nameLast || ""}`.trim() ||
+                                user.id,
+                        }))}
+                        {...form.getInputProps("assignedNotedBy")}
+                        searchable
+                        clearable
+                        disabled={loadingUsers}
+                        description="This principal will automatically approve all reports created by this school"
+                        rightSection={
+                            form.values.assignedNotedBy ? (
+                                <IconTrash
+                                    size={16}
+                                    color="red"
+                                    onClick={() => form.setFieldValue("assignedNotedBy", "")}
+                                    style={{
+                                        opacity: 0,
+                                        cursor: "pointer",
+                                        transition: "opacity 0.2s ease",
+                                    }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                                    onMouseLeave={(e) => (e.currentTarget.style.opacity = "0")}
+                                />
+                            ) : null
+                        }
+                    />
 
                     <Button type="submit" loading={buttonLoading} rightSection={<IconBuildingPlus />}>
                         Create School

@@ -2,11 +2,11 @@
 
 import {
     deleteSchoolInfoEndpointV1SchoolsDelete,
-    getUsersSimpleEndpointV1UsersSimpleGet,
+    getAllUsersEndpointV1UsersAllGet,
     School,
     SchoolDelete,
     SchoolUpdate,
-    UserSimple,
+    UserPublic,
 } from "@/lib/api/csclient";
 import { customLogger } from "@/lib/api/customLogger";
 import { RemoveSchoolLogo, UpdateSchoolInfo, UploadSchoolLogo } from "@/lib/api/school";
@@ -46,7 +46,7 @@ export function EditSchoolComponent({
     const [editSchoolLogoUrl, setEditSchoolLogoUrl] = useState<string | null>(null);
     const [logoToRemove, setLogoToRemove] = useState(false);
     const [buttonLoading, buttonStateHandler] = useDisclosure(false);
-    const [users, setUsers] = useState<UserSimple[]>([]);
+    const [users, setUsers] = useState<UserPublic[]>([]);
     const [loadingUsers, setLoadingUsers] = useState(false);
 
     const loadUsers = useCallback(async () => {
@@ -54,11 +54,13 @@ export function EditSchoolComponent({
 
         setLoadingUsers(true);
         try {
-            const result = await getUsersSimpleEndpointV1UsersSimpleGet({
-                query: { school_id: school.id },
+            const result = await getAllUsersEndpointV1UsersAllGet({
+                query: { show_all: false, limit: 999 }, // Get all active users
             });
             if (result.data) {
-                setUsers(result.data);
+                // Filter to only show principals (roleId: 4) from the specific school
+                const principals = result.data.filter((user) => user.roleId === 4 && user.schoolId === school.id);
+                setUsers(principals);
             } else {
                 setUsers([]);
             }
@@ -409,7 +411,7 @@ export function EditSchoolComponent({
                     />
                     <Select
                         label="Assigned Report Approver"
-                        placeholder={loadingUsers ? "Loading users..." : "Select a user to approve reports"}
+                        placeholder={loadingUsers ? "Loading principals..." : "Select a principal to approve reports"}
                         data={users.map((user) => ({
                             value: user.id,
                             label:
@@ -426,7 +428,7 @@ export function EditSchoolComponent({
                         searchable
                         clearable
                         disabled={loadingUsers}
-                        description="This user will automatically approve all reports created by this school"
+                        description="This principal will automatically approve all reports created by this school"
                         rightSection={
                             editSchool.assignedNotedBy ? (
                                 <IconTrash
