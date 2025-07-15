@@ -122,14 +122,14 @@ export function ReportAttachmentManager({
 
             onAttachmentsChange(loadedAttachments);
 
-            notifications.show({
-                id: "attachments-loaded",
-                title: "Attachments Loaded",
-                message: `Loaded ${loadedAttachments.length} existing attachment${
-                    loadedAttachments.length !== 1 ? "s" : ""
-                }.`,
-                color: "blue",
-            });
+            // notifications.show({
+            //     id: "attachments-loaded",
+            //     title: "Attachments Loaded",
+            //     message: `Loaded ${loadedAttachments.length} existing attachment${
+            //         loadedAttachments.length !== 1 ? "s" : ""
+            //     }.`,
+            //     color: "blue",
+            // });
         } catch (error) {
             const message = error instanceof Error ? error.message : "Unknown error occurred";
             customLogger.error("Failed to load existing attachments:", message);

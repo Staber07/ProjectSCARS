@@ -1174,9 +1174,7 @@ function SalesandPurchasesContent() {
                 {/* Date Selection */}
                 <Card withBorder>
                     <Group justify="space-between" align="center" className="flex-col sm:flex-row gap-4">
-                        <Text fw={500}>
-                            {isReadOnly() ? "View Report Data" : "Select Date to Record"}
-                        </Text>
+                        <Text fw={500}>{isReadOnly() ? "View Report Data" : "Select Date to Record"}</Text>
                         <Group gap="md">
                             <MonthPickerInput
                                 placeholder="Select month"
@@ -1379,28 +1377,26 @@ function SalesandPurchasesContent() {
                     <Card withBorder p="md">
                         <Stack gap="sm" align="center">
                             <Group justify="space-between" w="100%">
-                                <Group gap="sm">
-                                    <Text size="sm" c="dimmed" fw={500}>
-                                        Noted by
-                                    </Text>
-                                    <Badge
-                                        size="sm"
-                                        color={
-                                            approvalConfirmed && reportStatus === "approved"
-                                                ? "green"
-                                                : selectedNotedByUser
-                                                ? "yellow"
-                                                : "gray"
-                                        }
-                                        variant="light"
-                                    >
-                                        {approvalConfirmed && reportStatus === "approved"
-                                            ? "Approved"
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Noted by
+                                </Text>
+                                <Badge
+                                    size="sm"
+                                    color={
+                                        approvalConfirmed && reportStatus === "approved"
+                                            ? "green"
                                             : selectedNotedByUser
-                                            ? "Pending Approval"
-                                            : "Not Selected"}
-                                    </Badge>
-                                </Group>
+                                            ? "yellow"
+                                            : "gray"
+                                    }
+                                    variant="light"
+                                >
+                                    {approvalConfirmed && reportStatus === "approved"
+                                        ? "Approved"
+                                        : selectedNotedByUser
+                                        ? "Pending Approval"
+                                        : "Not Selected"}
+                                </Badge>
                             </Group>
                             <Box
                                 w={200}

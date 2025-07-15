@@ -219,7 +219,7 @@ function LiquidationReportContent() {
 
                         // Load receipt attachments if available (only from the first entry to avoid duplication)
                         const allAttachmentUrns: string[] = [];
-                        
+
                         // Only check the first entry for attachments since that's where we store them
                         if (report.entries.length > 0 && report.entries[0].receipt_attachment_urns) {
                             try {
@@ -391,10 +391,10 @@ function LiquidationReportContent() {
                     // Automatically assign the principal as notedBy if not already set
                     if (!notedBy && !selectedNotedByUser && schoolResponse.data.assignedNotedBy) {
                         console.log("Auto-assigning principal as notedBy:", schoolResponse.data.assignedNotedBy);
-                        
+
                         // Set the notedBy to the assigned principal's ID
                         setNotedBy(schoolResponse.data.assignedNotedBy);
-                        
+
                         // Find the principal user from schoolUsers if available
                         if (schoolUsers.length > 0) {
                             const principalUser = schoolUsers.find(
@@ -402,7 +402,7 @@ function LiquidationReportContent() {
                             );
                             if (principalUser) {
                                 setSelectedNotedByUser(principalUser);
-                                
+
                                 // Load the principal's signature if available and report is approved
                                 if (principalUser.signatureUrn && reportStatus === "approved") {
                                     try {
@@ -838,7 +838,8 @@ function LiquidationReportContent() {
                                 )}
                             </Group>
                             <Text size="sm" c="dimmed">
-                                {isReadOnly() ? "Viewing" : "Create and manage"} expense liquidation for {dayjs(reportPeriod).format("MMMM YYYY")}
+                                {isReadOnly() ? "Viewing" : "Create and manage"} expense liquidation for{" "}
+                                {dayjs(reportPeriod).format("MMMM YYYY")}
                             </Text>
                         </div>
                     </Group>
@@ -864,17 +865,21 @@ function LiquidationReportContent() {
                             onChange={(value) => {
                                 const newDate = value ? new Date(value) : null;
                                 setReportPeriod(newDate);
-                                
+
                                 // Clear state when month changes
-                                setExpenseItems([{
-                                    id: new Date(),
-                                    date: new Date(),
-                                    particulars: "",
-                                    receiptNumber: RECEIPT_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
-                                    quantity: QTY_FIELDS_REQUIRED.includes(category || "") ? 1 : undefined,
-                                    unit: QTY_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
-                                    unitPrice: 0,
-                                }]);
+                                setExpenseItems([
+                                    {
+                                        id: new Date(),
+                                        date: new Date(),
+                                        particulars: "",
+                                        receiptNumber: RECEIPT_FIELDS_REQUIRED.includes(category || "")
+                                            ? ""
+                                            : undefined,
+                                        quantity: QTY_FIELDS_REQUIRED.includes(category || "") ? 1 : undefined,
+                                        unit: QTY_FIELDS_REQUIRED.includes(category || "") ? "" : undefined,
+                                        unitPrice: 0,
+                                    },
+                                ]);
                                 setNotes("");
                                 setReportAttachments([]);
                                 setReceiptAttachmentUrns([]);
@@ -1122,29 +1127,23 @@ function LiquidationReportContent() {
                     {/* Noted By */}
                     <Card withBorder p="md">
                         <Stack gap="sm" align="center">
-                            <Group justify="center" w="100%" align="center">
-                                <Group gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" fw={500}>
-                                        Noted by
-                                    </Text>
-                                    <Badge
-                                        size="sm"
-                                        color={
-                                            reportStatus === "approved"
-                                                ? "green"
-                                                : selectedNotedByUser
-                                                ? "yellow"
-                                                : "gray"
-                                        }
-                                        variant="light"
-                                    >
-                                        {reportStatus === "approved"
-                                            ? "Approved"
-                                            : selectedNotedByUser
-                                            ? "Assigned"
-                                            : "Not Assigned"}
-                                    </Badge>
-                                </Group>
+                            <Group justify="space-between" w="100%" align="center">
+                                <Text size="sm" c="dimmed" fw={500}>
+                                    Noted by
+                                </Text>
+                                <Badge
+                                    size="sm"
+                                    color={
+                                        reportStatus === "approved" ? "green" : selectedNotedByUser ? "yellow" : "gray"
+                                    }
+                                    variant="light"
+                                >
+                                    {reportStatus === "approved"
+                                        ? "Approved"
+                                        : selectedNotedByUser
+                                        ? "Pending Approval"
+                                        : "Not Assigned"}
+                                </Badge>
                             </Group>
                             <Box
                                 w={200}
